@@ -8,11 +8,12 @@ from mock import patch
 from numpy.ma.testutils import assert_array_equal
 
 from flightdataaccessor import MappedArray
+
 from flightdatautilities import aircrafttables as at, units as ut
 from flightdatautilities.aircrafttables.constants import AVAILABLE_CONF_STATES
 from flightdatautilities import masked_array_testutils as ma_test
-from analysis_engine.test_utils import buildsection, buildsections
 
+from analysis_engine.test_utils import buildsection, buildsections
 from analysis_engine.node import (
     A, M, P, S, App, Attribute, load, Section
 )

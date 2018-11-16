@@ -49,7 +49,6 @@ from flightdataaccessor.datatypes.parameter import MappedArray, Parameter as Fli
 
 from flightdatautilities.numpy_utils import slices_int
 
-from flightdatautilities.numpy_utils import slices_int
 
 logger = logging.getLogger(name=__name__)
 

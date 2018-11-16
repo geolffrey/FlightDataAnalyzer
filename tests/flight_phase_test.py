@@ -3,6 +3,7 @@ import os
 import unittest
 
 from flightdataaccessor import MappedArray
+
 from flightdatautilities.array_operations import load_compressed
 
 from analysis_engine.node import (
