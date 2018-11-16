@@ -212,7 +212,7 @@ class TestDeterminePilot(unittest.TestCase):
         determine_pilot._controls_in_use.return_value = None
         determine_pilot._control_column_in_use.return_value = None
         pilot = determine_pilot._determine_pilot(
-            None, pitch_capt, pitch_fo, roll_capt, roll_fo, cc_capt, cc_fo, 
+            None, pitch_capt, pitch_fo, roll_capt, roll_fo, cc_capt, cc_fo,
             phase, None, None)
         self.assertFalse(determine_pilot._autopilot_engaged.called)
         determine_pilot._controls_in_use.assert_called_once_with(
@@ -233,7 +233,7 @@ class TestDeterminePilot(unittest.TestCase):
         # Only Autopilot.
         reset_all_mocks()
         determine_pilot._autopilot_engaged.return_value = 'Captain'
-        pilot = determine_pilot._determine_pilot(None, None, None, None, None, 
+        pilot = determine_pilot._determine_pilot(None, None, None, None, None,
                                                  None, None, None, ap1, ap2)
         determine_pilot._autopilot_engaged.assert_called_once_with(ap1, ap2)
         self.assertFalse(determine_pilot._controls_in_use.called)
@@ -243,7 +243,7 @@ class TestDeterminePilot(unittest.TestCase):
         determine_pilot._controls_in_use.return_value = 'Captain'
         determine_pilot._autopilot_engaged.return_value = 'First Officer'
         pilot = determine_pilot._determine_pilot(
-            None, pitch_capt, pitch_fo, roll_capt, roll_fo, cc_capt, cc_fo, 
+            None, pitch_capt, pitch_fo, roll_capt, roll_fo, cc_capt, cc_fo,
             phase, ap1, ap2)
         self.assertFalse(determine_pilot._autopilot_engaged.called)
         determine_pilot._controls_in_use.assert_called_once_with(
@@ -358,7 +358,7 @@ class TestDestinationAirport(unittest.TestCase):
                          [('Destination',),
                           ('AFR Destination Airport',),
                           ('Destination', 'AFR Destination Airport')])
-    
+
     def setUp(self):
         dest_array = np.ma.array(
             [b'FDSL', b'FDSL', b'FDSL', b'FDSL', b'ABCD', b'ABCD'],
@@ -372,17 +372,17 @@ class TestDestinationAirport(unittest.TestCase):
         self.node.derive(self.dest, None)
         self.assertEqual(self.node.value, get_airport.return_value)
         get_airport.assert_called_once_with('FDSL')
-    
+
     def test_derive_afr_dest(self):
         self.node.derive(None, self.afr_dest)
         self.assertEqual(self.node.value, self.afr_dest.value)
-    
+
     @patch('analysis_engine.api_handler.FileHandler.get_airport')
     def test_derive_both(self, get_airport):
         self.node.derive(self.dest, self.afr_dest)
         self.assertEqual(self.node.value, get_airport.return_value)
         get_airport.assert_called_once_with('FDSL')
-    
+
     def test_derive_invalid(self):
         dest_array = np.ma.array(
             ['000', '0000', '0000', '0000', '00', '0000'],
@@ -433,7 +433,7 @@ class TestFlightNumber(unittest.TestCase):
         flight_number.set_flight_attr = Mock()
         flight_number.derive(flight_number_param)
         flight_number.set_flight_attr.assert_called_with('102')
-    
+
     def test_derive(self):
         flight_number = load(os.path.join(test_data_path,
                                           'FDRFlightNumber_FlightNumber.nod'))
@@ -457,7 +457,7 @@ class TestFlightNumber(unittest.TestCase):
 
     def test_derive_masked(self):
         '''
-        
+
         '''
         flight_number = FlightNumber()
         number_param = P(
@@ -466,7 +466,7 @@ class TestFlightNumber(unittest.TestCase):
                               mask=[True] * 4 + [False] * 2 + [True] * 4))
         flight_number.derive(number_param)
         self.assertEqual(flight_number.value, '36')
-    
+
     def test_derive_most_common_positive_float(self):
         flight_number = FlightNumber()
 
