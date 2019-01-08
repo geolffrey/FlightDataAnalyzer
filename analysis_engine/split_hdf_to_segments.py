@@ -34,7 +34,7 @@ from analysis_engine.library import (align,
                                      straighten_headings,
                                      vstack_params)
 
-from flightdataaccessor.file import hdf_file
+import flightdataaccessor
 from flightdataaccessor.utils import segment_boundaries, write_segment
 
 from flightdatautilities.filesystem_tools import sha_hash_file
@@ -1036,12 +1036,12 @@ def append_segment_info(segment_object, segment_type, segment_slice, part,
         segment_path = segment_object.path
 
     # build information about a slice
-    with hdf_file(segment_object) as hdf:
-        speed, _, thresholds = _get_speed_parameter(hdf, aircraft_info)
-        duration = hdf.duration
+    with flightdataaccessor.open(segment_object, mode='a') as fdf:
+        speed, _, thresholds = _get_speed_parameter(fdf, aircraft_info)
+        duration = fdf.duration
         try:
             start_datetime, precise_timestamp, timestamp_configuration = _calculate_start_datetime(
-                hdf, fallback_dt, validation_dt)
+                fdf, fallback_dt, validation_dt)
         except TimebaseError:
             # Warn the user and store the fake datetime. The code on the other
             # side should check the datetime and avoid processing this file
@@ -1051,7 +1051,7 @@ def append_segment_info(segment_object, segment_type, segment_slice, part,
             precise_timestamp = False
             timestamp_configuration = None
         stop_datetime = start_datetime + timedelta(seconds=duration)
-        hdf.start_datetime = start_datetime
+        fdf.start_datetime = start_datetime
 
     if segment_type in ('START_AND_STOP', 'START_ONLY', 'STOP_ONLY'):
         # we went fast, so get the index
@@ -1125,14 +1125,13 @@ def split_hdf_to_segments(source, aircraft_info, fallback_dt=None,
         from analysis_engine.plot_flight import plot_essential
         plot_essential(source)
 
-    if isinstance(validation_dt, string_types):
+    if isinstance(validation_dt, six.string_types):
         validation_dt = datetime.strptime(validation_dt, '%Y-%m-%dT%H:%M:%S.%fZ').replace(tzinfo=pytz.utc)
 
-    with hdf_file(source) as hdf:
-
+    with flightdataaccessor.open(source, mode='a') as fdf:
         # Confirm aircraft tail for the entire datafile
         logger.debug("Validating aircraft matches that recorded in data")
-        validate_aircraft(aircraft_info, hdf)
+        validate_aircraft(aircraft_info, fdf)
 
         # now we know the Aircraft is correct, go and do the PRE FILE ANALYSIS
         hook = hooks.PRE_FILE_ANALYSIS
@@ -1140,7 +1139,7 @@ def split_hdf_to_segments(source, aircraft_info, fallback_dt=None,
             logger.debug("Performing PRE_FILE_ANALYSIS action '%s' with options: %s",
                          getattr(hook, 'func_name', getattr(hook, '__name__')),
                          pre_file_kwargs)
-            hook(hdf, aircraft_info, **pre_file_kwargs)
+            hook(fdf, aircraft_info, **pre_file_kwargs)
         else:
             logger.info("No PRE_FILE_ANALYSIS actions to perform")
 
@@ -1154,10 +1153,10 @@ def split_hdf_to_segments(source, aircraft_info, fallback_dt=None,
             # For CSV and similar single frequency formats, there is no boundary constraint.
             boundary = 4
 
-        segment_tuples = split_segments(hdf, aircraft_info)
+        segment_tuples = split_segments(fdf, aircraft_info)
         frame_doubled = aircraft_info.get('Frame Doubled', False)
 
-        fallback_dt = calculate_fallback_dt(hdf, fallback_dt, validation_dt,
+        fallback_dt = calculate_fallback_dt(fdf, fallback_dt, validation_dt,
                                             fallback_relative_to_start,
                                             frame_doubled, dt_origin_kwargs)
 
