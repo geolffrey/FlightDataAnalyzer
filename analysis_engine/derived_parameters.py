@@ -1037,10 +1037,10 @@ class AltitudeRadio(DerivedParameterNode):
             # correction algorithms can be out of step, giving differences of the order of
             # 1,000ft between two sensors. The tolerance threshold ensures these are rejected
             # (a wide tolerance ensures we don't react to normal levels of noise between altimeters).
-            self.array = blend_parameters(osources, offset=self.offset, frequency=self.frequency, small_slice_duration=10,
-                                          mode='cubic', validity='all_but_one', tolerance=500.0)
+            array = blend_parameters(osources, offset=self.offset, frequency=self.frequency, small_slice_duration=10,
+                                     mode='cubic', validity='all_but_one', tolerance=500.0)
 
-            self.array = np.ma.masked_greater(self.array, ALTITUDE_RADIO_MAX_RANGE)
+            self.array = np.ma.masked_greater(array, ALTITUDE_RADIO_MAX_RANGE)
 
             # For aircraft where the antennae are placed well away from the main
             # gear, and especially where it is aft of the main gear, compensation
