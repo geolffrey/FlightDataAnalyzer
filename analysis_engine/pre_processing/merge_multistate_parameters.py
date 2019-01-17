@@ -1,3 +1,4 @@
+from flightdataaccessor import MappedArray
 from analysis_engine.library import (
     any_deps,
     any_of,
@@ -61,8 +62,8 @@ class GearUp(MultistateDerivedParameterNode):
         _slices = runs_of_ones(self.array == 'Down')
         _slices = slices_remove_small_gaps(_slices, 2, self.hz)
         for _slice in _slices:
-            self.array[_slice] = 'Down'        
-        
+            self.array[_slice] = 'Down'
+
 
 
 class GearInTransit(MultistateDerivedParameterNode):
@@ -163,8 +164,9 @@ class GearPosition(MultistateDerivedParameterNode):
             (gc, 'In Transit'),
         ).any(axis=0)
         param = first_valid_parameter(gl, gn, gr, gc)
-        self.array = np_ma_masked_zeros_like(param.array)
-        self.array[repair_mask(up_state, repair_duration=None)] = 'Up'
-        self.array[repair_mask(down_state, repair_duration=None)] = 'Down'
-        self.array[repair_mask(transit_state, repair_duration=None)] = 'In Transit'
-        self.array = nearest_neighbour_mask_repair(self.array)
+        array = MappedArray(np_ma_masked_zeros_like(param.array), values_mapping=self.values_mapping)
+        array[repair_mask(up_state, repair_duration=None)] = 'Up'
+        array[repair_mask(down_state, repair_duration=None)] = 'Down'
+        array[repair_mask(transit_state, repair_duration=None)] = 'In Transit'
+        array = nearest_neighbour_mask_repair(array)
+        self.array = array

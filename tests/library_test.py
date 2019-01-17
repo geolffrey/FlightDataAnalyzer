@@ -232,6 +232,8 @@ from analysis_engine.library import (
     wrap_array,
 )
 
+from flightdataaccessor import MappedArray
+
 from analysis_engine.node import (A, P, S, load, M, KTI, KeyTimeInstance, Section)
 
 from analysis_engine.test_utils import buildsections

@@ -13,7 +13,7 @@ from flightdatautilities.aircrafttables.interfaces import VelocitySpeed
 from flightdatautilities.array_operations import load_compressed
 from flightdatautilities.geometry import midpoint
 
-from flightdataaccessor.datatypes.parameter import MappedArray
+from flightdataaccessor import MappedArray
 
 from analysis_engine.node import (
     A, M, P, S, KPV, KTI, aeroplane, App, ApproachItem,
@@ -997,7 +997,7 @@ class CreateKPVsAtKPVsTest(NodeTest):
     '''
     def test_derive_mocked(self):
         mock1, mock2 = Mock(), Mock()
-        mock1.array = Mock()
+        mock1.array = []
         node = self.node_class()
         node.create_kpvs_at_kpvs = Mock()
         node.derive(mock1, mock2)
@@ -1015,7 +1015,7 @@ class CreateKPVsAtKTIsTest(NodeTest):
     '''
     def test_derive_mocked(self):
         mock1, mock2 = Mock(), Mock()
-        mock1.array = Mock()
+        mock1.array = []
         node = self.node_class()
         node.create_kpvs_at_ktis = Mock()
         node.derive(mock1, mock2)
@@ -1044,8 +1044,7 @@ class CreateKPVsWithinSlicesTest(NodeTest):
     '''
     def test_derive_mocked(self):
         mock1, mock2, mock3 = Mock(), Mock(), Mock()
-        mock1.array = Mock()
-        mock1.frequency = 1.0
+        mock1.array = []
         if hasattr(self, 'second_param_method_calls'):
             mock3 = Mock()
             setattr(mock2, self.second_param_method_calls[0][0], mock3)
@@ -1097,7 +1096,7 @@ class CreateKPVFromSlicesTest(NodeTest):
     '''
     def test_derive_mocked(self):
         mock1, mock2, mock3 = Mock(), Mock(), Mock()
-        mock1.array = Mock()
+        mock1.array = []
         if hasattr(self, 'second_param_method_calls'):
             mock3 = Mock()
             setattr(mock2, self.second_param_method_calls[0][0], mock3)
@@ -13927,7 +13926,7 @@ class TestLatitudeAtTouchdown(unittest.TestCase, NodeTest):
 
     def test_derive_with_latitude(self):
         lat = P(name='Latitude')
-        lat.array = Mock()
+        lat.array = []
         tdwns = KTI(name='Touchdown')
         afr_land_rwy = None
         afr_land_apt = None
@@ -13996,7 +13995,7 @@ class TestLatitudeAtLiftoff(unittest.TestCase, NodeTest):
 
     def test_derive_with_latitude(self):
         lat = P(name='Latitude')
-        lat.array = Mock()
+        lat.array = []
         liftoffs = KTI(name='Liftoff', items=[KeyTimeInstance(index=0)])
         afr_toff_rwy = None
         afr_toff_apt = None
@@ -14096,7 +14095,7 @@ class TestLongitudeAtTouchdown(unittest.TestCase, NodeTest):
 
     def test_derive_with_longitude(self):
         lon = P(name='Latitude')
-        lon.array = Mock()
+        lon.array = []
         tdwns = KTI(name='Touchdown')
         afr_land_rwy = None
         afr_land_apt = None
@@ -14166,7 +14165,7 @@ class TestLongitudeAtLiftoff(unittest.TestCase, NodeTest):
 
     def test_derive_with_longitude(self):
         lon = P(name='Longitude')
-        lon.array = Mock()
+        lon.array = []
         liftoffs = KTI(name='Liftoff', items=[KeyTimeInstance(index=0)])
         afr_toff_rwy = None
         afr_toff_apt = None
@@ -14221,7 +14220,7 @@ class TestLatitudeOffBlocks(unittest.TestCase, NodeTest):
 
     def test_derive_with_Latitude(self):
         lat = P(name='Latitude')
-        lat.array = Mock()
+        lat.array = []
         tdwns = KTI(name='Touchdown')
         lat_c = None
         node = self.node_class()
@@ -14244,7 +14243,7 @@ class TestLongitudeOffBlocks(unittest.TestCase, NodeTest):
 
     def test_derive_with_longitude(self):
         lon = P(name='Longitude')
-        lon.array = Mock()
+        lon.array = []
         liftoffs = KTI(name='Liftoff')
         node = self.node_class()
         node.create_kpv = Mock()
@@ -14266,7 +14265,7 @@ class TestLatitudeAtTakeoffAccelerationStart(unittest.TestCase, NodeTest):
 
     def test_derive_with_Latitude(self):
         lat = P(name='Latitude')
-        lat.array = Mock()
+        lat.array = []
         toff_accel = KTI(name='Takeoff Acceleration Start')
         lat_c = None
         node = self.node_class()
@@ -14289,7 +14288,7 @@ class TestLongitudeAtTakeoffAccelerationStart(unittest.TestCase, NodeTest):
 
     def test_derive_with_longitude(self):
         lon = P(name='Longitude')
-        lon.array = Mock()
+        lon.array = []
         toff_accel = KTI(name='Takeoff Acceleration Start')
         node = self.node_class()
         node.create_kpv = Mock()

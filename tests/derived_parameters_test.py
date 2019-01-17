@@ -12,7 +12,8 @@ from mock import Mock, patch
 
 from numpy.ma.testutils import assert_array_almost_equal, assert_array_equal, assert_almost_equal, assert_equal
 
-from flightdataaccessor.file import hdf_file
+import flightdataaccessor as fda
+
 from flightdatautilities import aircrafttables as at, units as ut
 from flightdatautilities.array_operations import load_compressed
 from flightdatautilities.aircrafttables.interfaces import VelocitySpeed
@@ -337,7 +338,7 @@ class NodeTest(object):
         with tempfile.NamedTemporaryFile() as temp_file:
             shutil.copy(hdf_path, temp_file.name)
 
-            with hdf_file(hdf_path) as hdf:
+            with fda.open(hdf_path) as hdf:
                 for param_name in param_names:
                     params.append(hdf.get(param_name))
 
@@ -1204,7 +1205,7 @@ class TestAltitudeAAL(unittest.TestCase):
             'Precise Positioning': True,
             'Series': 'B767-300',
         })
-        with hdf_file(hdf_copy) as hdf:
+        with fda.open(hdf_copy) as hdf:
             hdf['Altitude AAL']
             self.assertTrue(False, msg='Test not implemented.')
 
@@ -1231,7 +1232,7 @@ class TestAltitudeAAL(unittest.TestCase):
             'Precise Positioning': True,
             'Series': 'B767-300',
         })
-        with hdf_file(hdf_copy) as hdf:
+        with fda.open(hdf_copy) as hdf:
             hdf['Altitude AAL']
             self.assertTrue(False, msg='Test not implemented.')
 
@@ -6699,7 +6700,7 @@ class TestCoordinatesSmoothed(TemporaryFileTest, unittest.TestCase):
     # Skipped by DJ's advice: too many changes withoud updating the test
     @unittest.skip('Test Out Of Date')
     def test__adjust_track_precise(self):
-        with hdf_file(self.test_file_path) as hdf:
+        with fda.open(self.test_file_path) as hdf:
             lon = hdf['Longitude']
             lat = hdf['Latitude']
             ils_loc =hdf['ILS Localizer']
@@ -6727,7 +6728,7 @@ class TestCoordinatesSmoothed(TemporaryFileTest, unittest.TestCase):
     # Skipped by DJ's advice: too many changes withoud updating the test
     @unittest.skip('Test Out Of Date')
     def test__adjust_track_imprecise(self):
-        with hdf_file(self.test_file_path) as hdf:
+        with fda.open(self.test_file_path) as hdf:
             lon = hdf['Longitude']
             lat = hdf['Latitude']
             ils_loc =hdf['ILS Localizer']
@@ -6760,7 +6761,7 @@ class TestCoordinatesSmoothed(TemporaryFileTest, unittest.TestCase):
     # Skipped by DJ's advice: too many changes withoud updating the test
     @unittest.skip('Test Out Of Date')
     def test__adjust_track_visual(self):
-        with hdf_file(self.test_file_path) as hdf:
+        with fda.open(self.test_file_path) as hdf:
             lon = hdf['Longitude']
             lat = hdf['Latitude']
             ils_loc =hdf['ILS Localizer']
@@ -6881,7 +6882,7 @@ class TestApproachRange(TemporaryFileTest, unittest.TestCase):
         self.assertTrue(('Heading', 'Airspeed True', 'Altitude AAL', 'Approach Information') in operational_combinations, msg="Missing 'Heading' combination")
 
     def test_range_basic(self):
-        with hdf_file(self.test_file_path) as hdf:
+        with fda.open(self.test_file_path) as hdf:
             hdg = hdf['Heading True']
             tas = hdf['Airspeed True']
             alt = hdf['Altitude AAL']
@@ -6895,7 +6896,7 @@ class TestApproachRange(TemporaryFileTest, unittest.TestCase):
         self.assertEqual(chunks,[slice(12928, 13440, None)])
 
     def test_range_full_param_set(self):
-        with hdf_file(self.test_file_path) as hdf:
+        with fda.open(self.test_file_path) as hdf:
             hdg = hdf['Track True']
             tas = hdf['Airspeed True']
             alt = hdf['Altitude AAL']
