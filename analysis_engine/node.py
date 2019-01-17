@@ -906,10 +906,6 @@ class MultistateDerivedParameterNode(DerivedParameterNode):
         if array is None:
             array = fda.MappedArray([], values_mapping=values_mapping)
 
-        super(MultistateDerivedParameterNode, self).__init__(
-            name, array, frequency, offset, data_type, *args,
-            **kwargs)
-
         #Q: if no values_mapping set to None?
         if values_mapping:
             self.values_mapping = values_mapping
