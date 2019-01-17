@@ -3455,14 +3455,12 @@ class TestIndexAtValue(unittest.TestCase):
         array = np.ma.arange(4)
         self.assertEquals(index_at_value(array, 3.0, slice(1, 4)), 3.0)
 
-    #==================================================================
     # Indexing from the end of the array results in an array length
     # mismatch. There is a failing test to cover this case which may work
     # with array[:end:-1] construct, but using slices appears insoluble.
     def test_index_at_value_backwards_from_end_minus_one(self):
         array = np.ma.arange(8)
         self.assertEquals(index_at_value(array, 7, slice(8, 3, -1)), 7)
-    #==================================================================
 
     def test_index_at_value_backwards_to_start(self):
         array = np.ma.arange(8)
