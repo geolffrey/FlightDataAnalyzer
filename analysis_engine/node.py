@@ -906,21 +906,16 @@ class MultistateDerivedParameterNode(DerivedParameterNode):
         if array is None:
             array = fda.MappedArray([], values_mapping=values_mapping)
 
-        super(MultistateDerivedParameterNode, self).__init__(
-            name, array, frequency, offset, data_type, *args,
-            **kwargs)
-
         #Q: if no values_mapping set to None?
         if values_mapping:
             self.values_mapping = values_mapping
         elif not hasattr(self, 'values_mapping'):
             self.values_mapping = {}
 
+        self.state = {v: k for k, v in six.iteritems(self.values_mapping)}
         super(MultistateDerivedParameterNode, self).__init__(
             name, array, frequency, offset, data_type, *args,
             **kwargs)
-
-        self.state = {v: k for k, v in six.iteritems(self.values_mapping)}
 
     def get_derived(self, *args, **kwargs):
         node = super(MultistateDerivedParameterNode, self).get_derived(*args,

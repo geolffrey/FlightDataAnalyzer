@@ -235,7 +235,6 @@ from analysis_engine.library import (
 from flightdataaccessor import MappedArray
 
 from analysis_engine.node import (A, P, S, load, M, KTI, KeyTimeInstance, Section)
-
 from analysis_engine.test_utils import buildsections
 
 test_data_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
