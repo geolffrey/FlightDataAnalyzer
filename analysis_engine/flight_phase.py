@@ -119,18 +119,18 @@ class Airborne(FlightPhaseNode):
         # Remove short gaps in going fast to account for aerobatic manoeuvres
         speedy_slices = slices_remove_small_gaps(fast.get_slices(),
                                                  time_limit=60, hz=fast.frequency)
-    
+
         # Just find out when altitude above airfield is non-zero.
         for speedy in speedy_slices:
             # Stop here if the aircraft never went fast.
             if speedy.start is None and speedy.stop is None:
                 break
-    
+
             start_point = speedy.start or 0
             stop_point = speedy.stop or len(alt_aal.array)
             # Restrict data to the fast section (it's already been repaired)
             working_alt = alt_aal.array[start_point:stop_point]
-    
+
             # Stop here if there is inadequate airborne data to process.
             if working_alt is None or np.ma.ptp(working_alt)==0.0:
                 continue
@@ -245,14 +245,14 @@ class Holding(FlightPhaseNode):
 
         # Five minutes should include two turn segments.
         turn_rate = rate_of_change(hdg, 5 * 60)
-        
-        # We scan the entire descent, from highest altitude to the final 
+
+        # We scan the entire descent, from highest altitude to the final
         # touchdown, to give us the best chance of finding any hold periods.
         to_scan = slice(alt_max[0].index, tdwns[-1].index)
         # We know turn rate will be positive because Heading Increasing only
         # increases.
         turn_bands = np.ma.clump_unmasked(
-            np.ma.masked_less(turn_rate[to_scan], 0.5))
+            np.ma.masked_less(turn_rate[to_scan], 0.6))
         hold_bands=[]
         for turn_band in shift_slices(turn_bands, to_scan.start):
             # Reject short periods and check that the average groundspeed was
@@ -429,14 +429,14 @@ class Approach(FlightPhaseNode):
 class BouncedLanding(FlightPhaseNode):
     '''
     Bounced landing, defined as from first moment on ground to the final moment on the ground.
-    
+
     Note: Airborne includes rejection of short segments, so the bounced period is within
     an airborne phase.
     '''
     def derive(self, alt_aal=P('Altitude AAL For Flight Phases'),
                airs=S('Airborne')):
         gnds = np.ma.clump_masked(np.ma.masked_less(alt_aal.array,
-                                                    BOUNCED_LANDING_THRESHOLD))        
+                                                    BOUNCED_LANDING_THRESHOLD))
         for air in airs:
             for gnd in gnds:
                 if not is_slice_within_slice(gnd, air.slice):
@@ -1789,10 +1789,10 @@ class RejectedTakeoff(FlightPhaseNode):
             rto_list=[]
             for rto in potential_rtos:
                 for running_on_ground in running_on_grounds:
-                    # The RTO slice can only be within the 'Grounded' phase. 
+                    # The RTO slice can only be within the 'Grounded' phase.
                     # If RTO slice size changes (decreases) when AND'd with
                     # running_on_ground this Acceleration/N1 Max combination
-                    # should be the part of the takeoff. 
+                    # should be the part of the takeoff.
                     if slices_and([rto], [running_on_ground]) == [rto]:
                         if len(rto_list) > 0 and\
                            (rto.start - rto_list[-1].stop)/hz < 60.0:
@@ -2093,7 +2093,7 @@ class Takeoff5MinRating(FlightPhaseNode):
                     rating_end = accel_start.index + (five_minutes)
                 self.create_phase(slice(accel_start.index, min(rating_end, max_idx)))
         elif ac_type == helicopter:
-            
+
             start_idx = end_idx = 0
             for lift in lifts:
                 start_idx = start_idx or lift.index
@@ -2221,12 +2221,12 @@ class TCASOperational(FlightPhaseNode):
     There are different validity flags with different aircraft, and we need to make sure
     that TCAS does not operate on the ground. This phase merges the alternative sources
     to avoid repetition elsewhere.
-    
-    TCAS determines the approximate altitude of each aircraft above the ground. 
-    If this difference is less than 900 feet, TCAS considers the reporting aircraft 
+
+    TCAS determines the approximate altitude of each aircraft above the ground.
+    If this difference is less than 900 feet, TCAS considers the reporting aircraft
     to be on the ground.
     """
-    
+
     name = 'TCAS Operational'
     frequency = 1.0
 
@@ -2247,7 +2247,7 @@ class TCASOperational(FlightPhaseNode):
         if not operating:
             # No point in looking further if the aircraft didn't fly.
             return
-        
+
         if tcas_cc:
             # Build a list of the valid sections of Combined Control data...
             good_slices = []
@@ -2330,7 +2330,7 @@ class TCASTrafficAdvisory(FlightPhaseNode):
     def can_operate(cls, available):
         return any_one_of(('TCAS TA', 'TCAS All Threat Traffic', 'TCAS Traffic Alert', 'TCAS TA (1)'), available) \
             and 'TCAS Operational' in available
-    
+
     def derive(self, tcas_ops=S('TCAS Operational'),
                tcas_ta1=M('TCAS TA'),
                tcas_ta2=M('TCAS All Threat Traffic'),
@@ -2351,7 +2351,7 @@ class TCASTrafficAdvisory(FlightPhaseNode):
             tas_local = array.any_of('TA', 'Alert', ignore_missing=True)
             ta_slices = shift_slices(runs_of_ones(tas_local), tcas_op.slice.start)
             ta_slices = slices_remove_small_slices(ta_slices,
-                                                   time_limit=4.0, 
+                                                   time_limit=4.0,
                                                    hz=tcas_ta.frequency)
             all_slices.extend(ta_slices)
 
@@ -2365,29 +2365,29 @@ class TCASTrafficAdvisory(FlightPhaseNode):
                         to_pop.append(n)
             for pop in to_pop[::-1]:
                 all_slices.pop(pop)
-        
+
         self.create_phases(all_slices)
 
 class TCASResolutionAdvisory(FlightPhaseNode):
     '''
-    This uses the Combined Control parameter only because the TCAS RA signals are only 
-    present on aircraft with Combined Control as well, and the TCAS RA signals include 
+    This uses the Combined Control parameter only because the TCAS RA signals are only
+    present on aircraft with Combined Control as well, and the TCAS RA signals include
     the Clear of Conflict period, making the duration of the phase inconsistent.
     '''
-    
+
     @classmethod
     def can_operate(cls, available):
         return all_of(('TCAS Combined Control', 'TCAS Operational'), available) or \
                all_of(('TCAS RA', 'TCAS Operational'), available)
-    
+
     name = 'TCAS Resolution Advisory'
 
-    def derive(self, tcas_cc=M('TCAS Combined Control'), 
+    def derive(self, tcas_cc=M('TCAS Combined Control'),
                tcas_ops=S('TCAS Operational'),
                tcas_ra=M('TCAS RA')):
 
         for tcas_op in tcas_ops:
-            # We can be sloppy about error conditions because these have been taken 
+            # We can be sloppy about error conditions because these have been taken
             # care of in the TCAS Operational definition.
             if tcas_cc:
                 ra_slices = runs_of_ones(tcas_cc.array[tcas_op.slice].any_of(
@@ -2397,27 +2397,27 @@ class TCASResolutionAdvisory(FlightPhaseNode):
                     'Drop Track',
                     ignore_missing=True,
                 ))
-    
+
                 ra_slices = shift_slices(ra_slices, tcas_op.slice.start)
                 hz = tcas_cc.frequency
-                
+
             else:
                 # Operating with only a single TCAS RA signal, as recorded on some aircraft.
                 ra_slices = runs_of_ones(tcas_ra.array[tcas_op.slice].any_of(
                     'RA',
                     ignore_missing=True,
-                ))                
+                ))
                 ra_slices = shift_slices(ra_slices, tcas_op.slice.start)
                 hz = tcas_ra.frequency
-            
+
             # Where data is corrupted, single samples are a common source of error
             # time_limit rejects single samples, but 4+ sample events are retained.
             ra_slices = slices_remove_small_slices(ra_slices,
-                                                   time_limit=4.0, 
+                                                   time_limit=4.0,
                                                    hz=hz)
             self.create_phases(ra_slices)
-            
-                        
+
+
 ################################################################################
 
 
@@ -2548,18 +2548,18 @@ class ShuttlingApproach(FlightPhaseNode):
     '''
     Flight phase for the shuttling approach
     '''
-    
+
     def derive(self, approaches=App('Approach Information')):
         for approach in approaches:
             if approach.type == 'SHUTTLING':
                 self.create_section(approach.slice, name='Shuttling Approach')
-               
-                
+
+
 class AirborneRadarApproach(FlightPhaseNode):
     '''
     Flight phase for airborne radar approaches (ARDA/AROA)
     '''
-    
+
     def derive(self, approaches=App('Approach Information')):
         for approach in approaches:
             if approach.type == 'AIRBORNE_RADAR':
