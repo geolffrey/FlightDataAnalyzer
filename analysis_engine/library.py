@@ -5326,23 +5326,23 @@ def overflow_correction(array, ref=None, fast=None, hz=1):
         slices_remove_small_slices(np.ma.clump_unmasked(array),
                                    time_limit=10, hz=hz),
         time_limit=5, hz=hz)
-    # Due to aircraft power-up sequences, the first few samples of data is 
+    # Due to aircraft power-up sequences, the first few samples of data is
     # sometimes corrupt.
     if not good_slices:
         return array
-    
+
     end = good_slices[0].stop
     begin = min(good_slices[0].start + 4, end - 1)
     good_slices[0] = slice(begin, end)
 
     if not fast:
         # The first time we use this algorithm we don't have speed information
-        for good_slice in good_slices:
+        for good_slice in slices_int(good_slices):
             if np.ma.ptp(array[good_slice]) > 20.0:
                 array[good_slice] = overflow_correction_array(array[good_slice])
             else:
                 if abs(np.ma.average(array[good_slice])) > 100.0:
-                   array.mask[good_slice] = True
+                    array[good_slice] = np.ma.masked
     else:
         # The second time our challenge is to make sure the segments are
         # adjusted correctly
@@ -5355,6 +5355,7 @@ def overflow_correction(array, ref=None, fast=None, hz=1):
                                 hz)
 
     return array
+
 
 def align_altitudes(alt_rad, alt_std, good_slices, fast_slices, hz):
     '''
@@ -5396,7 +5397,7 @@ def overflow_correction_array(array):
 
     # Most radio altimeters are scaled to overflow at 2048ft, but occasionally the signed
     # value changes by half this amount. Hence jumps more than half a power lower than 2**10.
-    # We want to correct the step, hence the change of sign in the resulting array. 
+    # We want to correct the step, hence the change of sign in the resulting array.
     steps = -np.ma.where(abs_jump > 800.0, 2**np.rint(np.ma.log2(abs_jump)) * np.sign(jump), 0)
 
     biggest_step_up = np.ma.max(steps)
