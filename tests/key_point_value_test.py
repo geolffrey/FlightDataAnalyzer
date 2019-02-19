@@ -687,6 +687,7 @@ from analysis_engine.key_point_values import (
     TakeoffConfigurationStabilizerWarningDuration,
     TakeoffConfigurationWarningDuration,
     TakeoffRatingDuration,
+    TakeoffTurnOntoRunwayTakeoffRollStartDistance,
     TaxiInDuration,
     TaxiOutDuration,
     TerrainClearanceAbove3000FtMin,
