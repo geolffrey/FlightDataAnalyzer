@@ -5276,12 +5276,7 @@ class TestRepairMask(unittest.TestCase):
         res = repair_mask(array)
         np.testing.assert_array_equal(res.data,range(10))
         # test mask is now unmasked
-        self.assertFalse(np.ma.is_masked(res[3]))
-        self.assertFalse(np.ma.is_masked(res[4]))
-        self.assertFalse(np.ma.is_masked(res[5]))
-        self.assertFalse(np.ma.is_masked(res[6]))
-        self.assertFalse(np.ma.is_masked(res[7]))
-        self.assertFalse(np.ma.is_masked(res[8]))
+        self.assertFalse(np.any(res.mask[3:9]))
 
     def test_repair_mask_too_much_invalid(self):
         array = np.ma.arange(20)
