@@ -5593,7 +5593,7 @@ class AltitudeAtGearUpSelectionDuringGoAround(KeyPointValueNode):
             for gear_up in gear_up_sel.get(within_slice=go_around.slice):
                 if gear_up.index > pit_index:
                     # Use height between go around minimum and gear up:
-                    gear_up_ht = alt_aal.array[gear_up.index] - pit_value
+                    gear_up_ht = alt_aal.array[int(gear_up.index)] - pit_value
                     self.create_kpv(gear_up.index, gear_up_ht)
 
                 # The else condition below led to creation of a zero KPV in
