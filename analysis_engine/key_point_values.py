@@ -12704,7 +12704,11 @@ class HeadingVariationAbove100KtsAirspeedDuringLanding(KeyPointValueNode):
         for land in lands:
             begin = index_at_value(alt.array, 1.0, _slice=land.slice)
             end = index_at_value(airspeed.array, 100.0, _slice=land.slice)
-            if begin is None or begin > end:
+
+            if begin is None or end is None:
+                continue
+
+            if begin > end:
                 # Corrupt landing slices or landed below 100kts. Can happen!
                 break
             else:
