@@ -4732,7 +4732,7 @@ class AOADiscrepancyMax(KeyPointValueNode):
     Maximum recorded AoA discrepancy.
     '''
 
-    name = 'AoA Discrepancy Max'
+    name = 'AOA Discrepancy Max'
     units = ut.DEGREE
 
     def derive(self,
@@ -4740,7 +4740,7 @@ class AOADiscrepancyMax(KeyPointValueNode):
                aoa_r=P('AOA (R)'),
                airs=S('Airborne'),):
         diff = aoa_l.array - aoa_r.array
-        self.create_kpvs_within_slices(diff, airs, max_abs_value)
+        self.create_kpvs_within_slices(np.ma.abs(diff), airs, max_abs_value)
 
 
 ##############################################################################
