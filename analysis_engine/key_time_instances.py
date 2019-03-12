@@ -1135,7 +1135,7 @@ class TakeoffAccelerationStart(KeyTimeInstanceNode):
                                 accel_sel = alt_start
                         start_accel = accel_sel.start
 
-            if start_accel is None:
+            if start_accel is None or start_accel == []:
                 '''
                 A quite respectable "backstop" is from the rate of change of
                 airspeed. We use this if the acceleration is not available or
