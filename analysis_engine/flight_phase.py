@@ -1748,8 +1748,7 @@ class Takeoff(FlightPhaseNode):
             takeoff_end = index_at_value(alt_aal.array, INITIAL_CLIMB_THRESHOLD,
                                          slice(last, takeoff_run, -1))
 
-            if takeoff_end <= 0:
-                # catches if None or zero
+            if takeoff_end is None or takeoff_end <= 0:
                 continue
 
             #-------------------------------------------------------------------
