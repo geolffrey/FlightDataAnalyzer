@@ -4441,7 +4441,7 @@ class AOAWithFlapDuringDescentMax(KeyPointValueNode):
 
 class AOADiscrepancyMax(KeyPointValueNode):
     '''
-    Maximum recorded AoA discrepancy.
+    Maximum recorded AoA discrepancy sustained for at least 3 seconds in straight and level flight.
     '''
 
     name = 'AOA Discrepancy Max'
@@ -4450,9 +4450,10 @@ class AOADiscrepancyMax(KeyPointValueNode):
     def derive(self,
                aoa_l=P('AOA (L)'),
                aoa_r=P('AOA (R)'),
-               airs=S('Airborne'),):
-        diff = aoa_l.array - aoa_r.array
-        self.create_kpvs_within_slices(np.ma.abs(diff), airs, max_abs_value)
+               airs=S('Straight And Level'),):
+        diff = np.ma.abs(aoa_l.array - aoa_r.array)
+        diff = second_window(diff, self.hz, 3, extend_window=True)
+        self.create_kpvs_within_slices(diff, airs, max_value)
 
 
 ##############################################################################
