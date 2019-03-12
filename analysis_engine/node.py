@@ -1448,7 +1448,7 @@ class FormattedNameNode(ListNode):
         :rtype: self.__class__
         '''
         condition = self._get_condition(**kwargs)
-        matching = filter(condition, self) if condition else self
+        matching = list(filter(condition, self)) if condition else self
         return self.__class__(name=self.name, frequency=self.frequency,
                               offset=self.offset, items=matching)
 
