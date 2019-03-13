@@ -1275,7 +1275,7 @@ class AirspeedGustsDuringFinalApproach(KeyPointValueNode):
         descents = slices_and(airborne.get_slices(), fin_apps)
         for descent in descents:
             # Ensure we encompass the range of interest.
-            scope = slice(descent.start - 5, descent.stop + 5)
+            scope = slices_int(descent.start - 5, descent.stop + 5)
             # We'd like to use groundspeed to compute the wind gust, but
             # variations in airspeed are a suitable backstop.
             if gnd_spd:
