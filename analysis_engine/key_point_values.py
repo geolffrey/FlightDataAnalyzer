@@ -4470,8 +4470,7 @@ class AOAMaxOnClimbout(KeyPointValueNode):
                aoa_r=P('AOA (R)'),
                flap=P('Flap Including Transition'),
                cmd=M('AP Engaged'),
-               airborne=S('Airborne'),
-               flap_angle=P('Flap Angle'),):
+               airborne=S('Airborne'),):
 
         # 1. Merge two AOA sensors and find Max
         aoa = vstack_params(aoa_l, aoa_r)
