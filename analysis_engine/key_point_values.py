@@ -4743,6 +4743,35 @@ class AOADiscrepancyMax(KeyPointValueNode):
         self.create_kpvs_within_slices(np.ma.abs(diff), airs, max_abs_value)
 
 
+class AOAMaxOnClimbout(KeyPointValueNode):
+    '''
+    Maximum recorded AoA with Flaps Up and CMD not engaged.
+    '''
+
+    name = 'AOA Max On Climbout'
+    units = ut.DEGREE
+
+    def derive(self,
+               aoa_l=P('AOA (L)'),
+               aoa_r=P('AOA (R)'),
+               flap=P('Flap Including Transition'),
+               cmd=M('AP Engaged'),
+               airborne=S('Airborne'),
+               flap_angle=P('Flap Angle'),):
+
+        # 1. Merge two AOA sensors and find Max
+        aoa = vstack_params(aoa_l, aoa_r)
+        aoa_max = np.ma.max(aoa, axis=0)
+
+        # 2. Find sections where we are Airborne, with Flaps up and CMD Engaged
+        sections = airborne.get_slices()
+        sections = slices_and_not(sections, runs_of_ones(flap.array != 0))
+        sections = slices_and_not(sections, runs_of_ones(cmd.array == 'Engaged'))
+
+        # 3. Create KPVs
+        self.create_kpvs_within_slices(aoa_max, sections, max_value)
+
+
 ##############################################################################
 class ThrustReversersDeployedDuration(KeyPointValueNode):
     '''
