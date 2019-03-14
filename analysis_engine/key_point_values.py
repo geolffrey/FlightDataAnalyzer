@@ -1275,13 +1275,14 @@ class AirspeedGustsDuringFinalApproach(KeyPointValueNode):
         descents = slices_and(airborne.get_slices(), fin_apps)
         for descent in descents:
             # Ensure we encompass the range of interest.
-            scope = slices_int(descent.start - 5, descent.stop + 5)
+            scope = slice(descent.start - 5, descent.stop + 5)
+            _scope = slices_int(scope)
             # We'd like to use groundspeed to compute the wind gust, but
             # variations in airspeed are a suitable backstop.
             if gnd_spd:
-                headwind = air_spd.array[scope] - gnd_spd.array[scope]
+                headwind = air_spd.array[_scope] - gnd_spd.array[_scope]
             else:
-                headwind = air_spd.array[scope] - air_spd.array[scope][0]
+                headwind = air_spd.array[_scope] - air_spd.array[_scope][0]
             # Precise indexing is used as this is only a short segment. Note
             # that the _idx values are floating point interpolations of the
             # radio altimeter signal, and the headwind array is also
@@ -5363,8 +5364,8 @@ class AltitudeAtLastFlapChangeBeforeTouchdown(KeyPointValueNode):
                 # auto retraction happened within three seconds of the
                 # touchdown, set the endpoint to three seconds before touchdown.
                 delta = int(3 * flap.hz)
-                if far.array.raw[endpoint - delta] == 0 and \
-                        far.array.raw[endpoint + delta] == 1:
+                if far.array.raw[int(endpoint - delta)] == 0 and \
+                        far.array.raw[int(endpoint + delta)] == 1:
                     endpoint = endpoint - delta
 
             land_flap = flap.array.raw[int(endpoint)]
@@ -12330,8 +12331,8 @@ class EngStartTimeMax(KeyPointValueNode):
 
         for taxi in taxi_out.get_slices():
 
-            eng_1_index, eng_1_time = start_time(eng1_n2.array[:taxi.stop], hz)
-            eng_2_index, eng_2_time = start_time(eng2_n2.array[:taxi.stop], hz)
+            eng_1_index, eng_1_time = start_time(eng1_n2.array[slices_int(taxi.stop)], hz)
+            eng_2_index, eng_2_time = start_time(eng2_n2.array[slices_int(taxi.stop)], hz)
 
             '''
             print(eng_1_index, eng_1_time)
@@ -17184,7 +17185,7 @@ class TCASRAAcceleration(KeyPointValueNode):
                         index = np.ma.argmax(acc.array[slices_int(to_scan)]) + to_scan.start
                     elif direction == -1:
                         index = np.ma.argmin(acc.array[slices_int(to_scan)]) + to_scan.start
-                    self.create_kpv(index, acc.array[index] - 1.0)
+                    self.create_kpv(index, acc.array[int(index)] - 1.0)
 
 
 class TCASRAChangeOfVerticalSpeed(KeyPointValueNode):

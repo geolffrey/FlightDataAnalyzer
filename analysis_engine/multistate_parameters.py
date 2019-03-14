@@ -1324,13 +1324,13 @@ class FlapLeverSynthetic(MultistateDerivedParameterNode):
             self.array[condition] = state
 
         frame_name = frame.value if frame else None
-        approach_slices = approach.get_slices() if approach else None
+        approach_slices = slices_int(approach.get_slices()) if approach else None
 
         if frame_name == 'E170_EBD_047' and approach_slices is not None:
             # The Lever 4 and 5 share the same flap/slat config.
             # On approaches the config is refferred to as Lever 5
             self.array[self.array == 32] = 16  # ensure lever 4 before approach mod
-            self.array[tuple(approach_slices)][self.array[tuple(approach_slices)] == 16] = 32
+            self.array[approach_slices][self.array[approach_slices] == 16] = 32
 
 
 class Flaperon(MultistateDerivedParameterNode):
