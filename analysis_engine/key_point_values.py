@@ -4516,12 +4516,12 @@ class AOAAbnormalOperationDuration(KeyPointValueNode):
         self.create_kpvs_from_slice_durations(sections, self.hz)
 
 
-class AOAStickShakerAOADiffMax(KeyPointValueNode):
+class AOAStickShakerAOADiffMin(KeyPointValueNode):
     '''
-    Maximum difference between AOA Stick Shaker angle and AOA.
+    Minimum difference between AOA Stick Shaker angle and AOA.
     737 MAX specific.
     '''
-    name = 'AOA Stick Shaker AOA Diff Max'
+    name = 'AOA Stick Shaker AOA Diff Min'
     units = ut.DEGREE
 
     @classmethod
