@@ -63,7 +63,11 @@ from analysis_engine.settings import (
 logger = logging.getLogger(name=__name__)
 
 class AOAState(MultistateDerivedParameterNode):
-
+    '''
+    AOA operation state. 737 MAX specific.
+    A multistate parameter that stacks all the AOA failure, signal failure, heater and correction
+    parameters to identify abnormal operation of the AOA sensors.
+    '''
     name = 'AOA State'
 
     values_mapping = {
