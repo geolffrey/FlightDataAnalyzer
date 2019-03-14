@@ -93,6 +93,7 @@ from analysis_engine.library import (
     trim_slices,
     valid_slices_within_array,
     value_at_index,
+    vstack_params,
     vstack_params_where_state,
 )
 
@@ -4540,7 +4541,28 @@ class AOAStickShakerAOADiffMax(KeyPointValueNode):
         aoa_diff = aoa_stick_shaker.array - aoa_max
 
         #3 Create a KPV, negative value means we've gone above the AOA Stick Shaker angle.
-        self.create_kpv_from_slices(aoa_diff, airborne.get_slices, min_value)
+        self.create_kpv_from_slices(aoa_diff, airborne.get_slices(), min_value)
+
+
+class ControlColumnUpTrimDownDuration(KeyPointValueNode):
+    '''
+    Duration of Control Column up input with simultaneous trim down.
+    This could indicate that MCAS is active.
+    737 MAX specific.
+    '''
+
+    units = ut.SECOND
+
+    @classmethod
+    def can_operate(cls, available, series=A('Series')):
+        is_max = 'MAX' in series.value if series else None
+        return is_max and all_deps(cls, available)
+
+    def derive(self, cc=P('Control Column'),
+               pitch_trim=P('AP Trim Down'),):
+        sections = runs_of_ones(cc.array < -5)
+        sections = slices_and(sections, runs_of_ones(pitch_trim.array == 'Trim'))
+        self.create_kpvs_from_slice_durations(sections, self.hz)
 
 
 ##############################################################################
