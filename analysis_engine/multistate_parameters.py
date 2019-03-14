@@ -62,6 +62,64 @@ from analysis_engine.settings import (
 
 logger = logging.getLogger(name=__name__)
 
+class AOAState(MultistateDerivedParameterNode):
+
+    name = 'AOA State'
+
+    values_mapping = {
+        0: '-',
+        1: 'AOA (L) Failure',
+        2: 'AOA (L) Signal Failure',
+        3: 'AOA (L) Primary Heater',
+        4: 'AOA (R) Failure',
+        5: 'AOA (R) Signal Failure',
+        6: 'AOA (R) Primary Heater',
+        7: 'AOA Signal Failure',
+        8: 'AOA Secondary Heater',
+        9: 'AOA Correction Program',
+    }
+
+    @classmethod
+    def can_operate(cls, available):
+        return any_of(cls.get_dependency_names(), available)
+
+
+    def derive(self,
+                 aoa_l_fail=P('AOA (L) Failure'),
+                 aoa_l_signal_fail=P('AOA (L) Signal Failure'),
+                 aoa_l_heater=P('AOA (L) Primary Heater'),
+                 aoa_r_fail=P('AOA (R) Failure'),
+                 aoa_r_signal_fail=P('AOA (R) Signal Failure'),
+                 aoa_r_heater=P('AOA (R) Primary Heater'),
+                 aoa_signal_fail=P('AOA Signal Failure'),
+                 aoa_sec_heater=P('AOA Secondary Heater'),
+                 aoa_correction=P('AOA Correction Program'),):
+
+        parameter = next(p for p in (aoa_l_fail, aoa_l_signal_fail, aoa_l_heater,
+                  aoa_r_fail, aoa_r_signal_fail, aoa_r_heater,
+                  aoa_signal_fail, aoa_sec_heater, aoa_correction))
+
+        self.array = np_ma_zeros_like(parameter.array)
+
+        if aoa_l_fail:
+            self.array[(aoa_l_fail.array == 'Failed').filled(False)] = aoa_l_fail.name
+        if aoa_l_signal_fail:
+            self.array[(aoa_l_signal_fail.array == 'Failed').filled(False)] = aoa_l_signal_fail.name
+        if aoa_l_heater:
+            self.array[(aoa_l_heater.array != 'On').filled(False)] = aoa_l_heater.name
+        if aoa_r_fail:
+            self.array[(aoa_r_fail.array == 'Failed').filled(False)] = aoa_r_fail.name
+        if aoa_r_signal_fail:
+            self.array[(aoa_r_signal_fail.array == 'Failed').filled(False)] = aoa_r_signal_fail.name
+        if aoa_r_heater:
+            self.array[(aoa_r_heater.array != 'On').filled(False)] = aoa_r_heater.name
+        if aoa_signal_fail:
+            self.array[(aoa_signal_fail.array == 'Failed').filled(False)] = aoa_signal_fail.name
+        if aoa_sec_heater:
+            self.array[(aoa_sec_heater.array != 'On').filled(False)] = aoa_sec_heater.name
+        if aoa_correction:
+            self.array[(aoa_correction.array == 'Yes').filled(False)] = aoa_correction.name
+
 
 class APEngaged(MultistateDerivedParameterNode):
     '''
