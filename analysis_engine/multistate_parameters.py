@@ -64,7 +64,11 @@ from flightdatautilities.numpy_utils import slices_int
 logger = logging.getLogger(name=__name__)
 
 class AOAState(MultistateDerivedParameterNode):
-
+    '''
+    AOA operation state. 737 MAX specific.
+    A multistate parameter that stacks all the AOA failure, signal failure, heater and correction
+    parameters to identify abnormal operation of the AOA sensors.
+    '''
     name = 'AOA State'
 
     values_mapping = {
