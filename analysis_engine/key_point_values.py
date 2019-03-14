@@ -4461,6 +4461,7 @@ class AOADiscrepancyMax(KeyPointValueNode):
 class AOAMCASMax(KeyPointValueNode):
     '''
     Maximum recorded AoA with Flaps Up and CMD not engaged during Climb.
+    737 MAX specific.
     '''
 
     name = 'AOA MCAS Max'
@@ -4495,15 +4496,52 @@ class AOAMCASMax(KeyPointValueNode):
 
 
 class AOAAbnormalOperationDuration(KeyPointValueNode):
-
+    '''
+    Duration of abnormal AOA sensors operation. Based on the AOA State parameter.
+    737 MAX specific.
+    '''
     name = 'AOA Abnormal Operation Duration'
     units = ut.SECOND
+
+    @classmethod
+    def can_operate(cls, available, series=A('Series')):
+        is_max = 'MAX' in series.value if series else None
+        return is_max and all_deps(cls, available)
 
     def derive(self, aoa_state=M('AOA State'),
                airborne=S('Airborne'),):
         sections = runs_of_ones(aoa_state.array != '-')
         sections = slices_and(sections, airborne.get_slices())
         self.create_kpvs_from_slice_durations(sections, self.hz)
+
+
+class AOAStickShakerAOADiffMax(KeyPointValueNode):
+    '''
+    Maximum difference between AOA Stick Shaker angle and AOA.
+    737 MAX specific.
+    '''
+    name = 'AOA Stick Shaker AOA Diff Max'
+    units = ut.DEGREE
+
+    @classmethod
+    def can_operate(cls, available, series=A('Series')):
+        is_max = 'MAX' in series.value if series else None
+        return is_max and all_deps(cls, available)
+
+    def derive(self, aoa_stick_shaker=P('AOA Stick Shaker'),
+               aoa_l=P('AOA (L)'),
+               aoa_r=P('AOA (R)'),
+               airborne=S('Airborne'),):
+
+        # 1. Merge two AOA sensors and find Max
+        aoa = vstack_params(aoa_l, aoa_r)
+        aoa_max = np.ma.max(aoa, axis=0)
+
+        #2. Subtract AOA Max from AOA Stick Shaker angle
+        aoa_diff = aoa_stick_shaker.array - aoa_max
+
+        #3 Create a KPV, negative value means we've gone above the AOA Stick Shaker angle.
+        self.create_kpv_from_slices(aoa_diff, airborne.get_slices, min_value)
 
 
 ##############################################################################
