@@ -4672,32 +4672,52 @@ class AOADiscrepancyMax(KeyPointValueNode):
         self.create_kpvs_within_slices(np.ma.abs(diff), airs, max_abs_value)
 
 
-class AOAMaxOnClimbout(KeyPointValueNode):
+class AOAMCASMax(KeyPointValueNode):
     '''
-    Maximum recorded AoA with Flaps Up and CMD not engaged.
+    Maximum recorded AoA with Flaps Up and CMD not engaged during Climb.
     '''
 
-    name = 'AOA Max On Climbout'
+    name = 'AOA MCAS Max'
     units = ut.DEGREE
+
+    @classmethod
+    def can_operate(cls, available, series=A('Series')):
+        is_max = 'MAX' in series.value if series else None
+        return is_max and all_deps(cls, available)
 
     def derive(self,
                aoa_l=P('AOA (L)'),
                aoa_r=P('AOA (R)'),
                flap=P('Flap Including Transition'),
                cmd=M('AP Engaged'),
-               airborne=S('Airborne'),):
+               airborne=S('Airborne'),
+               climbs=S('Climbing'),):
 
         # 1. Merge two AOA sensors and find Max
         aoa = vstack_params(aoa_l, aoa_r)
         aoa_max = np.ma.max(aoa, axis=0)
 
-        # 2. Find sections where we are Airborne, with Flaps up and CMD Engaged
+        # 2. Find sections where we are Airborne, with Flaps up and CMD Engaged while Climbing
         sections = airborne.get_slices()
         sections = slices_and_not(sections, runs_of_ones(flap.array != 0))
         sections = slices_and_not(sections, runs_of_ones(cmd.array == 'Engaged'))
+        sections = slices_and(sections, climbs.get_slices())
+        sections = slices_remove_small_gaps(sections, time_limit=5, hz=self.hz)
 
         # 3. Create KPVs
         self.create_kpvs_within_slices(aoa_max, sections, max_value)
+
+
+class AOAAbnormalOperationDuration(KeyPointValueNode):
+
+    name = 'AOA Abnormal Operation Duration'
+    units = ut.SECOND
+
+    def derive(self, aoa_state=M('AOA State'),
+               airborne=S('Airborne'),):
+        sections = runs_of_ones(aoa_state.array != '-')
+        sections = slices_and(sections, airborne.get_slices())
+        self.create_kpvs_from_slice_durations(sections, self.hz)
 
 
 ##############################################################################
