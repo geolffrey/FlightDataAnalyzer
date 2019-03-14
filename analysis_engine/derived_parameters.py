@@ -8511,7 +8511,7 @@ class MinimumCleanLookup(DerivedParameterNode):
 
         # Add 20kts to get Vref30+100kts above FL250
         for section in above_FL250:
-            self.array[section] += 20
+            self.array[slices_int(section)] += 20
 
 
 ########################################
