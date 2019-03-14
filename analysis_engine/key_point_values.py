@@ -2182,7 +2182,8 @@ class V2AtLiftoff(KeyPointValueNode):
 
         # 4. Derive parameter for Airbus:
         if manufacturer and manufacturer.value == 'Airbus':
-            spd_sel.array[spd_ctl.array == 'Manual'] = np.ma.masked
+            if hasattr(spd_ctl, 'values_mapping'):
+                spd_sel.array[spd_ctl.array == 'Manual'] = np.ma.masked
             for phase in slices_int(phases):
                 value = most_common_value(spd_sel.array[phase])
                 index = liftoffs.get_last(within_slice=phase).index
