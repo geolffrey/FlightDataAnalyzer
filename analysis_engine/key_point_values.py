@@ -5411,15 +5411,25 @@ class AltitudeAtLastFlapSelectionBeforeTouchdown(KeyPointValueNode):
                 )
                 if not flap_slices:
                     continue
-                #for flap_slice in flap_slices:
+
                 for flap_slice in reversed(flap_slices):
                     flap_start = flap_slice.start
+
+                    if flap.array[flap_start-1] is np.ma.masked or flap.array[flap_start] is np.ma.masked:
+                        continue
+
+                    # String comparison works as Python compares the ordinal value of each character
+                    # from left to right until one is greater than the other. As the 'Flap Lever' multi-state
+                    # parameter always starts with 'Lever ', the comparison will be between numbers of increasing
+                    # value and the character 'F', which will always be greater than a number.
+
                     if flap.array[flap_start-1] < flap.array[flap_start]:
                         self.create_kpv(flap_start,
                                         value_at_index(alt_aal.array,
                                                        flap_start),
                                         replace_values={'flap':flap_pos})
                         break
+
             last_tdwn = tdwn.index + 1
 
 
