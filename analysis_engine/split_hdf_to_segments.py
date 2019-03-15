@@ -203,8 +203,8 @@ def _segment_type_and_slice(speed_array, speed_frequency,
                 col_start = int(unmasked_slices[0].start * (col.frequency / speed_frequency))
                 col_stop = int((unmasked_slices[-1].stop - 1) * (col.frequency / speed_frequency))
             else:
-                col_start = start * col.frequency
-                col_stop = stop * col.frequency
+                col_start = int(start * col.frequency)
+                col_stop = int(stop * col.frequency)
 
             col_start_slice = runs_of_ones(
                 col.array[col_start:col_start+col_window_sample] < settings.COLLECTIVE_ON_GROUND_THRESHOLD,
