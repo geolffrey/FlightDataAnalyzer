@@ -48,6 +48,7 @@ from analysis_engine.library import (
     smooth_signal,
     step_values,
     surface_for_synthetic,
+    vstack_params,
     vstack_params_where_state
 )
 
@@ -337,6 +338,89 @@ class APURunning(MultistateDerivedParameterNode):
             self.array = np.ma.where(apu_fuel_flow.array > fuel_flow_threshold, 'Running', '-')
         elif apu_on:
             self.array = np.ma.where(apu_on.array == 1, 'Running', '-')
+
+
+class CargoSmokeOrFire(MultistateDerivedParameterNode):
+    '''
+    Merges all the cargo smoke and fire signals into one.
+    '''
+    name = 'Cargo (*) Smoke Or Fire'
+    values_mapping = {0: '-', 1: 'Warning'}
+
+    @classmethod
+    def can_operate(cls, available):
+        return any_of(cls.get_dependency_names(), available)
+
+    def derive(self,
+               s_cargo_warn=P('Smoke Cargo Warning'),
+               s_cargo1_warn=P('Smoke Cargo (1) Warning'),
+               s_cargo2_warn=P('Smoke Cargo (2) Warning'),
+               s_cargo_aft_warn=P('Smoke Cargo Aft Warning'),
+               s_cargo_aft1_warn=P('Smoke Cargo Aft (1) Warning'),
+               s_cargo_aft2_warn=P('Smoke Cargo Aft (2) Warning'),
+               s_cargo_fwd_warn=P('Smoke Cargo Fwd Warning'),
+               s_cargo_fwd1_warn=P('Smoke Cargo Fwd (1) Warning'),
+               s_cargo_fwd2_warn=P('Smoke Cargo Fwd (2) Warning'),
+               s_cargo_fwd3_warn=P('Smoke Cargo Fwd (3) Warning'),
+               s_cargo_loweraft_warn=P('Smoke Cargo Lower Aft Warning'),
+               s_cargo_loweraft1_warn=P('Smoke Cargo Lower Aft (1) Warning'),
+               s_cargo_loweraft2_warn=P('Smoke Cargo Lower Aft (2) Warning'),
+               s_cargo_loweraft3_warn=P('Smoke Cargo Lower Aft (3) Warning'),
+               s_cargo_loweraft4_warn=P('Smoke Cargo Lower Aft (4) Warning'),
+               s_cargo_lowerfwd_warn=P('Smoke Cargo Lower Fwd Warning'),
+               s_cargo_lowerfwd1_warn=P('Smoke Cargo Lower Fwd (1) Warning'),
+               s_cargo_lowerfwd2_warn=P('Smoke Cargo Lower Fwd (2) Warning'),
+               s_cargo_lowerfwd3_warn=P('Smoke Cargo Lower Fwd (3) Warning'),
+               s_cargo_lowerfwd4_warn=P('Smoke Cargo Lower Fwd (4) Warning'),
+               s_cargo_rest_warn=P('Smoke Cargo Rest Warning'),
+               s_cargo_rest1_warn=P('Smoke Cargo Rest (1) Warning'),
+               s_cargo_rest2_warn=P('Smoke Cargo Rest (2) Warning'),
+               s_cargo_upperaft1_warn=P('Smoke Cargo Upper Aft (1) Warning'),
+               s_cargo_upperaft2_warn=P('Smoke Cargo Upper Aft (2) Warning'),
+               s_cargo_upperaft3_warn=P('Smoke Cargo Upper Aft (3) Warning'),
+               s_cargo_upperaft4_warn=P('Smoke Cargo Upper Aft (4) Warning'),
+               s_cargo_upperfwd1_warn=P('Smoke Cargo Upper Fwd (1) Warning'),
+               s_cargo_upperfwd2_warn=P('Smoke Cargo Upper Fwd (2) Warning'),
+               s_cargo_upperfwd3_warn=P('Smoke Cargo Upper Fwd (3) Warning'),
+               s_cargo_upperfwd4_warn=P('Smoke Cargo Upper Fwd (4) Warning'),
+
+               f_cargo=P('Cargo Fire'),
+               f_cargo_aft=P('Cargo Aft Fire'),
+               f_cargo_aft1=P('Cargo Aft Fire (1)'),
+               f_cargo_aft2=P('Cargo Aft Fire (2)'),
+               f_cargo_aft3=P('Cargo Aft Fire (3)'),
+               f_cargo_aft4=P('Cargo Aft Fire (4)'),
+               f_cargo_fwd=P('Cargo Fwd Fire'),
+               f_cargo_fwd1=P('Cargo Fwd Fire (1)'),
+               f_cargo_fwd2=P('Cargo Fwd Fire (2)'),
+               f_cargo_fwd3=P('Cargo Fwd Fire (3)'),
+               f_cargo_fwd4=P('Cargo Fwd Fire (4)'),
+               ):
+
+        self.array = vstack_params(
+            s_cargo_warn,           s_cargo1_warn,
+            s_cargo2_warn,          s_cargo_aft_warn,
+            s_cargo_aft1_warn,      s_cargo_aft2_warn,
+            s_cargo_fwd_warn,       s_cargo_fwd1_warn,
+            s_cargo_fwd2_warn,      s_cargo_fwd3_warn,
+            s_cargo_loweraft_warn,  s_cargo_loweraft1_warn,
+            s_cargo_loweraft2_warn, s_cargo_loweraft3_warn,
+            s_cargo_loweraft4_warn, s_cargo_lowerfwd_warn,
+            s_cargo_lowerfwd2_warn, s_cargo_lowerfwd3_warn,
+            s_cargo_lowerfwd4_warn, s_cargo_rest_warn,
+            s_cargo_rest1_warn,     s_cargo_rest2_warn,
+            s_cargo_upperaft1_warn, s_cargo_upperaft2_warn,
+            s_cargo_upperaft3_warn, s_cargo_upperaft4_warn,
+            s_cargo_upperfwd1_warn, s_cargo_upperfwd2_warn,
+            s_cargo_upperfwd3_warn, s_cargo_upperfwd4_warn,
+
+            f_cargo,      f_cargo_aft,
+            f_cargo_aft1, f_cargo_aft2,
+            f_cargo_aft3, f_cargo_aft4,
+            f_cargo_fwd,  f_cargo_fwd1,
+            f_cargo_fwd2, f_cargo_fwd3,
+            f_cargo_fwd4
+        ).any(axis=0)
 
 
 class Configuration(MultistateDerivedParameterNode):

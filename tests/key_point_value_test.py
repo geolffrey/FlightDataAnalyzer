@@ -229,6 +229,7 @@ from analysis_engine.key_point_values import (
     HeightAtDistancesFromThreshold,
     HeightAtOffsetILSTurn,
     HeightAtRunwayChange,
+    CargoSmokeOrFireWarningDuration,
     ControlColumnForceMax,
     ControlColumnStiffness,
     ControlWheelForceMax,
@@ -19864,6 +19865,20 @@ class TestSmokeWarningDuration(unittest.TestCase):
 
         self.assertEqual(node[0].value, 10)
         self.assertEqual(node[0].index, 5)
+
+
+##############################################################################
+# Warnings: Smoke and Fire
+
+class TestCargoSmokeOrFireWarningDuration(unittest.TestCase, CreateKPVsWhereTest):
+
+    def setUp(self):
+        self.param_name = 'Cargo (*) Smoke Or Fire'
+        self.phase_name = 'Airborne'
+        self.node_class = CargoSmokeOrFireWarningDuration
+        self.values_mapping = {0: '-', 1: 'Warning'}
+
+        self.basic_setup()
 
 
 ##############################################################################

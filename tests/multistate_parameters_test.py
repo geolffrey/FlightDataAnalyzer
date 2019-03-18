@@ -29,6 +29,7 @@ from analysis_engine.multistate_parameters import (
     APVerticalMode,
     APUOn,
     APURunning,
+    CargoSmokeOrFire,
     Configuration,
     Daylight,
     DualInput,
@@ -611,6 +612,40 @@ class TestAPChannelsEngaged(unittest.TestCase, NodeTest):
                    offset=0.25)
 
         assert_array_equal(expected.array, eng.array)
+
+
+class TestCargoSmokeOrFire(unittest.TestCase, NodeTest):
+
+    def setUp(self):
+        self.node_class = CargoSmokeOrFire
+        self.all_opts = CargoSmokeOrFire.get_dependency_names()
+        self.param_array = np.ma.array(data=[0, 1, 0, 0, 0])
+
+    def test_can_operate(self):
+        for opt in self.all_opts:
+            self.assertTrue(CargoSmokeOrFire.can_operate(opt))
+
+        for i in range(len(self.all_opts)):
+            self.assertTrue(CargoSmokeOrFire.can_operate(self.all_opts[:i+1]))
+
+    def test_derive(self):
+        node = self.node_class()
+
+        for opt in self.all_opts:
+            derive_args = [P(name=opt, array=self.param_array, frequency=1)] + [None] * (len(self.all_opts) - 1)
+            node.derive(*derive_args)
+            self.assertEqual(node.state['Warning'], 1)
+            self.assertEqual(node.offset, 0.0)
+
+    def test_derive_multiple(self):
+        node = self.node_class()
+
+        for i in range(len(self.all_opts)):
+            params = [P(name=opt, array=self.param_array, frequency=1) for opt in self.all_opts[:i+1]]
+            derive_args = params + [None] * (len(self.all_opts) - (i+1))
+            node.derive(*derive_args)
+            self.assertEqual(node.state['Warning'], 1)
+            self.assertEqual(node.offset, 0.0)
 
 
 class TestConfiguration(unittest.TestCase, NodeTest):

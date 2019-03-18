@@ -17915,6 +17915,26 @@ class SmokeWarningDuration(KeyPointValueNode):
 
 
 ##############################################################################
+# Warnings: Smoke and Fire
+
+
+class CargoSmokeOrFireWarningDuration(KeyPointValueNode):
+    '''
+    Duration that any of the cargo smoke or fire warnings are active.
+    '''
+
+    units = ut.SECOND
+
+    @classmethod
+    def can_operate(cls, available):
+        return all_of(('Cargo (*) Smoke Or Fire', 'Airborne'), available)
+
+    def derive(self, c_smoke_fire=M('Cargo (*) Smoke Or Fire'), airborne=S('Airborne')):
+
+        self.create_kpvs_where(c_smoke_fire.array == 'Warning', c_smoke_fire.hz, phase=airborne)
+
+
+##############################################################################
 # Throttle
 
 
