@@ -16,6 +16,7 @@ from analysis_engine.split_hdf_to_segments import (
     append_segment_info,
     calculate_fallback_dt,
     get_dt_arrays,
+    get_valid_dt_slices,
     has_constant_time,
     split_segments,
     PRECISE
@@ -101,6 +102,94 @@ class TestDateTimeFunctions(unittest.TestCase):
         self.assertEqual(dt_arrays, [year.array, month.array, day.array, hour.array, minute.array, second.array])
         self.assertTrue(precise_timestamp)
         self.assertTrue([p for p in dt_param_state.values() if p != PRECISE] == [])
+
+    def test_get_dt_arrays__valid_slices(self):
+        duration = 3599
+        year = P('Year', array=np.ma.array([2019]*duration))
+        month = P('Month', array=np.ma.array([2]*duration))
+        day = P('Day', array=np.ma.array([1]*duration))
+        hour = P('Hour', array=np.ma.array([0]*duration))
+        minute = P('Minute', array=np.ma.repeat(np.ma.arange(duration//60), 60))
+        second = P('Second', array=np.ma.array(np.tile(np.arange(60), duration//60)))
+        values = {'Year': year, 'Month': month, 'Day': day, 'Hour': hour, 'Minute': minute, 'Second': second}
+
+        def hdf_get(arg):
+            return values[arg]
+
+        hdf = mock.Mock()
+        hdf.duration = duration
+        hdf.get.side_effect = hdf_get
+        dt_arrays, precise_timestamp, dt_param_state = get_dt_arrays(hdf, datetime(2019, 1, 31, 13, 50, 40),
+                                                                     datetime(2019, 2, 1, 1, 59, 59),
+                                                                     valid_slices=[slice(150, 1000), slice(1500, 3000)])
+
+        self.assertTrue(len(dt_arrays[0]) == len(dt_arrays[1]) == len(dt_arrays[2]) == \
+                        len(dt_arrays[3]) == len(dt_arrays[4]) == len(dt_arrays[5] == 2350))
+
+    def test_get_valid_dt_slices_all_unmasked(self):
+
+        def hdf_get(key):
+            return Parameter(key, array=arrays[key], frequency=1)
+
+        hdf = mock.Mock()
+        hdf.get = mock.Mock()
+        hdf.get.side_effect = hdf_get
+
+        arrays = {
+            'Airspeed': load_array('airspeed_sample.npz'),
+        }
+
+        valid_dt_slices = get_valid_dt_slices(hdf)
+
+        self.assertEqual(valid_dt_slices[0].start, 0)
+        self.assertEqual(valid_dt_slices[0].stop, 41396)
+
+    def test_get_valid_dt_slices_some_masked(self):
+
+        def hdf_get(key):
+            return Parameter(key, array=arrays[key], frequency=1)
+
+        hdf = mock.Mock()
+        hdf.get = mock.Mock()
+        hdf.get.side_effect = hdf_get
+
+        arrays = {
+            'Airspeed': load_array('airspeed_sample_masked_under_80.npz'),
+        }
+
+        valid_dt_slices = get_valid_dt_slices(hdf)
+
+        self.assertEqual(valid_dt_slices[0].start, 412)
+        self.assertEqual(valid_dt_slices[0].stop, 1911)
+        self.assertEqual(valid_dt_slices[1].start, 3204)
+        self.assertEqual(valid_dt_slices[1].stop, 8551)
+        self.assertEqual(valid_dt_slices[2].start, 9355)
+        self.assertEqual(valid_dt_slices[2].stop, 14771)
+        self.assertEqual(valid_dt_slices[3].start, 15969)
+        self.assertEqual(valid_dt_slices[3].stop, 21434)
+        self.assertEqual(valid_dt_slices[4].start, 22135)
+        self.assertEqual(valid_dt_slices[4].stop, 27047)
+        self.assertEqual(valid_dt_slices[5].start, 28413)
+        self.assertEqual(valid_dt_slices[5].stop, 33427)
+        self.assertEqual(valid_dt_slices[6].start, 34775)
+        self.assertEqual(valid_dt_slices[6].stop, 40832)
+
+    def test_get_valid_dt_slices_all_masked(self):
+
+        def hdf_get(key):
+            return Parameter(key, array=arrays[key], frequency=1)
+
+        hdf = mock.Mock()
+        hdf.get = mock.Mock()
+        hdf.get.side_effect = hdf_get
+
+        arrays = {
+            'Airspeed': load_array('airspeed_sample_all_masked.npz'),
+        }
+
+        valid_dt_slices = get_valid_dt_slices(hdf)
+
+        self.assertEqual(valid_dt_slices, [])
 
 
 class TestSplitSegments(unittest.TestCase):

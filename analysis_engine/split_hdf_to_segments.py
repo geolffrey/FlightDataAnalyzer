@@ -791,7 +791,7 @@ def _mask_invalid_years(array, latest_year):
     return array
 
 
-def get_dt_arrays(hdf, fallback_dt, validation_dt):
+def get_dt_arrays(hdf, fallback_dt, validation_dt, valid_slices=[]):
     now = datetime.utcnow().replace(tzinfo=pytz.utc)
 
     if fallback_dt:
@@ -833,7 +833,10 @@ def get_dt_arrays(hdf, fallback_dt, validation_dt):
             continue
         else:
             raise TimebaseError("Required parameter '%s' not available" % name)
-    return dt_arrays, precise, dt_parameter_origin
+
+    validated_dt_arrays = [np.concatenate([a[s] for s in valid_slices]) for a in dt_arrays] if valid_slices else dt_arrays
+
+    return validated_dt_arrays, precise, dt_parameter_origin
 
 
 def has_constant_time(hdf):
@@ -891,6 +894,16 @@ def calculate_fallback_dt(hdf, fallback_dt=None, validation_dt=None,
         logger.warning("Time doesn't change, using the starting time as the fallback_dt")
         return timebase
 
+def get_valid_dt_slices(hdf, min_threshold_count=360):
+    aspd = hdf.get('Airspeed')
+
+    if not aspd:
+        return []
+
+    aspd = align(aspd, P(hz=1))
+    aspd_gt_threshold = np.ma.where(aspd > settings.AIRSPEED_THRESHOLD)[0].size
+
+    return np.ma.clump_unmasked(aspd) if aspd_gt_threshold > min_threshold_count else []
 
 def _calculate_start_datetime(hdf, fallback_dt, validation_dt):
     """
@@ -934,7 +947,8 @@ def _calculate_start_datetime(hdf, fallback_dt, validation_dt):
                 "Fallback time '%s' ahead of validation time is not allowed. "
                 "Validation time is '%s'." % (fallback_dt, validation_dt))
     # align required parameters to 1Hz
-    dt_arrays, precise_timestamp, timestamp_configuration = get_dt_arrays(hdf, fallback_dt, validation_dt)
+    dt_arrays, precise_timestamp, timestamp_configuration = get_dt_arrays(hdf, fallback_dt, validation_dt,
+                                                                          valid_slices=get_valid_dt_slices(hdf))
 
     length = max([len(a) for a in dt_arrays])
     if length > 1:
