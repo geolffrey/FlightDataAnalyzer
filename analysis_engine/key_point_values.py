@@ -83,7 +83,6 @@ from analysis_engine.library import (
     slices_duration,
     slices_from_ktis,
     slices_from_to,
-    slices_int,
     slices_not,
     slices_or,
     slices_overlap,
@@ -121,6 +120,8 @@ from analysis_engine.settings import (
     TCAS_THRESHOLD,
     VERTICAL_SPEED_FOR_LEVEL_FLIGHT
 )
+
+from flightdatautilities.numpy_utils import slices_int
 
 
 ##############################################################################

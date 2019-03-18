@@ -24,10 +24,8 @@ from analysis_engine.library import (align,
                                      normalise,
                                      repair_mask,
                                      rate_of_change,
-                                     py2round,
                                      runs_of_ones,
                                      slices_and_not,
-                                     slices_int,
                                      slices_multiply,
                                      slices_of_runs,
                                      slices_remove_small_gaps,
@@ -39,6 +37,10 @@ from hdfaccess.file import hdf_file
 from hdfaccess.utils import segment_boundaries, write_segment
 
 from flightdatautilities.filesystem_tools import sha_hash_file
+from flightdatautilities.numpy_utils import (
+    slices_int,
+    py2round,
+)
 from six import string_types
 
 

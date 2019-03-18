@@ -43,7 +43,6 @@ from analysis_engine.library import (
     slice_duration,
     slices_and,
     slices_from_to,
-    slices_int,
     slices_remove_small_gaps,
     slices_remove_small_slices,
     smooth_signal,
@@ -59,6 +58,8 @@ from analysis_engine.settings import (
     REVERSE_THRUST_EFFECTIVE_EPR,
     REVERSE_THRUST_EFFECTIVE_N1
 )
+
+from flightdatautilities.numpy_utils import slices_int
 
 logger = logging.getLogger(name=__name__)
 

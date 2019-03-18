@@ -38,7 +38,6 @@ from analysis_engine.library import (
     slices_and,
     slices_and_not,
     slice_duration,
-    slices_int,
     slices_not,
     slices_overlap,
     slices_remove_small_gaps,
@@ -63,6 +62,8 @@ from analysis_engine.settings import (
     TRANSITION_ALTITUDE,
     VERTICAL_SPEED_FOR_LIFTOFF,
 )
+
+from flightdatautilities.numpy_utils import slices_int
 
 
 def sorted_valid_list(x):

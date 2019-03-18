@@ -35,7 +35,6 @@ from analysis_engine.library import (
     slices_below,
     slices_between,
     slices_from_to,
-    slices_int,
     slices_remove_small_gaps,
     value_at_index,
     value_at_time,
@@ -46,6 +45,7 @@ from analysis_engine.settings import NODE_CACHE_OFFSET_DP
 # FIXME: a better place for this class
 from hdfaccess.parameter import MappedArray
 
+from flightdatautilities.numpy_utils import slices_int
 
 logger = logging.getLogger(name=__name__)
 

@@ -21,7 +21,6 @@ from analysis_engine.library import (
     np_ma_masked_zeros_like,
     repair_mask,
     slices_and,
-    slices_int,
     slices_find_small_slices,
     slices_remove_small_slices
 )
@@ -30,6 +29,8 @@ from analysis_engine.settings import (
     ALTITUDE_AGL_SMOOTHING,
     ALTITUDE_AGL_TRANS_ALT
 )
+
+from flightdatautilities.numpy_utils import slices_int
 
 
 class ApproachRange(DerivedParameterNode):

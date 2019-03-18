@@ -39,7 +39,6 @@ from analysis_engine.library import (
     slices_and_not,
     slices_extend_duration,
     slices_from_to,
-    slices_int,
     slices_not,
     slices_or,
     slices_overlap,
@@ -80,6 +79,7 @@ from analysis_engine.settings import (
     LANDING_TRACEBACK_PERIOD
 )
 
+from flightdatautilities.numpy_utils import slices_int
 
 class Airborne(FlightPhaseNode):
     '''

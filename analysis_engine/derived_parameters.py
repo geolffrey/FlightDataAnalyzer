@@ -71,7 +71,6 @@ from analysis_engine.library import (
     moving_average,
     nearest_neighbour_mask_repair,
     np_ma_ones_like,
-    np_ma_zeros,
     np_ma_masked_zeros,
     np_ma_masked_zeros_like,
     np_ma_zeros_like,
@@ -97,7 +96,6 @@ from analysis_engine.library import (
     slices_between,
     slices_from_to,
     slices_from_ktis,
-    slices_int,
     slices_not,
     slices_or,
     slices_remove_small_slices,
@@ -123,6 +121,11 @@ from analysis_engine.settings import (
     LANDING_THRESHOLD_HEIGHT,
     MIN_VALID_FUEL,
     VERTICAL_SPEED_LAG_TC
+)
+
+from flightdatautilities.numpy_utils import (
+    slices_int,
+    np_ma_zeros,
 )
 
 # There is no numpy masked array function for radians, so we just multiply thus:

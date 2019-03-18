@@ -31,7 +31,6 @@ from analysis_engine.library import (
     runs_of_ones,
     peak_curvature,
     shift_slices,
-    slices_int,
     latitudes_and_longitudes,
     nearest_runway,
     find_rig_approach,
@@ -40,6 +39,7 @@ from analysis_engine.library import (
 )
 
 from flightdatautilities.geometry import great_circle_distance__haversine
+from flightdatautilities.numpy_utils import slices_int
 
 ##############################################################################
 # Nodes
