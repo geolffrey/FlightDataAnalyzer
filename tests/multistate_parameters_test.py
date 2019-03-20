@@ -23,6 +23,7 @@ from analysis_engine.library import (
 )
 
 from analysis_engine.multistate_parameters import (
+    AOAState,
     APEngaged,
     APChannelsEngaged,
     APLateralMode,
@@ -152,6 +153,97 @@ class NodeTest(object):
 
         return params, phase
 
+
+class TestAOAState(unittest.TestCase):
+
+    def setUp(self):
+        self.node_class = AOAState
+
+    def test_can_operate(self):
+        self.assertTrue(AOAState.can_operate(['AOA (R) Failure']))
+        self.assertTrue(AOAState.can_operate(['AOA (R) Failure', 'AOA Secondary Heater']))
+        self.assertTrue(AOAState.can_operate([
+            'AOA (L) Failure',
+            'AOA (L) Signal Failure',
+            'AOA (L) Primary Heater',
+            'AOA (R) Failure',
+            'AOA (R) Signal Failure',
+            'AOA (R) Primary Heater',
+            'AOA Signal Failure',
+            'AOA Secondary Heater',
+            'AOA Correction Program',
+        ]))
+
+    def test_derive_single(self):
+        val_mapping = {
+            0: '-',
+            1: 'Failed',
+        }
+        l_failure = M('AOA (L) Failure', array=np.ma.array(([0]*7 + [1] + [0]*2)), values_mapping=val_mapping)
+        node = self.node_class()
+        node.derive(l_failure, None, None, None, None, None, None, None, None)
+        self.assertTrue(all(node.array == ['-', '-', '-', '-', '-', '-', '-', 'AOA (L) Failure', '-', '-']))
+
+    def test_derive_all(self):
+        failed_values_mapping = {0: '-', 1: 'Failed'}
+        on_values_mapping = {0: 'On', 1: '-'}
+        aoa_l = M(
+            'AOA (L) Failure',
+            array=np.ma.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+            values_mapping=failed_values_mapping,
+        )
+        aoa_l_signal = M(
+            'AOA (L) Signal Failure',
+            array=np.ma.array([0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+            values_mapping=failed_values_mapping,
+        )
+        aoa_l_heater = M(
+            'AOA (L) Primary Heater',
+            array=np.ma.array([0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+            values_mapping=on_values_mapping,
+        )
+        aoa_r = M(
+            'AOA (R) Failure',
+            array=np.ma.array([0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+            values_mapping=failed_values_mapping,
+        )
+        aoa_r_signal = M(
+            'AOA (R) Signal Failure',
+            array=np.ma.array([0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+            values_mapping=failed_values_mapping,
+        )
+        aoa_r_heater = M(
+            'AOA (R) Primary Heater',
+            array=np.ma.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+            values_mapping=on_values_mapping,
+        )
+        aoa_signal_fail = M(
+            'AOA Signal Failure',
+            array=np.ma.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+            values_mapping=failed_values_mapping,
+        )
+        aoa_secondary_heater = M(
+            'AOA Secondary Heater',
+            array=np.ma.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+            values_mapping=on_values_mapping,
+        )
+        aoa_correction = M(
+            'AOA Correction Program',
+            array=np.ma.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+            values_mapping={0: '-', 1:'Yes'},
+        )
+
+        node=self.node_class()
+        node.derive(aoa_l, aoa_l_signal, aoa_l_heater, aoa_r, aoa_r_signal,
+                    aoa_r_heater, aoa_signal_fail, aoa_secondary_heater, aoa_correction)
+        self.assertTrue(all(node.array == ['-', '-', 'AOA (L) Signal Failure', 'AOA (L) Signal Failure',
+                                           'AOA (L) Primary Heater', 'AOA (L) Primary Heater', 'AOA (R) Failure',
+                                           'AOA (R) Failure', 'AOA (R) Signal Failure', 'AOA (R) Signal Failure',
+                                           'AOA (L) Failure', 'AOA (L) Failure', 'AOA (R) Primary Heater',
+                                           'AOA (R) Primary Heater', 'AOA Signal Failure', 'AOA Signal Failure',
+                                           'AOA Secondary Heater', 'AOA Secondary Heater', '-', '-',
+                                           'AOA Correction Program', 'AOA Correction Program', '-', '-', '-', '-', '-', '-',
+                                           '-', '-', '-', '-', '-', '-']))
 
 
 class TestAPLateralMode(unittest.TestCase):
