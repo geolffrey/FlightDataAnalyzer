@@ -5608,6 +5608,51 @@ class TestAOAAbnormalOperationDuration(unittest.TestCase):
         self.assertEqual(node[0].index, 16)
 
 
+class TestAOAStickShakerAOADiffMin(unittest.TestCase, NodeTest):
+    def setUp(self):
+        self.node_class = AOAStickShakerAOADiffMin
+
+    def test_can_operate(self):
+        self.assertEqual(self.node_class.get_operational_combinations(series=A('Series', 'MAX')),
+                         [('AOA Stick Shaker', 'AOA (L)', 'AOA (R)', 'Airborne')])
+
+    def test_derive(self):
+        x = np.linspace(0, 10, 100)
+        aoa_stick_shaker = P('AOA Stick Shaker', -x*np.sin(x))
+        aoa_array = -x*np.sin(x)
+        aoa_array[70:90] += 2
+        aoa_l = P('AOA (L)', aoa_array -1)
+        aoa_r = P('AOA (R)', -x*np.sin(x))
+        airborne = buildsection('Airborne', 5, 100)
+        node = self.node_class()
+        node.derive(aoa_stick_shaker, aoa_l, aoa_r, airborne)
+        self.assertEqual(len(node), 1)
+        self.assertAlmostEqual(node[0].value, -1.0, places=1)
+        self.assertEqual(node[0].index, 70)
+
+
+class TestControlColumnUpTrimDownDuration(unittest.TestCase, NodeTest):
+    def setUp(self):
+        self.node_class = ControlColumnUpTrimDownDuration
+
+    def test_can_operate(self):
+        self.assertEqual(self.node_class.get_operational_combinations(series=A('Series', 'MAX')),
+                         [('Control Column', 'AP Trim Down')])
+
+    def test_derive(self):
+        pitch_mapping = {
+            0: '-',
+            1: 'Trim',
+        }
+        trim = M('AP Trim Down', np.ma.array([0]*15 + [1]*5 + [0]*20 + [1]*10), values_mapping=pitch_mapping)
+        cc = P('Control Column', np.ma.arange(-25,25,1))
+        node = self.node_class()
+        node.derive(cc, trim)
+        self.assertEqual(len(node), 1)
+        self.assertAlmostEqual(node[0].value, 5.0, places=1)
+        self.assertEqual(node[0].index, 15)
+
+
 ##############################################################################
 # Autopilot
 
