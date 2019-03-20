@@ -5585,6 +5585,28 @@ class TestAOAMCASMax(unittest.TestCase):
         self.assertEqual(node[0].index, 7)
 
 
+class TestAOAAbnormalOperationDuration(unittest.TestCase):
+    def setUp(self):
+        self.node_class = AOAAbnormalOperationDuration
+
+    def test_can_operate(self):
+        self.assertEqual(self.node_class.get_operational_combinations(series=A('Series', 'MAX')),
+                         [('AOA State', 'Airborne')])
+
+    def test_derive(self):
+        aoa_mapping = {
+            0: '-',
+            1: 'AOA (L) Fail'
+        }
+        aoa = M('AOA State', array=np.ma.array([0]*15 + [1]*3 + [0]*2), values_mapping=aoa_mapping)
+        airborne = buildsection('Airborne', 16, 20)
+        node=self.node_class()
+        node.derive(aoa, airborne)
+        self.assertEqual(len(node), 1)
+        self.assertAlmostEqual(node[0].value, 2.0, places=1)
+        self.assertEqual(node[0].index, 16)
+
+
 ##############################################################################
 # Autopilot
 
