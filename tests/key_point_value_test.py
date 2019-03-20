@@ -40,6 +40,10 @@ from analysis_engine.key_point_values import (
     AOAWithFlapDuringDescentMax,
     AOAWithFlapMax,
     AOADiscrepancyMax,
+    AOAMCASMax,
+    AOAAbnormalOperationDuration,
+    AOAStickShakerAOADiffMin,
+    ControlColumnUpTrimDownDuration,
     APDisengagedDuringCruiseDuration,
     APUOnDuringFlightDuration,
     APUFireWarningDuration,
@@ -5550,6 +5554,35 @@ class TestAOADiscrepancyMax(unittest.TestCase, NodeTest):
         self.assertEqual(len(node), 1)
         self.assertAlmostEqual(node[0].value, 1.41, places=2)
         self.assertEqual(node[0].index, 14)
+
+
+class TestAOAMCASMax(unittest.TestCase):
+
+    def setUp(self):
+        self.node_class = AOAMCASMax
+
+    def test_can_operate(self):
+        self.assertEqual(self.node_class.get_operational_combinations(series=A('Series', 'MAX')),
+                         [('AOA (L)', 'AOA (R)', 'Flap Including Transition', 'AP Engaged', 'Airborne', 'Climbing')])
+
+    def test_derive(self):
+        aoa_l_arr = np.sin(np.arange(1,20))
+        aoa_r_arr = np.cos(np.arange(1,20))
+        aoa_l = P('AOA (L)', array=aoa_l_arr)
+        aoa_r = P('AOA (R)', array=aoa_r_arr)
+        flap = P('Flap Including Transition', array=([5]*5 + [0]*15))
+        ap_values = {
+            0: '-',
+            1: 'Engaged',
+        }
+        ap = M(name='AP Engaged', array=np.ma.array([0]*10 + [1]*10), values_mapping=ap_values)
+        airs = buildsection('Airborne', 3, 20)
+        climb = buildsection('Climbing', 3, 15)
+        node = self.node_class()
+        node.derive(aoa_l, aoa_r, flap, ap, airs, climb)
+        self.assertEqual(len(node), 1)
+        self.assertAlmostEqual(node[0].value, 0.99, places=2)
+        self.assertEqual(node[0].index, 7)
 
 
 ##############################################################################
