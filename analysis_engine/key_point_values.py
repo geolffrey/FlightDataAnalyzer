@@ -4561,7 +4561,7 @@ class ControlColumnUpTrimDownDuration(KeyPointValueNode):
 
     def derive(self, cc=P('Control Column'),
                pitch_trim=P('AP Trim Down'),):
-        sections = runs_of_ones(cc.array < -5)
+        sections = runs_of_ones(cc.array > 5)
         sections = slices_and(sections, runs_of_ones(pitch_trim.array == 'Trim'))
         self.create_kpvs_from_slice_durations(sections, self.hz)
 
