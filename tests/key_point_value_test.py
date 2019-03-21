@@ -5649,8 +5649,8 @@ class TestControlColumnUpTrimDownDuration(unittest.TestCase, NodeTest):
         node = self.node_class()
         node.derive(cc, trim)
         self.assertEqual(len(node), 1)
-        self.assertAlmostEqual(node[0].value, 5.0, places=1)
-        self.assertEqual(node[0].index, 15)
+        self.assertAlmostEqual(node[0].value, 10.0, places=1)
+        self.assertEqual(node[0].index, 40)
 
 
 ##############################################################################
