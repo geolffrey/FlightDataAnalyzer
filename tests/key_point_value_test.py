@@ -40,7 +40,7 @@ from analysis_engine.key_point_values import (
     AOAWithFlapDuringDescentMax,
     AOAWithFlapMax,
     AOADiscrepancyMax,
-    AOADiscrepancyFor5SecMax,
+    AOADiscrepancy5SecMax,
     AOAMCASMax,
     AOAAbnormalOperationDuration,
     AOAStickShakerAOADiffMin,
@@ -112,6 +112,8 @@ from analysis_engine.key_point_values import (
     AirspeedAtThrustReversersSelection,
     AirspeedAtTouchdown,
     AirspeedBelow10000FtDuringDescentMax,
+    AirspeedDiscrepancy10SecMax,
+    AirspeedDiscrepancyMax,
     AirspeedDuringCruiseMax,
     AirspeedDuringCruiseMin,
     AirspeedDuringLevelFlightMax,
@@ -5536,6 +5538,8 @@ class TestAOADuringGoAroundMax(unittest.TestCase, CreateKPVsWithinSlicesTest):
     def test_derive(self):
         pass
 
+##############################################################################
+# MCAS
 
 class TestAOADiscrepancyMax(unittest.TestCase, NodeTest):
 
@@ -5557,10 +5561,10 @@ class TestAOADiscrepancyMax(unittest.TestCase, NodeTest):
         self.assertEqual(node[0].index, 14)
 
 
-class TestAOADiscrepancyFor5SecMax(unittest.TestCase, NodeTest):
+class TestAOADiscrepancy5SecMax(unittest.TestCase, NodeTest):
 
     def setUp(self):
-        self.node_class = AOADiscrepancyFor5SecMax
+        self.node_class = AOADiscrepancy5SecMax
         self.operational_combinations = [('AOA (L)', 'AOA (R)', 'Airborne')]
         self.function = max_value
 
@@ -5671,6 +5675,46 @@ class TestControlColumnUpTrimDownDuration(unittest.TestCase, NodeTest):
         self.assertEqual(len(node), 1)
         self.assertAlmostEqual(node[0].value, 10.0, places=1)
         self.assertEqual(node[0].index, 40)
+
+
+class TestAirspeedDiscrepancy10SecMax(unittest.TestCase, NodeTest):
+
+    def setUp(self):
+        self.node_class = AirspeedDiscrepancy10SecMax
+        self.operational_combinations = [('Airspeed', 'Airspeed (2)', 'Airborne')]
+        self.function = max_value
+
+    def test_derive(self):
+        ias_1_arr = np.sin(np.arange(1,20))
+        ias_2_arr = np.cos(np.arange(1,20))
+        ias_1 = P('Airspeed', array=ias_1_arr)
+        ias_2 = P('Airspeed (2)', array=ias_2_arr)
+        airs = buildsection('Airborne', 3, 15)
+        node = self.node_class()
+        node.derive(ias_1, ias_2, airs)
+        self.assertEqual(len(node), 1)
+        self.assertAlmostEqual(node[0].value, 0.30, places=2)
+        self.assertEqual(node[0].index, 3)
+
+
+class TestAirspeedDiscrepancyMax(unittest.TestCase, NodeTest):
+
+    def setUp(self):
+        self.node_class = AirspeedDiscrepancyMax
+        self.operational_combinations = [('Airspeed', 'Airspeed (2)', 'Airborne')]
+        self.function = max_value
+
+    def test_derive(self):
+        ias_1_arr = np.sin(np.arange(1,20))
+        ias_2_arr = np.cos(np.arange(1,20))
+        ias_1 = P('Airspeed', array=ias_2_arr)
+        ias_2 = P('Airspeed (2)', array=ias_1_arr)
+        airs = buildsection('Airborne', 3, 15)
+        node = self.node_class()
+        node.derive(ias_1, ias_2, airs)
+        self.assertEqual(len(node), 1)
+        self.assertAlmostEqual(node[0].value, -1.41, places=2)
+        self.assertEqual(node[0].index, 14)
 
 
 ##############################################################################
