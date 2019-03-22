@@ -44,6 +44,7 @@ from analysis_engine.key_point_values import (
     AOAMCASMax,
     AOAAbnormalOperationDuration,
     AOAStickShakerAOADiffMin,
+    AOAStickShakerAOADiffFlapsUpAPOffMin,
     ControlColumnUpTrimDownDuration,
     APDisengagedDuringCruiseDuration,
     APUOnDuringFlightDuration,
@@ -5656,6 +5657,37 @@ class TestAOAStickShakerAOADiffMin(unittest.TestCase):
         self.assertEqual(node[0].index, 70)
 
 
+class TestAOAStickShakerAOADiffFlapsUpAPOffMin(unittest.TestCase):
+    def setUp(self):
+        self.node_class = AOAStickShakerAOADiffFlapsUpAPOffMin
+
+    # Add NodeTest when reinstating this test
+    # def test_can_operate(self):
+    #     self.assertEqual(self.node_class.get_operational_combinations(series=A('Series', 'MAX')),
+    #                      [('AOA Stick Shaker', 'AOA (L)', 'AOA (R)', 'Airborne', 'Flap Including Transition',
+    #                        'AP Engaged')])
+
+    def test_derive(self):
+        x = np.linspace(0, 10, 100)
+        aoa_stick_shaker = P('AOA Stick Shaker', -x*np.sin(x))
+        aoa_array = -x*np.sin(x)
+        aoa_array[70:90] += 2
+        aoa_l = P('AOA (L)', aoa_array -1)
+        aoa_r = P('AOA (R)', -x*np.sin(x))
+        airborne = buildsection('Airborne', 5, 100)
+        flap = P('Flap Including Transition', array=([5]*50 + [0]*50))
+        ap_values = {
+            0: '-',
+            1: 'Engaged',
+        }
+        ap = M(name='AP Engaged', array=np.ma.array([1]*50 + [0]*50, mask=[False]*100), values_mapping=ap_values)
+        node = self.node_class()
+        node.derive(aoa_stick_shaker, aoa_l, aoa_r, airborne, flap, ap)
+        self.assertEqual(len(node), 1)
+        self.assertAlmostEqual(node[0].value, -1.0, places=1)
+        self.assertEqual(node[0].index, 70)
+
+
 class TestControlColumnUpTrimDownDuration(unittest.TestCase):
     def setUp(self):
         self.node_class = ControlColumnUpTrimDownDuration
@@ -5672,8 +5704,9 @@ class TestControlColumnUpTrimDownDuration(unittest.TestCase):
         }
         trim = M('AP Trim Down', np.ma.array([0]*15 + [1]*5 + [0]*20 + [1]*10), values_mapping=pitch_mapping)
         cc = P('Control Column', np.ma.arange(-25,25,1))
+        airs = buildsection('Airborne', 5, 50)
         node = self.node_class()
-        node.derive(cc, trim)
+        node.derive(cc, trim, airs)
         self.assertEqual(len(node), 1)
         self.assertAlmostEqual(node[0].value, 10.0, places=1)
         self.assertEqual(node[0].index, 40)
