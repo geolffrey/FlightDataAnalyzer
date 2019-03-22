@@ -40,6 +40,7 @@ from analysis_engine.key_point_values import (
     AOAWithFlapDuringDescentMax,
     AOAWithFlapMax,
     AOADiscrepancyMax,
+    AOADiscrepancyFor5SecMax,
     AOAMCASMax,
     AOAAbnormalOperationDuration,
     AOAStickShakerAOADiffMin,
@@ -5545,6 +5546,26 @@ class TestAOADiscrepancyMax(unittest.TestCase, NodeTest):
         self.function = max_value
 
     def test_derive(self):
+        aoa_r_arr = np.sin(np.arange(1,20))
+        aoa_l_arr = np.cos(np.arange(1,20))
+        aoa_l = P('AOA (L)', array=aoa_l_arr)
+        aoa_r = P('AOA (R)', array=aoa_r_arr)
+        airs = buildsection('Airborne', 3, 15)
+        node = self.node_class()
+        node.derive(aoa_l, aoa_r, airs)
+        self.assertEqual(len(node), 1)
+        self.assertAlmostEqual(node[0].value, -1.41, places=2)
+        self.assertEqual(node[0].index, 14)
+
+
+class TestAOADiscrepancyFor5SecMax(unittest.TestCase, NodeTest):
+
+    def setUp(self):
+        self.node_class = AOADiscrepancyFor5SecMax
+        self.operational_combinations = [('AOA (L)', 'AOA (R)', 'Airborne')]
+        self.function = max_value
+
+    def test_derive(self):
         aoa_l_arr = np.sin(np.arange(1,20))
         aoa_r_arr = np.cos(np.arange(1,20))
         aoa_l = P('AOA (L)', array=aoa_l_arr)
@@ -5553,8 +5574,8 @@ class TestAOADiscrepancyMax(unittest.TestCase, NodeTest):
         node = self.node_class()
         node.derive(aoa_l, aoa_r, airs)
         self.assertEqual(len(node), 1)
-        self.assertAlmostEqual(node[0].value, 1.41, places=2)
-        self.assertEqual(node[0].index, 14)
+        self.assertAlmostEqual(node[0].value, 0.30, places=2)
+        self.assertEqual(node[0].index, 3)
 
 
 class TestAOAMCASMax(unittest.TestCase):
