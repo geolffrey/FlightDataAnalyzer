@@ -4515,6 +4515,41 @@ class AOAMCASMax(KeyPointValueNode):
         self.create_kpvs_within_slices(aoa_max, sections, max_value)
 
 
+class AOAStickShakerAOADiffFlapsUpAPOffMin(KeyPointValueNode):
+    '''
+    Minimum difference between AOA Stick Shaker angle and AOA with Flaps Up and AP not engaged.
+    737 MAX specific.
+    '''
+    name = 'AOA Stick Shaker AOA Diff Flaps Up AP Off Min'
+    units = ut.DEGREE
+
+    # @classmethod
+    # def can_operate(cls, available, series=A('Series')):
+    #     is_max = 'MAX' in series.value if series else None
+    #     return is_max and all_deps(cls, available)
+
+    def derive(self, aoa_stick_shaker=P('AOA Stick Shaker'),
+               aoa_l=P('AOA (L)'),
+               aoa_r=P('AOA (R)'),
+               airborne=S('Airborne'),
+               flap=P('Flap Including Transition'),
+               cmd=M('AP Engaged'),):
+
+        # 1. Merge two AOA sensors and find Max
+        aoa = vstack_params(aoa_l, aoa_r)
+        aoa_max = np.ma.max(aoa, axis=0)
+
+        #2. Subtract AOA Max from AOA Stick Shaker angle
+        aoa_diff = aoa_stick_shaker.array - aoa_max
+
+        sections = airborne.get_slices()
+        sections = slices_and_not(sections, runs_of_ones(flap.array != 0))
+        sections = slices_and_not(sections, runs_of_ones(cmd.array == 'Engaged'))
+        sections = slices_and_not(sections, runs_of_ones(cmd.array.mask))
+
+        self.create_kpvs_within_slices(aoa_diff, sections, min_value)
+
+
 class AOAAbnormalOperationDuration(KeyPointValueNode):
     '''
     Duration of abnormal AOA sensors operation. Based on the AOA State parameter.
@@ -4579,9 +4614,11 @@ class ControlColumnUpTrimDownDuration(KeyPointValueNode):
     #     return is_max and all_deps(cls, available)
 
     def derive(self, cc=P('Control Column'),
-               pitch_trim=P('AP Trim Down'),):
+               pitch_trim=P('AP Trim Down'),
+               airborne=S('Airborne'),):
         sections = runs_of_ones(cc.array > 5)
         sections = slices_and(sections, runs_of_ones(pitch_trim.array == 'Trim'))
+        sections = slices_and(sections, airborne.get_slices())
         self.create_kpvs_from_slice_durations(sections, self.hz)
 
 
