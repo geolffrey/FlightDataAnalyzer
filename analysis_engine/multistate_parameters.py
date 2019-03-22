@@ -99,11 +99,12 @@ class AOAState(MultistateDerivedParameterNode):
                  aoa_sec_heater=P('AOA Secondary Heater'),
                  aoa_correction=P('AOA Correction Program'),):
 
-        parameter = next(p for p in (aoa_l_fail, aoa_l_signal_fail, aoa_l_heater,
+        parameter = first_valid_parameter(aoa_l_fail, aoa_l_signal_fail, aoa_l_heater,
                   aoa_r_fail, aoa_r_signal_fail, aoa_r_heater,
-                  aoa_signal_fail, aoa_sec_heater, aoa_correction))
+                  aoa_signal_fail, aoa_sec_heater, aoa_correction)
 
-        self.array = np_ma_zeros_like(parameter.array)
+        if parameter:
+            self.array = np_ma_zeros_like(parameter.array)
 
         if aoa_l_fail:
             self.array[(aoa_l_fail.array == 'Failed').filled(False)] = aoa_l_fail.name
