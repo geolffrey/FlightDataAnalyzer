@@ -4506,7 +4506,7 @@ class AOAMCASMax(KeyPointValueNode):
 
         # 2. Find sections where we are Airborne, with Flaps up and CMD Engaged while Climbing
         sections = airborne.get_slices()
-        sections = slices_and_not(sections, runs_of_ones(flap.array != 0))
+        sections = slices_and(sections, runs_of_ones(flap.array == 0))
         sections = slices_and_not(sections, runs_of_ones(cmd.array == 'Engaged'))
         sections = slices_and_not(sections, runs_of_ones(cmd.array.mask))
         # sections = slices_and(sections, climbs.get_slices())
@@ -4544,7 +4544,7 @@ class AOAStickShakerAOADiffFlapsUpAPOffMin(KeyPointValueNode):
         aoa_diff = aoa_stick_shaker.array - aoa_max
 
         sections = airborne.get_slices()
-        sections = slices_and_not(sections, runs_of_ones(flap.array != 0))
+        sections = slices_and(sections, runs_of_ones(flap.array == 0))
         sections = slices_and_not(sections, runs_of_ones(cmd.array == 'Engaged'))
         sections = slices_and_not(sections, runs_of_ones(cmd.array.mask))
 
