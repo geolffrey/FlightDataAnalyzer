@@ -4702,6 +4702,7 @@ class AOAMCASMax(KeyPointValueNode):
         sections = airborne.get_slices()
         sections = slices_and_not(sections, runs_of_ones(flap.array != 0))
         sections = slices_and_not(sections, runs_of_ones(cmd.array == 'Engaged'))
+        sections = slices_and_not(sections, runs_of_ones(cmd.array.mask))
         sections = slices_and(sections, climbs.get_slices())
         sections = slices_remove_small_gaps(sections, time_limit=5, hz=self.hz)
 
