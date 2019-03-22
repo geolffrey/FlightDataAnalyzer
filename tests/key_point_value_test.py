@@ -5883,8 +5883,9 @@ class TestControlColumnUpTrimDownDuration(unittest.TestCase):
         }
         trim = M('AP Trim Down', np.ma.array([0]*15 + [1]*5 + [0]*20 + [1]*10), values_mapping=pitch_mapping)
         cc = P('Control Column', np.ma.arange(-25,25,1))
+        airs = buildsection('Airborne', 5, 50)
         node = self.node_class()
-        node.derive(cc, trim)
+        node.derive(cc, trim, airs)
         self.assertEqual(len(node), 1)
         self.assertAlmostEqual(node[0].value, 10.0, places=1)
         self.assertEqual(node[0].index, 40)
