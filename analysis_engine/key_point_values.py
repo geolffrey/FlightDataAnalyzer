@@ -4486,18 +4486,18 @@ class AOAMCASMax(KeyPointValueNode):
     name = 'AOA MCAS Max'
     units = ut.DEGREE
 
-    @classmethod
-    def can_operate(cls, available, series=A('Series')):
-        is_max = 'MAX' in series.value if series else None
-        return is_max and all_deps(cls, available)
+    # @classmethod
+    # def can_operate(cls, available, series=A('Series')):
+    #     is_max = 'MAX' in series.value if series else None
+    #     return is_max and all_deps(cls, available)
 
     def derive(self,
                aoa_l=P('AOA (L)'),
                aoa_r=P('AOA (R)'),
                flap=P('Flap Including Transition'),
                cmd=M('AP Engaged'),
-               airborne=S('Airborne'),
-               climbs=S('Climbing'),):
+               airborne=S('Airborne'),):
+               # climbs=S('Climbing'),):
 
         # 1. Merge two AOA sensors and find Max
         aoa = vstack_params(aoa_l, aoa_r)
@@ -4508,8 +4508,8 @@ class AOAMCASMax(KeyPointValueNode):
         sections = slices_and_not(sections, runs_of_ones(flap.array != 0))
         sections = slices_and_not(sections, runs_of_ones(cmd.array == 'Engaged'))
         sections = slices_and_not(sections, runs_of_ones(cmd.array.mask))
-        sections = slices_and(sections, climbs.get_slices())
-        sections = slices_remove_small_gaps(sections, time_limit=5, hz=self.hz)
+        # sections = slices_and(sections, climbs.get_slices())
+        # sections = slices_remove_small_gaps(sections, time_limit=5, hz=self.hz)
 
         # 3. Create KPVs
         self.create_kpvs_within_slices(aoa_max, sections, max_value)
@@ -4523,10 +4523,10 @@ class AOAAbnormalOperationDuration(KeyPointValueNode):
     name = 'AOA Abnormal Operation Duration'
     units = ut.SECOND
 
-    @classmethod
-    def can_operate(cls, available, series=A('Series')):
-        is_max = 'MAX' in series.value if series else None
-        return is_max and all_deps(cls, available)
+    # @classmethod
+    # def can_operate(cls, available, series=A('Series')):
+    #     is_max = 'MAX' in series.value if series else None
+    #     return is_max and all_deps(cls, available)
 
     def derive(self, aoa_state=M('AOA State'),
                airborne=S('Airborne'),):
@@ -4543,10 +4543,10 @@ class AOAStickShakerAOADiffMin(KeyPointValueNode):
     name = 'AOA Stick Shaker AOA Diff Min'
     units = ut.DEGREE
 
-    @classmethod
-    def can_operate(cls, available, series=A('Series')):
-        is_max = 'MAX' in series.value if series else None
-        return is_max and all_deps(cls, available)
+    # @classmethod
+    # def can_operate(cls, available, series=A('Series')):
+    #     is_max = 'MAX' in series.value if series else None
+    #     return is_max and all_deps(cls, available)
 
     def derive(self, aoa_stick_shaker=P('AOA Stick Shaker'),
                aoa_l=P('AOA (L)'),
@@ -4573,10 +4573,10 @@ class ControlColumnUpTrimDownDuration(KeyPointValueNode):
 
     units = ut.SECOND
 
-    @classmethod
-    def can_operate(cls, available, series=A('Series')):
-        is_max = 'MAX' in series.value if series else None
-        return is_max and all_deps(cls, available)
+    # @classmethod
+    # def can_operate(cls, available, series=A('Series')):
+    #     is_max = 'MAX' in series.value if series else None
+    #     return is_max and all_deps(cls, available)
 
     def derive(self, cc=P('Control Column'),
                pitch_trim=P('AP Trim Down'),):
