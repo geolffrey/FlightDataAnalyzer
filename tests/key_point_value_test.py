@@ -5575,7 +5575,7 @@ class TestAOAMCASMax(unittest.TestCase):
             0: '-',
             1: 'Engaged',
         }
-        ap = M(name='AP Engaged', array=np.ma.array([0]*10 + [1]*10), values_mapping=ap_values)
+        ap = M(name='AP Engaged', array=np.ma.array([0]*10 + [1]*10, mask=[False]*20), values_mapping=ap_values)
         airs = buildsection('Airborne', 3, 20)
         climb = buildsection('Climbing', 3, 15)
         node = self.node_class()
