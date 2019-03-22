@@ -4441,6 +4441,8 @@ class AOAWithFlapDuringDescentMax(KeyPointValueNode):
         aoa_flap = np.ma.masked_where(retracted, aoa.array)
         self.create_kpvs_within_slices(aoa_flap, descends, max_value)
 
+##############################################################################
+# MCAS
 
 class AOADiscrepancyMax(KeyPointValueNode):
     '''
@@ -4458,12 +4460,12 @@ class AOADiscrepancyMax(KeyPointValueNode):
         self.create_kpvs_within_slices(diff, airs, max_abs_value)
 
 
-class AOADiscrepancyFor5SecMax(KeyPointValueNode):
+class AOADiscrepancy5SecMax(KeyPointValueNode):
     '''
     Maximum recorded AoA discrepancy sustained for at least 5 seconds while Airborne.
     '''
 
-    name = 'AOA Discrepancy For 5 Sec Max'
+    name = 'AOA Discrepancy 5 Sec Max'
     units = ut.DEGREE
 
     def derive(self,
@@ -4581,6 +4583,39 @@ class ControlColumnUpTrimDownDuration(KeyPointValueNode):
         sections = runs_of_ones(cc.array > 5)
         sections = slices_and(sections, runs_of_ones(pitch_trim.array == 'Trim'))
         self.create_kpvs_from_slice_durations(sections, self.hz)
+
+
+class AirspeedDiscrepancy10SecMax(KeyPointValueNode):
+    '''
+    Maximum recorded Airspeed discrepancy sustained for at least 10 seconds while Airborne.
+    '''
+
+    name = 'Airspeed Discrepancy 10 Sec Max'
+    units = ut.KT
+
+    def derive(self,
+               ias_1=P('Airspeed'),
+               ias_2=P('Airspeed (2)'),
+               airs=S('Airborne'),):
+        diff = ias_1.array - ias_2.array
+        diff = second_window(diff, self.hz, 10, extend_window=True)
+        self.create_kpvs_within_slices(diff, airs, max_abs_value)
+
+
+class AirspeedDiscrepancyMax(KeyPointValueNode):
+    '''
+    Maximum recorded Airspeed discrepancy.
+    '''
+
+    name = 'Airspeed Discrepancy Max'
+    units = ut.KT
+
+    def derive(self,
+               ias_1=P('Airspeed'),
+               ias_2=P('Airspeed (2)'),
+               airs=S('Airborne'),):
+        diff = ias_1.array - ias_2.array
+        self.create_kpvs_within_slices(diff, airs, max_abs_value)
 
 
 ##############################################################################
