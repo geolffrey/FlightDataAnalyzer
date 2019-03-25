@@ -1709,7 +1709,35 @@ class TestAltitudeRadio(unittest.TestCase):
         for sect in sects[2::3]:
             # landings
             self.assertAlmostEqual(rad.array[sect.stop - 1] / 10., 0, 0)
-
+    
+    def test_altitude_radio_A320_zero_dropouts(self):
+        # Four cases of data dropout at around 700ft in the descent. If the 
+        # dropout is not handled correctly, the preceding data is much lower, 
+        # hence fails the simple > 500ft test.
+        fast = S(frequency=8.0,
+                 items=[Section('Fast', slice(1989, 29393), 1989, 29393)])        
+        radioA = load_compressed(os.path.join(
+            test_data_path, 'A320_F_Altitude_Radio_(A)_dropout.npz'))
+        radioA = overflow_correction(radioA)
+        self.assertGreater(radioA[28527], 500.0)
+        
+        radioB = load_compressed(os.path.join(
+            test_data_path, 'A320_F_Altitude_Radio_(B)_dropout.npz'))
+        radioB = overflow_correction(radioB)
+        self.assertGreater(radioB[28527], 500.0)
+        
+        fast = S(frequency=8.0,
+                 items=[Section('Fast', slice(1281, 63613), 1281, 63613)])        
+        radioA = load_compressed(os.path.join(
+            test_data_path, 'A320_K_Altitude_Radio_(A)_dropout.npz'))
+        radioA = overflow_correction(radioA)
+        self.assertGreater(radioA[62710], 500.0)
+        
+        radioB = load_compressed(os.path.join(
+            test_data_path, 'A320_K_Altitude_Radio_(B)_dropout.npz'))
+        radioB = overflow_correction(radioB)
+        self.assertGreater(radioB[62710], 500.0)
+        
     def test_altitude_radio_A320_small_jumps(self):
         # Some small jumps on a few aircraft caused problems.
         fast = buildsection('Fast', 248.8, 3674.3)
