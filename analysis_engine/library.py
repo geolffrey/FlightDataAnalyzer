@@ -5356,6 +5356,8 @@ def overflow_correction_array(array):
     # Only fix things that need fixing
     if biggest_step_up or biggest_step_down:
         # Compute and apply the correction
+        biggest_step = max(biggest_step_up, -biggest_step_down)
+        steps = np.ma.where(abs(steps) > biggest_step * 0.4, steps, 0.0)
         array += np.ma.cumsum(steps)
 
     # Simple check to make sure the lowest value is not badly below zero following
