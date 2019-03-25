@@ -1613,16 +1613,16 @@ class GearDownInTransit(MultistateDerivedParameterNode):
         elif gear_down and gear_up:
             if len(gear_ups) == len(gear_downs):
                 for start, stop in zip(gear_ups, gear_downs):
-                    runs.append(slice(start, stop+1))
+                    runs.append(slice(math.ceil(start), math.ceil(stop)))
             elif len(gear_ups) > len(gear_downs):
                 for stop in gear_downs:
                     # Find the last gear up preceding this gear down
                     start = [u for u in gear_ups if u < stop][-1]
-                    runs.append(slice(start, stop+1))
+                    runs.append(slice(math.ceil(start), math.ceil(stop)))
             else:
                 for start in gear_ups:
                     stop = [d for d in gear_downs if d > start][0]
-                    runs.append(slice(start, stop+1))            
+                    runs.append(slice(math.ceil(start), math.ceil(stop)))           
             
         elif gear_down and (gear_in_transit or gear_red):
             param, state = (gear_in_transit, 'In Transit') if gear_in_transit else (gear_red, 'Warning')
@@ -1750,19 +1750,21 @@ class GearUpInTransit(MultistateDerivedParameterNode):
                 start = max([x for x in transits if x < stop] or (None,))
                 if start:
                     runs.append(slice(int(math.ceil(start)), stop+1))
+                    
         elif gear_down and gear_up:
             if len(gear_ups) == len(gear_downs):
                 for start, stop in zip(gear_downs, gear_ups):
-                    runs.append(slice(int(math.ceil(start)), stop+1))
+                    runs.append(slice(int(math.ceil(start)), math.ceil(stop)))
             elif len(gear_ups) > len(gear_downs):
                 for start in gear_downs:
                     # Find the last gear up preceding this gear down
                     stop = [u for u in gear_ups if u > start][0]
-                    runs.append(slice(start, stop+1))
+                    runs.append(slice(math.ceil(start), math.ceil(stop)))
             else:
                 for stop in gear_ups:
-                    start = [d for d in gear_downs if d > stop][-1]
-                    runs.append(slice(start, stop+1))        
+                    start = [d for d in gear_downs if d < stop][-1]
+                    runs.append(slice(math.ceil(start), math.ceil(stop)))        
+        
         elif gear_down and (gear_in_transit or gear_red):
             param, state = (gear_in_transit, 'In Transit') if gear_in_transit else (gear_red, 'Warning')
             transits = find_edges_on_state_change(state, nearest_neighbour_mask_repair(param.array), change='leaving', phase=airborne)

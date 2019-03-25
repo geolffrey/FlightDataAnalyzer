@@ -3797,7 +3797,28 @@ class TestGearUpInTransit(unittest.TestCase):
 
         np.testing.assert_array_equal(node.array, self.expected.array)
         self.assertEqual(node.values_mapping, self.values_mapping)
+        gear_up = M('Gear Up', array=np.ma.array([0]*15 + [1]*30 + [0]*15),
+                   values_mapping={0: 'Down', 1: 'Up'})
+        # Transient gear down changes from down or up states
+        gear_down = M('Gear Down', array=np.ma.array([1, 1, 0, 1, 1] + [0]*25 + [1] + [0]*24 + [1]*5),
+                      values_mapping={0: 'Up', 1: 'Down'})
+        node = self.node_class()
+        node.derive(gear_down, gear_up, None, None, None, None, self.airborne, self.model, self.series, self.family)
+        np.testing.assert_array_equal(node.array, self.expected.array)
+        self.assertEqual(node.values_mapping, self.values_mapping)
 
+        np.testing.assert_array_equal(node.array, self.expected.array)
+        self.assertEqual(node.values_mapping, self.values_mapping)
+        # Transient gear up changes
+        gear_up = M('Gear Up', array=np.ma.array([0, 0, 1] + [0]*12 + [1]*15  + [0] + [1]*14+ [0]*5 + [1] + [0]*9),
+                   values_mapping={0: 'Down', 1: 'Up'})
+        gear_down = M('Gear Down', array=np.ma.array([1]*5 + [0]*50 + [1]*5),
+                      values_mapping={0: 'Up', 1: 'Down'})
+        node = self.node_class()
+        node.derive(gear_down, gear_up, None, None, None, None, self.airborne, self.model, self.series, self.family)
+        np.testing.assert_array_equal(node.array, self.expected.array)
+        self.assertEqual(node.values_mapping, self.values_mapping)
+        
     @patch('analysis_engine.multistate_parameters.at')
     def test_derive__up_sel_gear_in_transit(self, at):
         at.get_gear_transition_times.return_value = (15, 15)
@@ -4026,7 +4047,7 @@ class TestGearDownInTransit(unittest.TestCase):
     def test_derive__gear_down_gear_up(self, at):
         at.get_gear_transition_times.return_value = (15, 15)
         # Gear Down nolonger Down to Gear Up changing to Up
-        gear_up = M('Gear Up', array=np.ma.array([0]*15 + [1]*31 + [0]*14),
+        gear_up = M('Gear Up', array=np.ma.array([0]*15 + [1]*30 + [0]*15),
                    values_mapping={0: 'Down', 1: 'Up'})
         gear_down = M('Gear Down', array=np.ma.array([1]*5 + [0]*50 + [1]*5),
                       values_mapping={0: 'Up', 1: 'Down'})
@@ -4035,6 +4056,31 @@ class TestGearDownInTransit(unittest.TestCase):
 
         np.testing.assert_array_equal(node.array, self.expected.array)
         self.assertEqual(node.values_mapping, self.values_mapping)
+        
+        np.testing.assert_array_equal(node.array, self.expected.array)
+        self.assertEqual(node.values_mapping, self.values_mapping)
+        gear_up = M('Gear Up', array=np.ma.array([0]*15 + [1]*30 + [0]*15),
+                   values_mapping={0: 'Down', 1: 'Up'})
+        # Transient gear down changes from down or up states
+        gear_down = M('Gear Down', array=np.ma.array([1, 1, 0, 1, 1] + [0]*25 + [1] + [0]*24 + [1]*5),
+                      values_mapping={0: 'Up', 1: 'Down'})
+        node = self.node_class()
+        node.derive(gear_down, gear_up, None, None, None, None, self.airborne, self.model, self.series, self.family)
+        np.testing.assert_array_equal(node.array, self.expected.array)
+        self.assertEqual(node.values_mapping, self.values_mapping)
+
+        np.testing.assert_array_equal(node.array, self.expected.array)
+        self.assertEqual(node.values_mapping, self.values_mapping)
+        # Transient gear up changes
+        gear_up = M('Gear Up', array=np.ma.array([0, 0, 1] + [0]*12 + [1]*15  + [0] + [1]*14+ [0]*10 + [1] + [0]*4),
+                   values_mapping={0: 'Down', 1: 'Up'})
+        gear_down = M('Gear Down', array=np.ma.array([1]*5 + [0]*50 + [1]*5),
+                      values_mapping={0: 'Up', 1: 'Down'})
+        node = self.node_class()
+        node.derive(gear_down, gear_up, None, None, None, None, self.airborne, self.model, self.series, self.family)
+        np.testing.assert_array_equal(node.array, self.expected.array)
+        self.assertEqual(node.values_mapping, self.values_mapping)
+        
 
     @patch('analysis_engine.multistate_parameters.at')
     def test_derive__down_sel_gear_in_transit(self, at):
