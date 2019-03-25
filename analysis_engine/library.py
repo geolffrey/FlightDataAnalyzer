@@ -6813,7 +6813,7 @@ def including_transition(array, steps, hz=1, mode='include'):
         after = output[min(gap.stop, len(output) - 1)]
         if mode == 'include':
             output[gap] = max(before, after)
-        elif mode == 'flap':
+        else:
             output[gap] = min(before, after)
 
     return output
