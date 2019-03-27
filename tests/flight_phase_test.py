@@ -1621,6 +1621,20 @@ class TestHolding(unittest.TestCase):
         hold.derive(alt, hdg, alt_max, tdwns, lat, lon)
         self.assertEqual(len(hold), 0)
 
+    def test_slow_turns_on_limit_of_calculation(self):
+        alt=P('Altitude AAL For Flight Phases', np.ones(15488) * 20000)
+        hdg_array = np.load(os.path.join(test_data_path, 'holding_high_over_florida.npz'))
+        hdg = P('Heading Increasing', hdg_array)
+        alt_max=KPV('Altitude Max', items=[
+            KeyPointValue(index=2030, value=36015.0),])
+        tdwns=KTI('Touchdown', items=[
+            KeyTimeInstance(index=15400),])
+        lat=P('Latitude Smoothed', np.ma.ones(15488) * 24.0)
+        lon=P('Longitude Smoothed', np.ma.ones(15488) * 24.0)
+        hold=Holding()
+        hold.derive(alt, hdg, alt_max, tdwns, lat, lon)
+        self.assertEqual(len(hold), 1)
+        
 
 class TestLanding(unittest.TestCase):
     def test_can_operate(self):
