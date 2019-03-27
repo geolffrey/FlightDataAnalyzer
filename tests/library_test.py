@@ -4796,7 +4796,7 @@ class TestOverflowCorrection(unittest.TestCase):
             test_data_path, 'A320_Altitude_Radio_A_overflow.nod'))
         resA = overflow_correction(overflow_correction(radioA.array, None), fast)
         sects = np.ma.clump_unmasked(resA)
-        self.assertEqual(len(sects), 5)
+        self.assertEqual(len(sects), 9)
         self.assertEqual(resA.max(), 7168)
         self.assertEqual(resA.min(), -2)
 
@@ -4804,7 +4804,7 @@ class TestOverflowCorrection(unittest.TestCase):
             test_data_path, 'A320_Altitude_Radio_B_overflow.nod'))
         resB = overflow_correction(overflow_correction(radioB.array, None), fast)
         sects = np.ma.clump_unmasked(resB)
-        self.assertEqual(len(sects), 4)
+        self.assertEqual(len(sects), 9)
         self.assertEqual(resB.max(), 5918)
         self.assertEqual(resB.min(), -2)
 
@@ -4815,7 +4815,7 @@ class TestOverflowCorrection(unittest.TestCase):
         resA = overflow_correction(overflow_correction(radioA.array, None), fast)
         sects = np.ma.clump_unmasked(resA)
         # 1 section for climb, one for descent
-        self.assertEqual(len(sects), 2)
+        self.assertEqual(len(sects), 4)
         self.assertEqual(resA.max(), 7855)
         self.assertEqual(resA.min(), 0)
 
@@ -4824,7 +4824,7 @@ class TestOverflowCorrection(unittest.TestCase):
         resB = overflow_correction(overflow_correction(radioB.array, None), fast)
         sects = np.ma.clump_unmasked(resB)
         # 1 section for climb, one for descent
-        self.assertEqual(len(sects), 2)
+        self.assertEqual(len(sects), 4)
         self.assertEqual(resB.max(), 7844)
         self.assertEqual(resB.min(), 0)
 
@@ -4837,6 +4837,11 @@ class TestOverflowCorrectionArray(unittest.TestCase):
         result = overflow_correction_array(array)
         self.assertEqual(result[10], -2060 + 2048)
 
+    def test_mask_retention(self):
+        array = np.ma.array(data=[5]*10, mask=[0]*3 + [1]*4 + [0]*3)
+        result = overflow_correction_array(array)
+        self.assertEqual(result.mask[5], True)
+        
 class TestPinToGround(unittest.TestCase):
     '''
     Revised version of pin to ground which only corrects multiples of the 

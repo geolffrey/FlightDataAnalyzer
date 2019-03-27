@@ -5342,6 +5342,7 @@ def overflow_correction_array(array):
     '''
     Overflow correction based on power of two jumps only.
     '''
+    keep_mask = np.ma.getmaskarray(array).copy()
     array.mask = False
     jump = np.ma.ediff1d(array, to_begin=0.0)
     abs_jump = np.ma.abs(jump)
@@ -5368,7 +5369,7 @@ def overflow_correction_array(array):
         if delta:
             array -= delta
 
-    return array
+    return np.ma.array(data=array, mask=keep_mask)
 
 
 def pin_to_ground(array, good_slices, fast_slices, hz=1.0):
