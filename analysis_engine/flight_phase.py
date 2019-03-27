@@ -268,7 +268,7 @@ class Holding(FlightPhaseNode):
                     lat.array[stop], lon.array[stop])
                 if ut.convert(hold_dist / hold_sec, ut.METER_S, ut.KT) < HOLDING_MAX_GSPD:
                     hold_bands.append(turn_band)
-
+        hold_bands = slices_remove_small_gaps(hold_bands, time_limit=30, hz=alt_aal.frequency)
         self.create_phases(hold_bands)
 
 
