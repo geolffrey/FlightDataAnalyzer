@@ -94,6 +94,12 @@ def get_node_type(node, node_subclasses):
     return node.__class__.__name__
 
 
+def serialise_datetime(value):
+    if isinstance(value, datetime):
+        return value.isoformat()
+    raise TypeError("Cannot serialise type: %s" % type(value))
+
+
 def derive_parameters(hdf, node_mgr, process_order, params=None, force=False):
     '''
     Derives parameters in process_order. Dependencies are sourced via the
@@ -674,7 +680,8 @@ def process_flight(segment_info, tail_number, aircraft_info={}, achieved_flight_
 
             # Store aircraft info
             hdf.set_attr('aircraft_info', json.dumps(aircraft_info))
-            hdf.set_attr('achieved_flight_record', json.dumps(achieved_flight_record))
+            hdf.set_attr('achieved_flight_record', json.dumps(achieved_flight_record,
+                                                              default=serialise_datetime))
 
     return {
         'flight': flight_attrs,
