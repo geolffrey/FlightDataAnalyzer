@@ -19051,7 +19051,7 @@ class EngTakeoffFlexTemp(KeyPointValueNode):
             self.create_kpvs_at_ktis(flex.array, sage_toffs)
         elif flex_1 and flex_2:
             for toff in sage_toffs:
-                index = toff.index
+                index = int(toff.index)
                 value = (flex_1.array[index] + flex_2.array[index]) / 2.0
                 self.create_kpv(index, value)
 
