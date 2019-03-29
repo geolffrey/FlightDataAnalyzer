@@ -7253,7 +7253,7 @@ class ApproachRange(DerivedParameterNode):
                                             alt_aal.array[reg_slice])
                 # This should still correlate pretty well, though not quite
                 # as well as for a directed approach.
-                if corr < 0.990:
+                if (corr or 0) < 0.990:
                     self.warning('Low convergence in computing visual '
                                  'approach path offset.')
 
