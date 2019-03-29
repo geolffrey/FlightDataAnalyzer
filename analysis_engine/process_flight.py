@@ -2,9 +2,9 @@ from __future__ import print_function
 
 import argparse
 import itertools
-import json
 import logging
 import os
+import simplejson as json
 import six
 import sys
 
