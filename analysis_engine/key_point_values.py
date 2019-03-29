@@ -6300,7 +6300,7 @@ class ControlColumnStiffness(KeyPointValueNode):
                     continue
                 corr, slope, off = \
                     coreg(push[move], indep_var=column[move], force_zero=True)
-                if corr is not None and corr > 0.85:  # This checks the data looks sound.
+                if (corr or 0) > 0.85:  # This checks the data looks sound.
                     when = np.ma.argmax(np.ma.abs(push[move]))
                     self.create_kpv(
                         (speedy.slice.start or 0) + move.start + when, slope)
