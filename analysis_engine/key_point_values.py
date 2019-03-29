@@ -18999,7 +18999,7 @@ class EngN1TakeoffDerate(KeyPointValueNode):
             theta = (tat.array[index] + 273.15) / 288.15
             corr_n1 = n1 / np.sqrt(theta)
             derate = 100.0 - corr_n1
-            self.create_kpv(index, derate)
+            self.create_kpv(toff.index, derate)
 
 
 class EngThrustTakeoffDerate(KeyPointValueNode):
@@ -19022,13 +19022,12 @@ class EngThrustTakeoffDerate(KeyPointValueNode):
             return fnk
 
         for n1 in n1_derates:
-            index = int(n1.index)
             corr_n1 = 100.0 - n1.value
-            mach_toff = mach.array[index]
+            mach_toff = mach.array[int(n1.index)]
             fnk_90 = corrected_parameter_power_management(90.0, mach_toff)
             fnk = corrected_parameter_power_management(corr_n1, mach_toff)
             derate = 100.0 * (1.0 - fnk / fnk_90)
-            self.create_kpv(index, derate)
+            self.create_kpv(n1.index, derate)
 
 
 class EngTakeoffFlexTemp(KeyPointValueNode):
