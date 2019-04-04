@@ -1001,13 +1001,7 @@ class AltitudeRadio(DerivedParameterNode):
             source.array = overflow_correction(source.array,
                                                fast=aligned_fast,
                                                hz=source.frequency)
-
-            # Some data frames reference altimeters which are optionally
-            # recorded. It is impractical to maintain the LFL patching 
-            # required, so we only manage altimeters with a significant
-            # signal.
-            if np.ma.ptp(source.array) > 10.0:
-                osources.append(source)
+            osources.append(source)
 
         sources = osources
         # Blend parameters was written around the Boeing 737NG frames where three sources
