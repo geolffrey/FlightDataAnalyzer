@@ -551,8 +551,6 @@ from analysis_engine.key_point_values import (
     PitchCyclesDuringFinalApproach,
     PitchDuringGoAroundMax,
     Pitch500To50FtMin,
-    PitchMinimumDuringNoseDownAttitudeAdoption,
-    PitchNoseDownAttitudeAdoptionDuration,
     PitchWhileAirborneMax,
     PitchWhileAirborneMin,
     PitchTouchdownTo60KtsAirspeedMax,
@@ -15768,86 +15766,6 @@ class TestPitch500To50FtMin(unittest.TestCase):
         self.assertEqual(len(node), 1)
         self.assertEqual(node[0].index, 10)
         self.assertAlmostEqual(node[0].value, -0.855, places=3)
-
-
-class TestPitchMinimumDuringNoseDownAttitudeAdoption(unittest.TestCase,
-                                                     NodeTest):
-
-    def setUp(self):
-        self.node_class = PitchMinimumDuringNoseDownAttitudeAdoption
-
-    def test_can_operate(self):
-        expected = [('Pitch', 'Nose Down Attitude Adoption')]
-        opts_h175 = self.node_class.get_operational_combinations(
-                    ac_type=helicopter, family=A('Family', 'H175'))
-        opts_aeroplane = self.node_class.get_operational_combinations(
-                         ac_type=aeroplane)
-
-        self.assertEqual(opts_h175, expected)
-        self.assertNotEqual(opts_aeroplane, expected)
-
-    def test_derive(self):
-        node = PitchMinimumDuringNoseDownAttitudeAdoption()
-        pitch = np.linspace(2, -11, num=25)
-        nose_downs = buildsection('Nose Down Attitude Adoption', 10, 15)
-        node.derive(P('Pitch', pitch), nose_downs)
-
-        self.assertEqual(len(node), 1)
-        self.assertEqual(node[0].index, 16)
-        self.assertEqual(round(node[0].value, 2), -6.67)
-
-    def test_derive_multiple(self):
-        node = PitchMinimumDuringNoseDownAttitudeAdoption()
-        descent_pitch = np.linspace(2, -11, num=10)
-        ascent_pitch = np.linspace(-11, 2, num=15)
-        pitch = np.concatenate([np.ones(6) * 2, descent_pitch, np.ones(5) * 2,
-                                ascent_pitch, descent_pitch])
-        nose_downs = buildsections('Nose Down Attitude Adoption',
-                                   [5, 20], [30, 44])
-        node.derive(P('Pitch', pitch), nose_downs)
-
-        self.assertEqual(len(node), 2)
-        self.assertEqual(node[0].index, 21)
-        self.assertEqual(node[0].value, -11.00)
-        self.assertEqual(node[1].index, 45)
-        self.assertEqual(node[1].value, -11.00)
-
-
-class TestPitchNoseDownAttitudeAdoptionDuration(unittest.TestCase, NodeTest):
-
-    def setUp(self):
-        self.node_class = PitchNoseDownAttitudeAdoptionDuration
-
-    def test_can_operate(self):
-        expected = [('Nose Down Attitude Adoption',)]
-        opts_h175 = self.node_class.get_operational_combinations(
-                    ac_type=helicopter, family=A('Family', 'H175'))
-        opts_aeroplane = self.node_class.get_operational_combinations(
-                         ac_type=aeroplane)
-
-        self.assertEqual(opts_h175, expected)
-        self.assertNotEqual(opts_aeroplane, expected)
-
-    def test_derive(self):
-        node = PitchNoseDownAttitudeAdoptionDuration()
-        nose_downs = buildsection('Nose Down Attitude Adoption', 10, 15)
-        node.derive(nose_downs)
-
-        self.assertEqual(len(node), 1)
-        self.assertEqual(node[0].index, 15)
-        self.assertEqual(node[0].value, 5.0)
-
-    def test_derive_multiple(self):
-        node = PitchNoseDownAttitudeAdoptionDuration()
-        nose_downs = buildsections('Nose Down Attitude Adoption',
-                                   [10, 15], [30, 38])
-        node.derive(nose_downs)
-
-        self.assertEqual(len(node), 2)
-        self.assertEqual(node[0].index, 15)
-        self.assertEqual(node[0].value, 5.0)
-        self.assertEqual(node[1].index, 38)
-        self.assertEqual(node[1].value, 8.0)
 
 
 class TestPitchWhileAirborneMax(unittest.TestCase):
