@@ -296,7 +296,7 @@ HOLDING_MIN_TIME = 5*60  #sec
 # Maximum groundspeed over the period in the hold. This segregates true
 # holds, where the effective speed is significantly reduced (that's the point
 # of the hold), from curving departures or approaches.
-HOLDING_MAX_GSPD = 60.0  # kts
+HOLDING_MAX_GSPD = 90.0  # kts
 
 # Threshold for flight phase altitude hysteresis.
 HYSTERESIS_FPALT = 200  # ft
