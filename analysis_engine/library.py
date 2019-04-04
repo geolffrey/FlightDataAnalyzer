@@ -4701,7 +4701,7 @@ def blend_parameters(params, offset=0.0, frequency=1.0, small_slice_duration=4, 
     if validity == 'all':
         bad = num_valid < len(params)
     elif validity == 'all_but_one':
-        bad = num_valid < len(params) - 1
+        bad = num_valid < max(len(params) - 1, 1)
     elif validity == 'any_one':
         bad = num_valid == 0
     else:
@@ -5344,6 +5344,16 @@ def overflow_correction_array(array):
     '''
     keep_mask = np.ma.getmaskarray(array).copy()
     array.mask = False
+    
+    # A specific problem arises with some altimeters which show a quasi-NCD pattern
+    # above 2,500ft. This code substitutes a local mean value to keep the altitude
+    # signals working under these conditions.
+    mean = np_ma_zeros_like(array)
+    mean[1:-1] = (array[0:-2] + array[2:]) / 2.0
+    mean[0] = np.ma.masked
+    mean[-1] = np.ma.masked
+    array = np.ma.where(np.ma.logical_and(array==2500, mean>array), mean, array)
+    
     jump = np.ma.ediff1d(array, to_begin=0.0)
     abs_jump = np.ma.abs(jump)
     jump_sign = -jump / abs_jump
