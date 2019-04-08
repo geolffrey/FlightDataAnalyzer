@@ -844,6 +844,7 @@ def main():
         aircraft_info['Engine Series'] = args.engine_series
     if args.engine_type:
         aircraft_info['Engine Type'] = args.engine_type
+    dependency_tree_log = None
     if args.dependency_tree_log:
         dependency_tree_log = args.dependency_tree_log
 
