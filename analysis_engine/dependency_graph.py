@@ -373,7 +373,7 @@ def graph_adjacencies(graph):
     :returns: Restructured graph
     '''
     data = []
-    for n,nbrdict in graph.adjacency_iter():
+    for n,nbrdict in graph.adjacency():
         # build the dict for this node
         d = dict(id=n, name=graph.node[n].get('label', n), data=graph.node[n])
         adj = []

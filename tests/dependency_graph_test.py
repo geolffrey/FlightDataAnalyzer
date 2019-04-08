@@ -215,7 +215,7 @@ class TestDependencyGraph(unittest.TestCase):
                           self.derived_nodes, {}, {})
         gr = graph_nodes(mgr)
         # should only be linked to P5
-        self.assertEqual(gr.neighbors('root'), ['P5'])
+        self.assertEqual(list(gr.neighbors('root')), ['P5'])
 
     def test_graph_nodes_with_duplicate_key_in_lfl_and_derived(self):
         # Test that LFL nodes are used in place of Derived where available.
@@ -239,15 +239,15 @@ class TestDependencyGraph(unittest.TestCase):
         gr = graph_nodes(mgr1)
         self.assertEqual(len(gr), 5)
         # LFL
-        self.assertEqual(gr.edges('1'), []) # as it's in LFL, it shouldn't have any edges
+        self.assertEqual(list(gr.edges('1')), []) # as it's in LFL, it shouldn't have any edges
         self.assertEqual(gr.node['1'], {'color': '#72f4eb', 'node_type': 'HDFNode'})
         # Derived
-        self.assertEqual(gr.edges('4'), [('4','DepFour')])
+        self.assertEqual(list(gr.edges('4')), [('4','DepFour')])
         self.assertEqual(gr.node['4'], {'color': '#72cdf4', 'node_type': 'DerivedParameterNode'})
         # Root
         from analysis_engine.dependency_graph import draw_graph
         draw_graph(gr, 'test_graph_nodes_with_duplicate_key_in_lfl_and_derived')
-        self.assertEqual(gr.successors('root'), ['2','4']) # only the two requested are linked
+        self.assertEqual(list(gr.successors('root')), ['2','4']) # only the two requested are linked
         self.assertEqual(gr.node['root'], {'color': '#ffffff'})
 
     def test_dependency(self):
