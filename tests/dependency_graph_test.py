@@ -377,7 +377,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
 
         # try a bigger cyclic dependency on top of the above one
 
-    def _get_dependancy_order(self, requested, aircraft_info, lfl_params,
+    def _get_dependency_order(self, requested, aircraft_info, lfl_params,
                               draw=False, raise_cir_dep=True, segment_info={}):
         #derived_nodes = get_derived_nodes(settings.NODE_MODULES)
         if aircraft_info['Aircraft Type'] == 'helicopter':
@@ -401,7 +401,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
                                         raise_cir_dep=raise_cir_dep)
         return order, gr_st
 
-    @unittest.skip('Need to improve testcase, exception still being rasie. with a diferent circular dependancy.')
+    @unittest.skip('Need to improve testcase, exception still being rasie. with a diferent circular dependency.')
     def test_avoiding_circular_dependency_gear_up_selected(self):
         '''
         <<< Gear Up Selected CIRCULAR >>> (218)
@@ -422,11 +422,11 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         requested = ['Gear Up Selection',]
         aircraft_info = {u'Aircraft Type': u'aeroplane',}
         try:
-            self._get_dependancy_order(requested, aircraft_info, lfl_params)
+            self._get_dependency_order(requested, aircraft_info, lfl_params)
         except CircularDependency as err:
             self.assertFalse(True, msg=err.message)
 
-    @unittest.skip('Need to improve testcase, exception still being rasie. with a diferent circular dependancy.')
+    @unittest.skip('Need to improve testcase, exception still being rasie. with a diferent circular dependency.')
     def test_avoiding_circular_dependency_track_true(self):
         '''
         <<< Track True Continuous CIRCULAR >>> (197)
@@ -436,11 +436,11 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         requested = ['Approach Range',]
         aircraft_info = {u'Aircraft Type': u'aeroplane',}
         try:
-            self._get_dependancy_order(requested, aircraft_info, lfl_params)
+            self._get_dependency_order(requested, aircraft_info, lfl_params)
         except CircularDependency as err:
             self.assertFalse(True, msg=err.message)
 
-    @unittest.skip('Need to improve testcase, exception still being rasie. with a diferent circular dependancy.')
+    @unittest.skip('Need to improve testcase, exception still being rasie. with a diferent circular dependency.')
     def test_avoiding_circular_dependency_approach_range(self):
         '''
         <<< Approach Range CIRCULAR >>> (200)
@@ -450,11 +450,11 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         requested = ['Latitude Smoothed',]
         aircraft_info = {u'Aircraft Type': u'aeroplane',}
         try:
-            self._get_dependancy_order(requested, aircraft_info, lfl_params)
+            self._get_dependency_order(requested, aircraft_info, lfl_params)
         except CircularDependency as err:
             self.assertFalse(True, msg=err.message)
 
-    @unittest.skip('Need to improve testcase, exception still being rasie. with a diferent circular dependancy.')
+    @unittest.skip('Need to improve testcase, exception still being rasie. with a diferent circular dependency.')
     def test_avoiding_circular_dependency_approach_range_helicopter(self):
         '''
         <<< Approach Range CIRCULAR >>> (200)
@@ -464,11 +464,11 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         requested = ['Latitude Smoothed',]
         aircraft_info = {u'Aircraft Type': u'helicopter',}
         try:
-            self._get_dependancy_order(requested, aircraft_info, lfl_params)
+            self._get_dependency_order(requested, aircraft_info, lfl_params)
         except CircularDependency as err:
             self.assertFalse(True, msg=err.message)
 
-    @unittest.skip('Need to improve testcase, exception still being rasie. with a diferent circular dependancy.')
+    @unittest.skip('Need to improve testcase, exception still being rasie. with a diferent circular dependency.')
     def test_avoiding_circular_dependency_approach_information(self):
         '''
         <<< Approach Information CIRCULAR >>> (60)
@@ -477,13 +477,13 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         lfl_params = []
         requested = ['FDR Landing Airport',]
         aircraft_info = {u'Aircraft Type': u'aeroplane',}
-        self._get_dependancy_order(requested, aircraft_info, lfl_params)
+        self._get_dependency_order(requested, aircraft_info, lfl_params)
         try:
-            self._get_dependancy_order(requested, aircraft_info, lfl_params)
+            self._get_dependency_order(requested, aircraft_info, lfl_params)
         except CircularDependency as err:
             self.assertFalse(True, msg=err.message)
 
-    @unittest.skip('Need to improve testcase, exception still being rasie. with a diferent circular dependancy.')
+    @unittest.skip('Need to improve testcase, exception still being rasie. with a diferent circular dependency.')
     def test_avoiding_circular_dependency_approach_information_helicopter(self):
         '''
         <<< Approach Information CIRCULAR >>> (60)
@@ -498,7 +498,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         requested = ['Approach Information',]
         aircraft_info = {u'Aircraft Type': u'helicopter',}
         try:
-            self._get_dependancy_order(requested, aircraft_info, lfl_params)
+            self._get_dependency_order(requested, aircraft_info, lfl_params)
         except CircularDependency as err:
             self.assertFalse(True, msg=err.message)
 
@@ -509,7 +509,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         aircraft_info = {u'Aircraft Type': u'aeroplane',}
         requested = []
         try:
-            self._get_dependancy_order(requested, aircraft_info, lfl_params)
+            self._get_dependency_order(requested, aircraft_info, lfl_params)
         except CircularDependency as err:
             self.assertFalse(True, msg=err.message)
 
@@ -573,7 +573,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         aircraft_info, lfl_params = self._example_recorded_parameters()
         requested = []
         try:
-            self._get_dependancy_order(requested, aircraft_info, lfl_params)
+            self._get_dependency_order(requested, aircraft_info, lfl_params)
         except CircularDependency as err:
             self.assertFalse(True, msg=err.message)
 
@@ -584,7 +584,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         # order doesn't do that again
         aircraft_info, lfl_params = self._example_recorded_parameters()
         requested = []
-        order, _ = self._get_dependancy_order(requested, aircraft_info,
+        order, _ = self._get_dependency_order(requested, aircraft_info,
                                               lfl_params, raise_cir_dep=False)
         self.assertIn('Acceleration Normal Offset', order)
         self.assertIn('Acceleration Normal Offset Removed', order)
@@ -598,7 +598,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         # order doesn't do that again
         aircraft_info, lfl_params = self._example_recorded_parameters()
         requested = []
-        order, _ = self._get_dependancy_order(requested, aircraft_info,
+        order, _ = self._get_dependency_order(requested, aircraft_info,
                                               lfl_params, raise_cir_dep=False)
         self.assertIn('Acceleration Lateral Offset', order)
         self.assertIn('Acceleration Lateral Offset Removed', order)
@@ -614,7 +614,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         # 'Magnetic Variation From Runway' created before 'Heading True'.
         aircraft_info, lfl_params = self._example_recorded_parameters()
         requested = []
-        order, _ = self._get_dependancy_order(requested, aircraft_info,
+        order, _ = self._get_dependency_order(requested, aircraft_info,
                                               lfl_params, raise_cir_dep=False)
         self.assertIn('Heading True', order)
         self.assertIn('Magnetic Variation From Runway', order)

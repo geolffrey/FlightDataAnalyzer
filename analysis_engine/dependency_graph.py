@@ -481,7 +481,7 @@ def graph_nodes(node_mgr):
 
 
 def process_order(gr_all, node_mgr, raise_inoperable_requested=False,
-                  raise_cir_dep=False, dependancy_tree_log=None):
+                  raise_cir_dep=False, dependency_tree_log=None):
     """
     :param gr_all:
     :type gr_all: nx.DiGraph
@@ -492,8 +492,8 @@ def process_order(gr_all, node_mgr, raise_inoperable_requested=False,
     """
     process_order, tree_path = dependencies3(gr_all, 'root', node_mgr, raise_cir_dep=raise_cir_dep)
     logger.info("Processing order of %d nodes is: %s", len(process_order), process_order)
-    if dependancy_tree_log:
-        ordered_tree_to_file(tree_path, name=dependancy_tree_log)
+    if dependency_tree_log:
+        ordered_tree_to_file(tree_path, name=dependency_tree_log)
     for n, node in enumerate(process_order):
         gr_all.node[node]['label'] = '%d: %s' % (n, node)
         gr_all.node[node]['active'] = True
@@ -549,7 +549,7 @@ def remove_floating_nodes(graph):
 
 def dependency_order(node_mgr, draw=not_windows,
                      raise_inoperable_requested=False, raise_cir_dep=False,
-                     dependancy_tree_log=None):
+                     dependency_tree_log=None):
     """
     Main method for retrieving processing order of nodes.
 
@@ -563,7 +563,7 @@ def dependency_order(node_mgr, draw=not_windows,
     _graph = graph_nodes(node_mgr)
     gr_all, gr_st, order = process_order(_graph, node_mgr,
                                          raise_inoperable_requested=raise_inoperable_requested,
-                                         raise_cir_dep=raise_cir_dep, dependancy_tree_log=dependancy_tree_log)
+                                         raise_cir_dep=raise_cir_dep, dependency_tree_log=dependency_tree_log)
 
     if draw:
         from json import dumps

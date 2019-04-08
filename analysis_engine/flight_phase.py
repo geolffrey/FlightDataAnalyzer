@@ -709,7 +709,7 @@ class Fast(FlightPhaseNode):
 class FinalApproach(FlightPhaseNode):
     def derive(self, alt_aal=P('Altitude AAL For Flight Phases'),
                airs=S('Airborne')):
-        # Airborne dependancy added as we should not be approaching if never airborne
+        # Airborne dependency added as we should not be approaching if never airborne
         self.create_phases(alt_aal.slices_from_to(1000, 50))
 
 

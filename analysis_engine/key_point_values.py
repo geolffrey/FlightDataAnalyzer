@@ -521,7 +521,7 @@ class AccelerationLongitudinalOffset(KeyPointValueNode):
         duration of the taxi phase.
 
         Note: using mobile sections which are not Fast in place of taxiing in
-        order to aviod circular dependancy with Taxiing, Rejected Takeoff and
+        order to aviod circular dependency with Taxiing, Rejected Takeoff and
         Acceleration Longitudinal Offset Removed
         '''
 
@@ -8163,7 +8163,7 @@ class LatitudeAtTouchdown(KeyPointValueNode):
         accurate positional data the touchdown point can be computed more
         accurately.
 
-        Note: Cannot use smoothed position as this causes circular dependancy.
+        Note: Cannot use smoothed position as this causes circular dependency.
         '''
         return 'Touchdown' in available and any_of(('Latitude',
                                                     'Latitude (Coarse)',
@@ -8626,7 +8626,7 @@ class LatitudeAtLowestAltitudeDuringApproach(KeyPointValueNode):
                lat=P('Latitude Prepared'),
                low_points=KTI('Lowest Altitude During Approach')):
         '''
-        Note: Cannot use smoothed position as this causes circular dependancy.
+        Note: Cannot use smoothed position as this causes circular dependency.
         '''
         self.create_kpvs_at_ktis(lat.array, low_points)
 
@@ -8642,7 +8642,7 @@ class LongitudeAtLowestAltitudeDuringApproach(KeyPointValueNode):
                lon=P('Longitude Prepared'),
                low_points=KTI('Lowest Altitude During Approach')):
         '''
-        Note: Cannot use smoothed position as this causes circular dependancy.
+        Note: Cannot use smoothed position as this causes circular dependency.
         '''
         self.create_kpvs_at_ktis(lon.array, low_points)
 
