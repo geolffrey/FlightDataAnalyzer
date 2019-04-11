@@ -1590,7 +1590,13 @@ class Touchdown(KeyTimeInstanceNode):
             # ...to find the best estimate...
             # If we have lots of measures, bias towards the earlier ones.
             #index_tdn = np.median(index_list[:4])
-
+            self.info("Touchdown: potential index_alt: %s @ %sHz)", index_alt, self.frequency)
+            self.info("Touchdown: potential index_gog: %s @ %sHz)", index_gog, self.frequency)
+            self.info("Touchdown: potential index_wheel_touch: %s @ %sHz)", index_wheel_touch, self.frequency)
+            self.info("Touchdown: potential index_brake: %s @ %sHz)", index_brake, self.frequency)
+            self.info("Touchdown: potential index_decel: %s @ %sHz)", index_decel, self.frequency)
+            self.info("Touchdown: potential index_dax: %s @ %sHz)", index_dax, self.frequency)
+            self.info("Touchdown: potential index_z: %s @ %sHz)", index_z, self.frequency)
             if len(index_list) == 0:
                 # No clue where the aircraft landed. Give up.
                 return
@@ -1605,6 +1611,7 @@ class Touchdown(KeyTimeInstanceNode):
                     index_tdn = min(index_tdn, index_gog)
 
             # self.create_kti(index_tdn)
+            self.info("Touchdown: Selected index: %s @ %sHz)", index_tdn, self.frequency)
             self.create_kti(index_tdn)
 
             '''
