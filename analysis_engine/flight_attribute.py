@@ -176,7 +176,7 @@ class AnalysisDatetime(FlightAttributeNode):
 
 
 class DestinationAirport(FlightAttributeNode):
-    "Datetime flight was analysed (local datetime)"
+    "The destination airport recorded within the data."
     name = 'FDR Destination Airport'
 
     @classmethod
