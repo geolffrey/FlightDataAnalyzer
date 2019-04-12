@@ -563,7 +563,10 @@ class TestAltitudeWhenDescending(unittest.TestCase):
         self.assertEqual(
             list(altitude_when_descending),
             [KeyTimeInstance(index=2.5, name='75 Ft Descending'),
-             KeyTimeInstance(index=5.0, name='50 Ft Descending')])
+             KeyTimeInstance(index=5.0, name='50 Ft Descending'),
+             KeyTimeInstance(index=6.5, name='35 Ft Descending'),
+             KeyTimeInstance(index=8.0, name='20 Ft Descending'),
+             KeyTimeInstance(index=9.0, name='10 Ft Descending')])
 
 
 class TestAltitudeBeforeLevelFlightWhenClimbing(unittest.TestCase):
