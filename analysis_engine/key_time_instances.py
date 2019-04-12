@@ -1766,6 +1766,8 @@ class AltitudeWhenDescending(KeyTimeInstanceNode):
     def derive(self, descending=S('Descent'),
                alt_aal=P('Altitude AAL'),
                alt_std=P('Altitude STD Smoothed')):
+        alt_aal=repair_mask(alt_aal.array, frequency=alt_aal.frequency, copy=True)
+        alt_std=repair_mask(alt_std.array, frequency=alt_std.frequency, copy=True)
         for descend in descending:
             for alt_threshold in self.NAME_VALUES['altitude']:
                 # Will trigger a single KTI per height (if threshold is
@@ -1774,10 +1776,10 @@ class AltitudeWhenDescending(KeyTimeInstanceNode):
                 # each height.
                 if alt_threshold <= TRANSITION_ALTITUDE:
                     # Use height above airfield.
-                    alt = alt_aal.array
+                    alt = alt_aal
                 else:
                     # Use standard altitudes.
-                    alt = alt_std.array
+                    alt = alt_std
 
                 index = index_at_value(alt, alt_threshold,
                                        slice(descend.slice.stop,
