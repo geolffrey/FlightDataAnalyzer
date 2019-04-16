@@ -4546,7 +4546,7 @@ class ILSLateralDistance(DerivedParameterNode):
                 continue
 
             try:
-                start_2_loc = runway_distances(runway)[0]
+                start_2_loc = runway_distances(runway)['start_loc']
                 hw = ut.convert(runway['strip']['width'] / 2.0, ut.FT, ut.METER)
             except (KeyError, TypeError):
                 self.warning('Unknown runway width or localizer coordinates')
@@ -4612,7 +4612,7 @@ class AimingPointRange(DerivedParameterNode):
                 # no runway to establish distance to glideslope antenna
                 continue
             try:
-                extend = runway_distances(runway)[1] # gs_2_loc
+                extend = runway_distances(runway)['gs_end']
             except (KeyError, TypeError):
                 extend = runway_length(runway) - ut.convert(1000, ut.FT, ut.METER)
 
@@ -7234,15 +7234,15 @@ class ApproachRange(DerivedParameterNode):
                     self.warning('Low convergence in computing ILS '
                                  'glideslope offset.')
 
-                # We can be sure there is a glideslope antenna because we
-                # captured the glidepath.
-                try:
-                    # Reference to the localizer as it is an ILS approach.
-                    extend = runway_distances(runway)[1]  # gs_2_loc
-                except (KeyError, TypeError):
-                    # If ILS antennae coordinates not known, substitute the
-                    # touchdown point 1000ft from start of runway
-                    extend = runway_length(runway) - ut.convert(1000, ut.FT, ut.METER)
+                ### We can be sure there is a glideslope antenna because we
+                ### captured the glidepath.
+                ##try:
+                    ### Reference to the localizer as it is an ILS approach.
+                    ##extend = runway_distances(runway)['gs_end']
+                ##except (KeyError, TypeError):
+                    ### If ILS antennae coordinates not known, substitute the
+                    ### touchdown point 1000ft from start of runway
+                    ##extend = runway_length(runway) - ut.convert(1000, ut.FT, ut.METER)
 
             else:
                 # Just work off the height data assuming the pilot was aiming
@@ -7257,16 +7257,13 @@ class ApproachRange(DerivedParameterNode):
                     self.warning('Low convergence in computing visual '
                                  'approach path offset.')
 
-                # If we have a glideslope antenna position, use this as the pilot will normally land abeam the antenna.
-                try:
-                    # Reference to the end of the runway as it is treated as a visual approach later on.
-                    start_2_loc, gs_2_loc, end_2_loc, pgs_lat, pgs_lon = \
-                        runway_distances(runway)
-                    extend = gs_2_loc - end_2_loc
-                except (KeyError, TypeError):
-                    # If no ILS antennae, put the touchdown point 1000ft from start of runway
-                    extend = runway_length(runway) - ut.convert(1000, ut.FT, ut.METER)
-
+            # If we have a glideslope antenna position, use this as the pilot will normally land abeam the antenna.
+            try:
+                # Reference to the end of the runway as it is treated as a visual approach later on.
+                extend = runway_distances(runway)['gs_end']
+            except (KeyError, TypeError):
+                # If no ILS antennae, put the touchdown point 1000ft from start of runway
+                extend = runway_length(runway) - ut.convert(1000, ut.FT, ut.METER)
 
             # This plot code allows the actual flightpath and regression line
             # to be viewed in case of concern about the performance of the
@@ -7288,8 +7285,6 @@ class ApproachRange(DerivedParameterNode):
             plt.plot(x1,y1,'b-',x2,y2,'r-',xnew,ynew,'k-')
             plt.show()
             '''
-
-
             # Shift the values in this approach so that the range = 0 at
             # 0ft on the projected ILS or approach slope.
             app_range[this_app_slice] += extend - (offset or 0)
