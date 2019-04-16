@@ -5466,13 +5466,14 @@ class TestRunwayDistances(unittest.TestCase):
     def test_runway_distances(self):
         result = runway_distances(self.runway)
 
-        self.assertAlmostEqual(result[0],3125, places=0)
+        self.assertAlmostEqual(result['start_loc'],3125, places=0)
         # correct:self.assertAlmostEqual(result[0],3125, places=0)
-        self.assertAlmostEqual(result[1],2503, places=0)
-        self.assertAlmostEqual(result[2],141.0, places=1)
+        self.assertAlmostEqual(result['gs_loc'],2503, places=0)
+        self.assertAlmostEqual(result['end_loc'],141.0, places=1)
         # Optional glideslope antenna projected position...
-        self.assertAlmostEqual(result[3],60.3, places=1)
-        self.assertAlmostEqual(result[4],5.22, places=2)
+        self.assertAlmostEqual(result['pgs_lat'],60.3, places=1)
+        self.assertAlmostEqual(result['pgs_lon'],5.22, places=2)
+        self.assertAlmostEqual(result['gs_end'],2362, places=0)
 
     def test_runway_distances_with_localizer_database_error(self):
         self.runway['localizer']['latitude'] = 5.223
@@ -5480,7 +5481,7 @@ class TestRunwayDistances(unittest.TestCase):
         result = runway_distances(self.runway)
 
         # Check the localizer position is unchanged.
-        self.assertAlmostEqual(result[0],3125, places=0)
+        self.assertAlmostEqual(result['start_loc'],3125, places=0)
 
     def test_runway_distances_with_glildeslope_database_error(self):
         self.runway['glideslope']['latitude'] = 5.214092
@@ -5488,7 +5489,7 @@ class TestRunwayDistances(unittest.TestCase):
         result = runway_distances(self.runway)
 
         # Check the glildeslope position is unchanged.
-        self.assertAlmostEqual(result[1],2503, places=0)
+        self.assertAlmostEqual(result['gs_loc'],2503, places=0)
 
 
 class TestRunwayDeviation(unittest.TestCase):

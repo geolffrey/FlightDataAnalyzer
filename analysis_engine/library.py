@@ -2463,16 +2463,20 @@ def runway_distances(runway):
     ['glideslope']['longitude']
 
     :return
-    :param start_loc: distance from start of runway to localizer antenna
-    :type start_loc: float, units = metres
-    :param gs_loc: distance from projected position of glideslope antenna on runway centerline to the localizer antenna
-    :type gs_loc: float, units = metres
-    :param end_loc: distance from end of runway to localizer antenna
-    :type end_loc: float, units = metres
-    :param pgs_lat: projected position of glideslope antenna on runway centerline
-    :type pgs_lat: float, units = degrees latitude
-    :param pgs_lon: projected position of glideslope antenna on runway centerline
-    :type pgs_lon: float, units = degrees longitude
+    :param runway_distances: Runway distances dictionary.
+    :type runway: Dictionary containing:
+    :['start_loc']: distance from start of runway to localizer antenna
+    :type ['start_loc']: float, units = metres
+    :param ['gs_loc']: distance from projected position of glideslope antenna on runway centerline to the localizer antenna
+    :type ['gs_loc']: float, units = metres
+    :param ['gs_end']: distance from projected position of glideslope antenna on runway centerline to the runway end
+    :type ['gs_end']: float, units = metres
+    :param ['end_loc']: distance from end of runway to localizer antenna
+    :type ['end_loc']: float, units = metres
+    :param ['pgs_lat']: projected position of glideslope antenna on runway centerline
+    :type ['pgs_lat']: float, units = degrees latitude
+    :param ['pgs_lon']: projected position of glideslope antenna on runway centerline
+    :type ['pgs_lon']: float, units = degrees longitude
     '''
     start_lat = runway['start']['latitude']
     start_lon = runway['start']['longitude']
@@ -2509,15 +2513,18 @@ def runway_distances(runway):
         gs_lon = runway['glideslope']['latitude']
         logger.warning('Reversing lat and long for glideslope on runway %d' %runway['id'])
     # =========================================================================
-
-    start_2_loc = great_circle_distance__haversine(start_lat, start_lon, lzr_lat, lzr_lon)
+    
+    dists = {}
+    dists['start_loc'] = great_circle_distance__haversine(start_lat, start_lon, lzr_lat, lzr_lon)
     # The projected glideslope antenna position is given by this formula
     pgs_lat, pgs_lon = runway_snap(runway, gs_lat, gs_lon)
-    gs_2_loc = great_circle_distance__haversine(pgs_lat, pgs_lon, lzr_lat, lzr_lon)
-    end_2_loc = great_circle_distance__haversine(end_lat, end_lon, lzr_lat, lzr_lon)
+    dists['gs_loc'] = great_circle_distance__haversine(pgs_lat, pgs_lon, lzr_lat, lzr_lon)
+    dists['end_loc'] = great_circle_distance__haversine(end_lat, end_lon, lzr_lat, lzr_lon)
+    dists['gs_end'] = great_circle_distance__haversine(pgs_lat, pgs_lon, end_lat, end_lon)
+    dists['pgs_lat'] = pgs_lat
+    dists['pgs_lon'] = pgs_lon
 
-    return start_2_loc, gs_2_loc, end_2_loc, pgs_lat, pgs_lon  # Runway distances to start, glideslope and end.
-
+    return dists
 
 def runway_length(runway):
     '''
