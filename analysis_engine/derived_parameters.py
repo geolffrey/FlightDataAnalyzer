@@ -7233,17 +7233,6 @@ class ApproachRange(DerivedParameterNode):
                 if corr < 0.995:
                     self.warning('Low convergence in computing ILS '
                                  'glideslope offset.')
-
-                ### We can be sure there is a glideslope antenna because we
-                ### captured the glidepath.
-                ##try:
-                    ### Reference to the localizer as it is an ILS approach.
-                    ##extend = runway_distances(runway)['gs_end']
-                ##except (KeyError, TypeError):
-                    ### If ILS antennae coordinates not known, substitute the
-                    ### touchdown point 1000ft from start of runway
-                    ##extend = runway_length(runway) - ut.convert(1000, ut.FT, ut.METER)
-
             else:
                 # Just work off the height data assuming the pilot was aiming
                 # to touchdown close to the glideslope antenna (for a visual
