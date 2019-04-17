@@ -723,8 +723,8 @@ from analysis_engine.key_point_values import (
     ThrustReversersDeployedDuringFlightDuration,
     TorqueAsymmetryWhileAirborneMax,
     TouchdownTo60KtsDuration,
-    TouchdownToPitch2DegreesAbovePitchAt60KtsDuration,
     TouchdownToElevatorDownDuration,
+    TouchdownToPitch2DegreesAbovePitchAt60KtsDuration,
     TouchdownToSpoilersDeployedDuration,
     TouchdownToThrustReversersDeployedDuration,
     TurbulenceDuringApproachMax,
@@ -5998,31 +5998,90 @@ class TestTouchdownToThrustReversersDeployedDuration(unittest.TestCase, NodeTest
         self.assertTrue(False, msg='Test not implemented.')
 
 
-class TestTouchdownToSpoilersDeployedDuration(unittest.TestCase, NodeTest):
-
+class TestTouchdownToSpoilersDeployedDuration(unittest.TestCase):
     def setUp(self):
         self.node_class = TouchdownToSpoilersDeployedDuration
+        self.values_mapping = {0: 'Stowed', 1: 'Armed/Cmd Dn', 2: 'Deployed/Cmd Up'}
 
-        self.speedbrake = M('Speedbrake Selected')
-        self.speedbrake.values_mapping = {0:'Down', 1:'Armed', 2:'Deployed/Cmd Up'}
-        self.speedbrake.array = np.ma.array(data=[0]*7 + [1] + [2]*8 + [1] + [2]*8 + [1, 1, 0, 0])
-
-        self.landing = S('Landing')
-        self.landing.create_sections([slice(5,20), slice(35,40)]) # No deployment on second landing
-
-        self.touchdown = KTI('Touchdown', items=[KeyTimeInstance(5, 'Touchdown'),
-                                                 KeyTimeInstance(37, 'Touchdown')])
-
-    def test_can_operate(self):
-        opts = self.node_class.get_operational_combinations()
-        self.assertEqual(opts, [('Speedbrake Selected', 'Landing', 'Touchdown')])
-
-    def test_derive(self):
+    def test_one_touchdown_one_spdbrake_deployement(self):
+        speedbrake_array =  np.ma.array([1] * 10 + [2] * 3 + [0] * 2)
+        speedbrake = M('Speedbrake Selected', values_mapping=self.values_mapping,
+                       array=speedbrake_array)
+        lands = buildsection('Landing', 0, 15)
+        tdwns = KTI('Touchdown', items=[
+            KeyTimeInstance(5, 'Touchdown'),
+        ])
         node = self.node_class()
-        node.derive(self.speedbrake, self.landing, self.touchdown)
+        node.derive(speedbrake, lands, tdwns)
+
         self.assertEqual(len(node), 1)
-        self.assertEqual(node, [KeyPointValue(index=7.5, value=2.5,
-                                              name='Touchdown To Spoilers Deployed Duration')])
+        self.assertEqual(node[0].value, 4.5)
+        self.assertEqual(node[0].index, 9.5)
+
+    def test_one_touchdown_two_spdbrake_deployements(self):
+        speedbrake_array =  np.ma.array([1] * 7 + [2] * 3 + [1] * 2 + [2] * 3)
+        speedbrake = M('Speedbrake Selected', values_mapping=self.values_mapping,
+                       array=speedbrake_array)
+        lands = buildsection('Landing', 0, 15)
+        tdwns = KTI('Touchdown', items=[
+            KeyTimeInstance(5, 'Touchdown'),
+        ])
+        node = self.node_class()
+        node.derive(speedbrake, lands, tdwns)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].value, 1.5)
+        self.assertEqual(node[0].index, 6.5)
+
+    def test_two_touchdown_two_spdbrake_deployements(self):
+        speedbrake_array =  np.ma.array([1] * 5 + [2] * 3 + [1] * 5 + [2] * 2)
+        speedbrake = M('Speedbrake Selected', values_mapping=self.values_mapping,
+                       array=speedbrake_array)
+        lands = buildsection('Landing', 0, 15)
+        tdwns = KTI('Touchdown', items=[
+            KeyTimeInstance(3, 'Touchdown'),
+            KeyTimeInstance(12, 'Touchdown'),
+        ])
+        node = self.node_class()
+        node.derive(speedbrake, lands, tdwns)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].value, 1.5)
+        self.assertEqual(node[0].index, 4.5)
+
+    def test_two_landing_phases(self):
+        speedbrake_array =  np.ma.array(([1] * 10 + [2] * 3 + [0] * 2) * 2)
+        speedbrake = M('Speedbrake Selected', values_mapping=self.values_mapping,
+                       array=speedbrake_array)
+        lands = buildsections('Landing', [0, 10], [15, 30])
+        tdwns = KTI('Touchdown', items=[
+            KeyTimeInstance(5, 'Touchdown'),
+            KeyTimeInstance(20, 'Touchdown'),
+        ])
+        node = self.node_class()
+        node.derive(speedbrake, lands, tdwns)
+
+        self.assertEqual(len(node), 2)
+        self.assertEqual(node[0].value, 4.5)
+        self.assertEqual(node[0].index, 9.5)
+        self.assertEqual(node[1].value, 4.5)
+        self.assertEqual(node[1].index, 24.5)
+
+    def test_no_speedbrake_deployement(self):
+        speedbrake_array =  np.ma.array([1] * 15)
+        speedbrake = M('Speedbrake Selected', values_mapping=self.values_mapping,
+                       array=speedbrake_array)
+        lands = buildsection('Landing', 0, 15)
+        tdwns = KTI('Touchdown', items=[
+            KeyTimeInstance(5, 'Touchdown'),
+        ])
+        node = self.node_class()
+        node.derive(speedbrake, lands, tdwns)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].value, 0.0)
+        self.assertEqual(node[0].index, 0)
+
 
 class TestSpoilersDeployedDurationDuringLanding(unittest.TestCase, NodeTest):
 
