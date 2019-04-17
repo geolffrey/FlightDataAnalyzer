@@ -38,7 +38,7 @@ NODE_HELICOPTER_MODULE_PATHS = [
     'analysis_engine.helicopter.derived_parameters',
     'analysis_engine.helicopter.multistate_parameters',
     'analysis_engine.helicopter.key_point_values',
-    #'analysis_engine.helicopter.key_time_instances',
+    'analysis_engine.helicopter.key_time_instances',
     #'analysis_engine.helicopter.flight_attribute',
     'analysis_engine.helicopter.flight_phase',
 ]
