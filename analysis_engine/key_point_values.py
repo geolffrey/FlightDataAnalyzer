@@ -2142,11 +2142,11 @@ class V2AtLiftoff(KeyPointValueNode):
                manufacturer=A('Manufacturer')):
 
         # Determine interesting sections of flight which we want to use for V2.
-        # Due to issues with how data is recorded, use five superframes before
+        # Due to issues with how data is recorded, use ten superframes before
         # liftoff until the start of the climb:
         starts = deepcopy(liftoffs)
         for start in starts:
-            start.index = max(start.index - 5 * 64 * self.frequency, 0)
+            start.index = max(start.index - 10 * 64 * self.frequency, 0)
         phases = slices_from_ktis(starts, climb_starts)
 
         # 1. Use recorded value (if available):
