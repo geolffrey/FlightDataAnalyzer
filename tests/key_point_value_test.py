@@ -6003,7 +6003,7 @@ class TestTouchdownToSpoilersDeployedDuration(unittest.TestCase):
         self.node_class = TouchdownToSpoilersDeployedDuration
         self.values_mapping = {0: 'Stowed', 1: 'Armed/Cmd Dn', 2: 'Deployed/Cmd Up'}
 
-    def test_one_touchdown_one_spdbrake_deployement(self):
+    def test_one_landing_one_spdbrake_deployement(self):
         speedbrake_array =  np.ma.array([1] * 10 + [2] * 3 + [0] * 2)
         speedbrake = M('Speedbrake Selected', values_mapping=self.values_mapping,
                        array=speedbrake_array)
@@ -6018,7 +6018,7 @@ class TestTouchdownToSpoilersDeployedDuration(unittest.TestCase):
         self.assertEqual(node[0].value, 4.5)
         self.assertEqual(node[0].index, 9.5)
 
-    def test_one_touchdown_two_spdbrake_deployements(self):
+    def test_one_landing_two_spdbrake_deployements(self):
         speedbrake_array =  np.ma.array([1] * 7 + [2] * 3 + [1] * 2 + [2] * 3)
         speedbrake = M('Speedbrake Selected', values_mapping=self.values_mapping,
                        array=speedbrake_array)
@@ -6032,22 +6032,6 @@ class TestTouchdownToSpoilersDeployedDuration(unittest.TestCase):
         self.assertEqual(len(node), 1)
         self.assertEqual(node[0].value, 1.5)
         self.assertEqual(node[0].index, 6.5)
-
-    def test_two_touchdown_two_spdbrake_deployements(self):
-        speedbrake_array =  np.ma.array([1] * 5 + [2] * 3 + [1] * 5 + [2] * 2)
-        speedbrake = M('Speedbrake Selected', values_mapping=self.values_mapping,
-                       array=speedbrake_array)
-        lands = buildsection('Landing', 0, 15)
-        tdwns = KTI('Touchdown', items=[
-            KeyTimeInstance(3, 'Touchdown'),
-            KeyTimeInstance(12, 'Touchdown'),
-        ])
-        node = self.node_class()
-        node.derive(speedbrake, lands, tdwns)
-
-        self.assertEqual(len(node), 1)
-        self.assertEqual(node[0].value, 1.5)
-        self.assertEqual(node[0].index, 4.5)
 
     def test_two_landing_phases(self):
         speedbrake_array =  np.ma.array(([1] * 10 + [2] * 3 + [0] * 2) * 2)
