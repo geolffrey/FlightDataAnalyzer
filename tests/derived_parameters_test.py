@@ -1337,7 +1337,8 @@ class TestAimingPointRange(unittest.TestCase):
                     'start':
                     {'elevation': 3320,
                      'latitude': 31.513997,
-                     'longitude': 65.861714}})])
+                     'longitude': 65.861714}},
+            aiming_point_dist = 2906)])
         app_rng=P('Approach Range',
                   array=np.ma.arange(10000.0, -2000.0, -1000.0))
         apr = AimingPointRange()
@@ -6417,7 +6418,8 @@ class TestApproachRange(TemporaryFileTest, unittest.TestCase):
                              'strip': {'id': 22,
                                        'length': 10532,
                                        'surface': 'ASP',
-                                       'width': 147}}),
+                                       'width': 147}},
+                     aiming_point_dist = 2906),
             ApproachItem('LANDING', slice(12928, 13440),
                      ils_freq=111.3,
                      gs_est=slice(13034, 13262),
@@ -6449,7 +6451,8 @@ class TestApproachRange(TemporaryFileTest, unittest.TestCase):
                              'strip': {'id': 11,
                                        'length': 13124,
                                        'surface': 'ASP',
-                                       'width': 150}})])
+                                       'width': 150}},
+                     aiming_point_dist = 2906)])
 
         self.toff = Section(name='Takeoff',
                        slice=slice(372, 414, None),
