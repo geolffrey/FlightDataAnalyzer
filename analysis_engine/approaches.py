@@ -36,6 +36,8 @@ from analysis_engine.library import (
     find_rig_approach,
     valid_between,
     repair_mask,
+    runway_distances,
+    runway_length,
 )
 
 from flightdatautilities.geometry import great_circle_distance__haversine
@@ -707,7 +709,6 @@ class ApproachInformation(ApproachNode):
                     loc_estab = None
 
                 if loc_estab:
-
                     # Refine the end of the localizer established phase...
                     if (approach_runway and approach_runway['localizer']['is_offset']):
                         offset_ils = True
@@ -734,11 +735,20 @@ class ApproachInformation(ApproachNode):
                             loc_end = loc_end_2_dots
                     loc_est = slice(loc_estab, loc_end+1)
 
+
             #######################################################################
             ## Identification of the period established on the glideslope
             #######################################################################
 
             gs_est = None
+            # After a survey of the experienced line pilots in FDS, we found that most
+            # thought the first touchdown zone marking was the aiming point, and the 
+            # aiming point was actually the touchdown point. This tallies with the
+            # findings from analysis of many flights, hence the use of 500ft in this 
+            # algorithm when a visual approach is being made. This is the default
+            # aiming point.
+            aiming_point_dist = runway_length(approach_runway) - ut.convert(500, ut.FT, ut.METER)
+            
             if loc_est and 'glideslope' in approach_runway and ils_gs:
                 # We only look for glideslope established periods if the localizer is already established.
 
@@ -756,7 +766,10 @@ class ApproachInformation(ApproachNode):
 
                 if ils_gs_estab:
                     gs_est = slice(ils_gs_estab, ils_gs_end+1)
-
+                    # With an established glide signal, we can presume that the aircraft is aiming
+                    # at the base of the glideslope antenna, plus half the typical aircraft length
+                    # as the ILS antennae are normally at the nose of the aircraft.
+                    aiming_point_dist = runway_distances(approach_runway)['gs_end'] + 50.0
 
             '''
             # These statements help set up test cases.
@@ -787,4 +800,5 @@ class ApproachInformation(ApproachNode):
                 lowest_lat=lowest_lat,
                 lowest_lon=lowest_lon,
                 lowest_hdg=lowest_hdg,
+                aiming_point_dist=aiming_point_dist,
             )
