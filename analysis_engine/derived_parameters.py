@@ -4603,21 +4603,14 @@ class AimingPointRange(DerivedParameterNode):
 
     def derive(self, app_rng=P('Approach Range'),
                approaches=App('Approach Information'),
+               glides=S('ILS Glideslope Established')
                ):
         self.array = np_ma_masked_zeros_like(app_rng.array)
 
         for approach in approaches:
-            runway = approach.landing_runway
-            if not runway:
-                # no runway to establish distance to glideslope antenna
-                continue
-            try:
-                extend = runway_distances(runway)['gs_end']
-            except (KeyError, TypeError):
-                extend = runway_length(runway) - ut.convert(1000, ut.FT, ut.METER)
-
-            s = slices_int(approach.slice)
-            self.array[s] = ut.convert(app_rng.array[s] - extend, ut.METER, ut.NM)
+            if approach.aiming_point_dist:
+                s = slices_int(approach.slice)
+                self.array[s] = ut.convert(app_rng.array[s] - approach.aiming_point_dist, ut.METER, ut.NM)
 
 
 class CoordinatesSmoothed(object):
@@ -4851,33 +4844,28 @@ class CoordinatesSmoothed(object):
                 bearings = (ils_loc.array[this_loc_slice] * scale + \
                             runway_heading(runway)+180.0)%360.0
 
-                if precise:
-
-                    # Tweek the localizer position to be on the start:end centreline
-                    localizer_on_cl = ils_localizer_align(runway)
-
+                # Tweek the localizer position to be on the start:end centreline
+                localizer_on_cl = ils_localizer_align(runway)
+                if precise and not runway['localizer']['is_offset']:
                     # Find distances from the localizer
                     _, distances = bearings_and_distances(lat.array[this_loc_slice],
                                                           lon.array[this_loc_slice],
                                                           localizer_on_cl)
 
-
-                    # At last, the conversion of ILS localizer data to latitude and longitude
+                    # Convert the ILS localizer data to latitude and longitude
                     lat_adj[this_loc_slice], lon_adj[this_loc_slice] = \
                         latitudes_and_longitudes(bearings, distances, localizer_on_cl)
 
-                else: # Imprecise navigation but with an ILS tuned.
-
+                elif not precise and not runway['localizer']['is_offset']: # Imprecise navigation.
                     # Adjust distance units
-                    distances = app_range.array[this_loc_slice]
+                    distances = app_range.array[this_loc_slice] + runway_distances(runway)['end_loc']
 
-                    # Tweek the localizer position to be on the start:end centreline
-                    localizer_on_cl = ils_localizer_align(runway)
-
-                    # At last, the conversion of ILS localizer data to latitude and longitude
+                    # Again, convert the ILS localizer data to latitude and longitude
                     lat_adj[this_loc_slice], lon_adj[this_loc_slice] = \
                         latitudes_and_longitudes(bearings, distances,
                                                  localizer_on_cl)
+                else:
+                    pass # No correction made if the localizer was offset.
 
                 # Alignment of the ILS Localizer Range causes corrupt first
                 # samples.
@@ -7102,9 +7090,8 @@ class Stabilizer(DerivedParameterNode):
 class ApproachRange(DerivedParameterNode):
     '''
     This is the range to the touchdown point for both ILS and visual
-    approaches including go-arounds. The reference point is the ILS Localizer
-    antenna where the runway is so equipped, or the end of the runway where
-    no ILS is available.
+    approaches including go-arounds. The reference point is the end 
+    of the runway.
 
     The array is masked where no data has been computed, and provides
     measurements in metres from the reference point where the aircraft is on
@@ -7217,42 +7204,16 @@ class ApproachRange(DerivedParameterNode):
             # regression process to identify the touchdown point from the
             # height and distance arrays.
             reg_slice = shift_slice(app_slices[0], this_app_slice.start)
-
-            gs_est = approach.gs_est
-            # Check we have enough valid glideslope data for the regression slice.
-            if gs_est and np.ma.count(glide.array[reg_slice])>10:
-                # Compute best fit glidepath. The term (1-0.13 x glideslope
-                # deviation) caters for the aircraft deviating from the
-                # planned flightpath. 1 dot low is about 7% of a 3 degree
-                # glidepath. Not precise, but adequate accuracy for the small
-                # error we are correcting for here, and empyrically checked.
-                corr, slope, offset = coreg(app_range[reg_slice],
-                    alt_aal.array[reg_slice] * (1 - 0.13 * glide.array[reg_slice]))
-                # This should correlate very well, and any drop in this is a
-                # sign of problems elsewhere.
-                if corr < 0.995:
-                    self.warning('Low convergence in computing ILS '
-                                 'glideslope offset.')
-            else:
-                # Just work off the height data assuming the pilot was aiming
-                # to touchdown close to the glideslope antenna (for a visual
-                # approach to an ILS-equipped runway) or at the touchdown
-                # zone if no ILS glidepath is installed.
-                corr, slope, offset = coreg(app_range[reg_slice],
-                                            alt_aal.array[reg_slice])
-                # This should still correlate pretty well, though not quite
-                # as well as for a directed approach.
-                if (corr or 0) < 0.990:
-                    self.warning('Low convergence in computing visual '
-                                 'approach path offset.')
-
-            # If we have a glideslope antenna position, use this as the pilot will normally land abeam the antenna.
-            try:
-                # Reference to the end of the runway as it is treated as a visual approach later on.
-                extend = runway_distances(runway)['gs_end']
-            except (KeyError, TypeError):
-                # If no ILS antennae, put the touchdown point 1000ft from start of runway
-                extend = runway_length(runway) - ut.convert(1000, ut.FT, ut.METER)
+            corr, slope, offset = coreg(app_range[reg_slice],
+                                        alt_aal.array[reg_slice])
+            if (corr or 0) < 0.995:
+                self.warning('Low convergence in computing approach path offset.')
+            # In some cases the glideslope corrected offset may give a better result.
+            if approach.gs_est:
+                _, _, offset_gs = coreg(app_range[reg_slice],
+                                        alt_aal.array[reg_slice] / (1 + 0.1920 * glide.array[reg_slice]))
+                # From review of many samples, the lower value is normally the best.
+                offset = min(offset, offset_gs)
 
             # This plot code allows the actual flightpath and regression line
             # to be viewed in case of concern about the performance of the
@@ -7276,7 +7237,7 @@ class ApproachRange(DerivedParameterNode):
             '''
             # Shift the values in this approach so that the range = 0 at
             # 0ft on the projected ILS or approach slope.
-            app_range[this_app_slice] += extend - (offset or 0)
+            app_range[this_app_slice] += approach.aiming_point_dist - (offset or 0)
 
         self.array = app_range
 
