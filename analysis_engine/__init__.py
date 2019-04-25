@@ -1,3 +1,6 @@
 import pkg_resources
 
-__version__ = pkg_resources.require('AnalysisEngine')[0].version
+requirement = pkg_resources.Requirement.parse('AnalysisEngine')
+distribution = pkg_resources.working_set.find(requirement)
+
+__version__ = distribution.version if distribution else 'N/A'
