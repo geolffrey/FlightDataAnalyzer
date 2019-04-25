@@ -4475,11 +4475,17 @@ def blend_nonequispaced_sensors(array_one, array_two, padding):
 
     both = merge_sources(array_one, array_two)
     mask_array = np.ma.getmaskarray(both)
+    first_mask = mask_array[0]
+    last_mask = mask_array[-1]
     mask_array[0] = False
     mask_array[-1] = False
 
     mean_array = np.divide(np.roll(both, -1) + np.roll(both, 1), 2.0)
     both[mask_array] = mean_array[mask_array]
+    if first_mask:
+        both[0] = np.ma.masked
+    if last_mask:
+        both[-1] = np.ma.masked
 
     # A simpler technique than trying to append to the averaged array.
     av_pairs = np.ma.empty_like(both)

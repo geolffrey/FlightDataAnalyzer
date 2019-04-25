@@ -1263,6 +1263,22 @@ class TestBlendNonequispacedSensors(unittest.TestCase):
         np.testing.assert_array_equal(result.mask, [True,False,False,False,
                                                     False,False,False,False])
 
+    def test_blend_example(self):
+        # segment 681b27f775450719e1db6c6d5d14ab259949019bec2aff451b40d2eb9fb0ef1e
+        param_one = load_compressed(os.path.join(test_data_path, '681b27f77545_blend_param_one.npz'))
+        param_two = load_compressed(os.path.join(test_data_path, '681b27f77545_blend_param_two.npz'))
+        result = blend_nonequispaced_sensors (param_one, param_two, 'Follow')
+        np.testing.assert_array_equal(
+            np.ma.clump_masked(result),
+            [slice(21006, 21008, None),]
+        )
+        np.testing.assert_array_equal(
+            runs_of_ones(result > 0.0),
+            [slice(469, 910, None),
+             slice(915, 922, None),
+             slice(967, 20384, None),
+             slice(20387, 20404, None)])
+
 
 class TestBump(unittest.TestCase):
 
@@ -4868,7 +4884,7 @@ class TestOverflowCorrectionArray(unittest.TestCase):
         array = np.ma.array(data=[5]*10, mask=[0]*3 + [1]*4 + [0]*3)
         result = overflow_correction_array(array)
         self.assertEqual(result.mask[5], True)
-        
+
 class TestPinToGround(unittest.TestCase):
     '''
     Revised version of pin to ground which only corrects multiples of the
