@@ -52,7 +52,7 @@ logger = logging.getLogger(name=__name__)
 # Define named tuples for KPV and KTI and FlightPhase
 ApproachItem = recordtype(
     'ApproachItem',
-    'type slice airport landing_runway approach_runway gs_est loc_est ils_freq turnoff lowest_lat lowest_lon lowest_hdg runway_change offset_ils',
+    'type slice airport landing_runway approach_runway gs_est loc_est ils_freq turnoff lowest_lat lowest_lon lowest_hdg runway_change offset_ils aiming_point_dist',
     default=None)
 KeyPointValue = recordtype('KeyPointValue',
                            OrderedDict([('index', None), ('value', None), ('name', None), ('slice', slice(None)), ('datetime', None), ('latitude', None), ('longitude', None)]))
@@ -2267,7 +2267,8 @@ class ApproachNode(ListNode):
     def create_approach(self, _type, _slice, runway_change=None, offset_ils=None,
                         airport=None, landing_runway=None, approach_runway=None,
                         gs_est=None, loc_est=None, ils_freq=None, turnoff=None,
-                        lowest_lat=None, lowest_lon=None, lowest_hdg=None):
+                        lowest_lat=None, lowest_lon=None, lowest_hdg=None,
+                        aiming_point_dist=None):
         '''
         :param _type: Type of approach.
         :type _type: str
@@ -2306,7 +2307,8 @@ class ApproachNode(ListNode):
             landing_runway=landing_runway, approach_runway=approach_runway,
             gs_est=gs_est, loc_est=loc_est, ils_freq=ils_freq, turnoff=turnoff,
             lowest_lat=lowest_lat, lowest_lon=lowest_lon, lowest_hdg=lowest_hdg,
-            runway_change=runway_change, offset_ils=offset_ils,
+            runway_change=runway_change, offset_ils=offset_ils, 
+            aiming_point_dist=aiming_point_dist,
         )
         self.append(approach)
         # TODO: order approaches.
@@ -2422,6 +2424,7 @@ class ApproachNode(ListNode):
                 type=approach.type,
                 runway_change=approach.runway_change,
                 offset_ils=approach.offset_ils,
+                aiming_point_dist=approach.aiming_point_dist,
             ))
         return ApproachNode(param.name, param.frequency, param.offset,
                             items=approaches)
