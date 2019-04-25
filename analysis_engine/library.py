@@ -4898,7 +4898,7 @@ def blend_parameters_cubic(frequency, offset, params, result_slice, tolerance=No
     else:
         result = np_ma_masked_zeros_like(new_t)
 
-    if tolerance:
+    if curves and tolerance:
         result.mask = np.ma.masked_greater(np.ma.ptp(a, axis=0), tolerance).mask
 
     return result
