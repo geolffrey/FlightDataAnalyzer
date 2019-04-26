@@ -2140,7 +2140,7 @@ class V2AtLiftoff(KeyPointValueNode):
         # 1. Use recorded value (if available):
         if v2:
             for liftoff in liftoffs:
-                last_valid_v2 = last_valid_sample(v2.array[:liftoff.index])
+                last_valid_v2 = last_valid_sample(v2.array[:int(liftoff.index)])
                 if last_valid_v2.value is not None:
                     self.create_kpv(last_valid_v2.index + 1, last_valid_v2.value)
             return
@@ -2154,7 +2154,7 @@ class V2AtLiftoff(KeyPointValueNode):
         # 3. Derive parameter for Embraer 170/190:
         if v2_vac:
             for liftoff in liftoffs:
-                last_valid_v2_vac = last_valid_sample(v2_vac.array[:liftoff.index])
+                last_valid_v2_vac = last_valid_sample(v2_vac.array[:int(liftoff.index)])
                 if last_valid_v2_vac.value is not None:
                     self.create_kpv(last_valid_v2_vac.index + 1, last_valid_v2_vac.value)
             return
@@ -2165,7 +2165,7 @@ class V2AtLiftoff(KeyPointValueNode):
                 spd_sel.array[spd_ctl.array == 'Manual'] = np.ma.masked
 
             for liftoff in liftoffs:
-                last_valid_aspd_sel = last_valid_sample(spd_sel.array[:liftoff.index])
+                last_valid_aspd_sel = last_valid_sample(spd_sel.array[:int(liftoff.index)])
                 if last_valid_aspd_sel.value is not None:
                     self.create_kpv(last_valid_aspd_sel.index + 1, last_valid_aspd_sel.value)
             return
