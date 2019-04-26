@@ -5304,7 +5304,7 @@ def offset_select(mode, param_list):
     raise ValueError ("offset_select called with unrecognised mode")
 
 
-def overflow_correction(array, fast=None, hz=1):
+def overflow_correction(array, ref=None, fast=None, hz=1):
     '''
     Overflow Correction postprocessing procedure. Used only on Altitude Radio
     signals.
@@ -5324,18 +5324,54 @@ def overflow_correction(array, fast=None, hz=1):
     good_slices = slices_remove_small_slices(
         slices_remove_small_gaps(np.ma.clump_unmasked(array),
                                  time_limit=10, hz=hz),
-        time_limit=10, hz=hz)
+        time_limit=5, hz=hz)
 
     if not fast:
         # The first time we use this algorithm we don't have speed information
         for good_slice in good_slices:
-            array[good_slice] = overflow_correction_array(array[good_slice])
+            if np.ma.ptp(array[good_slice]) > 20.0:
+                array[good_slice] = overflow_correction_array(array[good_slice])
+            else:
+                array.mask[good_slice] = True
     else:
         # The second time our challenge is to make sure the segments are
         # adjusted correctly
-        array = pin_to_ground(array, good_slices, fast.get_slices(), hz)
+
+        # array = pin_to_ground(array, good_slices, fast.get_slices(), hz)
+        array = align_altitudes(array,
+                                ref,
+                                slices_int(good_slices),
+                                slices_int(fast.get_slices()),
+                                hz)
 
     return array
+
+def align_altitudes(alt_rad, alt_std, good_slices, fast_slices, hz):
+    '''
+    This corrects the offset for each section of radio altitude data,
+    using a crude height above ground level estimate.
+    '''
+    for fast_slice in fast_slices:
+        # crude altitude aal for this slice only
+        baro = alt_std[fast_slice]
+        peak_index = np.ma.argmax(baro)
+        baro[:peak_index] -= baro[0]
+        baro[peak_index:] -= baro[-1]
+        # fgs = fast and good slice
+        for fgs in slices_and(good_slices, [fast_slice]):
+            # The reference data will be just this piece of baro altitude
+            ref = baro[shift_slice(fgs, -fast_slice.start)]
+            # We want the lower altitudes to be more closely matched
+            weights = (np.ma.max(ref) - ref) / (np.ma.max(ref) - np.ma.min(ref))
+            # The average difference, with emphasized weighting is...
+            mean_diff = np.ma.average(baro[shift_slice(fgs, -fast_slice.start)] - alt_rad[fgs],
+                                      weights = weights**2)
+            # and we only adjust by 1k blocks
+            delta = 1024.0 * np.rint(mean_diff / 1024)
+            if delta:
+                alt_rad[fgs] += delta
+
+    return alt_rad
 
 
 def overflow_correction_array(array):
@@ -5344,17 +5380,10 @@ def overflow_correction_array(array):
     '''
     keep_mask = np.ma.getmaskarray(array).copy()
     array.mask = False
-    
-    # A specific problem arises with some altimeters which show a quasi-NCD pattern
-    # above 2,500ft. This code substitutes a local mean value to keep the altitude
-    # signals working under these conditions.
-    mean = np_ma_zeros_like(array)
-    mean[1:-1] = (array[0:-2] + array[2:]) / 2.0
-    mean[0] = np.ma.masked
-    mean[-1] = np.ma.masked
-    array = np.ma.where(np.ma.logical_and(array==2500, mean>array), mean, array)
-    
+    midpoint = len(array) / 2
     jump = np.ma.ediff1d(array, to_begin=0.0)
+    # Suppress startup transients in the first few samples
+    jump[1:4] = 0.0
     abs_jump = np.ma.abs(jump)
     jump_sign = -jump / abs_jump
 
@@ -5369,13 +5398,13 @@ def overflow_correction_array(array):
         # Compute and apply the correction
         biggest_step = max(abs(x) for x in (biggest_step_up, biggest_step_down) if x is not None)
         steps = np.ma.where(abs(steps) >= biggest_step / 4, steps, 0.0)
-        array += np.ma.cumsum(steps)
+        if coreg(array)[1] > 0:
+            array += np.ma.cumsum(steps)
+            delta = 1024.0 * np.rint((np.min(array[:midpoint]) + 20) / 1024)
+        else:
+            array[::-1] -= np.ma.cumsum(steps[::-1])
+            delta = 1024.0 * np.rint((np.min(array[midpoint:]) + 20) / 1024)
 
-    # Simple check to make sure the lowest value is not badly below zero following
-    # this adjustment, because the resulting array will be displayed to the user
-    # as the converted single sensor parameter.
-    if np.min(array) < 0.0:
-        delta = 1024.0 * np.rint((np.min(array) + 20) / 1024)
         if delta:
             array -= delta
 

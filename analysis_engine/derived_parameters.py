@@ -1086,6 +1086,7 @@ class AltitudeRadio(DerivedParameterNode):
                source_efis=P('Altitude Radio (EFIS)'),
                source_efis_L=P('Altitude Radio (EFIS) (L)'),
                source_efis_R=P('Altitude Radio (EFIS) (R)'),
+               alt_std=P('Altitude STD'),
                pitch=P('Pitch'),
                fast=S('Fast'),
                family=A('Family')):
@@ -1107,6 +1108,7 @@ class AltitudeRadio(DerivedParameterNode):
             aligned_fast = fast.get_aligned(source)
 
             source.array = overflow_correction(source.array,
+                                               align(alt_std, source),
                                                fast=aligned_fast,
                                                hz=source.frequency)
 
@@ -1132,6 +1134,8 @@ class AltitudeRadio(DerivedParameterNode):
                                       mode='cubic',
                                       validity='all_but_one',
                                       tolerance=500.0)
+
+        self.array = np.ma.masked_greater(self.array, 5000.0)
 
         # For aircraft where the antennae are placed well away from the main
         # gear, and especially where it is aft of the main gear, compensation
