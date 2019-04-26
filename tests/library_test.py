@@ -4840,7 +4840,7 @@ class TestOverflowCorrection(unittest.TestCase):
         resA = overflow_correction(overflow_correction(radioA.array, None), fast)
         sects = np.ma.clump_unmasked(resA)
         self.assertEqual(len(sects), 9)
-        self.assertEqual(resA.max(), 7168)
+        self.assertGreater(resA.max(), 7000)
         self.assertEqual(resA.min(), -2)
 
         radioB = load(os.path.join(
@@ -4859,7 +4859,7 @@ class TestOverflowCorrection(unittest.TestCase):
         sects = np.ma.clump_unmasked(resA)
         # 1 section for climb, one for descent
         self.assertEqual(len(sects), 4)
-        self.assertEqual(resA.max(), 7855)
+        self.assertGreater(resA.max(), 7500)
         self.assertEqual(resA.min(), 0)
 
         radioB = load(os.path.join(
@@ -4868,7 +4868,7 @@ class TestOverflowCorrection(unittest.TestCase):
         sects = np.ma.clump_unmasked(resB)
         # 1 section for climb, one for descent
         self.assertEqual(len(sects), 4)
-        self.assertEqual(resB.max(), 7844)
+        self.assertGreater(resB.max(), 7500)
         self.assertEqual(resB.min(), 0)
 
 class TestOverflowCorrectionArray(unittest.TestCase):
@@ -4884,6 +4884,25 @@ class TestOverflowCorrectionArray(unittest.TestCase):
         array = np.ma.array(data=[5]*10, mask=[0]*3 + [1]*4 + [0]*3)
         result = overflow_correction_array(array)
         self.assertEqual(result.mask[5], True)
+    
+    def test_mask_ncd(self):
+        # A specific case to be masked, using real data
+        array = np.ma.array(data = [2300.0, 2300.0, 2350.0, 2450.0, 2480.0,
+                                    2500.0, 2520.0, 2570.0, 2630.0,
+                                    2500.0, 2710.0, 2790.0, 2830.0,
+                                    2500.0, 2840.0, 2910.0, 2870.0,
+                                    2900.0, 2920.0, 2980.0])
+        result = overflow_correction_array(array)
+        expected_mask = [False, False, False, False, False,
+                         True, True, True, True,
+                         True, True, True, True,
+                         True, False, False, False,
+                         False, False, False]
+        ma_test.assert_masked_array_equal(result, 
+                                          np.ma.array(data=array.data,
+                                                      mask=expected_mask)
+                                          )
+                                          
 
 class TestPinToGround(unittest.TestCase):
     '''
