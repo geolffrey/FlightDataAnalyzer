@@ -46,6 +46,7 @@ from analysis_engine.library import (
     integrate,
     is_index_within_slice,
     is_index_within_slices,
+    last_valid_sample,
     level_off_index,
     lookup_table,
     mask_inside_slices,
@@ -2106,27 +2107,23 @@ class V2AtLiftoff(KeyPointValueNode):
         afr = all_of((
             'AFR V2',
             'Liftoff',
-            'Climb Start',
         ), available) and afr_v2 and afr_v2.value >= AIRSPEED_THRESHOLD
 
         airbus = all_of((
             'Airspeed Selected',
             'Speed Control',
             'Liftoff',
-            'Climb Start',
             'Manufacturer',
         ), available) and manufacturer and manufacturer.value == 'Airbus'
 
         embraer = all_of((
             'V2-Vac',
             'Liftoff',
-            'Climb Start',
         ), available)
 
         v2 = all_of((
             'V2',
             'Liftoff',
-            'Climb Start',
         ), available)
 
         return v2 or afr or airbus or embraer
@@ -2138,59 +2135,39 @@ class V2AtLiftoff(KeyPointValueNode):
                spd_ctl=P('Speed Control'),
                afr_v2=A('AFR V2'),
                liftoffs=KTI('Liftoff'),
-               climb_starts=KTI('Climb Start'),
                manufacturer=A('Manufacturer')):
-
-        # Determine interesting sections of flight which we want to use for V2.
-        # Due to issues with how data is recorded, use five superframes before
-        # liftoff until the start of the climb:
-        starts = deepcopy(liftoffs)
-        for start in starts:
-            start.index = max(start.index - 5 * 64 * self.frequency, 0)
-        phases = slices_from_ktis(starts, climb_starts)
 
         # 1. Use recorded value (if available):
         if v2:
-            for phase in slices_int(phases):
-                index = liftoffs.get_last(within_slice=phase).index
-                if v2.frequency >= 0.125:
-                    v2_liftoff = closest_unmasked_value(
-                        v2.array, index, start_index=phase.start,
-                        stop_index=phase.stop)
-                    if v2_liftoff:
-                        self.create_kpv(index, v2_liftoff.value)
-                else:
-                    value = most_common_value(v2.array[phase])
-                    self.create_kpv(index, value)
+            for liftoff in liftoffs:
+                last_valid_v2 = last_valid_sample(v2.array[:liftoff.index])
+                if last_valid_v2.value is not None:
+                    self.create_kpv(last_valid_v2.index + 1, last_valid_v2.value)
             return
 
         # 2. Use value provided in achieved flight record (if available):
         if afr_v2 and afr_v2.value >= AIRSPEED_THRESHOLD:
-            for phase in phases:
-                index = liftoffs.get_last(within_slice=phase).index
-                value = round(afr_v2.value)
-                if value is not None:
-                    self.create_kpv(index, value)
+            for liftoff in liftoffs:
+                self.create_kpv(liftoff.index, round(afr_v2.value))
             return
 
         # 3. Derive parameter for Embraer 170/190:
         if v2_vac:
-            for phase in slices_int(phases):
-                value = most_common_value(v2_vac.array[phase])
-                index = liftoffs.get_last(within_slice=phase).index
-                if value is not None:
-                    self.create_kpv(index, value)
+            for liftoff in liftoffs:
+                last_valid_v2_vac = last_valid_sample(v2_vac.array[:liftoff.index])
+                if last_valid_v2_vac.value is not None:
+                    self.create_kpv(last_valid_v2_vac.index + 1, last_valid_v2_vac.value)
             return
 
         # 4. Derive parameter for Airbus:
         if manufacturer and manufacturer.value == 'Airbus':
             if hasattr(spd_ctl, 'values_mapping'):
                 spd_sel.array[spd_ctl.array == 'Manual'] = np.ma.masked
-            for phase in slices_int(phases):
-                value = most_common_value(spd_sel.array[phase])
-                index = liftoffs.get_last(within_slice=phase).index
-                if value is not None:
-                    self.create_kpv(index, value)
+
+            for liftoff in liftoffs:
+                last_valid_aspd_sel = last_valid_sample(spd_sel.array[:liftoff.index])
+                if last_valid_aspd_sel.value is not None:
+                    self.create_kpv(last_valid_aspd_sel.index + 1, last_valid_aspd_sel.value)
             return
 
 

@@ -3229,44 +3229,40 @@ class TestV2AtLiftoff(unittest.TestCase, NodeTest):
             KeyTimeInstance(name='Liftoff', index=269),
             KeyTimeInstance(name='Liftoff', index=860),
         ])
-        self.climbs = KTI(name='Climb Start', items=[
-            KeyTimeInstance(name='Climb Start', index=352),
-            KeyTimeInstance(name='Climb Start', index=1060),
-        ])
 
     def test_can_operate(self):
         # AFR:
         self.assertTrue(self.node_class.can_operate(
-            ('AFR V2', 'Liftoff', 'Climb Start'),
+            ('AFR V2', 'Liftoff'),
             afr_v2=A('AFR V2', 120),
         ))
         self.assertFalse(self.node_class.can_operate(
-            ('AFR V2', 'Liftoff', 'Climb Start'),
+            ('AFR V2', 'Liftoff'),
             afr_v2=A('AFR V2', 70),
         ))
         # Embraer:
         self.assertTrue(self.node_class.can_operate(
-            ('V2-Vac', 'Liftoff', 'Climb Start'),
+            ('V2-Vac', 'Liftoff'),
         ))
         # Airbus:
         self.assertTrue(self.node_class.can_operate(
-            ('Airspeed Selected', 'Speed Control', 'Liftoff', 'Climb Start', 'Manufacturer'),
+            ('Airspeed Selected', 'Speed Control', 'Liftoff', 'Manufacturer'),
             manufacturer=A('Manufacturer', 'Airbus'),
         ))
         # V2:
         self.assertTrue(self.node_class.can_operate(
-            ('V2','Liftoff', 'Climb Start')
+            ('V2','Liftoff')
         ))
 
     def test_derive__nothing(self):
         node = self.node_class()
-        node.derive(None, None, None, None, None, self.liftoffs, self.climbs, None)
+        node.derive(None, None, None, None, None, self.liftoffs, None)
         self.assertEqual(len(node), 0)
 
     def test_derive__afr_v2(self):
         afr_v2 = A('AFR V2', 120)
         node = self.node_class()
-        node.derive(None, None, None, None, afr_v2, self.liftoffs, self.climbs, None)
+        node.derive(None, None, None, None, afr_v2, self.liftoffs, None)
         self.assertEqual(len(node), 2)
         self.assertEqual(node[0].index, 269)
         self.assertEqual(node[0].value, 120)
@@ -3279,8 +3275,8 @@ class TestV2AtLiftoff(unittest.TestCase, NodeTest):
         spd_sel = P('Airspeed Selected', np.ma.repeat((400, 120, 170), (10, 630, 640)))
         spd_sel.array[:10] = np.ma.masked
         node = self.node_class()
-        node.derive(None, None, spd_sel, spd_ctl, None, self.liftoffs, self.climbs, manufacturer)
-        self.assertEqual(len(node), 1)
+        node.derive(None, None, spd_sel, spd_ctl, None, self.liftoffs, manufacturer)
+        self.assertEqual(len(node), 2)
         self.assertEqual(node[0].index, 269)
         self.assertEqual(node[0].value, 120)
 
@@ -3288,7 +3284,7 @@ class TestV2AtLiftoff(unittest.TestCase, NodeTest):
         manufacturer = A(name='Manufacturer', value='Embraer')
         v2_vac = P('V2-Vac', np.ma.repeat(150, 1280))
         node = self.node_class()
-        node.derive(None, v2_vac, None, None, None, self.liftoffs, self.climbs, manufacturer)
+        node.derive(None, v2_vac, None, None, None, self.liftoffs, manufacturer)
         self.assertEqual(len(node), 2)
         self.assertEqual(node[0].index, 269)
         self.assertEqual(node[0].value, 150)
@@ -3302,7 +3298,7 @@ class TestV2AtLiftoff(unittest.TestCase, NodeTest):
         '''
         v2 = P(' V2', np.ma.repeat((400, 120, 170, 400, 170), (190, 130, 192, 192, 448)))
         node = self.node_class()
-        node.derive(v2, None, None, None, None, self.liftoffs, self.climbs, None)
+        node.derive(v2, None, None, None, None, self.liftoffs, None)
         self.assertEqual(len(node), 2)
         self.assertEqual(node[0].index, 269)
         self.assertEqual(node[0].value, 120)
@@ -3318,17 +3314,13 @@ class TestV2AtLiftoff(unittest.TestCase, NodeTest):
             KeyTimeInstance(name='Liftoff', index=269/64.0),
             KeyTimeInstance(name='Liftoff', index=860/64.0),
         ])
-        climbs = KTI(name='Climb Start', items=[
-            KeyTimeInstance(name='Climb Start', index=352/64.0),
-            KeyTimeInstance(name='Climb Start', index=1060/64.0),
-        ])
         v2 = P(' V2', np.ma.repeat((400, 120, 170, 400, 170), (190/64.0, 130/64.0, 192/64.0, 192/64.0, 448/64.0)), frequency=1/64.0)
-        node = self.node_class(frequency=1/64.0)
-        node.derive(v2, None, None, None, None, liftoffs, climbs, None)
+        node = self.node_class()
+        node.derive(v2, None, None, None, None, liftoffs, None)
         self.assertEqual(len(node), 2)
-        self.assertEqual(node[0].index, 269/64.0)
+        self.assertEqual(node[0].index, 269//64.0)
         self.assertEqual(node[0].value, 120)
-        self.assertEqual(node[1].index, 860/64.0)
+        self.assertEqual(node[1].index, 860//64.0)
         self.assertEqual(node[1].value, 170)
 
     def test_derive__v2_masked(self):
@@ -3339,9 +3331,9 @@ class TestV2AtLiftoff(unittest.TestCase, NodeTest):
         v2 = P(' V2', np.ma.repeat((400, 120, 170, 400, 170), (190, 130, 192, 192, 448)))
         v2.array[267:272] = np.ma.masked
         node = self.node_class()
-        node.derive(v2, None, None, None, None, self.liftoffs, self.climbs, None)
+        node.derive(v2, None, None, None, None, self.liftoffs, None)
         self.assertEqual(len(node), 2)
-        self.assertEqual(node[0].index, 269)
+        self.assertEqual(node[0].index, 267)
         self.assertEqual(node[0].value, 120)
         self.assertEqual(node[1].index, 860)
         self.assertEqual(node[1].value, 170)
@@ -3355,7 +3347,7 @@ class TestV2AtLiftoff(unittest.TestCase, NodeTest):
         # fully mask first liftoff airspeed selected
         v2.array[0:353] = np.ma.masked
         node = self.node_class()
-        node.derive(v2, None, None, None, None, self.liftoffs, self.climbs, None)
+        node.derive(v2, None, None, None, None, self.liftoffs, None)
         self.assertEqual(len(node), 1)
         self.assertEqual(node[0].index, 860)
         self.assertEqual(node[0].value, 170)
