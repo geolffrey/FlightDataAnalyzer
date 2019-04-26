@@ -3783,14 +3783,8 @@ def slices_not(slice_list, begin_at=None, end_at=None):
 
     :returns: list of slices. If begin or end is specified, the range will extend to these points. Otherwise the scope is within the end slices.
     '''
-    # Only integers or None allowed
-    begin = None if begin_at is None else int(begin_at)
-    end = None if end_at is None else int(end_at)
-
     if not slice_list:
-        return [slice(begin, end)]
-
-    slice_list = slices_int(slice_list)
+        return [slice(begin_at, end_at)]
 
     start_slices = [s.start for s in slice_list]
     a = None if None in start_slices else min(start_slices)
@@ -3807,10 +3801,12 @@ def slices_not(slice_list, begin_at=None, end_at=None):
     except TypeError:
         startpoint = None
 
-    if begin is not None and startpoint is not None and begin < startpoint:
-        startpoint = begin
+    if begin_at is not None \
+       and startpoint is not None \
+       and begin_at < startpoint:
+        startpoint = begin_at
     if startpoint is None:
-        startpoinstartpointt = 0
+        startpoint = 0
 
     starts = [s for s in start_slices if s is not None]
     c = max(starts) if starts else None
@@ -3821,16 +3817,19 @@ def slices_not(slice_list, begin_at=None, end_at=None):
     endpoint = max(c,d) if c and d else c or d
 
     try:
-        endpoint = end if end > endpoint else endpoint
+        endpoint = end_at if end_at > endpoint else endpoint
     except TypeError:
-        endpoint = end or endpoint
+        endpoint = end_at or endpoint
 
-    workspace = np.ma.zeros(endpoint)
+    workspace = np.ma.zeros(int(endpoint))
     for each_slice in slice_list:
-        workspace[each_slice] = 1
+        workspace[slices_int(each_slice)] = 1
     workspace=np.ma.masked_equal(workspace, 1)
-    return shift_slices(np.ma.clump_unmasked(workspace[startpoint:endpoint]),
-                        startpoint)
+
+    return shift_slices(
+        np.ma.clump_unmasked(workspace[slices_int(startpoint,endpoint)]),
+        startpoint
+    )
 
 
 def slices_or(*slice_lists):

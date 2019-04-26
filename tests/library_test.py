@@ -6609,8 +6609,8 @@ class TestSlicesNot(unittest.TestCase):
                          [slice(2,10),slice(13,18)])
         self.assertEqual(slices_not(slice_list, begin_at=0, end_at=18),
                          [slice(0,10),slice(13,18)])
-        #self.assertEqual(slices_not(slice_list, begin_at=None, end_at=18),
-                         #[slice(0,10),slice(13,18)])
+        self.assertEqual(slices_not(slice_list, begin_at=None, end_at=18),
+                         [slice(13,18),])
 
     def test_slices_not_extended_2(self):
         slice_list = [slice(None, None, None)]
@@ -6645,6 +6645,30 @@ class TestSlicesNot(unittest.TestCase):
     def test_slices_not_error(self):
         slice_list = [slice(1,5,2)]
         self.assertRaises(ValueError, slices_not, slice_list)
+
+    def test_slices_not_return_float(self):
+        slice_list = [slice(2060.2265625, 39992.2265625, None)]
+        begin_at = 956.078125
+        end_at = 40800.078125
+        result = slices_not(slice_list, begin_at, end_at)
+        expected_result = [
+            slice(956.078125, 2060.078125, None),
+            slice(39992.078125, 40800.078125, None)
+        ]
+        self.assertEqual(result, expected_result)
+
+
+class TestSlicesAndNot(unittest.TestCase):
+
+    def test_slices_and_not_return_float(self):
+        mobiles_slices = [slice(956.078125, 40800.078125, None)]
+        fasts_slices = [slice(2060.2265625, 39992.2265625, None)]
+        result = slices_and_not(mobiles_slices, fasts_slices)
+        expected_result = [
+            slice(956.078125, 2060.078125, None),
+            slice(39992.078125, 40800.078125, None)
+        ]
+        self.assertEqual(result, expected_result)
 
 
 class TestSlicesOr(unittest.TestCase):
