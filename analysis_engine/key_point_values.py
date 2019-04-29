@@ -6578,7 +6578,8 @@ class LastUnstableStateDuringLastApproach(KeyPointValueNode):
             app = apps[-1]
             index = index_of_last_stop(stable.array != 'Stable', app, min_dur=2)
             # Note: Assumed will never have an approach which is 100% Stable
-            self.create_kpv(index, stable.array.raw[index])
+            if index:
+                self.create_kpv(index, stable.array.raw[int(index)])
 
 
 class LastUnstableStateDuringApproachBeforeGoAround(KeyPointValueNode):

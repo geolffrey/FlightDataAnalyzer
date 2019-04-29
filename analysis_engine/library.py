@@ -5321,10 +5321,19 @@ def overflow_correction(array, ref=None, fast=None, hz=1):
     :param hz: array sample rate
     :type hz: float
     '''
-    good_slices = slices_remove_small_slices(
-        slices_remove_small_gaps(np.ma.clump_unmasked(array),
-                                 time_limit=10, hz=hz),
+    array = array.astype(np.float64)  # int32 not supported
+    good_slices = slices_remove_small_gaps(
+        slices_remove_small_slices(np.ma.clump_unmasked(array),
+                                   time_limit=10, hz=hz),
         time_limit=5, hz=hz)
+    # Due to aircraft power-up sequences, the first few samples of data is
+    # sometimes corrupt.
+    if not good_slices:
+        return array
+
+    end = good_slices[0].stop
+    begin = min(good_slices[0].start + 4, end - 1)
+    good_slices[0] = slice(begin, end)
 
     if not fast:
         # The first time we use this algorithm we don't have speed information
@@ -5332,7 +5341,8 @@ def overflow_correction(array, ref=None, fast=None, hz=1):
             if np.ma.ptp(array[good_slice]) > 20.0:
                 array[good_slice] = overflow_correction_array(array[good_slice])
             else:
-                array.mask[good_slice] = True
+                if abs(np.ma.average(array[good_slice])) > 100.0:
+                   array.mask[good_slice] = True
     else:
         # The second time our challenge is to make sure the segments are
         # adjusted correctly
@@ -5385,10 +5395,10 @@ def overflow_correction_array(array):
     # Suppress startup transients in the first few samples
     jump[1:4] = 0.0
     abs_jump = np.ma.abs(jump)
-    jump_sign = -jump / abs_jump
 
     # Most radio altimeters are scaled to overflow at 2048ft, but occasionally the signed
     # value changes by half this amount. Hence jumps more than half a power lower than 2**10.
+    # We want to correct the step, hence the change of sign in the resulting array.
     steps = -np.ma.where(abs_jump > 800.0, 2**np.rint(np.ma.log2(abs_jump)) * np.sign(jump), 0)
 
     biggest_step_up = np.ma.max(steps)
@@ -5398,19 +5408,20 @@ def overflow_correction_array(array):
         # Compute and apply the correction
         biggest_step = max(abs(x) for x in (biggest_step_up, biggest_step_down) if x is not None)
         steps = np.ma.where(abs(steps) >= biggest_step / 4, steps, 0.0)
-        if coreg(array)[1] > 0:
+        # Climb data has positive changes for most samples...
+        if np.average(np.sign(np.ma.ediff1d(array))) > 0:
             array += np.ma.cumsum(steps)
-            delta = 1024.0 * np.rint((np.min(array[:midpoint]) + 20) / 1024)
+            delta = 1024.0 * np.rint((np.min(array[:int(midpoint)]) + 20) / 1024)
         else:
             array[::-1] -= np.ma.cumsum(steps[::-1])
-            delta = 1024.0 * np.rint((np.min(array[midpoint:]) + 20) / 1024)
+            delta = 1024.0 * np.rint((np.min(array[int(midpoint):]) + 20) / 1024)
 
         if delta:
             array -= delta
 
     return np.ma.array(data=array, mask=keep_mask)
 
-
+"""
 def pin_to_ground(array, good_slices, fast_slices, hz=1.0):
     '''
     Fix the altitude within given slice based on takeoff and landing
@@ -5471,6 +5482,7 @@ def pin_to_ground(array, good_slices, fast_slices, hz=1.0):
                 array[sl] -=  delta
 
     return array
+"""
 
 def peak_curvature(array, _slice=slice(None), curve_sense='Concave',
                    gap = TRUCK_OR_TRAILER_INTERVAL,
