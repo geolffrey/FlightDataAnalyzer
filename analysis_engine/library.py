@@ -5365,7 +5365,7 @@ def align_altitudes(alt_rad, alt_std, good_slices, fast_slices, hz):
     for fast_slice in fast_slices:
         # crude altitude aal for this slice only
         baro = alt_std[fast_slice]
-        peak_index = np.ma.argmax(baro)
+        peak_index = int(np.ma.argmax(baro))
         baro[:peak_index] -= baro[0]
         baro[peak_index:] -= baro[-1]
         # fgs = fast and good slice
