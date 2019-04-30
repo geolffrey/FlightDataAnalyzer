@@ -2111,7 +2111,6 @@ class V2AtLiftoff(KeyPointValueNode):
 
         airbus = all_of((
             'Airspeed Selected',
-            'Speed Control',
             'Liftoff',
             'Manufacturer',
         ), available) and manufacturer and manufacturer.value == 'Airbus'
@@ -2132,7 +2131,6 @@ class V2AtLiftoff(KeyPointValueNode):
                v2=P('V2'),
                v2_vac=A('V2-Vac'),
                spd_sel=P('Airspeed Selected'),
-               spd_ctl=P('Speed Control'),
                afr_v2=A('AFR V2'),
                liftoffs=KTI('Liftoff'),
                manufacturer=A('Manufacturer')):
@@ -2151,23 +2149,14 @@ class V2AtLiftoff(KeyPointValueNode):
                 self.create_kpv(liftoff.index, round(afr_v2.value))
             return
 
-        # 3. Derive parameter for Embraer 170/190:
-        if v2_vac:
-            for liftoff in liftoffs:
-                last_valid_v2_vac = last_valid_sample(v2_vac.array[:int(liftoff.index)])
-                if last_valid_v2_vac.value is not None:
-                    self.create_kpv(last_valid_v2_vac.index + 1, last_valid_v2_vac.value)
-            return
+        v2_param = v2_vac or (spd_sel if manufacturer and manufacturer.value == 'Airbus' else None)
 
-        # 4. Derive parameter for Airbus:
-        if manufacturer and manufacturer.value == 'Airbus':
-            if hasattr(spd_ctl, 'values_mapping'):
-                spd_sel.array[spd_ctl.array == 'Manual'] = np.ma.masked
-
+        # 3. Derive parameter for Embraer 170/190 and Airbus:
+        if v2_param:
             for liftoff in liftoffs:
-                last_valid_aspd_sel = last_valid_sample(spd_sel.array[:int(liftoff.index)])
-                if last_valid_aspd_sel.value is not None:
-                    self.create_kpv(last_valid_aspd_sel.index + 1, last_valid_aspd_sel.value)
+                last_valid_v2 = last_valid_sample(v2_param.array[:int(liftoff.index)])
+                if last_valid_v2.value is not None:
+                    self.create_kpv(last_valid_v2.index + 1, last_valid_v2.value)
             return
 
 
