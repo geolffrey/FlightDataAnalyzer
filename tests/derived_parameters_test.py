@@ -1633,7 +1633,7 @@ class TestAltitudeRadio(unittest.TestCase):
     def test_altitude_radio_737_3C(self):
         alt_rad = AltitudeRadio()
         alt_baro = Parameter('Altitude STD', np.ma.array([0]*19 + [10]))
-        fast = S(items=[Section('Fast', slice(0, 20), 0, 20)])
+        fast = S(items=[Section('Fast', slice(0, 20), 0, 20)])        
         alt_rad.derive(Parameter('Altitude Radio (A)',
                                  np.ma.array(data=[10.0]*9 + [50.1], mask=[0]*10), 0.5,  0.0),
                        Parameter('Altitude Radio (B)',

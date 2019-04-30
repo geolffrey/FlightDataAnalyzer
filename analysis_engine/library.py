@@ -5372,11 +5372,11 @@ def overflow_correction(array, ref=None, fast=None, hz=1):
         slices_remove_small_slices(np.ma.clump_unmasked(array),
                                    time_limit=10, hz=hz),
         time_limit=5, hz=hz)
-    # Due to aircraft power-up sequences, the first few samples of data is
+    # Due to aircraft power-up sequences, the first few samples of data is 
     # sometimes corrupt.
     if not good_slices:
         return array
-
+    
     end = good_slices[0].stop
     begin = min(good_slices[0].start + 4, end - 1)
     good_slices[0] = slice(begin, end)
@@ -5438,13 +5438,11 @@ def overflow_correction_array(array):
     array.mask = False
     midpoint = len(array) / 2
     jump = np.ma.ediff1d(array, to_begin=0.0)
-    # Suppress startup transients in the first few samples
-    jump[1:4] = 0.0
     abs_jump = np.ma.abs(jump)
 
     # Most radio altimeters are scaled to overflow at 2048ft, but occasionally the signed
     # value changes by half this amount. Hence jumps more than half a power lower than 2**10.
-    # We want to correct the step, hence the change of sign in the resulting array.
+    # We want to correct the step, hence the change of sign in the resulting array. 
     steps = -np.ma.where(abs_jump > 800.0, 2**np.rint(np.ma.log2(abs_jump)) * np.sign(jump), 0)
 
     biggest_step_up = np.ma.max(steps)
@@ -5455,12 +5453,18 @@ def overflow_correction_array(array):
         biggest_step = max(abs(x) for x in (biggest_step_up, biggest_step_down) if x is not None)
         steps = np.ma.where(abs(steps) >= biggest_step / 4, steps, 0.0)
         # Climb data has positive changes for most samples...
-        if np.average(np.sign(np.ma.ediff1d(array))) > 0:
+        dy = np.average(np.sign(np.ma.ediff1d(array)))
+        if dy > 0.0:
             array += np.ma.cumsum(steps)
-            delta = 1024.0 * np.rint((np.min(array[:int(midpoint)]) + 20) / 1024)
+            delta = 1024.0 * np.rint((np.min(array[:midpoint]) + 20) / 1024)
+        elif dy < 0.0:
+            # Roll the steps array to account for the reversal of direction
+            # compared to the original ediff1d computation.
+            array[::-1] -= np.cumsum(np.roll(steps[::-1], 1))
+            delta = 1024.0 * np.rint((np.min(array[midpoint:]) + 20) / 1024)
         else:
-            array[::-1] -= np.ma.cumsum(steps[::-1])
-            delta = 1024.0 * np.rint((np.min(array[int(midpoint):]) + 20) / 1024)
+            # Rare case of perfectly balanced changes; make no changes.
+            delta = None
 
         if delta:
             array -= delta
