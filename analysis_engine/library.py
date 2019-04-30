@@ -5436,7 +5436,7 @@ def overflow_correction_array(array):
     '''
     keep_mask = np.ma.getmaskarray(array).copy()
     array.mask = False
-    midpoint = len(array) / 2
+    midpoint = len(array) // 2
     jump = np.ma.ediff1d(array, to_begin=0.0)
     abs_jump = np.ma.abs(jump)
 
@@ -5456,12 +5456,12 @@ def overflow_correction_array(array):
         dy = np.average(np.sign(np.ma.ediff1d(array)))
         if dy > 0.0:
             array += np.ma.cumsum(steps)
-            delta = 1024.0 * np.rint((np.min(array[:int(midpoint)]) + 20) / 1024)
+            delta = 1024.0 * np.rint((np.min(array[:midpoint]) + 20) / 1024)
         elif dy < 0.0:
             # Roll the steps array to account for the reversal of direction
             # compared to the original ediff1d computation.
             array[::-1] -= np.cumsum(np.roll(steps[::-1], 1))
-            delta = 1024.0 * np.rint((np.min(array[int(midpoint):]) + 20) / 1024)
+            delta = 1024.0 * np.rint((np.min(array[midpoint:]) + 20) / 1024)
         else:
             # Rare case of perfectly balanced changes; make no changes.
             delta = None
