@@ -225,6 +225,21 @@ class TestAirborne(unittest.TestCase):
         air = Airborne()
         air.derive(alt_aal, fast)
         self.assertEqual(len(air), 0)
+        
+    def test_transient_on_takeoff(self):
+        alt_aal = P('Altitude AAL For Flight Phases',
+                    np.ma.concatenate([
+                        np.zeros(10),
+                        np.arange(0, 5, 2),
+                        np.arange(4, -1, -2),
+                        np.zeros(10),
+                        np.arange(0, 1000, 10),
+                        np.arange(1000, -10, -10),
+                        np.zeros(10)]))
+        fast = buildsection('Fast', 8, 235)
+        air = Airborne()
+        air.derive(alt_aal, fast)
+        self.assertGreater(air.get_first().slice.start, 25)
 
 
 class TestAirborneRadarApproach(unittest.TestCase):
