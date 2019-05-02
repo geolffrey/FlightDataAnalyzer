@@ -120,8 +120,13 @@ class TestAirborne(unittest.TestCase):
         fast = SectionNode('Fast', items=[Section(name='Airborne', slice=slice(3, 80, None), start_edge=3, stop_edge=80)])
         air = Airborne()
         air.derive(altitude, fast)
-        expected = [Section(name='Airborne', slice=slice(8, 80, None), start_edge=8, stop_edge=80)]
-        self.assertEqual(list(air), expected)
+        expected = [Section(name='Airborne', slice=slice(8.714285714285714, 80, None), start_edge=8.714285714285714, stop_edge=80)]
+
+        self.assertEqual(len(air), 1)
+        self.assertAlmostEqual(air[0].slice.start, expected[0].slice.start, places=3)
+        self.assertEqual(air[0].slice.stop, expected[0].slice.stop)
+        self.assertAlmostEqual(air[0].start_edge, expected[0].start_edge, places=3)
+        self.assertEqual(air[0].stop_edge, expected[0].stop_edge)
 
     def test_airborne_aircraft_not_fast(self):
         altitude_data = np.ma.arange(0, 10)
@@ -150,8 +155,13 @@ class TestAirborne(unittest.TestCase):
         fast = buildsection('Fast', 2, None)
         air = Airborne()
         air.derive(alt_aal, fast)
-        expected = buildsection('Airborne', 5, None)
-        self.assertEqual(list(air), list(expected))
+        expected = buildsection('Airborne', 5.4333, None)
+        self.assertEqual(len(air), 1)
+        self.assertAlmostEqual(air[0].slice.start, expected[0].slice.start, places=3)
+        self.assertEqual(air[0].slice.stop, expected[0].slice.stop)
+        self.assertAlmostEqual(air[0].start_edge, expected[0].start_edge, places=3)
+        self.assertEqual(air[0].stop_edge, expected[0].stop_edge)
+
 
     def test_airborne_aircraft_fast_with_gaps(self):
         alt_aal = P('Altitude AAL For Flight Phases',
@@ -174,7 +184,7 @@ class TestAirborne(unittest.TestCase):
         air = Airborne()
         air.derive(alt_aal, fast)
         self.assertEqual(len(air), 0)
-        
+
     def test_transient_on_takeoff(self):
         alt_aal = P('Altitude AAL For Flight Phases',
                     np.ma.concatenate([
