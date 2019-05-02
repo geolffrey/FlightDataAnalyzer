@@ -9,6 +9,14 @@ You can view the differences in tagged versions as follows:
   git log --pretty=format:"%Cblue%h %Cgreen%cn %Cred(%cr) %Creset%s %n%b %N" --graph "v0.3.2..v0.4.1"
 
 =======
+v0.43.5
+-------
+ Improvements:
+ - AE-2105: Altitude Radio overflow correction improvements
+ Fixes:
+ - AE-2117: Fixes erroneous 'Altitude AAL At First Flap Extension whilst Airborne' values 
+ - CDS-269: Fixes low capture rate for Holding events
+
 v0.43.4
 -------
  Improvements:
