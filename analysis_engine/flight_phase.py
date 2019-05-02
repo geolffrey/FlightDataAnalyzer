@@ -43,6 +43,7 @@ from analysis_engine.library import (
     slice_duration,
     slices_extend_duration,
     slices_from_to,
+    slices_int,
     slices_not,
     slices_or,
     slices_overlap,
@@ -1235,10 +1236,10 @@ class InitialClimb(FlightPhaseNode):
 
 class LevelFlight(FlightPhaseNode):
     '''
-    Level flight for at least 20 seconds. 
-    
+    Level flight for at least 20 seconds.
+
     This now excludes extended touch and go operations which are level, but
-    below 5ft above the runway. We have seen almost a minute on the runway, 
+    below 5ft above the runway. We have seen almost a minute on the runway,
     so this algorithm does not include a time limit for such actions.
     '''
     def derive(self,
