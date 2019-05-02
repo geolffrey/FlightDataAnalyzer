@@ -152,7 +152,7 @@ class Airborne(FlightPhaseNode):
                         # We did climb through 50ft, now scan back to the last time we climbed
                         # through 1ft, thereby ignoring transients, and refine the beginning point.
                         end = begin + up
-                        begin = int(end - index_at_value(working_alt[slice(int(end), 0, -1)], 1.0)) + 1
+                        begin = end - index_at_value(working_alt[slices_int(end, None, -1)], 1.0) + 1
                 end = air.stop
                 if end + start_point >= len(alt_aal.array): # Was in the air at end of data
                     end = None
