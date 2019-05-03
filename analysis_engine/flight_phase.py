@@ -1122,14 +1122,20 @@ class LevelFlight(FlightPhaseNode):
 
         for air in airs:
             limit = VERTICAL_SPEED_FOR_LEVEL_FLIGHT
-            level_flight = np.ma.masked_outside(vrt_spd.array[air.slice], -limit, limit)
+            level_flight = np.ma.masked_outside(
+                vrt_spd.array[slices_int(air.slice)], -limit, limit
+            )
             level_flight_slices = np.ma.clump_unmasked(level_flight)
-            above_runway = np.ma.masked_less(alt_aal.array[air.slice], 5.0)
+            above_runway = np.ma.masked_less(
+                alt_aal.array[slices_int(air.slice)], 5.0
+            )
             above_runway_slices = np.ma.clump_unmasked(above_runway)
             level_slices = slices_and(level_flight_slices, above_runway_slices)
-            level_slices = slices_remove_small_slices(level_slices,
-                                                      time_limit=LEVEL_FLIGHT_MIN_DURATION,
-                                                      hz=vrt_spd.frequency)
+            level_slices = slices_remove_small_slices(
+                level_slices,
+                time_limit=LEVEL_FLIGHT_MIN_DURATION,
+                hz=vrt_spd.frequency
+            )
             self.create_phases(shift_slices(level_slices, air.slice.start))
 
 
