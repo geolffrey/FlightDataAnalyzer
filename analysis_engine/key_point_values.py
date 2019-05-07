@@ -12394,6 +12394,8 @@ class HeightOfBouncedLanding(KeyPointValueNode):
     after touching the ground while still going fast.
     '''
 
+    can_operate = aeroplane_only
+
     units = ut.FT
 
     def derive(self,

@@ -394,6 +394,9 @@ class BouncedLanding(FlightPhaseNode):
     Note: Airborne includes rejection of short segments, so the bounced period is within
     an airborne phase.
     '''
+
+    can_operate = aeroplane_only
+
     def derive(self, alt_aal=P('Altitude AAL For Flight Phases'),
                airs=S('Airborne')):
         gnds = np.ma.clump_masked(np.ma.masked_less(alt_aal.array,
