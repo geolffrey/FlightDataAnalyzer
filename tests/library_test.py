@@ -27,9 +27,10 @@ from analysis_engine.flight_attribute import LandingRunway
 
 # A set of masked array test utilities from Pierre GF Gerard-Marchant
 # http://www.java2s.com/Open-Source/Python/Math/Numerical-Python/numpy/numpy/ma/testutils.py.htm
-from flightdatautilities import units as ut
+from flightdatautilities import masked_array_testutils as ma_test, units as ut
 from flightdatautilities.array_operations import load_compressed
-import flightdatautilities.masked_array_testutils as ma_test
+
+from flightdataaccessor import MappedArray
 
 from analysis_engine.library import (
     air_density,
@@ -122,6 +123,7 @@ from analysis_engine.library import (
     level_off_index,
     localizer_scale,
     lookup_table,
+    MappedArray,
     mask_inside_slices,
     mask_outside_slices,
     max_abs_value,
