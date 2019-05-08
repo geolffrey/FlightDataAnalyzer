@@ -1331,7 +1331,6 @@ class AltitudeVisualizationWithoutGroundOffset(DerivedParameterNode):
                 stop_idx = cruises.pop().slice.stop - 1
 
                 if cruises:
-                    previous_start_idx = cruises[-1].slice.start
                     previous_stop_idx = cruises[-1].slice.stop - 1
             else:
                 max_alt_std = max_value(alt_std.array)
@@ -8283,8 +8282,6 @@ class VLSLookup(DerivedParameterNode):
             return
 
         parameter = flap_lever or flap_synth
-
-        max_detent = max(table.vls_detents, key=lambda x: parameter.state.get(x, -1))
 
         for approach in approaches:
             phase = slices_int(approach.slice)

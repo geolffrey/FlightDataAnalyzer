@@ -341,7 +341,6 @@ class TestApproachAndLanding(unittest.TestCase):
     def test_approach_and_landing_aircraft_basic(self):
         alt = np.ma.concatenate((np.arange(5000, 500, -500), np.zeros(10)))
         # No Go-arounds detected
-        gas = KTI(items=[])
         app = ApproachAndLanding()
         app.derive(aeroplane, Parameter('Altitude AAL For Flight Phases', alt, 0.5), None, None, None)
         self.assertEqual(app.get_slices(), [slice(4.0, 9)])
@@ -2228,9 +2227,6 @@ class TestRejectedTakeoff(unittest.TestCase):
                                             'rejectedTakeoffEngRunning.nod'))
         groundeds = load(os.path.join(test_data_path,
                                      'rejectedTakeoffGroundeds.nod'))
-
-        takeoffs = load(os.path.join(test_data_path,
-                                         'rejectedTakeoffTakeoffs.nod'))
         eng_n1 = load(os.path.join(test_data_path,
                                        'rejectedTakeoffEngN1.nod'))
         toff_rwy_hdg = buildsections('Takeoff Runway Heading',
@@ -2439,7 +2435,7 @@ class TestTaxiOut(unittest.TestCase):
         self.assertEqual(tout[0].slice.start, 387)
         self.assertEqual(tout[0].slice.stop, 526)
 
-    def test_taxi_out_empty(self):
+    def test_taxi_out_empty_2(self):
         gnd = buildsection('Mobile', 4816, 6681)
         toff = buildsection('Takeoff', 4611, 4926)
         first_eng_starts = KTI('First Eng Start Before Liftoff', items=[KeyTimeInstance(4754, 'First Eng Start Before Liftoff')])

@@ -2351,8 +2351,6 @@ class TestAccelerationNormalAboveWeightLimitAtTouchdown(unittest.TestCase):
     def test_derive_touch_and_go_plus_touchdown(self):
         # No hard landings
         node = self.node_class()
-        touchdowns = KTI('Touchdown', items=[KeyTimeInstance(name='Touchdown', index=13)])
-        touch_and_go = KTI('Touch And Go', items=[KeyTimeInstance(name='Touch And Go', index=3)])
         limit = P('Acceleration Normal Limit For Landing Weight',
                   np.ma.concatenate((np.ones(5) * 1.75, np.ones(7) * 2.0, np.ones(3) * 2.1)))
         acc_norm_tdwns = KPV(name='Acceleration Normal At Touchdown', items=[
@@ -2982,7 +2980,6 @@ class TestAirspeed1000To500FtMax(unittest.TestCase):
         self.node_class = Airspeed1000To500FtMax
 
     def test_can_operate(self):
-        opts = self.node_class.get_operational_combinations(ac_type=aeroplane)
         self.assertTrue(self.node_class.can_operate, [('Airspeed', 'Altitude AAL For Flight Phases', 'Final Approach')])
 
     def test_derive_basic(self):
@@ -3271,7 +3268,6 @@ class TestV2AtLiftoff(unittest.TestCase, NodeTest):
 
     def test_derive__airbus(self):
         manufacturer = A(name='Manufacturer', value='Airbus')
-        spd_ctl = M('Speed Control', np.ma.repeat((1, 0), (320, 960)), values_mapping={0: 'Manual', 1: 'Auto'})
         spd_sel = P('Airspeed Selected', np.ma.repeat((400, 120, 170), (10, 630, 640)))
         spd_sel.array[:10] = np.ma.masked
         node = self.node_class()
@@ -4690,8 +4686,6 @@ class TestAirspeedWithFlapMax(unittest.TestCase, NodeTest):
                          [10.0, 10.2, 10.9, 11.5, 12.0, 12.9, 13.7, 14.0, 14.9, 15.0] +
                          [15.0, 15.2, 15.9, 16.5, 17.0, 17.9, 18.7, 19.0, 19.5, 20.0])
         array = np.concatenate((array, array[::-1]))
-        flap_angle=P('Flap Angle', array)
-        manufacturer=A('Manufacturer', value='Boeing')
 
         node = self.node_class()
         node.derive(airspeed, None, None, flap_inc_trans, None, fast)
@@ -4721,7 +4715,6 @@ class TestAirspeedWithFlapMax(unittest.TestCase, NodeTest):
         mapping = {0: '0', 1: '1', 5: '5', 10: '10', 15: '15', 20: '20'}
         flap_inc_trans = M('Flap Including Transition', array.copy(), values_mapping=mapping)
         fast = buildsection('Fast', 0, 80)
-        manufacturer=A('Manufacturer', value='Boeing')
 
         node = self.node_class()
         node.derive(airspeed, None, None, flap_inc_trans, None, fast)
@@ -4748,16 +4741,12 @@ class TestAirspeedWithFlapMax(unittest.TestCase, NodeTest):
         airspeed=P('Airspeed', array=np.concatenate((np.arange(20), (np.repeat([20, 23, 25, 27, 29, 31, 33, 35, 37, 39], 6)))))
         array = np.concatenate((np.zeros(3), np.ones(7), np.ones(9) * 5, np.ones(9) * 10, np.ones(11) * 15, np.ones(1) * 20))
         array = np.ma.concatenate((array, array[::-1]))
-        mapping = {0: '0', 1: '1', 5: '5', 10: '10', 15: '15', 20: '20'}
-        flap_inc_trans = M('Flap Including Transition', array.copy(), values_mapping=mapping)
         fast = buildsection('Fast', 0, 80)
         array = np.array([0.0, 0.1, 0.6, 1.0] + [1.2, 1.5, 1.9, 2.5, 3.5, 4.5,
                           5.0, 5.2, 5.9, 6.5, 7.0, 7.9, 8.7, 9.0, 9.8, 10.0,
                           10.0, 10.2, 10.9, 11.5, 12.0, 12.9, 13.7, 14.0, 14.9, 15.0,
                           15.0, 15.2, 15.9, 16.5, 17.0, 17.9, 18.7, 19.0, 19.5, 20.0])
         array = np.ma.concatenate((array, array[::-1]))
-        flap_angle=P('Flap Angle', array)
-        manufacturer=A('Manufacturer', value='Boeing')
 
         node = self.node_class()
         node.derive(airspeed, None, None, None, None, fast)
@@ -4779,7 +4768,6 @@ class TestAirspeedWithFlapMax(unittest.TestCase, NodeTest):
         array = np.concatenate((array, array[::-1]))
         flap_angle=P('Flap Angle', array)
         flap_angle.array.mask = True
-        manufacturer=A('Manufacturer', value='Boeing')
 
         node = self.node_class()
         node.derive(airspeed, None, None, flap_inc_trans, None, fast)
@@ -4814,8 +4802,6 @@ class TestAirspeedWithFlapMax(unittest.TestCase, NodeTest):
                                [10.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.1, 15.1, 15.1, 15.1] +
                                [15.3, 15.5, 15.9, 16.5, 17.0, 17.9, 18.7, 19.0, 19.5, 20.0])
         angle_array = np.concatenate((angle_array, angle_array[::-1]))
-        flap_angle=P('Flap Angle', angle_array.copy())
-        manufacturer=A('Manufacturer', value='Boeing')
 
         node = self.node_class()
         node.derive(airspeed, None, None, flap_inc_trans, None, fast)
@@ -6787,7 +6773,6 @@ class TestAltitudeAtLastGearDownSelection(unittest.TestCase, NodeTest):
     def test_derive_no_gear_down(self):
         alt_aal = P(name='Altitude AAL', array=np.ma.arange(1000, 0, -100))
         gear_downs = KTI(name='Gear Down Selection', items=[])
-        name = self.node_class.get_name()
         node = self.node_class()
         node.derive(alt_aal, gear_downs)
         self.assertEqual(node, [])
@@ -7805,7 +7790,6 @@ class TestILSGlideslopeNotEstablishedHighestAltitude1000To200Ft(unittest.TestCas
         ils_gs = P('ILS GLideslope', np.arange(-0.5, 0.5, 0.0025))
         ils_loc = P('ILS Localizer', np.arange(1.0, 2.0, 0.0025))
         ac_type = A('Aircraft Type', 'aeroplane')
-        ils_loc_ests = S(items=[])
 
         node = self.node_class()
         node.derive(alt_aal, None,  ac_type, None, ils_gs, ils_loc)
@@ -10808,7 +10792,7 @@ class TestEngGasTempDuringMaximumContinuousPowerForXMinMax(unittest.TestCase, No
             self.assertAlmostEqual(kpv_node.value, expected_value, places=0)
             self.assertAlmostEqual(kpv_node.name, expected_name, places=0)
 
-    def test_derive_no_goaround(self):
+    def test_derive_no_goaround_helicopter(self):
         '''
         Helicopters do not generate go-around phases, so the argument to
         derive would be None instead of an empty list
@@ -11018,7 +11002,6 @@ class TestEngGasTempAboveNormalMaxLimitDuringTakeoff5MinRatingDuration(unittest.
         self.assertTrue(self.node_class.can_operate(nodes, eng_series=engine))
 
     def test_derive(self):
-        length = 100
         x = np.arange(0.0,1.0,0.01)
         y = np.sin(2*2*np.pi*x)+2
         egt_array = np.ma.array(y*440)
@@ -11028,7 +11011,6 @@ class TestEngGasTempAboveNormalMaxLimitDuringTakeoff5MinRatingDuration(unittest.
         node = self.node_class()
         node.derive(None, egt, None, None, takeoffs)
 
-        limit = 930
         expected = 48
 
         self.assertEqual(len(node), 1)
@@ -11050,7 +11032,6 @@ class TestEngGasTempAboveNormalMaxLimitDuringMaximumContinuousPowerDuration(unit
         self.assertTrue(self.node_class.can_operate(nodes, eng_series=engine))
 
     def test_derive(self):
-        length = 100
         x = np.arange(0.0,1.0,0.01)
         y = np.sin(2*2*np.pi*x)+2
         egt_array = np.ma.array(y*440)
@@ -12834,7 +12815,7 @@ class TestEngThrustTakeoffDerate(unittest.TestCase):
         self.assertAlmostEqual(node[0].value, 13.15, places=2)
 
 
-    def test_derive(self):
+    def test_derive_precision(self):
         mach = P('Mach', array=np.ma.array([0.252]*10))
         eng_dr = KPV('Eng N1 Takeoff Derate',
                      items=[KeyPointValue(index=5, value=16.238)])
@@ -13819,7 +13800,6 @@ class TestHeadingVariation800To50Ft(unittest.TestCase, NodeTest):
     def test_derive(self):
         hdg = P('Heading Continuous',             array=[100, 100, 101, 102, 103, 102, 101, 100, 99, 98, 98, 96])
         alt = P('Altitude AAL For Flight Phases', array=[1000, 900, 800, 700, 600, 500, 400, 300, 200, 100, 50, 25])
-        name = self.node_class.get_name()
         node = self.node_class()
         node.derive(hdg, alt)
         self.assertEqual(node[0].index, 10)
@@ -15729,35 +15709,6 @@ class TestPitchDuringGoAroundMax(unittest.TestCase, CreateKPVsWithinSlicesTest):
     @unittest.skip('Test Not Implemented')
     def test_derive(self):
         self.assertTrue(False, msg='Test not implemented.')
-
-
-class TestPitch500To50FtMin(unittest.TestCase):
-
-    def setUp(self):
-        self.node_class = Pitch500To50FtMin
-
-    def test_can_operate(self):
-        self.assertFalse(self.node_class.can_operate([], ac_type=aeroplane))
-        self.assertFalse(self.node_class.can_operate([], ac_type=helicopter))
-        self.assertTrue(self.node_class.can_operate(('Pitch', 'Altitude AAL For Flight Phases', 'Final Approach'), ac_type=aeroplane))
-        self.assertFalse(self.node_class.can_operate(('Pitch', 'Altitude AAL For Flight Phases', 'Final Approach'), ac_type=helicopter))
-        self.assertTrue(self.node_class.can_operate(('Pitch', 'Altitude AGL', 'Descending'), ac_type=helicopter))
-        self.assertFalse(self.node_class.can_operate(('Pitch', 'Altitude AGL', 'Descending'), ac_type=aeroplane))
-
-    def test_derive(self):
-        alt = P('Altitude AAL For Flight Phases', np.ma.arange(0, 5000, 50))
-        x = np.linspace(0, 10, 100)
-        pitch = P('Pitch', -x*np.sin(x))
-        name = 'Descending'
-        section = Section(name, slice(0, 150), 0, 150)
-        descending = SectionNode(name, items=[section])
-
-        node = self.node_class()
-        node.derive(pitch, alt, descending)
-
-        self.assertEqual(len(node), 1)
-        self.assertEqual(node[0].index, 10)
-        self.assertAlmostEqual(node[0].value, -0.855, places=3)
 
 
 class TestPitchWhileAirborneMax(unittest.TestCase):
@@ -18937,29 +18888,6 @@ class TestTCASTAAcceleration(unittest.TestCase, NodeTest):
         self.assertEqual(node, [])
 
 
-class TestTCASRAChangeOfVerticalSpeed(unittest.TestCase, NodeTest):
-
-    def setUp(self):
-        self.node_class = TCASRAChangeOfVerticalSpeed
-        self.operational_combinations = [('Vertical Speed', 'TCAS Resolution Advisory')]
-
-    def test_derive_downward(self):
-        vs=P('Vertical Speed', array=np.ma.array([0]*5+[200,-300]))
-        tcas_ra = buildsection('TCAS Resolution Advisory', 3, 8)
-        node = self.node_class()
-        node.derive(vs, tcas_ra)
-        self.assertEqual(node.name, 'TCAS RA Change Of Vertical Speed')
-        self.assertEqual(node[0].index, 3)
-        self.assertEqual(node[0].value, -500.0)
-
-    def test_derive_upward(self):
-        vs=P('Vertical Speed', array=np.ma.array([0]*5+[-200,300]))
-        tcas_ra = buildsection('TCAS Resolution Advisory', 3, 8)
-        node = self.node_class()
-        node.derive(vs, tcas_ra)
-        self.assertEqual(node[0].value, 500.0)
-
-
 class TestTCASRAWarningDuration(unittest.TestCase, NodeTest):
 
     def setUp(self):
@@ -19497,7 +19425,6 @@ class TestTCASRASubsequentAcceleration (unittest.TestCase, NodeTest):
         ta = buildsection('TCAS Resolution Advisory', 5, 20)
         cc = M('TCAS Combined Control', array=np.ma.array([4]*20),
                values_mapping=self.values_mapping)
-        rate_1 = None #TCAS Advance Rate To Maintain
         rate_2 = None #TCAS Advisory Rate To Maintain
         rate_3 = P('TCAS Altitude Rate To Maintain', array=np.ma.array([0]*10 + [1000]*10))
         rate_4 = None #TCAS Advisory Rate

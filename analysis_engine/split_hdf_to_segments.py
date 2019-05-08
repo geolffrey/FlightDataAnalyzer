@@ -18,7 +18,6 @@ from analysis_engine.node import P
 from analysis_engine.library import (align,
                                      blend_parameters,
                                      calculate_timebase,
-                                     closest_unmasked_value,
                                      hash_array,
                                      min_value,
                                      normalise,
@@ -261,8 +260,6 @@ def _segment_type_and_slice(speed_array, speed_frequency,
     segment = slice(start, stop)
 
     supf_start_secs, supf_stop_secs, array_start_secs, array_stop_secs = segment_boundaries(segment, boundary)
-
-    start_padding = segment.start - supf_start_secs
 
     return segment_type, segment, array_start_secs
 

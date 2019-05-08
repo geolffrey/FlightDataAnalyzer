@@ -31,7 +31,207 @@ from flightdatautilities import units as ut
 from flightdatautilities.array_operations import load_compressed
 import flightdatautilities.masked_array_testutils as ma_test
 
-from analysis_engine.library import *
+from analysis_engine.library import (
+    air_density,
+    all_of,
+    alt_dev2alt,
+    alt2sat,
+    alt2press,
+    alt2press_ratio,
+    ambiguous_runway,
+    any_of,
+    any_one_of,
+    air_track,
+    align,
+    align_slice,
+    align_slices,
+    average_value,
+    bearing_and_distance,
+    bearings_and_distances,
+    blend_equispaced_sensors,
+    blend_nonequispaced_sensors,
+    blend_two_parameters,
+    blend_parameters,
+    blend_parameters_weighting,
+    bump,
+    calculate_flap,
+    calculate_slat,
+    calculate_timebase,
+    cas2dp,
+    cas_alt2mach,
+    closest_unmasked_value,
+    clump_multistate,
+    compress_iter_repr,
+    convert_two_digit_to_four_digit_year,
+    coreg,
+    create_phase_inside,
+    create_phase_outside,
+    cycle_counter,
+    cycle_finder,
+    cycle_match,
+    cycle_select,
+    datetime_of_index,
+    delay,
+    dp_over_p2mach,
+    dp2cas,
+    dp2tas,
+    Decimal,
+    fill_masked_edges,
+    filter_slices_duration,
+    filter_slices_length,
+    filter_vor_ils_frequencies,
+    find_edges,
+    find_edges_on_state_change,
+    find_slices_overlap,
+    find_toc_tod,
+    find_low_alts,
+    find_nearest_slice,
+    first_order_lag,
+    first_order_washout,
+    first_valid_parameter,
+    first_valid_sample,
+    from_isa,
+    groundspeed_from_position,
+    ground_track,
+    ground_track_precise,
+    gtp_blend_curve,
+    hash_array,
+    heading_diff,
+    hysteresis,
+    ils_established,
+    ils_glideslope_align,
+    ils_localizer_align,
+    including_transition,
+    index_at_distance,
+    index_at_value,
+    index_closest_value,
+    index_of_datetime,
+    index_of_first_start,
+    index_of_last_stop,
+    integrate,
+    integ_value,
+    interleave,
+    interpolate,
+    interpolate_coarse,
+    is_index_within_slice,
+    is_index_within_slices,
+    is_power2,
+    is_slice_within_slice,
+    InvalidDatetime,
+    last_valid_sample,
+    latitudes_and_longitudes,
+    level_off_index,
+    localizer_scale,
+    lookup_table,
+    MappedArray,
+    mask_inside_slices,
+    mask_outside_slices,
+    max_abs_value,
+    max_continuous_unmasked,
+    max_value,
+    max_maintained_value,
+    machsat2tat,
+    machtat2sat,
+    match_altitudes,
+    mb2ft,
+    min_value,
+    minimum_unmasked,
+    median_value,
+    merge_masks,
+    merge_sources,
+    merge_two_parameters,
+    modulo,
+    most_common_value,
+    most_points_cost,
+    moving_average,
+    nearest_runway,
+    nearest_neighbour_mask_repair,
+    next_unmasked_value,
+    normalise,
+    np_ma_concatenate,
+    np_ma_ones_like,
+    np_ma_masked_zeros,
+    np_ma_masked_zeros_like,
+    np_ma_zeros_like,
+    offset_select,
+    overflow_correction,
+    overflow_correction_array,
+    peak_curvature,
+    peak_index,
+    positive_index,
+    power_ceil,
+    power_floor,
+    press2alt,
+    prev_unmasked_value,
+    repair_mask,
+    resample,
+    rms_noise,
+    rate_of_change,
+    rate_of_change_array,
+    round_to_nearest,
+    runs_of_ones,
+    runway_deviation,
+    runway_distance_from_end,
+    runway_distances,
+    runway_heading,
+    runway_length,
+    runway_snap,
+    runway_snap_dict,
+    runway_touchdown,
+    second_window,
+    shift_slice,
+    shift_slices,
+    slice_duration,
+    slice_round,
+    slice_multiply,
+    slice_samples,
+    slices_and,
+    slices_and_not,
+    slices_above,
+    slices_after,
+    slices_before,
+    slices_below,
+    slices_between,
+    slices_contract,
+    slices_contract_duration,
+    slices_duration,
+    slices_extend,
+    slices_extend_duration,
+    slices_from_to,
+    slices_from_ktis,
+    slices_int,
+    slices_multiply,
+    slices_not,
+    slices_or,
+    slices_of_runs,
+    slices_overlap,
+    slices_overlap_merge,
+    slices_remove_overlaps,
+    slices_remove_small_gaps,
+    slices_remove_small_slices,
+    slices_round,
+    smooth_signal,
+    smooth_track,
+    straighten,
+    straighten_altitudes,
+    straighten_headings,
+    straighten_longitude,
+    subslice,
+    step_local_cusp,
+    step_values,
+    timedelta,
+    track_linking,
+    trim_slices,
+    unique_values,
+    Value,
+    value_at_datetime,
+    value_at_index,
+    value_at_time,
+    vstack_params,
+    vstack_params_where_state,
+    wrap_array,
+)
+
 from analysis_engine.node import (A, P, S, load, M, KTI, KeyTimeInstance, Section)
 
 from analysis_engine.test_utils import buildsections
@@ -3389,8 +3589,6 @@ class TestIndexAtDistance(unittest.TestCase):
     def test_offset(self):
         distance = 150.0
         index_ref = 30
-        latitude_ref = 60.0
-        longitude_ref = 10.0
         latitude = np.ma.array([60]*6000)
         longitude = np.ma.arange(10,30,10/6000.0)
         result = index_at_distance(distance, index_ref,
@@ -3405,8 +3603,6 @@ class TestIndexAtDistance(unittest.TestCase):
     def test_backwards(self):
         distance = -150.0
         index_ref = 2500
-        latitude_ref = 0.0
-        longitude_ref = 19.0
         latitude = np.ma.array([0]*3000)
         longitude = np.ma.arange(10,20,10/6000.0)
         result = index_at_distance(distance, index_ref,
@@ -4256,7 +4452,6 @@ class TestBlendParameters(unittest.TestCase):
 
     def test_blend_linear_params_complex_example(self):
         result = blend_parameters(self.params, offset=0.0, frequency=2.0)
-        expected = []
         self.assertAlmostEqual(result[30], 19.45, places=2)
         self.assertAlmostEqual(result[80], 1208, places=0)
 
@@ -4304,7 +4499,6 @@ class TestBlendParameters(unittest.TestCase):
 
     def test_blend_cubic_complex_example(self):
         result = blend_parameters(self.params, offset=0.0, frequency=2.0, mode='cubic')
-        expected = []
         self.assertAlmostEqual(result[30], 14.225, places=2)
         self.assertAlmostEqual(result[80], 1215, places=0)
 
@@ -6715,7 +6909,6 @@ class TestSlicesOr(unittest.TestCase):
         The contents of a single list should be OR'd.
         '''
         slices = [slice(None, 15), slice(25, 45), slice(65, None)]
-        expected = [slice(None, 15), slice(25, 45), slice(65, None)]
         self.assertEqual(slices_or(slices), slices)
 
     def test_slices_or_with_overlap(self):
@@ -7063,8 +7256,6 @@ class TestStraightenAltitudes(unittest.TestCase):
 class TestStraightenLongitude(unittest.TestCase):
     def test_straighten_longitude_without_overflow(self):
         data = np.ma.array([35.5,29.5,11.3,0.0,2.5,8.1,14.4])
-        expected = np.ma.array(
-            [35.5,29.5,11.3,0.0,-11.6,-23.2,-1.1,2.5,8.1,14.4])
         np.testing.assert_array_almost_equal(straighten_longitude(data), data)
 
     def test_straighten_longitude_single_overflow(self):
@@ -7152,7 +7343,7 @@ class TestStraightenHeadings(unittest.TestCase):
         ma_test.assert_masked_array_approx_equal(straighten_headings(data),
                                                  expected)
 
-    def test_straighten_headings(self):
+    def test_straighten_headings_2(self):
         array = load_compressed(os.path.join(test_data_path, 'straighten_headings_1.npz'))
         result = straighten_headings(array)
         # result does not jump between overflows
@@ -8055,10 +8246,10 @@ class TestSecondWindow(unittest.TestCase):
     @unittest.skip('Not Implemented')
     def test_three_second_window(self):
         self.assertTrue(False)
-        amv2 = load_compressed('...airspeed_minus_v2.npz')
-        ma_test.assert_masked_array_almost_equal (
-            sample_window(amv2, 3),
-            [10, 10, 9, 8, 7, 6, 5, 4, 3, 2, 2, 2, 2, 4, 6, 8, 10, 12, 14, 16])
+        #amv2 = load_compressed('...airspeed_minus_v2.npz')
+        #ma_test.assert_masked_array_almost_equal (
+        #    sample_window(amv2, 3),
+        #    [10, 10, 9, 8, 7, 6, 5, 4, 3, 2, 2, 2, 2, 4, 6, 8, 10, 12, 14, 16])
 
     def test_three_second_window_with_real_data(self):
         sw = load(os.path.join(test_data_path, 'second_window.nod'))

@@ -10638,8 +10638,6 @@ class EngN1For5Sec500To50FtMin(KeyPointValueNode):
                alt_aal=P('Altitude AAL For Flight Phases'),
                duration=A('HDF Duration')):
 
-        hdf_duration = duration.value * self.frequency if duration else None
-
         for alt_slice in alt_aal.slices_from_to(500, 50):
             array = eng_n1_min_param.array[alt_slice]
             samples = int(5 * eng_n1_min_param.frequency)
@@ -17314,10 +17312,6 @@ class TCASRASubsequentAcceleration(KeyPointValueNode):
 
         rates = [rate_1, rate_2, rate_3, rate_4]
         rate = next((item for item in rates if item is not None), None)
-        if rate:
-            array = rate.array
-        else:
-            array = tcas_cc.array.data
 
         for tcas_ra in tcas_ras:
             # For the data of interest, ediff1d finds the changes, nonzero picks the first non-zero change and

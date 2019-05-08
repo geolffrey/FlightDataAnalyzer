@@ -493,7 +493,6 @@ class TestAirspeed500To100FtMax(unittest.TestCase):
         self.node_class = Airspeed500To100FtMax
 
     def test_can_operate(self):
-        opts = self.node_class.get_operational_combinations(ac_type=helicopter)
         self.assertTrue(self.node_class.can_operate, [('Airspeed', 'Altitude AGL', 'Final Approach')])
 
     def test_derive_basic(self):
@@ -516,7 +515,6 @@ class TestAirspeed500To100FtMin(unittest.TestCase):
         self.node_class = Airspeed500To100FtMin
 
     def test_can_operate(self):
-        opts = self.node_class.get_operational_combinations(ac_type=helicopter)
         self.assertTrue(self.node_class.can_operate, [('Airspeed', 'Altitude AGL', 'Final Approach')])
 
     def test_derive_basic(self):
@@ -539,7 +537,6 @@ class TestAirspeed100To20FtMax(unittest.TestCase):
         self.node_class = Airspeed100To20FtMax
 
     def test_can_operate(self):
-        opts = self.node_class.get_operational_combinations(ac_type=helicopter)
         self.assertTrue(self.node_class.can_operate, [('Airspeed', 'Altitude AGL', 'Approach And Landing')])
 
     def test_derive_basic(self):
@@ -562,7 +559,6 @@ class TestAirspeed100To20FtMin(unittest.TestCase):
         self.node_class = Airspeed100To20FtMin
 
     def test_can_operate(self):
-        opts = self.node_class.get_operational_combinations(ac_type=helicopter)
         self.assertTrue(self.node_class.can_operate, [('Airspeed', 'Altitude AGL', 'Approach And Landing')])
 
     def test_derive_basic(self):

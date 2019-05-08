@@ -283,8 +283,6 @@ def dependencies3(di_graph, root, node_mgr, raise_cir_dep=False):
     ordering = []
     path = deque()  # current branch path
     active_nodes = set()  # operational nodes visited for fast lookup
-    path_start_param = []#set()
-    path_start_kpv = []#set()
     tree_path = [] # For viewing the tree in which nodes are add to path
     traverse_tree(root)  # start recursion
     # log any circular dependencies caught

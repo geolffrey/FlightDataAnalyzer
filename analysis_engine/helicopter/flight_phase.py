@@ -192,7 +192,6 @@ class HoverTaxi(FlightPhaseNode):
                trans_hfs=S('Transition Hover To Flight'),
                trans_fhs=S('Transition Flight To Hover')):
 
-        low_flights = []
         air_taxis = []
         taxis = []
 

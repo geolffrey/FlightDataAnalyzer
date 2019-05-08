@@ -9,20 +9,19 @@ import logging
 import math
 import numpy as np
 import pytz
-import six
 
 from builtins import zip
-from collections import defaultdict, OrderedDict, namedtuple
+from collections import OrderedDict, namedtuple
 from copy import copy, deepcopy
 from datetime import datetime, timedelta
 from decimal import Decimal
 from hashlib import sha256
-from math import ceil, copysign, cos, floor, log, radians, sin, sqrt, pow
+from math import ceil, copysign, cos, floor, log, radians, sin, sqrt
 from operator import attrgetter
 from scipy import interpolate as scipy_interpolate, optimize
 from scipy.ndimage import filters
 from scipy.signal import medfilt
-from six.moves import filterfalse, zip_longest
+from six.moves import zip_longest
 
 from hdfaccess.parameter import MappedArray
 
@@ -34,7 +33,6 @@ from flightdatautilities.numpy_utils import (
 )
 
 from analysis_engine.settings import (
-    ALTITUDE_RADIO_OVERFLY_SUPPRESSION,
     BUMP_HALF_WIDTH,
     ILS_CAPTURE,
     ILS_CAPTURE_ROC,
@@ -4696,12 +4694,10 @@ def blend_parameters(params, offset=0.0, frequency=1.0, small_slice_duration=4, 
     # Find out about the parameters we have to deal with...
     min_ip_freq = min(p.frequency for p in params)
 
-    tol_mask = None
     if tolerance:
         test_array = np.ma.zeros((len(params), int(len(params[0].array) * min_ip_freq / params[0].frequency)))
         for n, p in enumerate(params):
             test_array[n, :] = resample(p.array, p.frequency, min_ip_freq)
-        tol_mask = np.ma.masked_greater(np.ma.ptp(test_array, axis=0), tolerance)
 
     if mode == 'linear':
         return blend_parameters_linear(params, frequency, tolerance=tolerance, offset=offset)
@@ -7485,7 +7481,6 @@ def index_at_distance(distance, index_ref, latitude_ref, longitude_ref, latitude
         longitude_ref = args[2]
         latitude = args[3]
         longitude = args[4]
-        index_ref = args[5]
 
         rad = distance_at_index(index[0], latitude, longitude, latitude_ref, longitude_ref)
         # and simply squaring the error allows robust minimum searching.
@@ -8491,15 +8486,12 @@ def find_rig_approach(condition_defs, phase_map, approach_map,
         turns = int((h[-1]-h0+180)/360)
         return (h-h0) - (360.0*turns)
 
-    m_per_nm = 1852
-
     # Local names
     u = param_arrays['Airspeed']
     lat = param_arrays['Latitude']
     lon = param_arrays['Longitude']
     heading = param_arrays['Heading']
     height = param_arrays['Altitude ADH']
-    roll = param_arrays['Roll']
     distance = param_arrays['Distance To Landing']
 
     duration = len(u)

@@ -827,8 +827,6 @@ class TestDualInput(unittest.TestCase, NodeTest):
         np.testing.assert_array_equal(node.array, expected_array)
 
     def test_not_triggered_at_minimum_resolution(self):
-        pilot_array = MappedArray([1] * 20,
-                                  values_mapping=self.pilot_map)
         capt_array = np.ma.array([10.0]*20)
         fo_array = np.ma.array([0.0]*20)
         # Dual input
@@ -1949,7 +1947,6 @@ class TestFlapLeverSynthetic(unittest.TestCase, NodeTest):
         node = self.node_class()
         node.derive(flap, slat, flaperon, model, series, family)
 
-        mapping = {x: str(x) for x in sorted(set(expected))}
         self.assertEqual(list(node.array), list(np.repeat(expected, repeat)))
 
     @patch('analysis_engine.multistate_parameters.at')
@@ -4079,7 +4076,6 @@ class TestGearDownInTransit(unittest.TestCase):
     def test_derive__down_sel_transition_time(self, at):
         at.get_gear_transition_times.return_value = (10, 10)
         # Gear Up Selected changed to Up + transition time
-        ac_series = A('Generic') # patch transition time to be 10 seconds
         down_sel = M('Gear Down Selected', array=np.ma.array([1]*5 + [0]*40 + [1]*15),
                      values_mapping={0: 'Up', 1: 'Down'})
         node = self.node_class()
@@ -4092,7 +4088,6 @@ class TestGearDownInTransit(unittest.TestCase):
     def test_derive__gear_down_transition_time(self, at):
         at.get_gear_transition_times.return_value = (10, 10)
         # Gear Down changed to Up + transition time
-        ac_series = A('Generic') # patch transition time to be 10 seconds
         gear_down = M('Gear Down', array=np.ma.array([1]*5 + [0]*50 + [1]*5),
                    values_mapping={0: 'Up', 1: 'Down'})
         node = self.node_class()
@@ -4105,7 +4100,6 @@ class TestGearDownInTransit(unittest.TestCase):
     def test_derive__gear_up_transition_time(self, at):
         at.get_gear_transition_times.return_value = (10, 10)
         # Gear Up changed to Up - transition time
-        ac_series = A('Generic') # patch transition time to be 10 seconds
         gear_up = M('Gear Up', array=np.ma.array([0]*15 + [1]*30 + [0]*15),
                    values_mapping={0: 'Down', 1: 'Up'})
         node = self.node_class()
@@ -4158,11 +4152,8 @@ class TestGearDownInTransit(unittest.TestCase):
     def test_derive__down_sel_red_warning(self, at):
         at.get_gear_transition_times.return_value = (10, 10)
         # Gear Up Selected changed to Up + red warning
-        ac_series = A('Generic') # patch transition time to be 10 seconds
         down_sel = M('Gear Down Selected', array=np.ma.array([1]*5 + [0]*40 + [1]*15),
                      values_mapping={0: 'Up', 1: 'Down'})
-        gear_red_warn = M('Gear (*) Red Warning', array=np.ma.array([0]*5 + [1]*10 + [0]*30 + [1]*10 + [0]*5),
-                      values_mapping={0: '-', 1: 'Warning'})
         node = self.node_class()
         node.derive(None, None, down_sel, None, None, None, self.airborne, self.model, self.series, self.family)
 
@@ -4173,7 +4164,6 @@ class TestGearDownInTransit(unittest.TestCase):
     def test_derive__gear_down_red_warning(self, at):
         at.get_gear_transition_times.return_value = (10, 10)
         # Gear Down changed to Up + transition time
-        ac_series = A('Generic') # patch transition time to be 10 seconds
         gear_down = M('Gear Down', array=np.ma.array([1]*5 + [0]*50 + [1]*5),
                    values_mapping={0: 'Up', 1: 'Down'})
         red_warn = M('Gear (*) Red Warning', array=np.ma.array([0]*5 + [1]*10 + [0]*30 + [1]*10 + [0]*5),
@@ -4188,7 +4178,6 @@ class TestGearDownInTransit(unittest.TestCase):
     def test_derive__gear_up_red_warning(self, at):
         at.get_gear_transition_times.return_value = (10, 10)
         # Gear Up changed to Up - transition time
-        ac_series = A('Generic') # patch transition time to be 10 seconds
         gear_up = M('Gear Up', array=np.ma.array([0]*15 + [1]*30 + [0]*15),
                    values_mapping={0: 'Down', 1: 'Up'})
         red_warn = M('Gear (*) Red Warning', array=np.ma.array([0]*5 + [1]*10 + [0]*30 + [1]*10 + [0]*5),
@@ -4203,7 +4192,6 @@ class TestGearDownInTransit(unittest.TestCase):
     def test_derive__gear_down_red_warning_B737_classic(self, at):
         at.get_gear_transition_times.return_value = (10, 10)
         # Gear Down changed to Up + transition time
-        ac_series = A('Generic') # patch transition time to be 10 seconds
         gear_down = M('Gear Down', array=np.ma.array([1]*5 + [0]*50 + [1]*5),
                    values_mapping={0: 'Up', 1: 'Down'})
         red_warn = M('Gear (*) Red Warning', array=np.ma.array([0]*5 + [1]*10 + [0]*25 + [1]*15 + [0]*5),

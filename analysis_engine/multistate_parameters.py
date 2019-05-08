@@ -1473,7 +1473,6 @@ class GearDownInTransit(MultistateDerivedParameterNode):
     @classmethod
     def can_operate(cls, available, model=A('Model'), series=A('Series'), family=A('Family')):
         # Can operate with a any combination of parameters available
-        gear_transits = ('Gear (L) Down In Transit', 'Gear (N) Down In Transit', 'Gear (R) Down In Transit', 'Gear (C) Down In Transit')
         gears_available = all_of(('Gear Down', 'Gear Down Selected'), available) \
             or all_of(('Gear Up', 'Gear Down'), available) \
             or all_of(('Gear Down Selected', 'Gear In Transit'), available) \

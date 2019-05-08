@@ -7,8 +7,6 @@ import networkx as nx
 import six
 import unittest
 import yaml
-import sys
-import traceback
 import types
 
 from datetime import datetime
@@ -16,7 +14,6 @@ from datetime import datetime
 from analysis_engine.node import (DerivedParameterNode, Node, NodeManager, P)
 from analysis_engine.dependency_graph import (
     CircularDependency,
-    InoperableDependencies,
     any_predecessors_in_requested,
     dependency_order,
     graph_nodes,

@@ -9,7 +9,7 @@ from flightdatautilities import units as ut
 from flightdatautilities.geometry import great_circle_distance__haversine
 
 from analysis_engine.node import (
-    A, M, P, S, KTI, aeroplane, aeroplane_only, App,
+    A, M, P, S, KTI, App,
     helicopter, KeyTimeInstanceNode
 )
 
@@ -22,7 +22,6 @@ from analysis_engine.library import (
     find_toc_tod,
     first_valid_sample,
     hysteresis,
-    index_at_distance,
     index_at_value,
     is_index_within_slice,
     last_valid_sample,

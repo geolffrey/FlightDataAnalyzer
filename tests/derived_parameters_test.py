@@ -19,13 +19,11 @@ from flightdatautilities.aircrafttables.interfaces import VelocitySpeed
 from flightdatautilities import masked_array_testutils as ma_test
 from flightdatautilities.filesystem_tools import copy_file
 
-from analysis_engine.flight_phase import Fast, Mobile, RejectedTakeoff
+from analysis_engine.flight_phase import Fast, Mobile
 from analysis_engine.library import (align,
                                      max_value,
-                                     np_ma_masked_zeros,
                                      np_ma_masked_zeros_like,
                                      np_ma_ones_like,
-                                     mb2ft,
                                      overflow_correction,
                                      unique_values)
 
@@ -33,8 +31,6 @@ from analysis_engine.node import (
     A, M, P, S, KPV, KTI, aeroplane, App, ApproachItem, Attribute,
     helicopter, KeyPointValue, KeyTimeInstance, load, Parameter, Section
 )
-
-from analysis_engine.flight_phase import Fast, Mobile
 
 from analysis_engine.process_flight import process_flight
 
@@ -731,8 +727,6 @@ class TestAccelerationNormalHighLimitWithFlapsDown(unittest.TestCase):
                  values_mapping=self.mapping, frequency=4)
         gw = P('Gross Weight Smoothed', array=np.ma.repeat(82200, 20/2.),
                frequency=2)
-        mtow = self.mtow.value
-        mlw = self.mlw.value
         # Above MTOW, with flaps 30 or above, the max acceleration is 1.5g
         expected_g = 1.5
         # When Gross Weight Smoothed is aligned to Flap, its last value
@@ -1734,8 +1728,6 @@ class TestAltitudeRadio(unittest.TestCase):
         # Four cases of data dropout at around 700ft in the descent. If the
         # dropout is not handled correctly, the preceding data is much lower,
         # hence fails the simple > 500ft test.
-        fast = S(frequency=8.0,
-                 items=[Section('Fast', slice(1989, 29393), 1989, 29393)])
         radioA = load_compressed(os.path.join(
             test_data_path, 'A320_F_Altitude_Radio_(A)_dropout.npz'))
         radioA[3500:24900] = np.ma.masked
@@ -1747,8 +1739,6 @@ class TestAltitudeRadio(unittest.TestCase):
         radioB = overflow_correction(radioB)
         self.assertGreater(radioB[28527], 500.0)
 
-        fast = S(frequency=8.0,
-                 items=[Section('Fast', slice(1281, 63613), 1281, 63613)])
         radioA = load_compressed(os.path.join(
             test_data_path, 'A320_K_Altitude_Radio_(A)_dropout.npz'))
         radioA = overflow_correction(radioA)
@@ -1998,7 +1988,6 @@ class TestAltitudeTail(unittest.TestCase):
 
     def test_altitude_tail(self):
         talt = AltitudeTail()
-        airborne = buildsections('Airborne', [5, 17])
 
         talt.derive(Parameter('Altitude Radio', np.ma.zeros(10), 1,0.0),
                     Parameter('Pitch', np.ma.arange(10) * 2, 1, 0.0),
@@ -2150,8 +2139,6 @@ class TestBrakePressure(unittest.TestCase):
         brake_ro = P('Brake (R) Outboard Press', np.ma.array([0,0.75,1,0.75,0]))
         brakes = BrakePressure()
         brakes.derive(None, None, brake_li, brake_lo, brake_ri, brake_ro)
-        expected = np.ma.array([0.0, 0.5, 0.5, 0.0, 0.0, 0.0, 0.5, 0.5, 0.0, 0.0],
-                               mask = [0,0,0,0,0,0,0,0,0,1])
         self.assertAlmostEqual(brakes.array[4], 0.75)
         self.assertAlmostEqual(brakes.array[8], 1.0)
 
@@ -3344,7 +3331,6 @@ class TestGroundspeed(unittest.TestCase):
     def test_basic(self):
         one = P('Groundspeed (1)', np.ma.array([100,200,300]), frequency=0.5, offset=0.0)
         two = P('Groundspeed (2)', np.ma.array([150,250,350]), frequency=0.5, offset=1.0)
-        frame = A('Frame', 'Not DHL')
         gs = Groundspeed()
         gs.derive(one, two, None, None, aeroplane)
         # Note: end samples are not 100 & 350 due to method of merging.
@@ -3424,7 +3410,6 @@ class TestGroundspeedSigned(unittest.TestCase):
     def test_basic(self):
         gspd = P('Groundspeed', np.ma.ones(30))
         running = P('Eng (*) Any Running', np.ma.concatenate((np.zeros(15), np.ones(15))))
-        ac_type = A(name='Aircraft Type', value = 'aeroplane')
         precision = A(name='Precise Positioning', value=False)
         taxiing = buildsection('Taxiing', 0, 15)
         lat = P('Latitude Prepared', np.ma.zeros(30))
@@ -3453,7 +3438,6 @@ class TestGroundspeedSigned(unittest.TestCase):
     def test_scaling_correction(self):
         lat_data = []
         lon_data = []
-        hdg_data = []
         gspd_data = []
         this_test_data_path = os.path.join(test_data_path,
                                            'Groundspeed_test_data_Entebbe.csv')
@@ -3491,7 +3475,6 @@ class TestGroundspeedSigned(unittest.TestCase):
     def test_scaling_correction_ineffective_if_not_precise(self):
         lat_data=[]
         lon_data=[]
-        hdg_data=[]
         gspd_data=[]
         this_test_data_path = os.path.join(test_data_path,
                                            'Groundspeed_test_data_Entebbe.csv')
@@ -3512,7 +3495,7 @@ class TestGroundspeedSigned(unittest.TestCase):
         gs.derive(gspd, running, ac_type, precision, taxiing, lat, lon)
         self.assertGreater(np.max(gs.array), 40)
 
-
+'''
 class TestGroundspeedAlongTrack(unittest.TestCase):
 
     @unittest.skip('Commented out until new computation of sliding motion')
@@ -3549,7 +3532,7 @@ class TestGroundspeedAlongTrack(unittest.TestCase):
         self.assertGreater(np.ma.max(gat.array.data),16)
         # ...and finally decays as the longer washout time constant takes effect.
         self.assertLess(gat.array[199],52.0)
-
+'''
 
 #class TestHeadingContinuous(unittest.TestCase):
     #def test_can_operate(self):
@@ -4697,7 +4680,6 @@ class TestElevatorLeft(unittest.TestCase):
         assert_array_equal(elevator.array, l_in.array)
 
     def test_outboard_only(self):
-        l_in=P('Elevator (L) Inboard', np.ma.array([1,2,3]))
         l_out=P('Elevator (L) Outboard', np.ma.array([5,4,3]))
         elevator=ElevatorLeft()
         elevator.get_derived([None, None, None, l_out])
@@ -4761,7 +4743,6 @@ class TestElevatorRight(unittest.TestCase):
         assert_array_equal(elevator.array, r_in.array)
 
     def test_outboard_only(self):
-        r_in=P('Elevator (R) Inboard', np.ma.array([1,2,3]))
         r_out=P('Elevator (R) Outboard', np.ma.array([5,4,3]))
         elevator=ElevatorRight()
         elevator.get_derived([None, None, None, r_out])
@@ -5211,7 +5192,6 @@ class TestEngTPRLimitDifference(unittest.TestCase):
         eng_tpr_limit = P('Eng (*) TPR Limit Max', array=eng_tpr_limit_array)
         node = EngTPRLimitDifference()
         node.derive(eng_tpr_max, eng_tpr_limit)
-        expected = np.zeros(5)
         self.assertEqual(
             node.array.tolist(),
             [-10, -10, -10, -10, -10, -10, -10, -10, -10, -10, -10, 0, 10, 20,
@@ -5852,8 +5832,6 @@ class TestApproachFlightPathAngle(unittest.TestCase):
 
 class TestSpeedbrake(unittest.TestCase):
     def test_can_operate(self):
-        def family(value):
-            return A('Family', value)
         self.assertTrue(Speedbrake.can_operate(('Spoiler (L) (4)', 'Spoiler (R) (4)'),
                                                family=A('Family', 'B737 Classic')))
         self.assertTrue(Speedbrake.can_operate(('Spoiler (L) (4)', 'Spoiler (R) (4)'),
@@ -7148,7 +7126,7 @@ class TestVrefLookup(unittest.TestCase, NodeTest):
         def setUp(self):
             self.node_class = VLSLookup
             self.approach = buildsection('Approach And Landing', 2, 15)
-            self.airspeed = airspeed = P('Airspeed', np.ma.repeat(200, 16))
+            self.airspeed = P('Airspeed', np.ma.repeat(200, 16))
             self.flap_lever = M('Flap Lever',
                       np.ma.concatenate((np.zeros(4), np.ones(4) * 3, np.ones(4) * 4, np.ones(4) * 2)),
                       values_mapping={0: 'Lever 0', 1: 'Lever 1', 2: 'Lever 2', 3: 'Lever 3', 4: 'Lever Full'})
@@ -8740,7 +8718,7 @@ class TestPotentialEnergy(unittest.TestCase):
                                                 np.ones(1700) * 10000,
                                                 np.arange(10000, 0, -100),
                                                 np.zeros(50)))
-        altitude_aal = param = P(name='Altitude AAL', array=altitude_aal_array)
+        altitude_aal = P(name='Altitude AAL', array=altitude_aal_array)
 
         self.assertEqual(len(gross_weight_smoothed_array), len(altitude_aal_array))
 
