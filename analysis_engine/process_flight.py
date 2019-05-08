@@ -541,7 +541,7 @@ def process_flight(segment_info, tail_number, aircraft_info={}, achieved_flight_
         'kti':[GeoKeyTimeInstance('index name latitude longitude')]
             if lat/long available
             else [KeyTimeInstance('index name')],
-        'kpv':[KeyPointValue('index value name slice')]
+        'kpv':[KeyPointValue('index value name')]
     }
 
     sample flight Attributes:

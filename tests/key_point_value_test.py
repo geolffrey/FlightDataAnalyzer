@@ -1800,8 +1800,8 @@ class TestAccelerationNormalAtLiftoff(unittest.TestCase, NodeTest):
             call(acc_norm, liftoffs[1].index),
         ])
         self.assertEqual(node, [
-            KeyPointValue(3, 4.0, 'Acceleration Normal At Liftoff', slice(None, None)),
-            KeyPointValue(1, 2.0, 'Acceleration Normal At Liftoff', slice(None, None)),
+            KeyPointValue(3, 4.0, 'Acceleration Normal At Liftoff'),
+            KeyPointValue(1, 2.0, 'Acceleration Normal At Liftoff'),
         ])
 
 
@@ -1831,8 +1831,8 @@ class TestAccelerationNormalAtTouchdown(unittest.TestCase, NodeTest):
             call(acc_norm, touchdowns[1].index),
         ])
         self.assertEqual(node, [
-            KeyPointValue(3, 4.0, 'Acceleration Normal At Touchdown', slice(None, None)),
-            KeyPointValue(1, 2.0, 'Acceleration Normal At Touchdown', slice(None, None)),
+            KeyPointValue(3, 4.0, 'Acceleration Normal At Touchdown'),
+            KeyPointValue(1, 2.0, 'Acceleration Normal At Touchdown'),
         ])
 
     @patch('analysis_engine.key_point_values.bump')
@@ -1848,8 +1848,8 @@ class TestAccelerationNormalAtTouchdown(unittest.TestCase, NodeTest):
             call(acc_norm, touch_and_go[0].index),
         ])
         self.assertEqual(node, [
-            KeyPointValue(3, 4.0, 'Acceleration Normal At Touchdown', slice(None, None)),
-            KeyPointValue(1, 2.0, 'Acceleration Normal At Touchdown', slice(None, None)),
+            KeyPointValue(3, 4.0, 'Acceleration Normal At Touchdown'),
+            KeyPointValue(1, 2.0, 'Acceleration Normal At Touchdown'),
         ])
 
     def test_derive_bounced_landing(self):
@@ -1860,8 +1860,8 @@ class TestAccelerationNormalAtTouchdown(unittest.TestCase, NodeTest):
         node.derive(acc_norm, touchdowns, None, bounces)
         # Bounce adds 3 to the 3 and 6 indices giving...
         self.assertEqual(node, [
-            KeyPointValue(6, 1.6, 'Acceleration Normal At Touchdown', slice(None, None)),
-            KeyPointValue(9, 1.9, 'Acceleration Normal At Touchdown', slice(None, None)),
+            KeyPointValue(6, 1.6, 'Acceleration Normal At Touchdown'),
+            KeyPointValue(9, 1.9, 'Acceleration Normal At Touchdown'),
         ])
 
 
