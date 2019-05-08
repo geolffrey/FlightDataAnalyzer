@@ -811,8 +811,9 @@ class AccelerationNormalAtTouchdown(KeyPointValueNode):
             tdwns += touch_and_go
         for touchdown in tdwns:
             self.create_kpv(*bump(acc_norm, touchdown.index))
-        for bounce in bounces:
-            self.create_kpv(*bump(acc_norm, bounce.slice.stop))
+        if bounces is not None:
+            for bounce in bounces:
+                self.create_kpv(*bump(acc_norm, bounce.slice.stop))
 
 
 class AccelerationNormalAboveWeightLimitAtTouchdown(KeyPointValueNode):
