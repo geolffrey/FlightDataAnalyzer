@@ -39,6 +39,12 @@ from analysis_engine.key_point_values import (
     AOAWithFlapDuringClimbMax,
     AOAWithFlapDuringDescentMax,
     AOAWithFlapMax,
+    AOADifference5SecMax,
+    AOAFlapsUpAPOffMax,
+    AOAAbnormalOperationDuration,
+    AOABelowStickShakerAOAMin,
+    AOAStickShakerMinusAOAFlapsUpAPOffMin,
+    TrimDownWhileControlColumnUpDuration,
     APDisengagedDuringCruiseDuration,
     APUOnDuringFlightDuration,
     APUFireWarningDuration,
@@ -96,6 +102,7 @@ from analysis_engine.key_point_values import (
     Airspeed5000To10000FtMax,
     Airspeed8000To10000FtMax,
     Airspeed8000To5000FtMax,
+    AirspeedAboveStickShakerSpeedMin,
     AirspeedAtAPUpperModesEngaged,
     AirspeedAt35FtDuringTakeoff,
     AirspeedAt8000FtDescending,
@@ -106,6 +113,7 @@ from analysis_engine.key_point_values import (
     AirspeedAtThrustReversersSelection,
     AirspeedAtTouchdown,
     AirspeedBelow10000FtDuringDescentMax,
+    AirspeedDifference5SecMax,
     AirspeedDuringCruiseMax,
     AirspeedDuringCruiseMin,
     AirspeedDuringLevelFlightMax,
@@ -2926,6 +2934,23 @@ class TestAirspeed8000To5000FtMax(unittest.TestCase, NodeTest):
         self.assertTrue(False, msg='Test Not Implemented')
 
 
+class TestAirspeedAboveStickShakerSpeedMin(unittest.TestCase):
+
+    def setUp(self):
+        self.node_class=AirspeedAboveStickShakerSpeedMin
+
+    def test_derive(self):
+        airspeed_array = np.ma.arange(50, 250, 1)
+        shaker_array = np.ma.array([150]*120 + [160]*30 + [210]*50)
+        airborne = buildsection('Airborne', 105, 200)
+        ias = P('Airspeed', airspeed_array)
+        shaker = P('Stick Shaker Speed', shaker_array)
+        node = self.node_class()
+        node.derive(ias, shaker, airborne)
+        self.assertEqual(node[0].value, -10)
+        self.assertEqual(node[0].index, 150)
+
+
 class TestAirspeed10000To5000FtMax(unittest.TestCase, NodeTest):
 
     def setUp(self):
@@ -5507,6 +5532,222 @@ class TestAOADuringGoAroundMax(unittest.TestCase, CreateKPVsWithinSlicesTest):
     @unittest.skip('Test not implemented.')
     def test_derive(self):
         pass
+
+
+##############################################################################
+# MCAS
+
+class TestAOADifference5SecMax(unittest.TestCase, NodeTest):
+
+    def setUp(self):
+        self.node_class = AOADifference5SecMax
+        self.operational_combinations = [('AOA (L)', 'AOA (R)', 'Airborne')]
+        self.function = max_value
+
+    def test_derive(self):
+        aoa_r_arr = np.sin(np.arange(1,20))
+        aoa_l_arr = np.cos(np.arange(1,20))
+        aoa_l = P('AOA (L)', array=aoa_l_arr)
+        aoa_r = P('AOA (R)', array=aoa_r_arr)
+        airs = buildsection('Airborne', 3, 15)
+        node = self.node_class()
+        node.derive(aoa_l, aoa_r, airs)
+        self.assertEqual(len(node), 1)
+        self.assertAlmostEqual(node[0].value, 0.30, places=2)
+        self.assertEqual(node[0].index, 3)
+
+
+class TestAOAAbnormalOperationDuration(unittest.TestCase):
+    def setUp(self):
+        self.node_class = AOAAbnormalOperationDuration
+
+    def test_derive(self):
+        aoa_mapping = {
+            0: '-',
+            1: 'AOA (L) Fail'
+        }
+        aoa = M('AOA Abnormal Operation', array=np.ma.array([0]*15 + [1]*3 + [0]*2), values_mapping=aoa_mapping)
+        airborne = buildsection('Airborne', 16, 20)
+        node=self.node_class()
+        node.derive(aoa, airborne)
+        self.assertEqual(len(node), 1)
+        self.assertAlmostEqual(node[0].value, 2.0, places=1)
+        self.assertEqual(node[0].index, 16)
+
+
+class TestAOABelowStickShakerAOAMin(unittest.TestCase):
+    def setUp(self):
+        self.node_class = AOABelowStickShakerAOAMin
+
+    def test_derive(self):
+        x = np.linspace(0, 10, 100)
+        aoa_stick_shaker = P('Stick Shaker AOA', -x*np.sin(x))
+        aoa_array = -x*np.sin(x)
+        aoa_array[70:90] += 2
+        aoa_l = P('AOA (L)', aoa_array -1)
+        aoa_r = P('AOA (R)', -x*np.sin(x))
+        airborne = buildsection('Airborne', 5, 100)
+        node = self.node_class()
+        node.derive(aoa_stick_shaker, aoa_l, aoa_r, airborne)
+        self.assertEqual(len(node), 1)
+        self.assertAlmostEqual(node[0].value, -1.0, places=1)
+        self.assertEqual(node[0].index, 70)
+
+
+class TestAOAStickShakerMinusAOAFlapsUpAPOffMin(unittest.TestCase, NodeTest):
+    def setUp(self):
+        self.node_class = AOAStickShakerMinusAOAFlapsUpAPOffMin
+
+    def test_can_operate(self):
+        self.assertEqual(self.node_class.get_operational_combinations(family=A('Family', 'B737 MAX')),
+                         [('Stick Shaker AOA', 'AOA (L)', 'AOA (R)', 'Airborne', 'Flap Including Transition',
+                           'AP Engaged')])
+
+    def test_derive(self):
+        x = np.linspace(0, 10, 100)
+        aoa_stick_shaker = P('Stick Shaker AOA', -x*np.sin(x))
+        aoa_array = -x*np.sin(x)
+        aoa_array[70:90] += 2
+        aoa_l = P('AOA (L)', aoa_array -1)
+        aoa_r = P('AOA (R)', -x*np.sin(x))
+        airborne = buildsection('Airborne', 5, 100)
+        flap = P('Flap Including Transition', array=([5]*50 + [0]*50))
+        ap_values = {
+            0: '-',
+            1: 'Engaged',
+        }
+        ap = M(name='AP Engaged', array=np.ma.array([1]*50 + [0]*50, mask=[False]*100), values_mapping=ap_values)
+        node = self.node_class()
+        node.derive(aoa_stick_shaker, aoa_l, aoa_r, airborne, flap, ap)
+        self.assertEqual(len(node), 1)
+        self.assertAlmostEqual(node[0].value, -1.0, places=1)
+        self.assertEqual(node[0].index, 70)
+
+
+class TestTrimDownWhileControlColumnUpDuration(unittest.TestCase, NodeTest):
+    def setUp(self):
+        self.node_class = TrimDownWhileControlColumnUpDuration
+
+    def test_can_operate(self):
+        self.assertEqual(self.node_class.get_operational_combinations(family=A('Family', 'B737 MAX')),
+                         [('Control Column', 'AP Trim Down', 'Airborne')])
+
+    def test_derive(self):
+        pitch_mapping = {
+            0: '-',
+            1: 'Trim',
+        }
+        trim = M('AP Trim Down', np.ma.array([0]*15 + [1]*5 + [0]*20 + [1]*10), values_mapping=pitch_mapping)
+        cc = P('Control Column', np.ma.arange(-25,25,1))
+        airs = buildsection('Airborne', 5, 50)
+        node = self.node_class()
+        node.derive(cc, trim, airs)
+        self.assertEqual(len(node), 1)
+        self.assertAlmostEqual(node[0].value, 10.0, places=1)
+        self.assertEqual(node[0].index, 40)
+
+
+class TestAirspeedDifference5SecMax(unittest.TestCase, NodeTest):
+    def setUp(self):
+        self.node_class = AirspeedDifference5SecMax
+        self.operational_combinations = [('Airspeed', 'Airspeed (2)', 'Airborne')]
+        self.function = max_value
+
+    def test_derive(self):
+        ias_1_arr = np.sin(np.arange(1,20))
+        ias_2_arr = np.cos(np.arange(1,20))
+        ias_1 = P('Airspeed', array=ias_1_arr)
+        ias_2 = P('Airspeed (2)', array=ias_2_arr)
+        airs = buildsection('Airborne', 3, 15)
+        node = self.node_class()
+        node.derive(ias_1, ias_2, airs)
+        self.assertEqual(len(node), 1)
+        self.assertAlmostEqual(node[0].value, -0.30, places=2)
+        self.assertEqual(node[0].index, 3)
+
+
+class TestAOAFlapsUpAPOffMax(unittest.TestCase, NodeTest):
+    def setUp(self):
+        self.node_class = AOAFlapsUpAPOffMax
+
+    def test_can_operate(self):
+        self.assertEqual(self.node_class.get_operational_combinations(family=A('Family', 'B737 MAX')),
+                         [('AOA (L)', 'AOA (R)', 'Flap Including Transition', 'AP Engaged', 'Airborne')])
+
+    def test_derive(self):
+        aoa_l_arr = np.sin(np.arange(1,20))
+        aoa_r_arr = np.cos(np.arange(1,20))
+        aoa_l = P('AOA (L)', array=aoa_l_arr)
+        aoa_r = P('AOA (R)', array=aoa_r_arr)
+        flap = P('Flap Including Transition', array=([5]*5 + [0]*15))
+        ap_values = {
+            0: '-',
+            1: 'Engaged',
+        }
+        ap = M(name='AP Engaged', array=np.ma.array([0]*10 + [1]*10, mask=[False]*20), values_mapping=ap_values)
+        airs = buildsection('Airborne', 3, 20)
+        climb = buildsection('Climbing', 3, 15)
+        node = self.node_class()
+        node.derive(aoa_l, aoa_r, flap, ap, airs)
+        self.assertEqual(len(node), 1)
+        self.assertAlmostEqual(node[0].value, 0.99, places=2)
+        self.assertEqual(node[0].index, 7)
+
+
+class TestAOAAbnormalOperationDuration(unittest.TestCase):
+    def setUp(self):
+        self.node_class = AOAAbnormalOperationDuration
+
+    def test_derive(self):
+        aoa_mapping = {
+            0: '-',
+            1: 'AOA (L) Fail'
+        }
+        aoa = M('AOA State', array=np.ma.array([0]*15 + [1]*3 + [0]*2), values_mapping=aoa_mapping)
+        airborne = buildsection('Airborne', 16, 20)
+        node=self.node_class()
+        node.derive(aoa, airborne)
+        self.assertEqual(len(node), 1)
+        self.assertAlmostEqual(node[0].value, 2.0, places=1)
+        self.assertEqual(node[0].index, 16)
+
+
+class TestAOABelowStickShakerAOAMin(unittest.TestCase):
+    def setUp(self):
+        self.node_class = AOABelowStickShakerAOAMin
+
+    def test_derive(self):
+        x = np.linspace(0, 10, 100)
+        aoa_stick_shaker = P('AOA Stick Shaker', -x*np.sin(x))
+        aoa_array = -x*np.sin(x)
+        aoa_array[70:90] += 2
+        aoa_l = P('AOA (L)', aoa_array -1)
+        aoa_r = P('AOA (R)', -x*np.sin(x))
+        airborne = buildsection('Airborne', 5, 100)
+        node = self.node_class()
+        node.derive(aoa_stick_shaker, aoa_l, aoa_r, airborne)
+        self.assertEqual(len(node), 1)
+        self.assertAlmostEqual(node[0].value, -1.0, places=1)
+        self.assertEqual(node[0].index, 70)
+
+
+class TestTrimDownWhileControlColumnUpDuration(unittest.TestCase):
+    def setUp(self):
+        self.node_class = TrimDownWhileControlColumnUpDuration
+
+    def test_derive(self):
+        pitch_mapping = {
+            0: '-',
+            1: 'Trim',
+        }
+        trim = M('AP Trim Down', np.ma.array([0]*15 + [1]*5 + [0]*20 + [1]*10), values_mapping=pitch_mapping)
+        cc = P('Control Column', np.ma.arange(-25,25,1))
+        airs = buildsection('Airborne', 5, 50)
+        node = self.node_class()
+        node.derive(cc, trim, airs)
+        self.assertEqual(len(node), 1)
+        self.assertAlmostEqual(node[0].value, 10.0, places=1)
+        self.assertEqual(node[0].index, 40)
 
 
 ##############################################################################

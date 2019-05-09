@@ -93,6 +93,7 @@ from analysis_engine.library import (
     trim_slices,
     valid_slices_within_array,
     value_at_index,
+    vstack_params,
     vstack_params_where_state,
 )
 
@@ -4267,6 +4268,19 @@ class AirspeedAboveFL200Min(KeyPointValueNode):
                                        alt.slices_above(20000), min_value)
 
 
+class AirspeedAboveStickShakerSpeedMin(KeyPointValueNode):
+    '''
+    The margin to airspeed stick shaker operation. Available where 'Stick Shaker Speed'
+    is available. Negative value means that Airspeed went below the Stick Shaker Speed.
+    '''
+
+    units=ut.KT
+
+    def derive(self, ias=P('Airspeed'),
+                     stick_shaker_speed=P('Stick Shaker Speed'),
+                     airborne=S('Airborne'),):
+        diff = ias.array - stick_shaker_speed.array
+        self.create_kpv_from_slices(diff, airborne.get_slices(), min_value)
 
 
 ##############################################################################
@@ -4407,6 +4421,177 @@ class AOAWithFlapDuringDescentMax(KeyPointValueNode):
             retracted = flap.array == '0'
         aoa_flap = np.ma.masked_where(retracted, aoa.array)
         self.create_kpvs_within_slices(aoa_flap, descends, max_value)
+
+
+class AOAAbnormalOperationDuration(KeyPointValueNode):
+    '''
+    Duration of abnormal AOA sensors operation. Based on the AOA Abnormal Operation parameter.
+    '''
+    name = 'AOA Abnormal Operation Duration'
+    units = ut.SECOND
+
+    def derive(self, aoa_state=M('AOA Abnormal Operation'),
+               airborne=S('Airborne'),):
+        sections = runs_of_ones(aoa_state.array != '-')
+        sections = slices_and(sections, airborne.get_slices())
+        self.create_kpvs_from_slice_durations(sections, self.hz)
+
+
+class AOABelowStickShakerAOAMin(KeyPointValueNode):
+    '''
+    The margin to stick shaker operation, available where "Stick Shaker AOA" is available.
+    '''
+    name = 'AOA Below Stick Shaker AOA Min'
+    units = ut.DEGREE
+
+    def derive(self, aoa_stick_shaker=P('Stick Shaker AOA'),
+               aoa_l=P('AOA (L)'),
+               aoa_r=P('AOA (R)'),
+               airborne=S('Airborne'),):
+
+        # 1. Merge two AOA sensors and find Max
+        aoa = vstack_params(aoa_l, aoa_r)
+        aoa_max = np.ma.max(aoa, axis=0)
+
+        #2. Subtract AOA Max from AOA Stick Shaker angle
+        aoa_diff = aoa_stick_shaker.array - aoa_max
+
+        #3 Create a KPV, negative value means we've gone above the AOA Stick Shaker angle.
+        self.create_kpv_from_slices(aoa_diff, airborne.get_slices(), min_value)
+
+
+##############################################################################
+# Sensor Mismatch
+
+class AOADifference5SecMax(KeyPointValueNode):
+    '''
+    Maximum recorded AoA difference sustained for at least 5 seconds while Airborne.
+    Left greater than Right = negative value.
+    '''
+
+    name = 'AOA Difference 5 Sec Max'
+    units = ut.DEGREE
+
+    def derive(self,
+               aoa_l=P('AOA (L)'),
+               aoa_r=P('AOA (R)'),
+               airs=S('Airborne'),):
+        diff = aoa_r.array - aoa_l.array
+        diff = second_window(diff, self.hz, 5, extend_window=True)
+        self.create_kpvs_within_slices(diff, airs, max_abs_value)
+
+
+class AirspeedDifference5SecMax(KeyPointValueNode):
+    '''
+    Maximum recorded Airspeed difference sustained for at least 5 seconds while Airborne.
+    '''
+
+    name = 'Airspeed Difference 5 Sec Max'
+    units = ut.KT
+
+    def derive(self,
+               ias=P('Airspeed'),
+               ias_2=P('Airspeed (2)'),
+               airs=S('Airborne'),):
+        diff = ias_2.array - ias.array
+        diff = second_window(diff, self.hz, 5, extend_window=True)
+        self.create_kpvs_within_slices(diff, airs, max_abs_value)
+
+
+##############################################################################
+# MCAS
+
+class AOAFlapsUpAPOffMax(KeyPointValueNode):
+    '''
+    Maximum recorded AoA with Flaps Up and CMD not engaged while Airborne.
+    737 MAX specific.
+    '''
+
+    name = 'AOA Flaps Up AP Off Max'
+    units = ut.DEGREE
+
+    @classmethod
+    def can_operate(cls, available, family=A('Family')):
+        is_max = 'B737 MAX' in family.value if family else None
+        return is_max and all_deps(cls, available)
+
+    def derive(self,
+               aoa_l=P('AOA (L)'),
+               aoa_r=P('AOA (R)'),
+               flap=P('Flap Including Transition'),
+               cmd=M('AP Engaged'),
+               airborne=S('Airborne'),):
+
+        # 1. Merge two AOA sensors and find Max
+        aoa = vstack_params(aoa_l, aoa_r)
+        aoa_max = np.ma.max(aoa, axis=0)
+
+        # 2. Find sections where we are Airborne, with Flaps up and CMD Engaged while Climbing
+        sections = airborne.get_slices()
+        sections = slices_and(sections, runs_of_ones(flap.array == 0))
+        sections = slices_and_not(sections, runs_of_ones(cmd.array == 'Engaged'))
+        sections = slices_and_not(sections, runs_of_ones(cmd.array.mask))
+
+        # 3. Create KPVs
+        self.create_kpvs_within_slices(aoa_max, sections, max_value)
+
+
+class AOAStickShakerMinusAOAFlapsUpAPOffMin(KeyPointValueNode):
+    '''
+    Minimum difference between Stick Shaker AOA angle and AOA with Flaps Up and AP not engaged.
+    737 MAX specific.
+    '''
+    name = 'AOA Stick Shaker Minus AOA Flaps Up AP Off Min'
+    units = ut.DEGREE
+
+    @classmethod
+    def can_operate(cls, available, family=A('Family')):
+        is_max = 'B737 MAX' in family.value if family else None
+        return is_max and all_deps(cls, available)
+
+    def derive(self, aoa_stick_shaker=P('Stick Shaker AOA'),
+               aoa_l=P('AOA (L)'),
+               aoa_r=P('AOA (R)'),
+               airborne=S('Airborne'),
+               flap=P('Flap Including Transition'),
+               cmd=M('AP Engaged'),):
+
+        # 1. Merge two AOA sensors and find Max
+        aoa = vstack_params(aoa_l, aoa_r)
+        aoa_max = np.ma.max(aoa, axis=0)
+
+        #2. Subtract AOA Max from Stick Shaker AOA angle
+        aoa_diff = aoa_stick_shaker.array - aoa_max
+
+        sections = airborne.get_slices()
+        sections = slices_and(sections, runs_of_ones(flap.array == 0))
+        sections = slices_and_not(sections, runs_of_ones(cmd.array == 'Engaged'))
+        sections = slices_and_not(sections, runs_of_ones(cmd.array.mask))
+
+        self.create_kpvs_within_slices(aoa_diff, sections, min_value)
+
+
+class TrimDownWhileControlColumnUpDuration(KeyPointValueNode):
+    '''
+    Duration of Control Column up input with simultaneous trim down.
+    This could indicate that MCAS is active.
+    737 MAX specific.
+    '''
+
+    units = ut.SECOND
+
+    @classmethod
+    def can_operate(cls, available, family=A('Family')):
+        is_max = 'B737 MAX' in family.value if family else None
+        return is_max and all_deps(cls, available)
+
+    def derive(self, cc=P('Control Column'),
+               pitch_trim=P('AP Trim Down'),
+               airborne=S('Airborne'),):
+        sections = runs_of_ones(cc.array > 5)
+        sections = slices_and(sections, runs_of_ones(pitch_trim.array == 'Trim'))
+        sections = slices_and(sections, airborne.get_slices())
+        self.create_kpvs_from_slice_durations(sections, self.hz)
 
 
 ##############################################################################
