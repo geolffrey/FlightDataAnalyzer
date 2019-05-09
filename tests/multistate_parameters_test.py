@@ -2587,14 +2587,16 @@ class TestSlatFullyExtended(unittest.TestCase):
     def test_can_operate(self):
         node = self.node_class()
         operational_combinations = node.get_operational_combinations()
-        self.assertEqual(len(operational_combinations), 255) # 2**8-1
+        self.assertEqual(len(operational_combinations), 65535) # 2**16-1
 
     def setUp(self):
         extended_l_array = [ 0,  0,  0,  0,  0,  1,  1,  0,  0,  0]
         extended_r_array = [ 0,  0,  0,  0,  1,  1,  1,  0,  0,  0]
+        extended_7_array = [ 0,  0,  0,  0,  1,  1,  1,  0,  0,  0]
 
         self.extended_l = M(name='Slat (L1) Fully Extended', array=np.ma.array(extended_l_array), values_mapping={1:'Extended'})
         self.extended_r = M(name='Slat (R3) Fully Extended', array=np.ma.array(extended_r_array), values_mapping={1:'Extended'})
+        self.extended_7 = M(name='Slat (7) Fully Extended', array=np.ma.array(extended_7_array), values_mapping={1:'Extended'})
         self.node_class = SlatFullyExtended
 
     def test_derive(self):
@@ -2607,12 +2609,21 @@ class TestSlatFullyExtended(unittest.TestCase):
                     None,
                     None,
                     self.extended_r,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    self.extended_7,
                     None,)
         np.testing.assert_equal(node.array.data, result)
 
     def test_derive_masked_value(self):
         self.extended_l.array.mask = [ 0,  0,  0,  1,  0,  1,  0,  0,  1,  0]
         self.extended_r.array.mask = [ 0,  0,  0,  0,  0,  1,  0,  0,  1,  0]
+        self.extended_7.array.mask = [ 0,  0,  0,  0,  0,  1,  0,  0,  1,  0]
 
         result_array = [ 0,  0,  0,  0,  0,  0,  1,  0,  0,  0]
         result_mask =  [ 0,  0,  0,  0,  0,  1,  0,  0,  1,  0]
@@ -2625,6 +2636,14 @@ class TestSlatFullyExtended(unittest.TestCase):
                     None,
                     None,
                     self.extended_r,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    self.extended_7,
                     None,)
         np.testing.assert_equal(node.array.data, result_array)
         np.testing.assert_equal(node.array.mask, result_mask)
@@ -2635,14 +2654,16 @@ class TestSlatPartExtended(unittest.TestCase):
     def test_can_operate(self):
         node = self.node_class()
         operational_combinations = node.get_operational_combinations()
-        self.assertEqual(len(operational_combinations), 255) # 2**8-1
+        self.assertEqual(len(operational_combinations), 65535) # 2**16-1
 
     def setUp(self):
         extended_l_array = [ 0,  0,  0,  0,  0,  1,  1,  0,  0,  0]
         extended_r_array = [ 0,  0,  0,  0,  1,  1,  1,  0,  0,  0]
+        extended_7_array = [ 0,  0,  0,  0,  1,  1,  1,  0,  0,  0]
 
         self.extended_l = M(name='Slat (L1) Part Extended', array=np.ma.array(extended_l_array), values_mapping={1:'Part Extended'})
         self.extended_r = M(name='Slat (R3) Part Extended', array=np.ma.array(extended_r_array), values_mapping={1:'Part Extended'})
+        self.extended_7 = M(name='Slat (7) Part Extended', array=np.ma.array(extended_7_array), values_mapping={1:'Part Extended'})
         self.node_class = SlatPartExtended
 
     def test_derive(self):
@@ -2655,12 +2676,21 @@ class TestSlatPartExtended(unittest.TestCase):
                     None,
                     None,
                     self.extended_r,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    self.extended_7,
                     None,)
         np.testing.assert_equal(node.array.data, result)
 
     def test_derive_masked_value(self):
         self.extended_l.array.mask = [ 0,  0,  0,  1,  0,  1,  0,  0,  1,  0]
         self.extended_r.array.mask = [ 0,  0,  0,  0,  0,  1,  0,  0,  1,  0]
+        self.extended_7.array.mask = [ 0,  0,  0,  0,  0,  1,  0,  0,  1,  0]
 
         result_array = [ 0,  0,  0,  0,  0,  0,  1,  0,  0,  0]
         result_mask =  [ 0,  0,  0,  0,  0,  1,  0,  0,  1,  0]
@@ -2673,6 +2703,14 @@ class TestSlatPartExtended(unittest.TestCase):
                     None,
                     None,
                     self.extended_r,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    self.extended_7,
                     None,)
         np.testing.assert_equal(node.array.data, result_array)
         np.testing.assert_equal(node.array.mask, result_mask)
@@ -2683,14 +2721,16 @@ class TestSlatInTransit(unittest.TestCase):
     def test_can_operate(self):
         node = self.node_class()
         operational_combinations = node.get_operational_combinations()
-        self.assertEqual(len(operational_combinations), 255) # 2**8-1
+        self.assertEqual(len(operational_combinations), 65535) # 2**16-1
 
     def setUp(self):
         transit_l_array = [ 0,  0,  0,  0,  0,  1,  1,  0,  0,  0]
         transit_r_array = [ 0,  0,  0,  0,  1,  1,  1,  0,  0,  0]
+        transit_7_array = [ 0,  0,  0,  0,  1,  1,  1,  0,  0,  0]
 
         self.transit_l = M(name='Slat (L1) In Transit', array=np.ma.array(transit_l_array), values_mapping={1:'In Transit'})
         self.transit_r = M(name='Slat (R3) In Transit', array=np.ma.array(transit_r_array), values_mapping={1:'In Transit'})
+        self.transit_7 = M(name='Slat (7) In Transit', array=np.ma.array(transit_r_array), values_mapping={1:'In Transit'})
         self.node_class = SlatInTransit
 
     def test_derive(self):
@@ -2703,12 +2743,21 @@ class TestSlatInTransit(unittest.TestCase):
                     None,
                     None,
                     self.transit_r,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    self.transit_7,
                     None,)
         np.testing.assert_equal(node.array.data, result)
 
     def test_derive_masked_value(self):
         self.transit_l.array.mask = [ 0,  0,  0,  1,  0,  1,  0,  0,  1,  0]
         self.transit_r.array.mask = [ 0,  0,  0,  0,  0,  1,  0,  0,  1,  0]
+        self.transit_7.array.mask = [ 0,  0,  0,  0,  0,  1,  0,  0,  1,  0]
 
         result_array = [ 0,  0,  0,  0,  0,  0,  1,  0,  0,  0]
         result_mask =  [ 0,  0,  0,  0,  0,  1,  0,  0,  1,  0]
@@ -2721,6 +2770,14 @@ class TestSlatInTransit(unittest.TestCase):
                     None,
                     None,
                     self.transit_r,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    self.transit_7,
                     None,)
         np.testing.assert_equal(node.array.data, result_array)
         np.testing.assert_equal(node.array.mask, result_mask)

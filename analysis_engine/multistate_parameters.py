@@ -2370,9 +2370,18 @@ class SlatFullyExtended(MultistateDerivedParameterNode):
                slat_r1=P('Slat (R1) Fully Extended'),
                slat_r2=P('Slat (R2) Fully Extended'),
                slat_r3=P('Slat (R3) Fully Extended'),
-               slat_r4=P('Slat (R4) Fully Extended')):
+               slat_r4=P('Slat (R4) Fully Extended'),
+               slat_1=P('Slat (1) Fully Extended'),
+               slat_2=P('Slat (2) Fully Extended'),
+               slat_3=P('Slat (3) Fully Extended'),
+               slat_4=P('Slat (4) Fully Extended'),
+               slat_5=P('Slat (5) Fully Extended'),
+               slat_6=P('Slat (6) Fully Extended'),
+               slat_7=P('Slat (7) Fully Extended'),
+               slat_8=P('Slat (8) Fully Extended'),):
 
-        extended_params = (slat_l1, slat_l2, slat_l3, slat_l4, slat_r1, slat_r2, slat_r3, slat_r4)
+        extended_params = (slat_l1, slat_l2, slat_l3, slat_l4, slat_r1, slat_r2, slat_r3, slat_r4,
+                           slat_1, slat_2, slat_3, slat_4, slat_5, slat_6, slat_7, slat_8)
         extended_stack = vstack_params_where_state(*[(d, 'Extended') for d in extended_params])
 
         array = np_ma_zeros_like(extended_stack[0], dtype=np.short)
@@ -2405,9 +2414,18 @@ class SlatPartExtended(MultistateDerivedParameterNode):
                slat_r1=P('Slat (R1) Part Extended'),
                slat_r2=P('Slat (R2) Part Extended'),
                slat_r3=P('Slat (R3) Part Extended'),
-               slat_r4=P('Slat (R4) Part Extended')):
+               slat_r4=P('Slat (R4) Part Extended'),
+               slat_1=P('Slat (1) Part Extended'),
+               slat_2=P('Slat (2) Part Extended'),
+               slat_3=P('Slat (3) Part Extended'),
+               slat_4=P('Slat (4) Part Extended'),
+               slat_5=P('Slat (5) Part Extended'),
+               slat_6=P('Slat (6) Part Extended'),
+               slat_7=P('Slat (7) Part Extended'),
+               slat_8=P('Slat (8) Part Extended')):
 
-        extended_params = (slat_l1, slat_l2, slat_l3, slat_l4, slat_r1, slat_r2, slat_r3, slat_r4)
+        extended_params = (slat_l1, slat_l2, slat_l3, slat_l4, slat_r1, slat_r2, slat_r3, slat_r4,
+                           slat_1, slat_2, slat_3, slat_4, slat_5, slat_6, slat_7, slat_8)
         extended_stack = vstack_params_where_state(*[(d, 'Part Extended') for d in extended_params])
 
         array = np_ma_zeros_like(extended_stack[0], dtype=np.short)
@@ -2440,9 +2458,17 @@ class SlatInTransit(MultistateDerivedParameterNode):
                slat_r1=P('Slat (R1) In Transit'),
                slat_r2=P('Slat (R2) In Transit'),
                slat_r3=P('Slat (R3) In Transit'),
-               slat_r4=P('Slat (R4) In Transit')):
-
-        transit_params = (slat_l1, slat_l2, slat_l3, slat_l4, slat_r1, slat_r2, slat_r3, slat_r4)
+               slat_r4=P('Slat (R4) In Transit'),
+               slat_1=P('Slat (1) In Transit'),
+               slat_2=P('Slat (2) In Transit'),
+               slat_3=P('Slat (3) In Transit'),
+               slat_4=P('Slat (4) In Transit'),
+               slat_5=P('Slat (5) In Transit'),
+               slat_6=P('Slat (6) In Transit'),
+               slat_7=P('Slat (7) In Transit'),
+               slat_8=P('Slat (8) In Transit')):
+        transit_params = (slat_l1, slat_l2, slat_l3, slat_l4, slat_r1, slat_r2, slat_r3, slat_r4,
+                          slat_1, slat_2, slat_3, slat_4, slat_5, slat_6, slat_7, slat_8)        
         transit_stack = vstack_params_where_state(*[(d, 'In Transit') for d in transit_params])
 
         array = np_ma_zeros_like(transit_stack[0], dtype=np.short)
