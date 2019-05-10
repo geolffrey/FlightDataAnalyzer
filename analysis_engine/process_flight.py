@@ -625,8 +625,6 @@ def process_flight(segment_info, tail_number, aircraft_info={}, achieved_flight_
             logger.info("Performing PRE_FLIGHT_ANALYSIS action '%s' with options: %s",
                         getattr(hook, 'func_name', getattr(hook, '__name__')),
                         pre_flight_kwargs)
-            pre_flight_kwargs.update({'derived_nodes':derived_nodes,
-                                      'segment_info':segment_info})
             hook(hdf, aircraft_info, **pre_flight_kwargs)
         else:
             logger.info("No PRE_FLIGHT_ANALYSIS actions to perform")
