@@ -654,6 +654,17 @@ class TestAlign(unittest.TestCase):
         np.testing.assert_array_equal(result.data, [1, 2, 3, 4, 0])
         np.testing.assert_array_equal(result.mask, [0, 0, 0, 0, 1])
 
+    def test_align_multistate_no_action(self):
+        first = P(frequency=1, offset=0.0,
+                      array=np.ma.array([1.0, 2.0, 3.0]))
+        array = np.ma.array([1, 2, 3])
+        values_mapping = {1: 'one', 2: 'two', 3: 'three'}
+        second = M('Test Node', array, values_mapping=values_mapping, 
+                   frequency=1.0, offset=0.0)
+        result = align(second, first)
+        self.assertTrue(isinstance(result, MappedArray))
+        self.assertEqual(result[0], 'one')
+
     def test_align_multi_state__float(self):
         first = P(frequency=1, offset=0.6,
                   array=np.ma.array([11,12,13,14,15], dtype=float))
