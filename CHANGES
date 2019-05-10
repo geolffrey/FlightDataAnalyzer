@@ -9,6 +9,11 @@ You can view the differences in tagged versions as follows:
   git log --pretty=format:"%Cblue%h %Cgreen%cn %Cred(%cr) %Creset%s %n%b %N" --graph "v0.3.2..v0.4.1"
 
 =======
+v0.43.6
+-------
+ Improvements:
+ - Workaround for failing fallback_datetime
+
 v0.43.5
 -------
  Improvements:
