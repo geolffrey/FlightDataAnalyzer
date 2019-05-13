@@ -1717,11 +1717,14 @@ class TakeoffRunwayHeading(FlightPhaseNode):
                 max_hdg = (rwy_hdg + diff) % overflow
                 min_hdg = (rwy_hdg - diff) % overflow
                 min_hdg, max_hdg = min(min_hdg, max_hdg), max(min_hdg, max_hdg)
-                if (max_hdg - min_hdg) > diff * 2:
-                    match = ((gnd_hdg >= 0) & (gnd_hdg <= min_hdg) | (gnd_hdg >= max_hdg) & (gnd_hdg <= overflow))
-                else:
-                    match = (gnd_hdg >= min_hdg) & (gnd_hdg <= max_hdg)
-                self.create_phases(shift_slices(runs_of_ones(match), gnd.slice.start))
+                try:
+                    if (max_hdg - min_hdg) > diff * 2:
+                        match = ((gnd_hdg >= 0) & (gnd_hdg <= min_hdg) | (gnd_hdg >= max_hdg) & (gnd_hdg <= overflow))
+                    else:
+                        match = (gnd_hdg >= min_hdg) & (gnd_hdg <= max_hdg)
+                    self.create_phases(shift_slices(runs_of_ones(match), gnd.slice.start))
+                except TypeError:  # ufunc 'bitwise_and' not supported for the input types
+                    pass
 
 
 class RejectedTakeoff(FlightPhaseNode):

@@ -20259,7 +20259,7 @@ class DualInputWarningDuration(KeyPointValueNode):
                landing_rolls=S('Landing Roll')):
 
         start = takeoff_rolls.get_first().slice.start
-        stop = landing_rolls.get_last().slice.stop
+        stop = landing_rolls.get_last().slice.stop if landing_rolls else None
         phase = slice(start, stop)
         condition = dual.array == 'Dual'
         self.create_kpvs_where(condition, dual.hz, phase)

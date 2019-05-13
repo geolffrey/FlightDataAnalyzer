@@ -124,7 +124,7 @@ class DeterminePilot(object):
 
         if pilot_flying:
             # this is the most reliable measurement, use this and no other
-            pf = pilot_flying.array[phase.slice]
+            pf = pilot_flying.array[phase.slice] if phase else pilot_flying.array
             pf[pf == '-'] = np.ma.masked
             return most_common_value(pf)
 
