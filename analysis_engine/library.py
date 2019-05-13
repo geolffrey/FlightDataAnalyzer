@@ -389,7 +389,7 @@ def align_args(slave_array, slave_frequency, slave_offset, master_frequency, mas
         return slave_array
     if slave_frequency == master_frequency and slave_offset == master_offset:
         # No alignment is required, return the slave's array unchanged.
-        if isinstance(original_array, MappedArray):
+        if isinstance(original_array, fda.MappedArray):
             return original_array
         else:
             return slave_array

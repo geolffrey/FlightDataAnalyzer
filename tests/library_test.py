@@ -123,7 +123,6 @@ from analysis_engine.library import (
     level_off_index,
     localizer_scale,
     lookup_table,
-    MappedArray,
     mask_inside_slices,
     mask_outside_slices,
     max_abs_value,
