@@ -244,6 +244,7 @@ from analysis_engine.key_point_values import (
     ControlColumnStiffness,
     ControlWheelForceMax,
     ControlColumnDualInputOppositeDirectionForceMax,
+    DecelerationAfterTouchdownAvg,
     DecelerationFromTouchdownToStopOnRunway,
     DelayedBrakingAfterTouchdown,
     DHSelectedAt1500FtLVO,
@@ -6255,6 +6256,50 @@ class TestDelayedBrakingAfterTouchdown(unittest.TestCase, NodeTest):
         for a, b in zip(node, expected):
             self.assertAlmostEqual(a.index, b.index, delta=0.1)
             self.assertAlmostEqual(a.value, b.value, delta=0.1)
+
+
+class TestDecelerationAfterTouchdownAvg(unittest.TestCase, NodeTest):
+
+    def setUp(self):
+        self.node_class = DecelerationAfterTouchdownAvg
+        self.operational_combinations = [('Landing', 'Groundspeed', 'Touchdown')]
+
+    def test_derive_basic(self):
+        array = np.ma.arange(10, 0, -0.05) ** 3 / 10 + 50
+        groundspeed = P('Groundspeed', np.ma.concatenate((array, array)))
+        landing = buildsections('Landing', (0, 100), (210, 400))
+        touchdown = KTI(name='Touchdown', items=[
+            KeyTimeInstance(name='Touchdown', index=15),
+            KeyTimeInstance(name='Touchdown', index=241),
+        ])
+
+        node = self.node_class()
+        node.derive(landing, groundspeed, touchdown)
+
+        name = self.node_class.get_name()
+        expected = KPV(name=name, items=[
+            KeyPointValue(name=name, index=84.7, value=50.0 / 61.6),
+            KeyPointValue(name=name, index=307.2, value=30.25 / 54.84),
+        ])
+
+        self.assertEqual(node.name, expected.name)
+        self.assertEqual(len(node), len(expected))
+        for a, b in zip(node, expected):
+            self.assertAlmostEqual(a.index, b.index, delta=0.1)
+            self.assertAlmostEqual(a.value, b.value, delta=0.1)
+
+    def test_too_low_td_speed(self):
+        array = np.ma.arange(80.0, 10.0, -0.5)
+        groundspeed = P('Groundspeed', array)
+        landing = buildsection('Landing', 0, 100)
+        touchdown = KTI(name='Touchdown', items=[
+            KeyTimeInstance(name='Touchdown', index=20),
+        ])
+
+        node = self.node_class()
+        node.derive(landing, groundspeed, touchdown)
+
+        self.assertEqual(len(node), 0)
 
 
 class TestAutobrakeRejectedTakeoffNotSetDuringTakeoff(unittest.TestCase,
@@ -21793,16 +21838,16 @@ class TestDHSelectedAt1500FtLVO(unittest.TestCase, NodeTest):
         self.node_class = DHSelectedAt1500FtLVO
 
         self.alt_std_desc = AltitudeWhenDescending(
-                    items=[KeyTimeInstance(15, '1500 Ft Descending'),
-                               KeyTimeInstance(20, '1500 Ft Descending'),
-                                   KeyTimeInstance(28, '1500 Ft Descending'),
-                                   KeyTimeInstance(44, '1500 Ft Descending')])
+            items=[KeyTimeInstance(15, '1500 Ft Descending'),
+                   KeyTimeInstance(20, '1500 Ft Descending'),
+                   KeyTimeInstance(28, '1500 Ft Descending'),
+                   KeyTimeInstance(44, '1500 Ft Descending')])
 
         self.dh_selected = P('DH Selected', np.ma.concatenate(
-                    (np.zeros(25),
-                                                         np.ones(20) * 100,
-                                                        np.zeros(25),
-                                                        np.ones(20) * 100)))
+                            (np.zeros(25),
+                            np.ones(20) * 100,
+                            np.zeros(25),
+                            np.ones(20) * 100)))
 
         self.series_7x = A('Series', 'Falcon-7X')
         self.series_8x = A('Series', 'Falcon-8X')
@@ -21812,14 +21857,14 @@ class TestDHSelectedAt1500FtLVO(unittest.TestCase, NodeTest):
         req_params = ('Altitude When Descending', 'DH Selected')
 
         self.assertFalse(self.node_class.can_operate(
-                    req_params, series=self.series_invalid),
-                                 msg='KPV only applies to Falcon 7X/8X')
+                         req_params, series=self.series_invalid),
+                         msg='KPV only applies to Falcon 7X/8X')
 
         self.assertTrue(self.node_class.can_operate(
-                    req_params, series=self.series_7x))
+                        req_params, series=self.series_7x))
 
         self.assertTrue(self.node_class.can_operate(
-                    req_params, series=self.series_8x))
+                        req_params, series=self.series_8x))
 
     def test_derive(self):
         node = self.node_class()

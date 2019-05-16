@@ -5025,6 +5025,50 @@ class DelayedBrakingAfterTouchdown(KeyPointValueNode):
                 self.create_kpv(minus_60, (minus_60 - minus_10) / gs.hz)
 
 
+class DecelerationAfterTouchdownAvg(KeyPointValueNode):
+    '''
+    Average deceleration after the aircraft has touched down.
+
+    The KPV measures the average deceleration between V-10 kt and V-60 kt or 60 kt
+    whichever is the greatest where V is the ground speed at touchdown.
+    '''
+
+    units = ut.KT_S
+
+    def derive(self,
+               lands=S('Landing'),
+               gs=P('Groundspeed'),
+               tdwns=KTI('Touchdown')):
+        '''
+        Reverse thrust is usually applied after the main gear touches down,
+        possibly along with the autobrake, to reduce the speed of the aircraft. If
+        the deceleration of the aircraft is slow, it is a possible indication of
+        delay in use of reverse thrust.
+
+        Reference was made to the following documentation to assist with the
+        development of this algorithm:
+
+        - A320 Flight Profile Specification
+        - A321 Flight Profile Specification
+        '''
+        for land in lands:
+            for tdwn in tdwns.get(within_slice=land.slice):
+                gs_td = value_at_index(gs.array, tdwn.index)
+                if gs_td is None:
+                    continue
+                hi_spd = gs_td - 10.0
+                hi_spd_idx = index_at_value(gs.array, hi_spd, land.slice)
+                low_spd = max(60.0, gs_td - 60.0)
+                if low_spd >= hi_spd:
+                    continue
+                low_spd_idx = index_at_value(gs.array, low_spd, land.slice)
+                if hi_spd_idx is None or low_spd_idx is None:
+                    continue
+                dt = (low_spd_idx - hi_spd_idx) / gs.hz
+                dv = hi_spd - low_spd
+                self.create_kpv(low_spd_idx, dv / dt)
+
+
 class AutobrakeRejectedTakeoffNotSetDuringTakeoff(KeyPointValueNode):
     '''
     Duration where the Autobrake Selected RTO parameter is not in "Selected"
