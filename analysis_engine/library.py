@@ -410,10 +410,8 @@ def align_args(slave_array, slave_frequency, slave_offset, master_frequency, mas
         ws /= slowest
 
     # Check the values are in ranges we have tested
-    assert is_power2(wm) or not wm % 5, \
-           "master @ %sHz; wm=%s" % (master_frequency, wm)
-    assert is_power2(ws) or not ws % 5, \
-           "slave @ %sHz; ws=%s" % (slave_frequency, ws)
+    assert is_power2(wm) or not wm % 5, "master @ %sHz; wm=%s" % (master_frequency, wm)
+    assert is_power2(ws) or not ws % 5, "slave @ %sHz; ws=%s" % (slave_frequency, ws)
 
     # Trap 5, 10 or 20Hz parameters that have non-zero offsets (this case is not currently covered)
     if master_offset and not wm % 5:
