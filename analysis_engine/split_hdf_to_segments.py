@@ -34,7 +34,7 @@ from analysis_engine.library import (align,
                                      straighten_headings,
                                      vstack_params)
 
-import flightdataaccessor
+import flightdataaccessor as fda
 from flightdataaccessor.utils import segment_boundaries, write_segment
 
 from flightdatautilities.filesystem_tools import sha_hash_file
@@ -1030,13 +1030,13 @@ def append_segment_info(segment_object, segment_type, segment_slice, part,
     :returns: Segment named tuple
     :rtype: Segment
     """
-    if isinstance(segment_object, six.string_types):
+    if isinstance(segment_object, (six.string_types, fda.FlightDataFormat)):
         segment_path = segment_object
     else:
         segment_path = segment_object.path
 
     # build information about a slice
-    with flightdataaccessor.open(segment_object, mode='a') as fdf:
+    with fda.open(segment_object, mode='a') as fdf:
         speed, _, thresholds = _get_speed_parameter(fdf, aircraft_info)
         duration = fdf.duration
         try:
@@ -1072,7 +1072,7 @@ def append_segment_info(segment_object, segment_type, segment_slice, part,
         go_fast_index = None
         go_fast_datetime = None
         # if not go_fast, create hash from entire file
-        if segment_path is not None:
+        if isinstance(segment_path, six.string_types):
             speed_hash = sha_hash_file(segment_path)
         else:
             speed_hash = ''
@@ -1128,7 +1128,7 @@ def split_hdf_to_segments(source, aircraft_info, fallback_dt=None,
     if isinstance(validation_dt, six.string_types):
         validation_dt = datetime.strptime(validation_dt, '%Y-%m-%dT%H:%M:%S.%fZ').replace(tzinfo=pytz.utc)
 
-    with flightdataaccessor.open(source, mode='a') as fdf:
+    with fda.open(source, mode='a') as fdf:
         # Confirm aircraft tail for the entire datafile
         logger.debug("Validating aircraft matches that recorded in data")
         validate_aircraft(aircraft_info, fdf)
@@ -1164,7 +1164,7 @@ def split_hdf_to_segments(source, aircraft_info, fallback_dt=None,
     segments = []
     previous_stop_dt = None
 
-    fdf = flightdataaccessor.open(source)
+    fdf = fda.open(source)
     for part, (segment_type, segment_slice, start_padding) in enumerate(segment_tuples, start=1):
         dest = write_segment(
             fdf, segment_slice, part=part, dest_dir=dest_dir, boundary=boundary)
