@@ -7686,6 +7686,8 @@ class HeightLossLiftoffTo35Ft(KeyPointValueNode):
             if climb.start == climb.stop:
                 continue
             array = np.ma.masked_greater_equal(vs.array[climb], 0.0)
+            if not len(array):
+                continue
             drops = np.ma.clump_unmasked(array)
             for drop in drops:
                 ht_loss = integrate(vs.array[drop], vs.frequency)
