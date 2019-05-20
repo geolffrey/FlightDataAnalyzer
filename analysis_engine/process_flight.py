@@ -387,8 +387,8 @@ def process_flight(segment_info, tail_number, aircraft_info={}, achieved_flight_
     :type required: List of Strings
     :param include_flight_attributes: Whether to include all flight attributes
     :type include_flight_attributes: Boolean
-    :param additional_modules: List of module paths to import.
-    :type additional_modules: List of Strings
+    :param additional_modules: List of module paths to import or Node classes.
+    :type additional_modules: [str or Node]
     :param pre_flight_kwargs: Keyword arguments for the pre-flight analysis hook.
     :type pre_flight_kwargs: dict
     :param force: Ignore errors raised while deriving nodes.
@@ -561,21 +561,28 @@ def process_flight(segment_info, tail_number, aircraft_info={}, achieved_flight_
 
     if aircraft_info:
         # Aircraft info has already been provided.
-        logger.info(
-            "Using aircraft_info dictionary passed into process_flight '%s'." %
-            aircraft_info)
+        logger.info("Using aircraft_info dictionary passed into process_flight '%s'." % aircraft_info)
     else:
         aircraft_info = get_aircraft_info(tail_number)
 
     aircraft_info['Tail Number'] = tail_number
 
+    additional_node_modules = []
+    additional_nodes = []
+    for additional in additional_modules:
+        if isinstance(additional, str):
+            additional_node_modules.append(additional)
+        else:
+            additional_nodes.append(additional)
+
+    node_modules = settings.NODE_MODULES
     if aircraft_info['Aircraft Type'] == 'helicopter':
-        node_modules = settings.NODE_MODULES + \
-            settings.NODE_HELICOPTER_MODULE_PATHS + additional_modules
-    else:
-        node_modules = settings.NODE_MODULES + additional_modules
+        node_modules += settings.NODE_HELICOPTER_MODULE_PATHS
+    node_modules += additional_node_modules
     # go through modules to get derived nodes
     derived_nodes = get_derived_nodes(node_modules)
+
+    derived_nodes.update({n.get_name(): n for n in additional_nodes})
 
     if segment_info['Segment Type'] == 'GROUND_ONLY':
         # Owing to the huge increase in circular dependancies when building
@@ -629,8 +636,7 @@ def process_flight(segment_info, tail_number, aircraft_info={}, achieved_flight_
             logger.info("No PRE_FLIGHT_ANALYSIS actions to perform")
 
         # Merge Params
-        param_names = hdf.valid_lfl_param_names() if reprocess else \
-            hdf.valid_param_names()
+        param_names = hdf.valid_lfl_param_names() if reprocess else hdf.valid_param_names()
         pre_process_parameters(hdf, segment_info, param_names, required,
                                aircraft_info, achieved_flight_record, force=force,
                                dependency_tree_log=dependency_tree_log)
@@ -657,12 +663,11 @@ def process_flight(segment_info, tail_number, aircraft_info={}, achieved_flight_
                         qty = len(gr_st.predecessors(node))
                         if qty > settings.CACHE_PARAMETER_MIN_USAGE:
                             hdf.cache_param_list.append(node)
-                logging.info("HDF set to cache parameters: %s",
-                             hdf.cache_param_list)
+                logging.info("HDF set to cache parameters: %s", hdf.cache_param_list)
 
         # derive parameters
-        ktis, kpvs, sections, approaches, flight_attrs = \
-            derive_parameters(hdf, node_mgr, process_order, params=initial, force=force)
+        ktis, kpvs, sections, approaches, flight_attrs = derive_parameters(
+            hdf, node_mgr, process_order, params=initial, force=force)
 
         # geo locate KTIs
         ktis = geo_locate(hdf, ktis)
@@ -681,8 +686,7 @@ def process_flight(segment_info, tail_number, aircraft_info={}, achieved_flight_
 
             # Store aircraft info
             hdf.set_attr('aircraft_info', json.dumps(aircraft_info))
-            hdf.set_attr('achieved_flight_record', json.dumps(achieved_flight_record,
-                                                              default=serialise_datetime))
+            hdf.set_attr('achieved_flight_record', json.dumps(achieved_flight_record, default=serialise_datetime))
 
     return {
         'flight': flight_attrs,
