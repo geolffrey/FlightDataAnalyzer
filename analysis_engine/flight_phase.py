@@ -1771,9 +1771,11 @@ class TakeoffRoll(FlightPhaseNode):
                 acc_start = acc_starts.get_last(within_slice=toff.slice)
                 if acc_start:
                     begin = acc_start.index
-            chunk = slice(begin, toff.slice.stop)
+            chunk = slices_int(begin, toff.slice.stop)
+            if chunk.start == chunk.stop:
+                continue
             if pitch:
-                pwo = first_order_washout(pitch.array[slices_int(chunk)], 3.0, pitch.frequency)
+                pwo = first_order_washout(pitch.array[chunk], 3.0, pitch.frequency)
                 two_deg_idx = index_at_value(pwo, 2.0)
                 if two_deg_idx is None:
                     roll_end = toff.slice.stop
