@@ -715,7 +715,7 @@ class LastEngStopAfterTouchdown(KeyTimeInstanceNode):
                touchdowns=KTI('Touchdown'), duration=A('HDF Duration')):
         eng_stops_after_touchdown = []
 
-        for x in range(eng_count.value):
+        for x in range(int(eng_count.value)):
             kti_name = eng_stops.format_name(number=x + 1)
 
             if touchdowns.get_last():
