@@ -171,8 +171,7 @@ def derive_parameters(hdf, node_mgr, process_order, params=None, force=False):
                 # all parameters (LFL or other) need get_aligned which is
                 # available on DerivedParameterNode
                 try:
-                    dp = derived_param_from_hdf(hdf.get_param(
-                        dep_name, valid_only=True), cache=cache)
+                    dp = derived_param_from_hdf(hdf.get_param(dep_name, valid_only=True), cache=cache)
                 except KeyError:
                     # Parameter is invalid.
                     dp = None
@@ -180,10 +179,8 @@ def derive_parameters(hdf, node_mgr, process_order, params=None, force=False):
             else:  # dependency not available
                 deps.append(None)
         if all([d is None for d in deps]):
-            raise RuntimeError(
-                "No dependencies available - Nodes cannot "
-                "operate without ANY dependencies available! "
-                "Node: %s" % node_class.__name__)
+            raise RuntimeError("No dependencies available - Nodes cannot operate without ANY dependencies available! Node: %s" %
+                               node_class.__name__)
 
         # initialise node
         node = node_class(cache=cache)
@@ -210,9 +207,7 @@ def derive_parameters(hdf, node_mgr, process_order, params=None, force=False):
             aligned_kpvs = []
             for one_hz in node.get_aligned(P(frequency=1, offset=0)):
                 if not (0 <= one_hz.index <= duration+4):
-                    raise IndexError(
-                        "KPV '%s' index %.2f is not between 0 and %d" %
-                        (one_hz.name, one_hz.index, duration))
+                    raise IndexError("KPV '%s' index %.2f is not between 0 and %d" % (one_hz.name, one_hz.index, duration))
                 aligned_kpvs.append(one_hz)
             kpvs[param_name] = aligned_kpvs
         elif node.node_type is KeyTimeInstanceNode:
@@ -221,9 +216,7 @@ def derive_parameters(hdf, node_mgr, process_order, params=None, force=False):
             aligned_ktis = []
             for one_hz in node.get_aligned(P(frequency=1, offset=0)):
                 if not (0 <= one_hz.index <= duration+4):
-                    raise IndexError(
-                        "KTI '%s' index %.2f is not between 0 and %d" %
-                        (one_hz.name, one_hz.index, duration))
+                    raise IndexError("KTI '%s' index %.2f is not between 0 and %d" % (one_hz.name, one_hz.index, duration))
                 aligned_ktis.append(one_hz)
             ktis[param_name] = aligned_ktis
         elif node.node_type is FlightAttributeNode:
@@ -232,8 +225,7 @@ def derive_parameters(hdf, node_mgr, process_order, params=None, force=False):
                 # only has one Attribute node, store as a list for consistency
                 flight_attrs[param_name] = [Attribute(node.name, node.value)]
             except:
-                logger.warning("Flight Attribute Node '%s' returned empty "
-                               "handed.", param_name)
+                logger.warning("Flight Attribute Node '%s' returned empty handed.", param_name)
         elif issubclass(node.node_type, SectionNode):
             aligned_section = node.get_aligned(P(frequency=1, offset=0))
             for index, one_hz in enumerate(aligned_section):
@@ -256,15 +248,11 @@ def derive_parameters(hdf, node_mgr, process_order, params=None, force=False):
                 aligned_section[index] = one_hz
 
                 if not (0 <= start <= duration and 0 <= stop <= duration + 4):
-                    msg = "Section '%s' (%.2f, %.2f) not between 0 and %d"
-                    raise IndexError(
-                        msg % (one_hz.name, start, stop, duration))
+                    raise IndexError("Section '%s' (%.2f, %.2f) not between 0 and %d" % (one_hz.name, start, stop, duration))
                 if not 0 <= start_edge <= duration:
-                    msg = "Section '%s' start_edge (%.2f) not between 0 and %d"
-                    raise IndexError(msg % (one_hz.name, start_edge, duration))
+                    raise IndexError("Section '%s' start_edge (%.2f) not between 0 and %d" % (one_hz.name, start_edge, duration))
                 if not 0 <= stop_edge <= duration + 4:
-                    msg = "Section '%s' stop_edge (%.2f) not between 0 and %d"
-                    raise IndexError(msg % (one_hz.name, stop_edge, duration))
+                    raise IndexError("Section '%s' stop_edge (%.2f) not between 0 and %d" % (one_hz.name, stop_edge, duration))
                 #section_list.append(one_hz)
             params[param_name] = aligned_section
             sections[param_name] = list(aligned_section)
@@ -277,30 +265,23 @@ def derive_parameters(hdf, node_mgr, process_order, params=None, force=False):
                 # parameters then we will have an array length of 1412.
                 expected_length = duration * node.frequency
                 if node.array is None or (force and len(node.array) == 0):
-                    logger.warning("No array set; creating a fully masked "
-                                   "array for %s", param_name)
+                    logger.warning("No array set; creating a fully masked array for %s", param_name)
                     array_length = expected_length
                     # Where a parameter is wholly masked, we fill the HDF
                     # file with masked zeros to maintain structure.
-                    node.array = \
-                        np_ma_masked_zeros(expected_length)
+                    node.array = np_ma_masked_zeros(expected_length)
                 else:
                     array_length = len(node.array)
                 length_diff = array_length - expected_length
                 if length_diff == 0:
                     pass
                 elif 0 < length_diff < 5:
-                    logger.warning("Cutting excess data for parameter '%s'. "
-                                   "Expected length was '%s' while resulting "
-                                   "array length was '%s'.", param_name,
-                                   expected_length, len(node.array))
+                    logger.warning("Cutting excess data for parameter '%s'. Expected length was '%s' while resulting array length was '%s'.",
+                                   param_name, expected_length, len(node.array))
                     node.array = node.array[:expected_length]
                 else:
-                    raise ValueError("Array length mismatch for parameter "
-                                     "'%s'. Expected '%s', resulting array "
-                                     "length '%s'." % (param_name,
-                                                       expected_length,
-                                                       array_length))
+                    raise ValueError("Array length mismatch for parameter '%s'. Expected '%s', resulting array length '%s'." %
+                                     (param_name, expected_length, array_length))
 
             hdf.set_param(node)
             # Keep hdf_keys up to date.
@@ -319,10 +300,8 @@ def derive_parameters(hdf, node_mgr, process_order, params=None, force=False):
                 valid_loc_est = (not approach.loc_est or
                                  ((0 <= approach.loc_est.start <= duration) and
                                   (0 <= approach.loc_est.stop <= duration)))
-                if not all([valid_turnoff, valid_slice, valid_gs_est,
-                            valid_loc_est]):
-                    raise ValueError('ApproachItem contains index outside of '
-                                     'flight data: %s' % approach)
+                if not all([valid_turnoff, valid_slice, valid_gs_est, valid_loc_est]):
+                    raise ValueError('ApproachItem contains index outside of flight data: %s' % approach)
             params[param_name] = aligned_approach
             approaches[param_name] = list(aligned_approach)
         else:
@@ -606,8 +585,7 @@ def process_flight(segment_info, tail_number, aircraft_info={}, achieved_flight_
         ]
 
     if requested:
-        requested_subset = \
-            list(set(requested).intersection(set(derived_nodes)))
+        requested_subset = list(set(requested).intersection(set(derived_nodes)))
     else:
         # if requested isn't set, try using ALL derived_nodes!
         logger.debug("No requested nodes declared, using all derived nodes")
@@ -715,8 +693,7 @@ def pre_process_parameters(hdf, segment_info, param_names, required,
         achieved_flight_record)
     process_order, gr_st = dependency_order(node_mgr, draw=False, dependency_tree_log=dependency_tree_log)
 
-    ktis, kpvs, sections, approaches, flight_attrs = \
-        derive_parameters(hdf, node_mgr, process_order, force=force)
+    ktis, kpvs, sections, approaches, flight_attrs = derive_parameters(hdf, node_mgr, process_order, force=force)
 
 
 def main():

@@ -30,9 +30,7 @@ class Groundspeed(DerivedParameterNode):
                # aeroplane
                source_A=P('Groundspeed (1)'),
                source_B=P('Groundspeed (2)')):
-        self.array, self.frequency, self.offset = blend_two_parameters(
-            source_A, source_B
-        )
+        self.array, self.frequency, self.offset = blend_two_parameters(source_A, source_B)
 
 class LongitudePrepared(DerivedParameterNode, CoordinatesStraighten):
     """
@@ -90,10 +88,8 @@ class Latitude(DerivedParameterNode):
                src_2=P('Latitude (2)'),
                src_3=P('Latitude (3)')):
 
-        sources = [
-            source for source in [src_1, src_2, src_3] if source is not None \
-            and np.count_nonzero(source.array) > len(source.array)/2
-        ]
+        sources = [source for source in [src_1, src_2, src_3] if source is not None
+                   and np.count_nonzero(source.array) > len(source.array) / 2]
 
         if len(sources) == 1:
             self.offset = sources[0].offset
@@ -101,9 +97,7 @@ class Latitude(DerivedParameterNode):
             self.array = sources[0].array
 
         elif len(sources) == 2:
-            self.array, self.frequency, self.offset = blend_two_parameters(
-                sources[0], sources[1]
-            )
+            self.array, self.frequency, self.offset = blend_two_parameters(sources[0], sources[1])
 
         elif len(sources) > 2:
             self.offset = 0.0
@@ -125,23 +119,18 @@ class Longitude(DerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(('Longitude (1)', 'Longitude (2)', 'Longitude (3)'),
-                      available)
+        return any_of(('Longitude (1)', 'Longitude (2)', 'Longitude (3)'), available)
 
     def derive(self,
                src_1=P('Longitude (1)'),
                src_2=P('Longitude (2)'),
                src_3=P('Longitude (3)')):
 
-        sources = [
-            source for source in [src_1, src_2, src_3] if source is not None \
-            and np.count_nonzero(source.array) > len(source.array)/2
-        ]
+        sources = [source for source in [src_1, src_2, src_3] if source is not None
+                   and np.count_nonzero(source.array) > len(source.array) / 2]
         if len(sources) > 1:
             for source in sources:
-                source.array = repair_mask(
-                    straighten_longitude(source.array) + 180.0
-                )
+                source.array = repair_mask(straighten_longitude(source.array) + 180.0)
 
         if len(sources) == 1:
             self.offset = sources[0].offset
@@ -149,16 +138,13 @@ class Longitude(DerivedParameterNode):
             self.array = sources[0].array
 
         elif len(sources) == 2:
-            blended, self.frequency, self.offset = blend_two_parameters(
-                sources[0], sources[1]
-            )
+            blended, self.frequency, self.offset = blend_two_parameters(sources[0], sources[1])
             self.array = blended % 360 - 180.0
 
         elif len(sources) > 2:
             self.offset = 0.0
             self.frequency = 1.0
-            blended = blend_parameters(sources, offset=self.offset,
-                                       frequency=self.frequency)
+            blended = blend_parameters(sources, offset=self.offset, frequency=self.frequency)
             self.array = blended % 360 - 180.0
 
         else:
