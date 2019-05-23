@@ -115,7 +115,6 @@ from analysis_engine.library import (
     interpolate_coarse,
     is_index_within_slice,
     is_index_within_slices,
-    is_power2,
     is_slice_within_slice,
     InvalidDatetime,
     last_valid_sample,
@@ -302,14 +301,6 @@ class TestAirTrack(unittest.TestCase):
         self.assertAlmostEqual(lon[5000], -79.5, places=3)
         self.assertAlmostEqual(lat[-1], 9.05, places=2)
         self.assertAlmostEqual(lon[-1], -79.45, places=2)
-
-
-class TestIsPower2(unittest.TestCase):
-    def test_is_power2(self):
-        self.assertEqual([i for i in range(2000) if is_power2(i)],
-                         [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024])
-        self.assertFalse(is_power2(-2))
-        self.assertFalse(is_power2(2.2))
 
 
 class TestAlignSlices(unittest.TestCase):

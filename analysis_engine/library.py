@@ -26,11 +26,9 @@ from six.moves import zip_longest
 import flightdataaccessor as fda
 
 from flightdatautilities import aircrafttables as at, units as ut
+from flightdatautilities.array import is_power2, is_power2_fraction
 from flightdatautilities.geometry import cross_track_distance, great_circle_distance__haversine
-from flightdatautilities.numpy_utils import (
-    py2round,
-    slices_int,
-)
+from flightdatautilities.numpy_utils import py2round, slices_int
 
 from analysis_engine.settings import (
     ALTITUDE_RADIO_MAX_RANGE,
@@ -223,30 +221,6 @@ airspeed may be used.
     repair_mask(lat, repair_duration=None, extrapolate=True)
     repair_mask(lon, repair_duration=None, extrapolate=True)
     return lat, lon
-
-
-def is_power2(number):
-    """
-    States if a number is a power of two. Forces floats to Int.
-    Ref: http://code.activestate.com/recipes/577514-chek-if-a-number-is-a-power-of-two/
-    """
-    if number % 1:
-        return False
-    num = int(number)
-    return num > 0 and ((num & (num - 1)) == 0)
-
-
-def is_power2_fraction(number):
-    '''
-    TODO: Tests
-
-    :type number: int or float
-    :returns: if the number is either a power of 2 or a fraction, e.g. 4, 2, 1, 0.5, 0.25
-    :rtype: bool
-    '''
-    if number < 1:
-        number = 1 / number
-    return is_power2(number)
 
 
 def straighten_parameter_array(param, copy_array=False):
