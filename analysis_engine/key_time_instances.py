@@ -588,7 +588,7 @@ class LastEngStartBeforeLiftoff(KeyTimeInstanceNode):
         if not liftoffs:
             return
         eng_starts_before_liftoff = []
-        for x in range(eng_count.value):
+        for x in range(int(eng_count.value)):
             kti_name = eng_starts.format_name(number=x + 1)
             eng_start_before_liftoff = eng_starts.get_previous(
                 liftoffs.get_first().index, name=kti_name)
