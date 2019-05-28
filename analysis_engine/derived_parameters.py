@@ -985,9 +985,11 @@ class AltitudeRadio(DerivedParameterNode):
     units = ut.FT
 
     @classmethod
-    def can_operate(cls, available):
+    def can_operate(cls, available, family=A('Family')):
+        airbus = family and family.value in ('A300', 'A310', 'A319', 'A320', 'A321', 'A330', 'A340', 'A350')
+        fast = 'Fast' in available if airbus else True
         alt_rads = [n for n in cls.get_dependency_names() if n.startswith('Altitude Radio')]
-        return 'Fast' in available and any_of(alt_rads, available)
+        return fast and any_of(alt_rads, available)
 
     def derive(self,
                source_A=P('Altitude Radio (A)'),
@@ -1042,7 +1044,7 @@ class AltitudeRadio(DerivedParameterNode):
             array = blend_parameters(osources, offset=self.offset, frequency=self.frequency, small_slice_duration=10,
                                      mode='cubic', validity='all_but_one', tolerance=500.0)
 
-            self.array = np.ma.masked_greater(array, ALTITUDE_RADIO_MAX_RANGE)
+            array = np.ma.masked_greater(array, ALTITUDE_RADIO_MAX_RANGE)
 
             # For aircraft where the antennae are placed well away from the main
             # gear, and especially where it is aft of the main gear, compensation
@@ -1052,7 +1054,7 @@ class AltitudeRadio(DerivedParameterNode):
             #coefficients in a database table.
         else:
             samples = int(len(alt_std.array) * self.frequency / alt_std.frequency)
-            self.array=np_ma_masked_zeros(samples)
+            array = np_ma_masked_zeros(samples)
 
         if family and family.value in ['CL-600'] and pitch:
             assert pitch.frequency == 4.0
@@ -1067,7 +1069,9 @@ class AltitudeRadio(DerivedParameterNode):
 
             scaling = 0.365 #ft/deg, +ve for altimeters aft of the main wheels.
             offset = -1.5 #ft at pitch=0
-            self.array = self.array + (scaling * pitch.array) + offset
+            array = array + (scaling * pitch.array) + offset
+
+        self.array = array
 
 
 class AltitudeRadioOffsetRemoved(DerivedParameterNode):
