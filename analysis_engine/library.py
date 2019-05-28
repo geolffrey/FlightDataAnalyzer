@@ -4719,17 +4719,19 @@ def blend_parameters(params, offset=0.0, frequency=1.0, small_slice_duration=4, 
         # collation.
         p_valid_slices.append(slices_multiply(nts, min_ip_freq / param.frequency))
 
-    # To find the valid ranges I need to 'or' the slices at a high level, hence
-    # this list of lists of slices needs to be flattened. Don't ask me what
-    # this does, go to http://stackoverflow.com/questions/952914 for an
-    # explanation !
-    # any_valid = slices_or([item for sublist in p_valid_slices for item in sublist])
-    
-    all_masks = np.array([p.array.mask[::p.frequency/min_ip_freq] for p in params])
+    all_masks = np.array([np.ma.getmaskarray(p.array)[::int(p.frequency // min_ip_freq)] for p in params])
     num_valid = len(params) - np.sum(all_masks, axis=0)
 
-    bad = num_valid < len(params) - 1
-    any_valid = np.ma.clump_unmasked(np.ma.array(data=[0]*len(bad), mask=bad))
+    if validity == 'all':
+        bad = num_valid < len(params)
+    elif validity == 'all_but_one':
+        bad = num_valid < max(len(params) - 1, 1)
+    elif validity == 'any_one':
+        bad = num_valid == 0
+    else:
+        raise ValueError('Unrecognised validity mode in blend_parameters')
+
+    any_valid = runs_of_ones(~bad)
 
     if any_valid is None:
         # No useful chunks of data to process, so give up now.
@@ -5388,55 +5390,7 @@ def overflow_correction(array, ref=None, fast=None, hz=1):
                                 slices_int(fast.get_slices()),
                                 hz)
 
-    array = overflow_correction_array(array, hz)
-
-    if not fast and np.ma.min(array[sl]) < -delta:
-        # FIXME: fallback postprocessing: compensate for the descent
-        # starting at the overflown value
-        array[sl] += max_val
-        
-    if fast:
-        pin_to_ground(array, good_slices, fast.get_slices())
-
-    # reapply the original mask as it may contain genuine spikes unrelated to
-    # the overflow
-    array.mask = old_mask
     return array
-
-def overflow_correction_array(array, hz=1):
-    '''
-    Overflow correction based on power of two jumps only.
-    '''
-
-    old_mask = array.mask.copy()
-    good_slices = slices_remove_small_gaps(np.ma.clump_unmasked(array), hz=hz)
-
-    for sl in good_slices:
-        array.mask[sl] = False
-        jump = np.ma.ediff1d(array[sl], to_begin=0.0)
-        abs_jump = np.ma.abs(jump)
-        jump_sign = -jump / abs_jump
-        # Any jumps of 2048 or larger will be corrected to the nearest power of two.
-        steps = np.ma.where(abs_jump > 2**10.5, 2**np.rint(np.ma.log2(abs_jump)) * jump_sign, 0)
-        biggest_step_up = np.ma.max(steps)
-        biggest_step_down = np.ma.min(steps)
-        # Don't fix things that don't need fixing
-        if biggest_step_up == 0 and biggest_step_down == 0:
-            continue
-
-        # Repair small masks which may be related to the overflow.
-        for jump_idx in np.ma.where(steps)[0]:
-            old_mask[sl.start + jump_idx - 2: sl.start + jump_idx + 2] = False
-        # Compute and apply the correction
-        array[sl] += np.ma.cumsum(steps)
-        
-        # Simple check to make sure the data is not badly offset following this adjustment
-        if biggest_step_up and np.min(array[sl]) > biggest_step_up / 2:
-            array[sl] -= biggest_step_up
-        elif biggest_step_down and np.min(array[sl]) < biggest_step_down / 2:
-            array[sl] -= biggest_step_down
-
-    return np.ma.array(data=array.data, mask=old_mask)
 
 def align_altitudes(alt_rad, alt_std, good_slices, fast_slices, hz):
     '''
