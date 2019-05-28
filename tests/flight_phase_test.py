@@ -1535,7 +1535,7 @@ class TestHolding(unittest.TestCase):
         self.assertEqual(
             Holding.get_operational_combinations(ac_type=aeroplane),
             [('Altitude AAL For Flight Phases',
-             'Heading Increasing', 'Altitude Max', 'Touchdown',
+             'Heading Continuous', 'Altitude Max', 'Touchdown',
              'Latitude Smoothed', 'Longitude Smoothed')])
 
     def test_straightish_not_detected(self):
@@ -1602,10 +1602,37 @@ class TestHolding(unittest.TestCase):
         lon=P('Longitude Smoothed', np.ma.ones(11880) * 24.0)
         hold=Holding()
         hold.derive(alt, hdg, alt_max, tdwns, lat, lon)
-        self.assertEqual(hold[0].slice, slice(510, 1350))
-        self.assertEqual(hold[1].slice, slice(3410, 4250))
-        self.assertEqual(hold[2].slice, slice(6370, 7600))
-        self.assertEqual(hold[3].slice, slice(9810, 11190))
+        self.assertEqual(hold[0].slice, slice(511, 1350))
+        self.assertEqual(hold[1].slice, slice(3411, 4250))
+        self.assertEqual(hold[2].slice, slice(6371, 7600))
+        self.assertEqual(hold[3].slice, slice(9811, 11190))
+
+    def test_hold_detected_2_hz(self):
+        rot=np.ma.concatenate((
+            np.zeros(1200),
+            np.tile(np.concatenate((np.ones(120) * 1.5, np.zeros(120))), 6),
+            np.zeros(4360),
+            np.tile(np.concatenate((np.ones(120) * 1.5, np.zeros(120))), 6),
+            np.zeros(4360),
+            np.tile(np.concatenate((np.ones(240) * 0.75, np.zeros(180))), 6),
+            np.zeros(4360),
+            np.tile(np.concatenate((np.ones(240) * 0.75, np.zeros(240))), 6),
+            np.zeros(1200),
+        ))
+        alt=P('Altitude AAL For Flight Phases', np.ones(11880) * 4000)
+        hdg=P('Heading Increasing', integrate(rot, 1.0), frequency=2.0)
+        alt_max=KPV('Altitude Max', items=[
+            KeyPointValue(index=400, value=40000.0),])
+        tdwns=KTI('Touchdown', items=[
+            KeyTimeInstance(index=23000),])
+        lat=P('Latitude Smoothed', np.ma.ones(11880*2) * 24.0)
+        lon=P('Longitude Smoothed', np.ma.ones(11880*2) * 24.0)
+        hold=Holding()
+        hold.derive(alt, hdg, alt_max, tdwns, lat, lon)
+        self.assertEqual(hold[0].slice, slice(511*2-1, 1350*2))
+        self.assertEqual(hold[1].slice, slice(3411*2-1, 4250*2))
+        self.assertEqual(hold[2].slice, slice(6371*2-1, 7600*2))
+        self.assertEqual(hold[3].slice, slice(9811*2-1, 11190*2))
 
     def test_hold_rejected_if_travelling(self):
         rot=np.ma.concatenate((

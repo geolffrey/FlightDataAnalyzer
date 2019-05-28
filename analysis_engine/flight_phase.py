@@ -23,6 +23,7 @@ from analysis_engine.library import (
     first_valid_sample,
     heading_diff,
     index_at_value,
+    integrate,
     is_index_within_slice,
     is_slice_within_slice,
     last_valid_sample,
@@ -188,33 +189,33 @@ class Holding(FlightPhaseNode):
     Holding is a process which involves multiple turns in a short period
     during the descent, normally in the same sense.
 
-    We compute the average rate of turn over a long period to reject
-    short turns and pass the entire holding period.
-
-    Note that this is the only function that should use "Heading Increasing"
-    as we are only looking for turns, and not bothered about the sense or
-    actual heading angle.
+    First we compute a heading increasing only parameter as holds are
+    always flown in the same direction of turn. Then we compute the average
+    rate of turn over a long period to reject short turns and pass the
+    entire holding period.
     """
 
     can_operate = aeroplane_only
-    align_frequency = 1.0 # No need for greater accuracy
 
     def derive(self, alt_aal=P('Altitude AAL For Flight Phases'),
-               hdg=P('Heading Increasing'),
+               head=P('Heading Continuous'),
                alt_max=KPV('Altitude Max'),
                tdwns=KTI('Touchdown'),
                lat=P('Latitude Smoothed'), lon=P('Longitude Smoothed')):
 
+        rot = np.ma.ediff1d(head.array, to_begin = 0.0)
+        hdg = integrate(np.ma.abs(rot), 1.0)
+
         # Five minutes should include two turn segments.
-        turn_rate = rate_of_change(hdg, 5 * 60)
+        turn_rate = rate_of_change_array(hdg, head.frequency, width = 5 * 60)
 
         # We scan the entire descent, from highest altitude to the final
         # touchdown, to give us the best chance of finding any hold periods.
         to_scan = slice(alt_max[0].index, tdwns[-1].index)
         # We know turn rate will be positive because Heading Increasing only
         # increases.
-        turn_bands = np.ma.clump_unmasked(
-            np.ma.masked_less(turn_rate[slices_int(to_scan)], 0.6))
+        turn_bands = slices_remove_small_gaps(np.ma.clump_unmasked(
+            np.ma.masked_less(turn_rate[slices_int(to_scan)], 0.6)), time_limit=300, hz=alt_aal.frequency)
         hold_bands = []
         for turn_band in shift_slices(turn_bands, to_scan.start):
             # Reject short periods and check that the average groundspeed was
@@ -230,7 +231,7 @@ class Holding(FlightPhaseNode):
                     lat.array[stop], lon.array[stop])
                 if ut.convert(hold_dist / hold_sec, ut.METER_S, ut.KT) < HOLDING_MAX_GSPD:
                     hold_bands.append(turn_band)
-        hold_bands = slices_remove_small_gaps(hold_bands, time_limit=30, hz=alt_aal.frequency)
+        #hold_bands = slices_remove_small_gaps(hold_bands, time_limit=30, hz=alt_aal.frequency)
         self.create_phases(hold_bands)
 
 
