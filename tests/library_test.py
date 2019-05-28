@@ -5042,75 +5042,146 @@ class TestOverflowCorrection(unittest.TestCase):
                         Section('Fast', slice(5859, 11520), 5859, 11520)])
         radioA = load(os.path.join(
             test_data_path, 'A320_Altitude_Radio_A_overflow.nod'))
-        resA = overflow_correction(radioA, fast, max_val=4096)
+        alt_baro = np.ma.concatenate([
+            np.zeros(346),
+            np.arange(0, 10000, 60),
+            np.ones(4622) * 10000,
+            np.arange(10000, 0, -40),
+            np.zeros(488),
+            np.arange(0, 10000, 60),
+            np.ones(5220) * 10000,
+            np.arange(10000, 0, -40),
+            np.zeros(170)])
+
+        first_pass = overflow_correction(radioA.array, None, None)
+        resA = overflow_correction(first_pass, alt_baro, fast)
         sects = np.ma.clump_unmasked(resA)
-        self.assertEqual(len(sects), 5)
-        self.assertEqual(resA.max(), 8193)
-        self.assertEqual(resA.min(), -1)
-        ##for sect in sects[0::2]:
-            ### takeoffs
-            ##self.assertAlmostEqual(resA[sect.start] / 10., 0, 0)
-        ##for sect in sects[1::2]:
-            ### landings
-            ##self.assertAlmostEqual(resA[sect.stop - 1] / 10., 0, 0)
+        self.assertEqual(len(sects), 9)
+        self.assertGreater(resA.max(), 7000)
+        self.assertEqual(resA.min(), -2)
 
         radioB = load(os.path.join(
             test_data_path, 'A320_Altitude_Radio_B_overflow.nod'))
-        resB = overflow_correction(radioB, max_val=4096)
+        first_pass = overflow_correction(radioB.array, None, None)
+        resB = overflow_correction(first_pass, alt_baro, fast)
         sects = np.ma.clump_unmasked(resB)
-        self.assertEqual(len(sects), 5)
-        self.assertEqual(resB.max(), 5918)
+        self.assertEqual(len(sects), 9)
+        self.assertEqual(resB.max(), 6074)
         self.assertEqual(resB.min(), -2)
 
     def test_overflow_correction_a340(self):
         fast = S(items=[Section('Fast', slice(2000, 6500), 2000, 6500)])
         radioA = load(os.path.join(
             test_data_path, 'A340_Altitude_Radio_A_overflow.nod'))
-        resA = overflow_correction(radioA, fast, max_val=4096)
+        alt_baro = np.ma.concatenate([
+            np.zeros(2292),
+            np.arange(0, 10000, 60),
+            np.ones(3640) * 10000,
+            np.arange(10000, 0, -40),
+            np.zeros(275)]).astype(np.float64)
+        first_pass = overflow_correction(radioA.array, None, None)
+        resA = overflow_correction(first_pass, alt_baro, fast)
         sects = np.ma.clump_unmasked(resA)
         # 1 section for climb, one for descent
-        self.assertEqual(len(sects), 2)
-        self.assertEqual(resA.max(), 7853)
-        self.assertEqual(resA.min(), -2)
-        ##for sect in sects[0::2]:
-            ### takeoffs
-            ##self.assertAlmostEqual(resA[sect.start] / 10., 0, 0)
-        ##for sect in sects[1::2]:
-            ### landings
-            ##self.assertAlmostEqual(resA[sect.stop - 1] / 10., 0, 0)
+        self.assertEqual(len(sects), 4)
+        self.assertGreater(resA.max(), 7500)
+        self.assertEqual(resA.min(), 0)
 
         radioB = load(os.path.join(
             test_data_path, 'A340_Altitude_Radio_B_overflow.nod'))
-        resB = overflow_correction(radioB, fast, max_val=4096)
+        first_pass = overflow_correction(radioB.array, None, None)
+        resB = overflow_correction(first_pass, alt_baro, fast)
         sects = np.ma.clump_unmasked(resB)
         # 1 section for climb, one for descent
-        self.assertEqual(len(sects), 2)
-        self.assertEqual(resB.max(), 7842)
-        self.assertEqual(resB.min(), -2)
-        ##for sect in sects[0::2]:
-            ### takeoffs
-            ##self.assertAlmostEqual(resB[sect.start] / 10., 0, 0)
-        ##for sect in sects[1::2]:
-            ### landings
-            ##self.assertAlmostEqual(resB[sect.stop - 1] / 10., 0, 0)
+        self.assertEqual(len(sects), 4)
+        self.assertGreater(resB.max(), 7500)
+        self.assertEqual(resB.min(), 0)
 
-    def test_overflow_correction_variable(self):
-        fast=buildsections('Fast', [1,20])
-        rad_alt=P('Altitude Radio', np.ma.array(data=[0, 1, 2, 3, 2052, 2053, 2054, 2055, -2040, -2039, -2038, 2059, 2060, 2061, 14, 15],
-                                                mask=[0]*16))
-        result=overflow_correction(rad_alt)
-        expected=np.ma.array(range(16))
-        ma_test.assert_masked_array_equal(result, expected)
-        result=overflow_correction(rad_alt, fast)
-        ma_test.assert_masked_array_equal(result, expected - 1)
-        
-    def test_overflow_correction_precision(self):
-        rad_alt=P('Altitude Radio', np.ma.array(data=range(2040,2048) + range(-2048,-2040),
-                                                mask=[0]*16))
-        result=overflow_correction(rad_alt, max_val=4096)
-        expected=np.ma.array(range(2040,2056))
-        ma_test.assert_masked_array_equal(result, expected)
+class TestOverflowCorrectionArray(unittest.TestCase):
+    '''
+    Most functions tested by TestOverflowCorrection above.
+    '''
+    def test_mask_retention(self):
+        array = np.ma.array(data=[5]*10, mask=[0]*3 + [1]*4 + [0]*3)
+        result = overflow_correction_array(array)
+        self.assertEqual(result.mask[5], True)
 
+    @unittest.skip('This is effectively a data spike which should be handled elsewhere')
+    def test_mask_ncd(self):
+        # A specific case to be masked, using real data
+        array = np.ma.array(data = [2300.0, 2300.0, 2350.0, 2450.0, 2480.0,
+                                    2500.0, 2520.0, 2570.0, 2630.0,
+                                    2500.0, 2710.0, 2790.0, 2830.0,
+                                    2500.0, 2840.0, 2910.0, 2870.0,
+                                    2900.0, 2920.0, 2980.0])
+        result = overflow_correction_array(array)
+        expected_mask = [False, False, False, False, False,
+                         True, True, True, True,
+                         True, True, True, True,
+                         True, False, False, False,
+                         False, False, False]
+        ma_test.assert_masked_array_equal(result,
+                                          np.ma.array(data=array.data,
+                                                      mask=expected_mask)
+                                          )
+
+"""
+class TestPinToGround(unittest.TestCase):
+    '''
+    Revised version of pin to ground which only corrects multiples of the
+    overflow threshold, not small values which are best resolved by
+    Altitude Radio Offset Removed.
+    '''
+    def setUp(self):
+        self.fast_slices = [slice(3, 15)]
+        self.good_slices = [slice(1, 13)]
+        self.hz = 1.0
+
+    def test_basic(self):
+        array = np.ma.array(data = [4100]*5 + list(range(4100, 5100, 100)),
+                            mask = [1] + [0]*12 + [1]*2, dtype=float)
+        result = pin_to_ground(array, self.good_slices, self.fast_slices, self.hz)
+        self.assertEqual(result[2], 4)
+
+    def test_negative(self):
+        array = np.ma.array(data = [-4100]*5 + list(range(-4100, -3000, 100)),
+                            mask = [1] + [0]*12 + [1]*3, dtype=float)
+        result = pin_to_ground(array, self.good_slices, self.fast_slices, self.hz)
+        self.assertEqual(result[2], -4)
+
+    def test_small_powers(self):
+        array = np.ma.array(data = [4]*5 + list(range(5, 15)),
+                            mask = [1] + [0]*12 + [1]*2, dtype=float)
+        result = pin_to_ground(array, self.good_slices, self.fast_slices, self.hz)
+        self.assertEqual(result[2], 4)
+
+    def test_short_slice_masked(self):
+        array = np.ma.array(data = [4]*5 + list(range(5, 15)), dtype=float)
+        result = pin_to_ground(array, [slice(10, 13)], self.fast_slices, self.hz)
+        self.assertEqual(result[11].mask, True)
+
+    def test_spreading_corrections(self):
+        '''
+        This checks that corrections of 1024 and 2048 ft are propagated forwards
+        and backwards, and that the "middle" value is taken from the closest in time.
+        '''
+        array = np.ma.array([0]*10+[1000]*10+[2000]*10+[4000]*10+[3000]*10+[2000]*10+[1000]*10, dtype=float)
+        my_fast_slices = [slice(12, 52)]
+        my_good_slices = [slice(1, 5), slice(10, 15), slice(20, 24), slice(31, 35), slice(40, 45), slice(50, 55), slice(60, 65)]
+        result = pin_to_ground(array, my_good_slices, my_fast_slices, hz=0.1)
+        self.assertEqual(list(result[2::10]), [0, -24, -48, -96, -72, -48, -24])
+
+    def test_avoid_infinite_loop(self):
+        '''
+        An error in coding led to an infinite loop condition which this test detects
+        by making all the slices so short they are suppressed.
+        '''
+        array = np.ma.array([0]*10+[1000]*10+[2000]*10+[4000]*10+[3000]*10+[2000]*10+[1000]*10, dtype=float)
+        my_fast_slices = [slice(12, 52)]
+        my_good_slices = [slice(20,24), slice(31,35), slice(40,45)]
+        result = pin_to_ground(array, my_good_slices, my_fast_slices, hz=1.0)
+        self.assertEqual(True, True) # Simply getting here is a pass!
+"""
 
 class TestPeakCurvature(unittest.TestCase):
     # Also known as the "Truck and Trailer" algorithm, this detects the peak

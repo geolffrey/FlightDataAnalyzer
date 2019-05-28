@@ -965,11 +965,9 @@ class AltitudeRadio(DerivedParameterNode):
     units = ut.FT
 
     @classmethod
-    def can_operate(cls, available, family=A('Family')):
-        airbus = family and family.value in ('A300', 'A310', 'A319', 'A320', 'A321', 'A330', 'A340', 'A350')
-        fast = 'Fast' in available if airbus else True
+    def can_operate(cls, available):
         alt_rads = [n for n in cls.get_dependency_names() if n.startswith('Altitude Radio')]
-        return fast and any_of(alt_rads, available)
+        return 'Fast' in available and any_of(alt_rads, available)
 
     def derive(self,
                source_A=P('Altitude Radio (A)'),
@@ -994,32 +992,33 @@ class AltitudeRadio(DerivedParameterNode):
         self.offset = 0.0
         self.frequency = 4.0
 
-        """
-        if family and family.value in ('A300', 'A310', 'A318', 'A319', 'A320', 'A321', 'A330', 'A340', 'A350'):
-            # The Altitude Radio, Altitude Radio (*) in Airbus frames should
-            # not contain "Overflow Correction = True". The below procedure
-            # works a lot more effective, especially in case of ARINC pattern
-            # in the signal, which can't be removed in conversion process.
-            osources = []
-            for source in sources:
-                if source is None:
-                    continue
-                # FIXME: this process should be moved to pre validation as
-                # we have seen flights where terrain arround the rollover
-                # point (2047) in quick succession get masked by rate of
-                # change. This prevents overflow_correction from correcting
-                # the parameter and leads to multiple touchdowns. example
-                # hash:acda842c2799
-                aligned_fast = fast.get_aligned(source)
-                # look for max jump within longest fast section to ignore
-                # invalid data at beginning or end of segment
-                to_scan = source.array.data[aligned_fast.get_longest().slice]
-                max_jump = abs(np.ma.ediff1d(to_scan, to_begin=0.0)).max()
-                if max_jump > 2**10.5:
-                    source.array = overflow_correction(source, aligned_fast)
+        osources = []
+        for source in sources:
+            if source is None:
+                continue
+            # correct for overflow, aligning the fast slice to each source
+            aligned_fast = fast.get_aligned(source)
+
+            source.array = overflow_correction(source.array,
+                                               align(alt_std, source),
+                                               fast=aligned_fast,
+                                               hz=source.frequency)
+
+            # Some data frames reference altimeters which are optionally
+            # recorded. It is impractical to maintain the LFL patching 
+            # required, so we only manage altimeters with a significant
+            # signal.
+            if np.ma.ptp(source.array) > 10.0:
                 osources.append(source)
-            sources = osources
-        """
+
+        sources = osources
+        # Blend parameters was written around the Boeing 737NG frames where three sources
+        # are available with different sample rates and latency. Some airbus aircraft
+        # have three altimeters but one of the sensors can give signals that appear to be
+        # valid in the cruise, hence the alternative validity level. Finally, the overflow
+        # correction algorithms can be out of step, giving differences of the order of
+        # 1,000ft between two sensors. The tolerance threshold ensures these are rejected
+        # (a wide tolerance ensures we don't react to normal levels of noise between altimeters).
         self.array = blend_parameters(sources,
                                       offset=self.offset,
                                       frequency=self.frequency,
