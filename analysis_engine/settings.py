@@ -287,16 +287,14 @@ HEADING_TURN_ONTO_RUNWAY = 15.0  # deg
 HEADING_TURN_OFF_RUNWAY = 45.0  # deg
 
 # Holding pattern criteria.
-# Minimum time was 4 minutes, corresponding to one racetrack pattern.
-# When high level holds were found with lower turn rates and longer straight
-# paths, the total pattern was up to 8 minutes. The lower turn rate detection
-# required a longer period for the rate computation and hence a longer minimum
-# time was needed to reject single turns.
+# Minimum time used to detect and as the timebase for differentiation of heading.
 HOLDING_MIN_TIME = 5*60  #sec
-# Maximum groundspeed over the period in the hold. This segregates true
-# holds, where the effective speed is significantly reduced (that's the point
-# of the hold), from curving departures or approaches.
+# Rate of turn on average over this period
+HOLDING_ROT = 0.6 # deg/sec
+# Maximum groundspeed over the period in the hold.
 HOLDING_MAX_GSPD = 90.0  # kts
+# The hold must be at least one complete turn
+HOLDING_MIN_TURN = 360.0 # deg
 
 # Threshold for flight phase altitude hysteresis.
 HYSTERESIS_FPALT = 200  # ft
