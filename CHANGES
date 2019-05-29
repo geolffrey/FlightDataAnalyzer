@@ -9,6 +9,11 @@ You can view the differences in tagged versions as follows:
   git log --pretty=format:"%Cblue%h %Cgreen%cn %Cred(%cr) %Creset%s %n%b %N" --graph "v0.3.2..v0.4.1"
 
 =======
+v0.43.9
+-------
+ Improvements:
+ - Heading Increasing fixed to work with any frequency parameter
+
 v0.43.8
 -------
  Improvements:
