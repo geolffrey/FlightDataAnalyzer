@@ -1621,7 +1621,6 @@ class TestHolding(unittest.TestCase):
         self.assertAlmostEqual(hold[3].slice.start, 10020, delta=3)
         self.assertAlmostEqual(hold[3].slice.stop, 11340, delta=3)
 
-
     def test_hold_detected_2_hz(self):
         rot=np.ma.concatenate((
             np.zeros(1200),
@@ -1650,7 +1649,6 @@ class TestHolding(unittest.TestCase):
         self.assertAlmostEqual(hold[2].slice.stop, 7720 * 2, delta=3)
         self.assertAlmostEqual(hold[3].slice.start, 10020 * 2, delta=3)
         self.assertAlmostEqual(hold[3].slice.stop, 11340 * 2, delta=3)
-
 
     def test_hold_rejected_if_travelling(self):
         rot=np.ma.concatenate((

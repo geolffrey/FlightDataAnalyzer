@@ -196,7 +196,6 @@ class Holding(FlightPhaseNode):
     Holding is a process which involves multiple turns in a short period
     during the descent, normally in the same sense.
 
-<<<<<<< HEAD
     First we compute a rate of turn parameter, then we seek periods with
     a high average rate of turn over a long period. Short turns are
     rejected and those with too small a turn or with an overall
@@ -205,12 +204,6 @@ class Holding(FlightPhaseNode):
 
     The final step is to trim the endpoints to the start and end of the
     first and last turns.
-=======
-    First we compute a heading increasing only parameter as holds are
-    always flown in the same direction of turn. Then we compute the average
-    rate of turn over a long period to reject short turns and pass the
-    entire holding period.
->>>>>>> Restructured holding to avoid unnecessary derived parameter.
     """
 
     can_operate = aeroplane_only
@@ -279,6 +272,7 @@ class Holding(FlightPhaseNode):
             else:
                 trim_end = index_at_value(diff, rot_thld, _slice=slice(turn_band.stop, len(diff)))
             hold_bands.append(slices_int(trim_start, trim_end))
+
         self.create_phases(hold_bands)
 
 
