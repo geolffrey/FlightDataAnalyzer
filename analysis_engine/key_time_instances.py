@@ -848,7 +848,7 @@ class FirstFlapExtensionWhileAirborne(KeyTimeInstanceNode):
             retracted = flap.array == '0'
         mask = np.ma.getmaskarray(retracted)
         for air in airborne:
-            cleans = runs_of_ones(retracted[air.slice])
+            cleans = runs_of_ones(retracted[air.slice], skip_mask=True)
             for clean in cleans:
                 # Skip the case where the airborne slice ends:
                 if clean.stop == air.slice.stop - air.slice.start:

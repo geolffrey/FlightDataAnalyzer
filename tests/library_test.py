@@ -5939,6 +5939,12 @@ class TestRunsOfOnes(unittest.TestCase):
         result = runs_of_ones(self.test_array, min_samples=2)
         self.assertEqual(result, [slice(4, 9), slice(11, 14)])
 
+    def test_runs_of_ones_skip_mask(self):
+        this_array = np.ma.array(data=[0,0,1,1,0,1,1,0,1,1,0,0],
+                                 mask=[0,0,0,0,1,0,0,0,0,0,0,0])
+        result = runs_of_ones(this_array, skip_mask=True)
+        self.assertEqual(result, [slice(2, 7), slice(8, 10)])
+
 
 class TestSlicesOfRuns(unittest.TestCase):
 
