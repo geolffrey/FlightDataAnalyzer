@@ -3869,7 +3869,7 @@ class TestHeadingIncreasing(unittest.TestCase):
                  frequency=0.5)
         head_inc=HeadingIncreasing()
         head_inc.derive(head)
-        expected = np.ma.array([0.0, 1.0, 5.0])
+        expected = np.ma.array([0.0, 0.5, 2.5])
         assert_array_equal(head_inc.array, expected)
 
 
