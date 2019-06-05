@@ -183,18 +183,16 @@ def _segment_type_and_slice(speed_array, speed_frequency,
         if col:
             col_window_sample = int(120 * col.frequency)
             col_min_sample = int(4 * col.frequency)
-            speedy = np.ma.where(speed_array[speed_start:speed_stop] > thresholds['speed_threshold'])[0]
+            speedy = np.ma.where(speed_array > thresholds['speed_threshold'])[0]
             if len(speedy):
                 col_start = int((speed_start + speedy[0]) * (col.frequency / speed_frequency))
                 col_stop = int((speed_start + speedy[-1]) * (col.frequency / speed_frequency))
                 try:  # shift start backwards to earlier low Collective value
-                    col_start = col_start - col_window_sample + \
-                        np.ma.where(col.array[col_start - col_window_sample:col_start])[0][0]
+                    col_start -= col_window_sample + np.ma.where(col.array[col_start - col_window_sample:col_start])[0][0]
                 except IndexError:
                     pass
                 try: # shift stop forwards to later low Collective value
-                    col_stop = col_stop + \
-                        np.ma.where(col.array[col_stop:col_stop + col_window_sample])[0][0]
+                    col_stop += np.ma.where(col.array[col_stop:col_stop + col_window_sample])[0][-1]
                 except IndexError:
                     pass
             elif unmasked_slices:
@@ -207,17 +205,14 @@ def _segment_type_and_slice(speed_array, speed_frequency,
                 col_start = int(start * col.frequency)
                 col_stop = int(stop * col.frequency)
 
-            col_start_slice = runs_of_ones(
+            slow_start = runs_of_ones(
                 col.array[col_start:col_start+col_window_sample] < settings.COLLECTIVE_ON_GROUND_THRESHOLD,
                 min_samples=col_min_sample
             )
-            col_stop_slice = runs_of_ones(
+            slow_stop = runs_of_ones(
                 col.array[col_stop-col_window_sample:col_stop] < settings.COLLECTIVE_ON_GROUND_THRESHOLD,
                 min_samples=col_min_sample
             )
-            slow_start = True if col_start_slice else False
-            slow_stop = True if col_stop_slice else False
-
     else:
         # Check Heading change for fixed wing.
         if eng_arrays is not None:
