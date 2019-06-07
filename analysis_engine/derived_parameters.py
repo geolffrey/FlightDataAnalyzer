@@ -4363,6 +4363,7 @@ class SlopeToLanding(DerivedParameterNode):
 
     def derive(self, alt_aal=P('Altitude AAL'),
                dist=P('Distance To Landing'),
+               alt_std=P('Altitude STD'),
                sat=P('SAT'),
                apps=S('Approach And Landing')):
 
@@ -4371,10 +4372,10 @@ class SlopeToLanding(DerivedParameterNode):
             if not np.ma.count(alt_aal.array[app.slice]):
                 continue
             # What's the temperature deviation from ISA at landing?
-            land_alt = last_valid_sample(alt_aal.array[app.slice]).value
+            land_alt = last_valid_sample(alt_std.array[app.slice]).value
             land_sat = last_valid_sample(sat.array[app.slice]).value
             # alt and sat can both be valid zero values, hence clunky test:
-            if land_alt != None and land_sat != None:
+            if land_alt is not None and land_sat is not None:
                 dev = from_isa(land_alt, land_sat)
                 # now correct the altitude for temperature deviation.
                 alt = alt_dev2alt(alt_aal.array[app.slice], dev)
