@@ -2224,3 +2224,42 @@ class DistanceFromThreshold(KeyTimeInstanceNode, DistanceFromLocationMixin):
                 rwy.value['start']['latitude'],
                 rwy.value['start']['longitude'],
                 lat, lon, distance, direction='backward', _slice=airs[0].slice)
+
+
+class ControlColumnForcePeakDuringApproachAndLanding(KeyTimeInstanceNode):
+    '''
+    The point in time where the control column force reaches maximum value
+    in Manual Approach And Landing Phase
+    '''
+
+    name = 'Control Column Force Peak During Approach And Landing'
+
+    '''
+    @classmethod
+    def can_operate(cls, available):
+        return ('Control Column Force', 'Manual Approach And Landing') in [available]
+        '''
+
+    def derive(self,
+               ccf=P('Control Column Force'),
+               mals=S('Manual Approach And Landing')):
+
+        for mal in  mals:
+            index = np.ma.argmax(np.ma.abs(ccf.array[mal.slice])) + mal.slice.start
+            self.create_kti(index)
+
+
+class FreezingAltitudeInDescent(KeyTimeInstanceNode):
+    '''
+    The point in time where the static air temperature transits from negative to positive values
+    in descent before the Control Column Force Max During Approach And Landing
+    '''
+
+    def derive(self,
+               descs=S('Descent'),
+               sat=P('SAT')):
+
+        for desc in descs:
+            index = index_at_value(sat.array, 0.0, _slice=desc.slice)
+            if index:
+                self.create_kti(index)

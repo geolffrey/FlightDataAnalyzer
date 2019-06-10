@@ -2266,3 +2266,62 @@ class AirborneRadarApproach(FlightPhaseNode):
         for approach in approaches:
             if approach.type == 'AIRBORNE_RADAR':
                 self.create_section(approach.slice, name='Airborne Radar Approach')
+
+
+class Deicing(FlightPhaseNode):
+    '''
+    Phase of flight data where the speculated deicing is taking place.
+    Defined as all the following conditions are met:
+    * In Taxi Out phase
+    * Eng (*) Bleeds Closed
+    * Brake Pressure > 1500psi
+    '''
+
+    def derive(self,
+               taxi_out=S('Taxi Out'),
+               bleed_open=M('Eng Bleed Open'),
+               brake_press=P('Brake Pressure'),
+               ):
+
+        bleeds_closed = runs_of_ones(bleed_open.array == 'Closed') # i.e. all closed
+        brakes_on = np.ma.clump_unmasked(np.ma.masked_less(brake_press.array, 1500.0))
+        slices = slices_and([s.slice for s in taxi_out],
+                            slices_and(bleeds_closed, brakes_on))
+        self.create_phases(slices)
+
+
+class PostDeicing(FlightPhaseNode):
+    '''
+    Phase of flight between the midpoint of Deicing Phase and the Weight off Wheels.
+    '''
+
+    def derive(self,
+               deice=S('Deicing'),
+               lift=KTI('Liftoff'),
+               ):
+
+        for ice in deice:
+            mid_ice = (ice.slice.start + ice.slice.stop) / 2
+            this_lift = lift.get_next(mid_ice)
+            self.create_phase(slice(mid_ice, this_lift.index))
+
+
+class ManualApproachAndLanding(FlightPhaseNode):
+    '''
+    Part of the Approach And Landing phase with autopilot disconnected.
+    '''
+
+    def derive(self,
+               apps=S('Approach And Landing'),
+               ap_eng=M('AP Engaged'),
+               alt_aal=P('Altitude AAL')):
+
+        phases = slices_and_not(apps.get_slices(), runs_of_ones(ap_eng.array))
+
+        scope = []
+        # remove slices where AP was disengaged below 20ft
+        for phase in slices_int(phases):
+            if np.ma.max(alt_aal.array[phase]) > 20:
+                scope.append(phase)
+
+        self.create_phases(scope)
