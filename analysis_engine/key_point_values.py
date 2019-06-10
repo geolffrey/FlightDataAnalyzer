@@ -19383,3 +19383,339 @@ class DHSelectedAt1500FtLVO(KeyPointValueNode):
         self.create_kpvs_at_ktis(dh_selected.array,
                                  alt_descending.get(name='1500 Ft Descending'),
                                  suppress_zeros=True)
+
+
+class ControlColumnPositionAtForcePeakDuringApproachAndLanding(KeyPointValueNode):
+    '''
+    Position of control column at Control Column Force Peak During Approach And Landing KTI
+    '''
+    units = ut.DEGREE
+
+    def derive(self,
+               cc=P('Control Column'),
+               ccf_ktis=KTI('Control Column Force Peak During Approach And Landing')
+               ):
+        self.create_kpvs_at_ktis(cc.array, ccf_ktis)
+
+class ControlColumnVsElevatorMovementRateDuringControlCheckBeforeDeparture(KeyPointValueNode):
+    '''
+    An expression of relation between control column movement velocity and
+    elevator movement velocity during control check before departure.
+
+    Actually, the ratio of displacements as (d/dt(A))/(d/dt(B)) = A/B
+    '''
+
+    def derive(self,
+               cc=P('Control Column'),
+               elev=P('Elevator'),
+               preflights=S('Taxi Out'),
+               elev_check=KPV('Elevator Preflight Check'),
+               ):
+
+        # We're only going to do single preflights...
+        if len(preflights) != 1:
+            return
+        # ...and make sure a sensible control column check was made.
+        if elev_check and elev_check[0].value < 50.0:
+            return
+
+        scope = slice(0, preflights[0].slice.stop)
+        peak_ix = np.ma.argmax(cc.array[scope])
+        trough_ix = np.ma.argmin(cc.array[scope])
+        mid_ix = (peak_ix + trough_ix) / 2
+        # A width of +/-15 sec allows for multiple control movements which sometimes happen.
+        width = 15.0
+        test_slice = slices_int(max(0, mid_ix - width * cc.hz),
+                                mid_ix + width * cc.hz)
+
+        # Check the test was in one pass - too slow is silly.
+        if abs(peak_ix - trough_ix) / cc.hz > width:
+            return
+
+        corr, m, c = coreg(elev.array[test_slice], cc.array[test_slice])
+        if corr > 0.7:
+            self.create_kpv(mid_ix, m)
+
+
+
+class ControlColumnVsElevatorMovementRateAtControlColumnForcePeak(KeyPointValueNode):
+    '''
+    An expression of mismatch between control column movement velocity and
+    elevator movement velocity at Control Column Force Max Peak
+    During Approach And Landing KTI
+    '''
+
+    def derive(self,
+               cc=P('Control Column'),
+               elev=P('Elevator'),
+               peaks=KTI('Control Column Force Peak During Approach And Landing'),
+               ):
+
+        d = 10 * cc.frequency
+        for peak in peaks:
+            sample = slice(int(peak.index - d), int(peak.index + d))
+            corr,m,c = coreg(elev.array[sample], cc.array[sample])
+            if corr > 0.7:
+                self.create_kpv(slice_midpoint(sample), m)
+
+
+class ControlColumnForceDuringPostDeiceMax(KeyPointValueNode):
+    '''
+    Maximum Control column force during post deice.
+    '''
+
+    def derive(self,
+               ccf=P('Control Column Force'),
+               posts=S('Post Deicing')):
+
+        self.create_kpvs_within_slices(ccf.array, posts, max_abs_value)
+
+
+class SATDuringCruiseMin(KeyPointValueNode):
+    '''
+    Coldest value of static air temperature during cruise flight phase
+    '''
+    name = 'SAT During Cruise Min'
+
+    def derive(self,
+               sat=P('SAT'),
+               cruises=S('Cruise'),
+               ):
+
+        self.create_kpv_from_slices(sat.array, cruises, min_value)
+
+
+class AltitudeAALAtFreezingPointInDescent(KeyPointValueNode):
+    '''
+    Altitude AAL at the point where the static air temperature transits
+    from negative to positive values in descent (if applicable).
+    '''
+
+    name = 'Altitude AAL At Freezing Point In Descent'
+    units = ut.FT
+
+    def derive(self,
+               alt_aal=P('Altitude AAL'),
+               freeze=KTI('Freezing Altitude In Descent'),
+               ):
+
+        self.create_kpvs_at_ktis(alt_aal.array, freeze)
+
+
+class AltitudeAALAtControlColumnForceMaxDuringApproachAndLanding(KeyPointValueNode):
+    '''
+    Altitude AAL at the point in time when control column force had the maximum value.
+    '''
+    name = 'Altitude AAL At Control Column Force Max During Approach And Landing'
+    units = ut.FT
+
+    def derive(self,
+               alt_aal=P('Altitude AAL'),
+               peak=KTI('Control Column Force Peak During Approach And Landing'),
+               ):
+
+        self.create_kpvs_at_ktis(alt_aal.array, peak)
+
+
+class FlapLoadReliefAtControlColumnForceMaxDuringApproachAndLanding(KeyPointValueNode):
+    '''
+    Check if flap load relief present.
+    '''
+    name = 'Flap Load Relief At Control Column Force Max During Approach And Landing'
+
+    def derive(self,
+               relief=P('Flap Load Relief'),
+               peak=KTI('Control Column Force Peak During Approach And Landing'),
+               ):
+
+        self.create_kpvs_at_ktis(relief.array, peak)
+
+
+class FlapAtControlColumnForceMaxDuringApproachAndLanding(KeyPointValueNode):
+    '''
+    Flap position at the point in time when control column force had the maximum value.
+
+    N.B. We use Flap Angle to represent the mean trailing edge flap position, not the selected flap.
+    '''
+    name = 'Flap At Control Column Force Max During Approach And Landing'
+    units = ut.DEGREE
+
+    def derive(self,
+               flap=P('Flap Angle'),
+               peak=KTI('Control Column Force Peak During Approach And Landing'),
+               ):
+
+        self.create_kpvs_at_ktis(flap.array, peak)
+
+
+class ControlColumnForce_C_InManualApproachAndLandingMax(KeyPointValueNode):
+    '''
+    Maximum value of Captain control column force in manual approach and landing phase.
+    Uses parameter
+    '''
+    name = 'Control Column Force (Capt) In Manual Approach And Landing Max'
+
+    def derive(self,
+               ccf=P('Control Column Force (Capt)'),
+               mals=S('Manual Approach And Landing'),
+               ):
+
+        self.create_kpv_from_slices(ccf.array, mals, max_abs_value)
+
+
+class ControlColumnForce_FO_InManualApproachAndLandingMax(KeyPointValueNode):
+    '''
+    Maximum value of First Officer control column force in manual approach and landing phase.
+    '''
+    name = 'Control Column Force (FO) In Manual Approach And Landing Max'
+
+    def derive(self,
+               ccf=P('Control Column Force (FO)'),
+               mals=S('Manual Approach And Landing'),
+               ):
+
+        self.create_kpv_from_slices(ccf.array, mals, max_abs_value)
+
+
+class ControlColumnForceInManualApproachAndLandingMax(KeyPointValueNode):
+    '''
+    Maximum value of First Officer control column force in manual approach and landing phase.
+    '''
+    name = 'Control Column Force In Manual Approach And Landing Max'
+
+    def derive(self,
+               ccf=P('Control Column Force'),
+               mals=S('Manual Approach And Landing'),
+               ):
+
+        self.create_kpv_from_slices(ccf.array, mals, max_abs_value)
+
+
+class ElevatorActuatorMismatchMax(KeyPointValueNode):
+    '''
+    '''
+
+    def derive(self,
+               eam=P('Elevator Actuator Mismatch'),
+               airs=S('Airborne'),
+               ):
+
+        self.create_kpv_from_slices(eam.array, airs, max_value)
+
+"""
+class ControlColumnVsElevatorMovementLagDuringControlCheckBeforeDeparture(KeyPointValueNode):
+    '''
+    An estimate of the control lag during the control check before departure.
+
+    This was trialled but found to give inconclusive results, probably related more to the
+    relationship between the action of the pilot and the sample interval of the elevator signal
+    than anything else.
+    '''
+
+    def derive(self,
+               cc=P('Control Column'),
+               elev=P('Elevator'),
+               preflights=S('Taxi Out'),
+               elev_check=KPV('Elevator Preflight Check'),
+               ):
+
+        # We're only going to do single preflights...
+        if len(preflights)!=1:
+            return
+        # ...and make sure a sensible control column check was made.
+        if elev_check[0].value < 50.0:
+            return
+
+        scope=slice(0, preflights[0].slice.stop)
+        peak_ix=np.ma.argmax(cc.array[scope])
+        trough_ix=np.ma.argmin(cc.array[scope])
+        mid_ix=(peak_ix + trough_ix)/2
+        # A width of +/-15 sec allows for multiple control movements which sometimes happen.
+        width=15.0
+        test_slice=slice(mid_ix-width*cc.hz, mid_ix+width*cc.hz)
+
+        # Check the test was in one pass - too slow is silly.
+        if abs(peak_ix-trough_ix)/cc.hz > width:
+            return
+
+        corr,m,c = coreg(elev.array[test_slice], cc.array[test_slice])
+        if corr < 0.7:
+            return
+
+        est = [m, c, 0.1]
+        bounds = [(0.3, 3.0),(None, None),(0.5/cc.hz, None)]
+
+        def position_error(est, *args):
+            cc = args[0]
+            elev = args[1]
+            freq = args[2]
+
+            cc_lag = first_order_lag(cc, est[2], freq, gain=est[0],
+                                    initial_value=elev[0])
+
+            error = elev - cc_lag + est[1]
+            total_error = np.ma.sum(error**2.0)
+            # print(total_error, est)
+            return total_error
+
+        kti = optimize.fmin_l_bfgs_b(
+            position_error, est,
+            fprime=None,
+            args = (
+                cc.array[test_slice],
+                elev.array[test_slice],
+                cc.hz,
+                ),
+            approx_grad=True,
+            bounds=bounds,
+            factr=1e6)
+
+        cc_lag = first_order_lag(cc.array[test_slice], est[2], cc.hz, gain=est[0],
+                                 initial_value=elev.array[0])
+
+        import matplotlib.pyplot as plt
+        plt.plot(elev.array[test_slice])
+        plt.plot(cc_lag)
+        plt.show()
+
+        print(list(kti[0]))
+        self.create_kpv(mid_ix, kti[0][2])
+        """
+
+
+class ControlColumnForceRawDuringPostDeiceMax(KeyPointValueNode):
+    '''
+    Maximum Control column force during post deice.
+    '''
+
+    def derive(self,
+               ccf=P('Control Column Force Raw'),
+               posts=S('Post Deicing')):
+
+        self.create_kpvs_within_slices(ccf.array, posts, max_abs_value)
+
+
+class ControlColumnForceRawInManualApproachAndLandingMax(KeyPointValueNode):
+    '''
+    Maximum value of First Officer control column force in manual approach and landing phase.
+    '''
+    name = 'Control Column Force Raw In Manual Approach And Landing Max'
+
+    def derive(self,
+               ccf=P('Control Column Force Raw'),
+               mals=S('Manual Approach And Landing'),
+               ):
+
+        self.create_kpv_from_slices(ccf.array, mals, max_abs_value)
+
+
+class ControlColumnForceBeforeLiftoffMax(KeyPointValueNode):
+    '''
+    Maximum Control column force before liftoff.
+    '''
+
+    def derive(self,
+               ccf=P('Control Column Force'),
+               liftoff=KTI('Liftoff')):
+
+        self.create_kpvs_within_slices(ccf.array, [slice(None, liftoff.get_first().index)], max_abs_value)
