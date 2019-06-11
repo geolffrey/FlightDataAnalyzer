@@ -19718,7 +19718,9 @@ class ElevatorQuadrantElevatorActuatorDiffMax(KeyPointValueNode):
                actuator_l=P('Elevator (L) Actuator'),
                actuator_r=P('Elevator (R) Actuator'),
                ap_l=M('AP (1) Engaged'),
-               ap_r=M('AP (2) Engaged')):
+               ap_r=M('AP (2) Engaged'),
+               elevator=P('Elevator'),
+               airborne=S('Airborne'),):
 
         # identify which Actuator is in use
         sections_ap_l = runs_of_ones(ap_l.array == 'Engaged')
@@ -19733,4 +19735,5 @@ class ElevatorQuadrantElevatorActuatorDiffMax(KeyPointValueNode):
             actuator[section] = actuator_r.array[section]
         diff = np.ma.abs(actuator - quadrant.array)
         sections = slices_or(sections_ap_l, sections_ap_r)
+        sections = slices_and(airborne.get_slices(), sections)
         self.create_kpv_from_slices(diff, sections, max_value)
