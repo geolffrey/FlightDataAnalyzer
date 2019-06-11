@@ -19708,3 +19708,29 @@ class ControlColumnForceBeforeLiftoffMax(KeyPointValueNode):
                liftoff=KTI('Liftoff')):
 
         self.create_kpvs_within_slices(ccf.array, [slice(None, liftoff.get_first().index)], max_abs_value)
+
+
+class ElevatorQuadrantElevatorActuatorDiffMax(KeyPointValueNode):
+    '''
+    Maximum difference between Elevator Quadrant and Elevator Actuator (L/R)
+    '''
+    def derive(self, quadrant=P('Elevator Quadrant'),
+               actuator_l=P('Elevator (L) Actuator'),
+               actuator_r=P('Elevator (R) Actuator'),
+               ap_l=M('AP (1) Engaged'),
+               ap_r=M('AP (2) Engaged')):
+
+        # identify which Actuator is in use
+        sections_ap_l = runs_of_ones(ap_l.array == 'Engaged')
+        sections_ap_r = runs_of_ones(ap_r.array == 'Engaged')
+        actuator = np.ma.masked_all_like(actuator_l.array)
+        for s in sections_ap_l:
+            # 3s delay to give the actuator time to 'catch up' to quadrant after AP is engaged
+            section = slice(int(s.start+3*self.hz), int(s.stop), None)
+            actuator[section] = actuator_l.array[section]
+        for s in sections_ap_r:
+            section = slice(int(s.start+3*self.hz), int(s.stop), None)
+            actuator[section] = actuator_r.array[section]
+        diff = np.ma.abs(actuator - quadrant.array)
+        sections = slices_or(sections_ap_l, sections_ap_r)
+        self.create_kpv_from_slices(diff, sections, max_value)
