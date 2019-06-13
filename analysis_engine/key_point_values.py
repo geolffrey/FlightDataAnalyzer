@@ -19748,3 +19748,14 @@ class ElevatorQuadrantElevatorActuatorDiffMax(KeyPointValueNode):
         sections = slices_or(sections_ap_l, sections_ap_r)
         sections = slices_and(airborne.get_slices(), sections)
         self.create_kpv_from_slices(diff, sections, max_value)
+
+class ElevatorQuadrantElevatorDiffMax(KeyPointValueNode):
+    '''
+    Maximum difference between Elevator Quadrant and Elevator
+    '''
+    def derive(self, quadrant=P('Elevator Quadrant'),
+               elevator=P('Elevator'),
+               airborne=S('Airborne'),):
+
+        diff = elevator.array - quadrant.array
+        self.create_kpv_from_slices(diff, sections, max_value)
