@@ -1123,7 +1123,7 @@ class GroundspeedWithZeroAirspeedFor5SecMax(KeyPointValueNode):
 
         rad_scale = np.radians(1.0)
         headwind = gnd_spd.array + wind_spd.array * np.ma.cos((wind_dir.array-heading.array)*rad_scale)
-        if np.ma.count(headwind):
+        if not headwind.mask.all():
             zero_airspeed = slices_and(airborne.get_slices(),
                                     slices_below(headwind, 0)[1])
             zero_airspeed = slices_remove_small_slices(zero_airspeed, time_limit=5,

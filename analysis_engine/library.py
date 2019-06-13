@@ -1205,7 +1205,7 @@ def cycle_finder(array, min_step=0.0, include_ends=True):
     vals = array.data[idxs] # So these are the local peak and trough values.
 
     # Optional inclusion of end points.
-    if include_ends and np.ma.count(array):
+    if include_ends and not array.mask.all():
         # We can only extend over the range of valid data, so find the first
         # and last valid samples.
         first, last = np.ma.flatnotmasked_edges(array)
@@ -1519,7 +1519,7 @@ def unique_values(array):
     :returns: [(val, count), (val2, count2)]
     :rtype: List of tuples
     '''
-    if not np.ma.count(array):
+    if array.mask.all():
         return {}
     counts = np.bincount(array.compressed())
     vals = np.nonzero(counts)[0]
@@ -2927,7 +2927,7 @@ def hysteresis(array, hysteresis):
     :param hysteresis: Level of hysteresis to apply.
     :type hysteresis: Float
     """
-    if np.ma.count(array) == 0: # No unmasked elements.
+    if array.mask.all():
         return array
 
     if hysteresis == 0.0 or hysteresis is None:
@@ -2935,7 +2935,6 @@ def hysteresis(array, hysteresis):
 
     if hysteresis < 0.0:
         raise ValueError("Hysteresis called with negative threshold")
-        return array
 
     quarter_range = hysteresis / 4.0
     # Length is going to be used often, so prepare here:
@@ -3121,7 +3120,7 @@ def integrate(array, frequency, initial_value=0.0, scale=1.0,
     :type integral: Numpy masked array.
     """
 
-    if np.ma.count(array)==0:
+    if array.mask.all():
         return np_ma_masked_zeros_like(array)
 
     if repair:
@@ -4561,17 +4560,17 @@ def blend_two_parameters(param_one, param_two, mode=None):
     a = np.ma.count(param_one.array)
     b = np.ma.count(param_two.array)
     if not mode:
-        if a+b == 0:
+        if a + b == 0:
             logger.warning("Neither '%s' or '%s' has valid data available.",
                            param_one.name, param_two.name)
             # Return empty space of the right shape...
             return np_ma_masked_zeros_like(len(param_one.array)*2), 2.0*param_one.frequency, param_one.offset
 
-        if a < b*0.8:
+        if a < b * 0.8:
             logger.warning("Little valid data available for %s (%d valid samples), using %s (%d valid samples).", param_one.name, float(a)/len(param_one.array)*100, param_two.name, float(b)/len(param_two.array)*100)
             return _interp(param_two.array, param_two.frequency, param_two.offset)
 
-        elif b < a*0.8:
+        elif b < a * 0.8:
             logger.warning("Little valid data available for %s (%d valid samples), using %s (%d valid samples).", param_two.name, float(b)/len(param_two.array)*100, param_one.name, float(a)/len(param_one.array)*100)
             return _interp(param_one.array, param_one.frequency, param_one.offset)
 
@@ -5519,14 +5518,15 @@ def peak_curvature(array, _slice=slice(None), curve_sense='Concave',
     curve_sense = curve_sense.title()
     if curve_sense not in ('Concave', 'Convex', 'Bipolar'):
         raise ValueError('Curve Sense %s not supported' % curve_sense)
-    if gap%2 - 1:
-        gap -= 1  #  Ensure gap is odd
-    trailer = int(ttp)+int(gap)
-    overall = 2*int(ttp) + int(gap)
 
     input_data = array[slices_int(_slice)]
-    if np.ma.count(input_data)==0:
+    if input_data.mask.all():
         return None
+
+    if gap % 2 - 1:
+        gap -= 1  #  Ensure gap is odd
+    trailer = int(ttp) + int(gap)
+    overall = 2 * int(ttp) + int(gap)
 
     valid_slices = np.ma.clump_unmasked(input_data)
     for valid_slice in valid_slices:
@@ -5737,7 +5737,7 @@ def runs_of_ones_array(bits, min_len=0, max_len=None):
 
 
 def repair(array, fill_with='starts'):
-    if not np.ma.count(array):
+    if array.mask.all():
         return array
     #TODO: Move to repair_mask...
     #data = array
@@ -5943,7 +5943,7 @@ def rms_noise(array, ignore_pc=None):
                              mask=np.roll(diff_left.mask,1))
     local_diff = (diff_left - diff_right)/2.0
     diffs = local_diff[1:-1]
-    if np.ma.count(diffs) == 0:
+    if diffs.mask.all():
         return None
     elif ignore_pc is None or ignore_pc/100.0*len(array)<1.0:
         to_rms = diffs
@@ -6411,7 +6411,7 @@ def slices_between(array, min_, max_):
     :returns: Slices where the array is above a certain value.
     :rtype: list of slice
     '''
-    if np.ma.count(array) == 0:
+    if array.mask.all():
         return array, []
     try:
         repaired_array = repair_mask(array)
@@ -6761,7 +6761,7 @@ def including_transition(array, steps, hz=1, mode='include'):
                     output[min(band.stop - 1, len(array) - 1)] = flap
                 continue
 
-            if np.ma.count(partial):
+            if not partial.mask.all():
                 # Unchanged data can be included in our output flap array directly
                 output[band] = partial
             else:
@@ -7597,7 +7597,7 @@ def index_at_value(array, threshold, _slice=slice(None), endpoint='exact'):
         # covers the whole array so is allowed.
         return None
 
-    elif not np.ma.count(test_array) or np.ma.all(np.isnan(test_array)):
+    elif test_array.mask.all() or np.ma.all(np.isnan(test_array)):
         # The parameter does not pass through threshold in the period in
         # question, so return empty-handed.
         if endpoint in ['closing', 'first_closing']:
@@ -7717,7 +7717,7 @@ def _value(array, _slice, operator, start_edge=None, stop_edge=None):
 
     if _slice.step and _slice.step < 0:
         raise ValueError("Negative step not supported")
-    if np.ma.count(array[search_slice]):
+    if not array[search_slice].mask.all():
         # get start_edge and stop_edge values if required
         if start_edge:
             start_result = value_at_index(array, start_edge)

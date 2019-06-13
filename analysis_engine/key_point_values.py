@@ -10579,7 +10579,7 @@ class EngGasTempDuringEngStartForXSecMax(KeyPointValueNode):
         n2_data[n2_data > 60.0] = np.ma.masked
 
         # Engines are already running at start of data:
-        if np.ma.count(n2_data) == 0:
+        if n2_data.mask.all():
             return
 
         chunks = np.ma.clump_unmasked(n2_data)
@@ -13191,7 +13191,7 @@ class HeadingVariationTouchdownPlus4SecTo60KtsAirspeed(KeyPointValueNode):
             if end:
                 # We have a meaningful slice to examine.
                 to_scan = head.array[slices_int(begin, end + 1)]
-                if not np.ma.count(to_scan):
+                if to_scan.mask.all():
                     continue
                 # Correct for rounding down of array index at first data point.
                 to_scan[0] = value_at_index(head.array, begin)
@@ -15639,7 +15639,7 @@ class RateOfDescentBelow80KtsMax(KeyPointValueNode):
         vrt_spd.array[vrt_spd.array > 0] = np.ma.masked
         for descent in descending:
             to_scan = air_spd.array[descent.slice]
-            if np.ma.count(to_scan):
+            if not to_scan.mask.all():
                 slow_bands = shift_slices(
                     slices_remove_small_slices(
                         slices_below(to_scan, 80)[1], time_limit=5.0, hz=air_spd.frequency
@@ -17593,7 +17593,7 @@ class TCASRAReactionDelay(KeyPointValueNode):
                         to_scan = slice(tcas_ta.slice.start, tcas_ra.slice.stop)
                         found = True
 
-            if np.ma.count(acc.array[slices_int(to_scan)]) == 0:
+            if acc.array[slices_int(to_scan)].mask.all():
                 continue
             # Work out the scatter of acceleration data prior to any pilot input
             before_scan = slices_int(max(0, to_scan.start - 20 * acc.frequency), to_scan.start)
@@ -17895,7 +17895,7 @@ class TCASRASubsequentReactionDelay(KeyPointValueNode):
                 continue
 
             to_scan = slice(change_index, tcas_ra.slice.stop)
-            if np.ma.count(acc.array[to_scan]) == 0:
+            if acc.array[to_scan].mask.all():
                 continue
             react_index = index_at_value(np.ma.abs(acc.array - 1.0), TCAS_THRESHOLD, _slice=to_scan)
             if not react_index:

@@ -792,7 +792,7 @@ class GoAround(KeyTimeInstanceNode):
             # Check for cases where a radio altimeter is not fitted or where
             # the altimeter data is out of range, hence masked, at the lowest
             # point of the go-around.
-            if alt_rad and np.ma.count(alt_rad.array[dlc.slice]):
+            if alt_rad and not alt_rad.array[dlc.slice].all():
                 # Worth using the radio altimeter...
                 pit = np.ma.argmin(alt_rad.array[dlc.slice])
 
@@ -1601,7 +1601,7 @@ class Touchdown(KeyTimeInstanceNode):
                     ix_ax2 = np.argmax(touch)
                     ix_ax = ix_ax2
                     # See if this was the second of a pair, with the first a little smaller.
-                    if np.ma.count(touch[:ix_ax2]) > 0:
+                    if not touch[:ix_ax2].mask.all():
                         # I have some valid data to scan
                         ix_ax1 = np.argmax(touch[:ix_ax2])
                         if touch[ix_ax1] > peak_ax*0.2:

@@ -1018,7 +1018,7 @@ class IANFinalApproachCourseEstablished(FlightPhaseNode):
                 ian_final.array[app.slice] = np.ma.masked
                 continue
 
-            if not np.ma.count(ian_final.array[app.slice]):
+            if ian_final.array[app.slice].mask.all():
                 # No valid IAN Final Approach data for this approach.
                 continue
             valid_slices = np.ma.clump_unmasked(ian_final.array[app.slice])
@@ -1058,7 +1058,7 @@ class IANGlidepathEstablished(FlightPhaseNode):
                 ian_glidepath.array[app.slice] = np.ma.masked
                 continue
 
-            if not np.ma.count(ian_glidepath.array[app.slice]):
+            if ian_glidepath.array[app.slice].mask.all():
                 # No valid ian glidepath data for this approach.
                 continue
             valid_slices = np.ma.clump_unmasked(ian_glidepath.array[app.slice])
@@ -1522,7 +1522,7 @@ class TakeoffRunwayHeading(FlightPhaseNode):
                 if not slices_overlap(toff.slice, gnd.slice):
                     continue
                 gnd_hdg = hdg.array[gnd.slice]
-                if not np.ma.count(gnd_hdg):
+                if gnd_hdg.mask.all():
                     continue
                 rwy_hdg = np.ma.mean(hdg.array[toff.slice])
                 if np.ma.is_masked(rwy_hdg):

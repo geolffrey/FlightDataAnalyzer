@@ -1765,7 +1765,7 @@ class KeyTimeInstanceNode(FormattedNameNode):
         repaired_array = repair_mask(
             array, frequency=self.hz, repair_duration=64, copy=True,
             raise_entirely_masked=True, method='fill_start')
-        if not np.ma.count(repaired_array):
+        if repaired_array.mask.all():
             return
         # High level function scans phase blocks or complete array and
         # presents appropriate arguments for analysis. We test for phase.name

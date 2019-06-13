@@ -577,7 +577,7 @@ class AltitudeAAL(DerivedParameterNode):
                     land_pitch=None):
 
         alt_result = np_ma_zeros_like(alt_std)
-        if alt_rad is None or np.ma.count(alt_rad)==0:
+        if alt_rad is None or alt_rad.mask.all():
             # This backstop trap for negative values is necessary as aircraft
             # without rad alts will indicate negative altitudes as they land.
             if mode != 'land':
@@ -674,8 +674,7 @@ class AltitudeAAL(DerivedParameterNode):
             # ensures that low altitude "hops" are still treated as complete
             # flights while more complex flights are processed as climbs and
             # descents of 500 ft or more.
-            alt_idxs, alt_vals = cycle_finder(alt_std.array[quick],
-                                              min_step=500)
+            alt_idxs, alt_vals = cycle_finder(alt_std.array[quick], min_step=500)
 
             # Reference to start of arrays for simplicity hereafter.
             if alt_idxs is None:
@@ -745,15 +744,12 @@ class AltitudeAAL(DerivedParameterNode):
                     down_up = slice(alt_idx, alt_idxs[n + 2])
                     # Is radio altimeter data both supplied and valid in this
                     # range?
-                    if alt_rad and np.ma.count(alt_rad.array[down_up]) > 0:
+                    if alt_rad and not alt_rad.array[down_up].mask.all():
                         # Let's find the lowest rad alt reading
                         # (this may not be exactly the highest ground, but
                         # it was probably the point of highest concern!)
-                        ##arg_hg_max = \
-                            ##np.ma.argmin(alt_rad.array[down_up]) + \
-                            ##alt_idxs[n]
-                        ##hg_max = alt_std.array[arg_hg_max] - \
-                            ##alt_rad.array[arg_hg_max]
+                        ##arg_hg_max = np.ma.argmin(alt_rad.array[down_up]) + alt_idxs[n]
+                        ##hg_max = alt_std.array[arg_hg_max] - alt_rad.array[arg_hg_max]
                         hb_min = np.ma.min(alt_std.array[down_up])
                         hr_min = np.ma.min(alt_rad.array[down_up])
                         hg_max = hb_min - hr_min
@@ -779,12 +775,8 @@ class AltitudeAAL(DerivedParameterNode):
                             prev_dip = dips[-1]
                         if dips and prev_dip['type'] == 'high':
                             # Join this dip onto the previous one
-                            prev_dip['slice'] = \
-                                slice(prev_dip['slice'].start,
-                                      alt_idxs[n + 2])
-                            prev_dip['alt_std'] = \
-                                min(prev_dip['alt_std'],
-                                    next_alt)
+                            prev_dip['slice'] = slice(prev_dip['slice'].start, alt_idxs[n + 2])
+                            prev_dip['alt_std'] = min(prev_dip['alt_std'], next_alt)
                         elif ac_type == helicopter and gog and any(gog.array[down_up] == 'Ground'):
                             dips.append({
                                 'type': 'over_gnd',
@@ -825,14 +817,10 @@ class AltitudeAAL(DerivedParameterNode):
                             dip['alt_std'] = dip['highest_ground']+1000.0
                         else:
                             next_dip = dips[n + 1]
-                            dip['highest_ground'] = \
-                                dip['alt_std'] - next_dip['alt_std'] + \
-                                next_dip['highest_ground']
+                            dip['highest_ground'] = dip['alt_std'] - next_dip['alt_std'] + next_dip['highest_ground']
                     elif n == len(dips) - 1:
                         prev_dip = dips[n - 1]
-                        dip['highest_ground'] = \
-                            dip['alt_std'] - prev_dip['alt_std'] + \
-                            prev_dip['highest_ground']
+                        dip['highest_ground'] = dip['alt_std'] - prev_dip['alt_std'] + prev_dip['highest_ground']
                     else:
                         # Here is the most commonly used, and somewhat
                         # arbitrary code. For a dip where no radio
@@ -861,13 +849,12 @@ class AltitudeAAL(DerivedParameterNode):
                                                         next_dip['highest_ground'])
 
             for dip in dips:
-                if alt_rad and np.ma.count(alt_rad.array[dip['slice']]):
+                if alt_rad and not alt_rad.array[dip['slice']].mask.all():
                     alt_rad_section = repair_mask(alt_rad.array[dip['slice']])
                 else:
                     alt_rad_section = None
 
-                if (dip['type']=='land') and (alt_rad_section is None) and \
-                   (dip['slice'].stop<dip['slice'].start) and pitch:
+                if (dip['type']=='land') and (alt_rad_section is None) and (dip['slice'].stop<dip['slice'].start) and pitch:
                     land_pitch=pitch.array[dip['slice']]
                 else:
                     land_pitch=None
@@ -905,8 +892,7 @@ def link_baro_rad_fwd(baro_section, ralt_section, alt_rad, alt_std, alt_result):
 
     if ralt_section.stop == begin_index:
         start_plus_60 = min(begin_index + 60, len(alt_std))
-        alt_diff = (alt_std[begin_index:start_plus_60] -
-                    alt_rad[begin_index:start_plus_60])
+        alt_diff = alt_std[begin_index:start_plus_60] - alt_rad[begin_index:start_plus_60]
         slip, up_diff = first_valid_sample(alt_diff)
         if slip is None:
             up_diff = 0.0
@@ -914,21 +900,18 @@ def link_baro_rad_fwd(baro_section, ralt_section, alt_rad, alt_std, alt_result):
             # alt_std is invalid at the point of handover
             # so stretch the radio signal until we can
             # handover.
-            fix_slice = slice(begin_index,
-                              begin_index + slip)
+            fix_slice = slice(begin_index, begin_index + slip)
             alt_result[fix_slice] = alt_rad[fix_slice]
             begin_index += slip
 
-        alt_result[begin_index:] = \
-            alt_std[begin_index:] - up_diff
+        alt_result[begin_index:] = alt_std[begin_index:] - up_diff
 
 def link_baro_rad_rev(baro_section, ralt_section, alt_rad, alt_std, alt_result):
     end_index = baro_section.stop
 
     if ralt_section.start == end_index:
         end_minus_60 = max(end_index-60, 0)
-        alt_diff = (alt_std[end_minus_60:end_index] -
-                    alt_rad[end_minus_60:end_index])
+        alt_diff = alt_std[end_minus_60:end_index] - alt_rad[end_minus_60:end_index]
         slip, up_diff = first_valid_sample(alt_diff[::-1])
         if slip is None:
             up_diff = 0.0
@@ -936,13 +919,11 @@ def link_baro_rad_rev(baro_section, ralt_section, alt_rad, alt_std, alt_result):
             # alt_std is invalid at the point of handover
             # so stretch the radio signal until we can
             # handover.
-            fix_slice = slice(end_index-slip,
-                              end_index)
+            fix_slice = slice(end_index-slip, end_index)
             alt_result[fix_slice] = alt_rad[fix_slice]
             end_index -= slip
 
-        alt_result[:end_index] = \
-            alt_std[:end_index] - up_diff
+        alt_result[:end_index] = alt_std[:end_index] - up_diff
 
 
 class AltitudeAALForFlightPhases(DerivedParameterNode):
@@ -1085,7 +1066,7 @@ class AltitudeRadioOffsetRemoved(DerivedParameterNode):
         smoothed = np.ma.array(medfilt(smoothed, 21), mask=alt_rad.array.mask)
         smoothed = np.ma.masked_greater(smoothed, 20)
         smoothed = mask_outside_slices(smoothed, fasts.get_slices())
-        if not np.ma.count(smoothed):
+        if smoothed.mask.all():
             return
         #offset = mode(smoothed.compressed())[0][0] # TODO: is there a nicer way to index???
         offset = np.ma.median(smoothed)
@@ -1224,7 +1205,7 @@ class AltitudeQNH(DerivedParameterNode):
                baro_fo=P('Baro Correction (FO)'),
                baro=P('Baro Correction')):
 
-        baro_param = [p for p in [baro, baro_capt, baro_fo] if p and np.ma.count(p.array)]
+        baro_param = [p for p in [baro, baro_capt, baro_fo] if p and not p.array.mask.all()]
 
         if baro_param and len(baro_param) > 0:
             baro_correction = baro_param[0]
@@ -3222,7 +3203,7 @@ class Eng_OilTempAvg(DerivedParameterNode):
 
         engines = vstack_params(eng1, eng2, eng3, eng4)
         avg_array = np.ma.average(engines, axis=0)
-        if np.ma.count(avg_array) != 0:
+        if not avg_array.mask.all():
             self.array = avg_array
             self.offset = offset_select('mean', [eng1, eng2, eng3, eng4])
         else:
@@ -3252,7 +3233,7 @@ class Eng_OilTempMax(DerivedParameterNode):
 
         engines = vstack_params(eng1, eng2, eng3, eng4)
         max_array = np.ma.max(engines, axis=0)
-        if np.ma.count(max_array) != 0:
+        if not max_array.mask.all():
             self.array = max_array
             self.offset = offset_select('mean', [eng1, eng2, eng3, eng4])
         else:
@@ -3282,7 +3263,7 @@ class Eng_OilTempMin(DerivedParameterNode):
 
         engines = vstack_params(eng1, eng2, eng3, eng4)
         min_array = np.ma.min(engines, axis=0)
-        if np.ma.count(min_array) != 0:
+        if not min_array.mask.all():
             self.array = min_array
             self.offset = offset_select('mean', [eng1, eng2, eng3, eng4])
         else:
@@ -4090,10 +4071,7 @@ class Groundspeed(DerivedParameterNode):
             gs = groundspeed_from_position(lat.array, lon.array, lat.frequency)
 
             # In some data segments, e.g. ground runs, the data is all masked, so don't create a derived parameter.
-            if np.ma.count(gs):
-                self.array = np.ma.masked_greater(gs, 400)
-            else:
-                self.array = np_ma_zeros_like(lat.array)
+            self.array = np_ma_zeros_like(lat.array) if gs.mask.all() else np.ma.masked_greater(gs, 400)
             self.frequency = lat.frequency
             self.offset = (lat.offset + lon.offset) / 2.0
 
@@ -4500,7 +4478,7 @@ class ApproachFlightPathAngle(DerivedParameterNode):
         dist = dist_aim or dist_land
         array = np_ma_masked_zeros_like(alt_aal.array)
         for app in apps:
-            if not np.ma.count(alt_aal.array[app.slice]):
+            if alt_aal.array[app.slice].mask.all():
                 continue
             # What's the temperature deviation from ISA at landing?
             try:
@@ -4631,7 +4609,7 @@ class HeadingContinuous(DerivedParameterNode):
                 head_fo.array += corr
 
                 self.array, self.frequency, self.offset = blend_two_parameters(head_capt, head_fo)
-            elif np.ma.count(head_mag.array):
+            elif not head_mag.array.mask.all():
                 self.array = repair_mask(straighten_headings(head_mag.array))
 
 
@@ -5093,10 +5071,9 @@ class CoordinatesSmoothed(object):
             except StopIteration:
                 low_point_array = app_range.array[this_app_slice.start:
                                                   this_app_slice.stop - 1]
-                if np.ma.count(low_point_array):
+                if not low_point_array.mask.all():
                     # Find the last valid sample
-                    low_point = this_app_slice.start + np.max(np.ma.where(
-                        low_point_array))
+                    low_point = this_app_slice.start + np.max(np.ma.where(low_point_array))
                 else:
                     # No valid Approach Range samples, probably due to missing
                     # runway identification
@@ -5120,8 +5097,7 @@ class CoordinatesSmoothed(object):
 
                 # Adjust the ils data to be degrees from the reference point.
                 scale = localizer_scale(runway)
-                bearings = (ils_loc.array[this_loc_slice] * scale + \
-                            runway_heading(runway)+180.0)%360.0
+                bearings = (ils_loc.array[this_loc_slice] * scale + runway_heading(runway) + 180.0) % 360.0
 
                 if precise:
 
@@ -5244,12 +5220,12 @@ class CoordinatesSmoothed(object):
 
                     # If we have an array of taxi in track values, we use
                     # this, otherwise we hold at the end of the landing.
-                    if lat_in is not None and np.ma.count(lat_in):
+                    if lat_in is not None and not lat_in.mask.all():
                         lat_adj[join_idx:end] = lat_in
                     else:
                         lat_adj[join_idx:end] = lat_adj[join_idx]
 
-                    if lon_in is not None and np.ma.count(lon_in):
+                    if lon_in is not None and not lon_in.mask.all():
                         lon_adj[join_idx:end] = lon_in
                     else:
                         lon_adj[join_idx:end] = lon_adj[join_idx]
@@ -7457,13 +7433,13 @@ class ApproachRange(DerivedParameterNode):
             this_app_slice = slices_int(approach.slice)
 
             # Let's use the best available information for this approach
-            if trk_true and np.ma.count(trk_true.array[this_app_slice]):
+            if trk_true and not trk_true.array[this_app_slice].mask.all():
                 hdg = trk_true
                 magnetic = False
-            elif trk_mag and np.ma.count(trk_mag.array[this_app_slice]):
+            elif trk_mag and not trk_mag.array[this_app_slice].mask.all():
                 hdg = trk_mag
                 magnetic = True
-            elif hdg_true and np.ma.count(hdg_true.array[this_app_slice]):
+            elif hdg_true and not hdg_true.array[this_app_slice].mask.all():
                 hdg = hdg_true
                 magnetic = False
             else:
@@ -7492,13 +7468,11 @@ class ApproachRange(DerivedParameterNode):
             # either case the speed is referenced to the runway heading
             # in case of large deviations on the approach or runway.
             if gspd:
-                speed = gspd.array[this_app_slice] * \
-                    np.cos(np.radians(off_cl))
+                speed = gspd.array[this_app_slice] * np.cos(np.radians(off_cl))
                 freq = gspd.frequency
 
-            if not gspd or not np.ma.count(speed):
-                speed = tas.array[this_app_slice] * \
-                    np.cos(np.radians(off_cl))
+            if not gspd or speed.mask.all():
+                speed = tas.array[this_app_slice] * np.cos(np.radians(off_cl))
                 freq = tas.frequency
 
             # Estimate range by integrating back from zero at the end of the
