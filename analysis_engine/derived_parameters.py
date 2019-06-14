@@ -9309,3 +9309,17 @@ class ElevatorActuatorMismatch(DerivedParameterNode):
         '''
 
         self.array = mismatch
+
+
+class ElevatorMinusElevatorQuadrant(DerivedParameterNode):
+    '''
+    Difference between Elevator and Elevator Quadrant
+    '''
+
+    units = ut.DEGREE
+
+    def derive(self, quadrant=P('Elevator Quadrant'),
+               elevator=P('Elevator'),
+               airborne=S('Airborne'),):
+
+        self.array = elevator.array - quadrant.array
