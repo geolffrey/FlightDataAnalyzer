@@ -19754,10 +19754,36 @@ class ElevatorQuadrantElevatorPeakToPeak(KeyPointValueNode):
     '''
     Max range of Difference between Elevator Quadrant and Elevator
     '''
+    def derive(self, elev_diff_mins=P('Elevator Quadrant Elevator Diff Min'),
+               elev_diff_maxs=P('Elevator Quadrant Elevator Diff Max'),
+               ):
+        for diff_min, diff_max in zip(elev_diff_mins, elev_diff_maxs):
+            if abs(diff_min.value) < abs(diff_max.value):
+                index = diff_max.index
+            else:
+                index = diff_min.index
+            self.create_kpv(index, abs(diff_max.value - diff_min.value))
+
+
+class ElevatorQuadrantElevatorDiffMin(KeyPointValueNode):
+    '''
+    Min Difference between Elevator Quadrant and Elevator
+    '''
     def derive(self, quadrant=P('Elevator Quadrant'),
                elevator=P('Elevator'),
                airborne=S('Airborne'),):
 
         diff = elevator.array - quadrant.array
-        ptp_with_index = lambda x: (np.argmax(x), np.ptp(x))
-        self.create_kpv_from_slices(diff, airborne, ptp_with_index)
+        self.create_kpv_from_slices(diff, airborne, min_value)
+
+
+class ElevatorQuadrantElevatorDiffMax(KeyPointValueNode):
+    '''
+    Min Difference between Elevator Quadrant and Elevator
+    '''
+    def derive(self, quadrant=P('Elevator Quadrant'),
+               elevator=P('Elevator'),
+               airborne=S('Airborne'),):
+
+        diff = elevator.array - quadrant.array
+        self.create_kpv_from_slices(diff, airborne, max_value)
