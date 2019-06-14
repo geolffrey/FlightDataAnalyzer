@@ -4405,7 +4405,7 @@ class SlopeToLanding(DerivedParameterNode, _SlopeMixin):
                dist=P('Distance To Landing'),
                alt_std=P('Altitude STD'),
                sat=P('SAT'),
-               apps=S('Approach And Landing')):
+               apps=S('Approach')):
 
         self.array = self.calculate_slope(alt_aal, dist, alt_std, sat, apps)
 
@@ -4435,7 +4435,7 @@ class SlopeToAimingPoint(DerivedParameterNode, _SlopeMixin):
                dist=P('Aiming Point Range'),
                alt_std=P('Altitude STD'),
                sat=P('SAT'),
-               apps=S('Approach And Landing')):
+               apps=S('Approach')):
 
         self.array = self.calculate_slope(alt_aal, dist, alt_std, sat, apps)
 
