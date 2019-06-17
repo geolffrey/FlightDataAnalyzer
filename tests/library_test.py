@@ -5888,6 +5888,9 @@ class TestRunsOfOnes(unittest.TestCase):
         result = runs_of_ones(this_array, skip_mask=True)
         self.assertEqual(result, [slice(2, 7), slice(8, 10)])
 
+    def test_runs_of_ones_empty_array(self):
+        self.assertEqual(runs_of_ones(np.empty(0)), [])
+
 
 class TestSlicesOfRuns(unittest.TestCase):
 

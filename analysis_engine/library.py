@@ -5959,6 +5959,8 @@ def runs_of_ones(bits, min_samples=None, skip_mask=False):
     :returns: S
     :rtype: [slice]
     '''
+    if not len(bits):
+        return []
     if skip_mask:
         bits = repair_mask(bits)
     runs = np.ma.clump_unmasked(np.ma.masked_not_equal(bits, 1))
