@@ -1474,6 +1474,8 @@ class TakeoffRunwayHeading(FlightPhaseNode):
                 if not np.ma.count(gnd_hdg):
                     continue
                 rwy_hdg = np.ma.mean(hdg.array[toff.slice])
+                if np.ma.is_masked(rwy_hdg):
+                    continue
                 max_hdg = (rwy_hdg + diff) % overflow
                 min_hdg = (rwy_hdg - diff) % overflow
                 min_hdg, max_hdg = min(min_hdg, max_hdg), max(min_hdg, max_hdg)

@@ -111,6 +111,7 @@ from analysis_engine.library import (
 from analysis_engine.settings import (
     AIRSPEED_THRESHOLD,
     ALTITUDE_RADIO_OFFSET_LIMIT,
+    ALTITUDE_RADIO_MAX_RANGE,
     ALTITUDE_AAL_TRANS_ALT,
     AZ_WASHOUT_TC,
     BOUNCED_LANDING_THRESHOLD,
@@ -1026,8 +1027,8 @@ class AltitudeRadio(DerivedParameterNode):
                                       mode='cubic',
                                       validity='all_but_one',
                                       tolerance=500.0)
-            
-        self.array = np.ma.masked_greater(self.array, 5000.0)
+
+        self.array = np.ma.masked_greater(self.array, ALTITUDE_RADIO_MAX_RANGE)
 
         # For aircraft where the antennae are placed well away from the main
         # gear, and especially where it is aft of the main gear, compensation

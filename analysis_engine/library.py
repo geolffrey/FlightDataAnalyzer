@@ -33,6 +33,7 @@ from flightdatautilities.numpy_utils import (
 )
 
 from analysis_engine.settings import (
+    ALTITUDE_RADIO_MAX_RANGE,
     BUMP_HALF_WIDTH,
     ILS_CAPTURE,
     ILS_CAPTURE_ROC,
@@ -5409,14 +5410,19 @@ def align_altitudes(alt_rad, alt_std, good_slices, fast_slices, hz):
         # crude altitude aal for this slice only
         baro = alt_std[fast_slice]
         peak_index = int(np.ma.argmax(baro))
-        baro[:peak_index] -= baro[0]
-        baro[peak_index:] -= baro[-1]
+        baro[:peak_index] -= first_valid_sample(baro).value
+        baro[peak_index:] -= last_valid_sample(baro).value
         # fgs = fast and good slice
         for fgs in slices_and(good_slices, [fast_slice]):
             # The reference data will be just this piece of baro altitude
             ref = baro[shift_slice(fgs, -fast_slice.start)]
             # We want the lower altitudes to be more closely matched
-            weights = (np.ma.max(ref) - ref) / (np.ma.max(ref) - np.ma.min(ref))
+            peak = min(ALTITUDE_RADIO_MAX_RANGE, np.ma.max(ref))
+            weights = np.ma.masked_outside((peak - ref) / peak, 0.0, 1.0)
+            if not np.ma.count(weights):
+                # This segment was entirely outside the range of interest
+                alt_rad[fgs] = np.ma.masked
+                continue
             # The average difference, with emphasized weighting is...
             mean_diff = np.ma.average(baro[shift_slice(fgs, -fast_slice.start)] - alt_rad[fgs],
                                       weights = weights**2)
@@ -5441,7 +5447,15 @@ def overflow_correction_array(array):
     # Most radio altimeters are scaled to overflow at 2048ft, but occasionally the signed
     # value changes by half this amount. Hence jumps more than half a power lower than 2**10.
     # We want to correct the step, hence the change of sign in the resulting array.
-    steps = -np.ma.where(abs_jump > 800.0, 2**np.rint(np.ma.log2(abs_jump)) * np.sign(jump), 0)
+    steps = -np.ma.where(abs_jump > 900.0, 2**np.rint(np.ma.log2(abs_jump)) * np.sign(jump), 0)
+    for check in np.ma.nonzero(steps):
+        if len(check) == 0:
+            continue
+        index = check[0]
+        if index >= len(steps)-1:
+            continue
+        if steps[index] == -steps[index+1]:
+            steps[index:index+2] = 0.0
 
     biggest_step_up = np.ma.max(steps)
     biggest_step_down = np.ma.min(steps)
@@ -5469,68 +5483,6 @@ def overflow_correction_array(array):
 
     return np.ma.array(data=array, mask=keep_mask)
 
-"""
-def pin_to_ground(array, good_slices, fast_slices, hz=1.0):
-    '''
-    Fix the altitude within given slice based on takeoff and landing
-    information.
-
-    We assume that at takeoff and landing the altitude radio is close
-    to zero, so we can postprocess the array accordingly.
-    '''
-    def nearest_step(x):
-        delta=1024.0
-        multiple = np.rint(abs(x) / float(delta))
-        if multiple:
-            return multiple * delta * np.sign(x)
-        else:
-            return 0.0
-
-    array.mask = np.ma.getmaskarray(array)
-
-    # We detect the corrections based on fast slices
-    for f in fast_slices:
-        begin_step = end_step = begin_peak = end_peak = 0.0
-        end_peak_idx = len(array)
-        for sl in good_slices:
-            if is_index_within_slice(f.start, sl):
-                # go_fast starts in the slice
-                begin_step = nearest_step(array[int(f.start)])
-                array[sl] -=  begin_step
-                begin_peak_idx = sl.stop - 1
-                begin_peak = array[begin_peak_idx]
-
-            elif is_index_within_slice(f.stop, sl):
-                # go_fast stops in the slice
-                end_step = nearest_step(array[int(f.stop)])
-                array[sl] -=  end_step
-                end_peak_idx = sl.start
-                end_peak = array[end_peak_idx]
-
-            elif is_index_within_slice(sl.start, f) and \
-                 slice_duration(sl, hz) < ALTITUDE_RADIO_OVERFLY_SUPPRESSION:
-                # For in-flight slices, be ready to suppress short bursts
-                array[sl].mask = True
-
-        # We have the corrections for either the start or end of the fast slice, so
-        # apply this to all sections wholly within the fast slice.
-        for sl in good_slices:
-            if is_slice_within_slice(sl, f):
-                if sl.start - (sl.stop - 1) < end_peak_idx - sl.stop:
-                    delta = array[sl.start] - begin_peak
-                else:
-                    delta = array[sl.stop - 1] - end_peak
-                array[sl] -=  nearest_step(delta)
-
-    # Everything not fast must be on the ground
-    for g in slices_not(fast_slices, begin_at=0, end_at=len(array)):
-        for sl in good_slices:
-            if is_slice_within_slice(sl, g):
-                delta = nearest_step(np.ma.average(array[sl]))
-                array[sl] -=  delta
-
-    return array
-"""
 
 def peak_curvature(array, _slice=slice(None), curve_sense='Concave',
                    gap = TRUCK_OR_TRAILER_INTERVAL,

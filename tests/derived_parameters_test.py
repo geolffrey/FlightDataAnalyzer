@@ -1716,10 +1716,10 @@ class TestAltitudeRadio(unittest.TestCase):
 
         sects = np.ma.clump_unmasked(rad.array)
         self.assertEqual(len(sects), 6)
-        for sect in sects[0::3]:
+        for sect in sects[0], sects[2]:
             # takeoffs
             self.assertAlmostEqual(rad.array[sect.start] / 10., 0, 0)
-        for sect in sects[2::3]:
+        for sect in sects[1], sects[5]:
             # landings
             self.assertAlmostEqual(rad.array[sect.stop - 1] / 10., 0, 0)
 
@@ -1780,8 +1780,8 @@ class TestAltitudeRadio(unittest.TestCase):
 
         sects = np.ma.clump_unmasked(rad.array)
         self.assertEqual(len(sects), 3)
-        self.assertEqual(sects[1].start, 289)
-        self.assertEqual(sects[1].stop, 2709)
+        self.assertLess(sects[1].start, 2000)
+        self.assertGreater(sects[1].stop, 2500)
         self.assertAlmostEqual(rad.array[2708], 4997, places=0)
         self.assertEqual(sects[2].start, 122508)
         self.assertAlmostEqual(rad.array[122508], 4994, places=0)
