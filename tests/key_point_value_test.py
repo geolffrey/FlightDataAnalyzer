@@ -1298,13 +1298,13 @@ class TestAccelerationLateralOffset(unittest.TestCase, NodeTest):
         self.node_class = AccelerationLateralOffset
         self.operational_combinations = [('Acceleration Lateral', 'Taxiing', 'Turning On Ground')]
         self.acc_lat_array=np.ma.array([0] * 17 + [0.02, 0.05, 0.02, 0, -0.017,] + [0] * 7 +
-                                           [0.02, 0.04, 0.01] + [0.011] * 4 + [0] * 6 + [-0.02] +
+                                       [0.02, 0.04, 0.01] + [0.011] * 4 + [0] * 6 + [-0.02] +
                                            [0] * 5 + [0.02, 0.08, 0.08, 0.08, 0.08] + [0] * 10 +
                                            [0.02, 0.04, 0.01] + [0.011] * 4 + [0] * 10)*1.5
         self.taxiing = S(items=[Section('Taxiing', slice(10, 40), 10, 40),
-                               Section('Taxiing', slice(60, 75), 60, 75)])
+                                Section('Taxiing', slice(60, 75), 60, 75)])
         self.turns = S(items=[Section('Turning On Ground', slice(17, 20), 17, 20),
-                             Section('Turning On Ground', slice(29, 32), 29, 32),
+                              Section('Turning On Ground', slice(29, 32), 29, 32),
                              Section('Turning On Ground', slice(71, 74), 71, 74)])
         #[slice(20, 29, None), slice(32, 40, None), slice(60, 71, None)]
 
@@ -1357,7 +1357,7 @@ class TestAccelerationLateralOffset(unittest.TestCase, NodeTest):
 
     def test_derive_not_enough_samples(self):
         turns = S(items=[Section('Turning On Ground', slice(17, 39), 17, 39),
-                              Section('Turning On Ground', slice(61, 74), 61, 74)])
+                         Section('Turning On Ground', slice(61, 74), 61, 74)])
 
         acc_lat = P(name='Acceleration Lateral', array=self.acc_lat_array)
 
@@ -1767,7 +1767,7 @@ class TestAccelerationNormalAboveLimitWithFlapDownWhileAirborne(unittest.TestCas
     def setUp(self):
         self.node_class = AccelerationNormalAboveLimitWithFlapDownWhileAirborne
         self.operational_combinations = [('Acceleration Normal Offset Removed',
-                                        'Acceleration Normal High Limit With Flaps Down',
+                                          'Acceleration Normal High Limit With Flaps Down',
                                         'Airborne')]
 
     def test_derive(self):
@@ -1882,7 +1882,7 @@ class TestAccelerationNormalMinusLoadFactorThresholdAtTouchdown(unittest.TestCas
         self.mods = A('Modifications', ['Freighter Conversion',])
 
         self.operational_combinations = [('Acceleration Normal At Touchdown',
-                                         'Load Factor Threshold At Touchdown')]
+                                          'Load Factor Threshold At Touchdown')]
         self.tdwn_idx = 4
         self.gw_under_value_767 = 128367
         self.gw_over_value_767 = 138367
@@ -1964,7 +1964,7 @@ class TestAccelerationNormalMinusLoadFactorThresholdAtTouchdown(unittest.TestCas
         roll = P('Roll', self.roll)
 
         load_factor_kpv.derive(land_vert_acc=land_vert_acc, roll=roll,
-                           tdwns=self.tdwns, gw_kpv=gw_kpv,
+                               tdwns=self.tdwns, gw_kpv=gw_kpv,
                            gw=gw, series=self.series, model=self.model,
                            mods=self.mods, touch_and_go=self.touch_and_go)
         return load_factor_kpv
@@ -2141,7 +2141,7 @@ class TestLoadFactorThresholdAtTouchdown(unittest.TestCase):
         self.mods = A('Modifications', ['Freighter Conversion',])
 
         self.operational_combinations = [('Acceleration Normal At Touchdown',
-                                         'Roll', 'Touchdown',
+                                          'Roll', 'Touchdown',
                                          'Gross Weight At Touchdown',
                                          'Gross Weight',
                                          'Model',
@@ -2339,7 +2339,7 @@ class TestAccelerationNormalAboveWeightLimitAtTouchdown(unittest.TestCase):
         # One hard landing
         node = self.node_class()
         limit = P('Acceleration Normal Limit For Landing Weight',
-                    np.ma.array([1.75, 1.75, 1.75, 1.75, 1.75,
+                  np.ma.array([1.75, 1.75, 1.75, 1.75, 1.75,
                                  2.00, 2.00, 2.00, 2.00, 2.00,
                                  2.00, 2.00, 2.10, 2.10, 2.10, ]))
         acc_norm_tdwns = KPV(name='Acceleration Normal At Touchdown', items=[
@@ -3074,7 +3074,7 @@ class TestAirspeed500To50FtMedian(unittest.TestCase, CreateKPVsWithinSlicesTest)
 
     def test_derive(self):
         aspd = P('Airspeed', array=np.ma.array([999, 999, 999, 999, 999,
-            145.25,  145.  ,  145.5 ,  146.  ,  146.  ,  145.75,  145.25,
+                                                145.25,  145.  ,  145.5 ,  146.  ,  146.  ,  145.75,  145.25,
             145.5 ,  145.  ,  147.5 ,  145.75,  145.25,  145.5 ,  145.75,
             145.5 ,  145.25,  142.25,  145.  ,  145.  ,  144.25,  145.75,
             144.5 ,  146.75,  145.75,  146.25,  145.5 ,  144.  ,  142.5 ,
@@ -3095,7 +3095,7 @@ class TestAirspeed500To50FtMedianMinusAirspeedSelected(unittest.TestCase, NodeTe
         self.operational_combinations = [('Airspeed Selected',
                                           'Airspeed 500 To 50 Ft Median')]
         self.assertEqual(self.node_class.get_name(),
-                        'Airspeed 500 To 50 Ft Median Minus Airspeed Selected')
+                         'Airspeed 500 To 50 Ft Median Minus Airspeed Selected')
 
     def test_derive(self):
 
@@ -3105,7 +3105,7 @@ class TestAirspeed500To50FtMedianMinusAirspeedSelected(unittest.TestCase, NodeTe
         diff = Airspeed500To50FtMedianMinusAirspeedSelected()
         diff.derive(select_spd, median_spd)
         self.assertEqual(diff, [KeyPointValue(10, .25,
-                name='Airspeed 500 To 50 Ft Median Minus Airspeed Selected')])
+                                              name='Airspeed 500 To 50 Ft Median Minus Airspeed Selected')])
 
 
 class TestAirspeedAtAPUpperModesEngaged(unittest.TestCase):
@@ -3388,7 +3388,7 @@ class TestV2LookupAtLiftoff(unittest.TestCase, NodeTest):
         weight_unit = ut.TONNE
         tables = {'v2': {
             'weight': ( 35,  40,  45,  50,  55,  60,  65),
-           'Lever 1': (113, 119, 126, 132, 139, 145, 152),
+            'Lever 1': (113, 119, 126, 132, 139, 145, 152),
         }}
         fallback = {'v2': {'Lever 2': 140}}
 
@@ -3406,7 +3406,7 @@ class TestV2LookupAtLiftoff(unittest.TestCase, NodeTest):
         weight_unit = ut.TONNE
         tables = {'v2': {
             'weight': ( 35,  40,  45,  50,  55,  60,  65),
-                '15': (113, 119, 126, 132, 139, 145, 152),
+            '15': (113, 119, 126, 132, 139, 145, 152),
         }}
         fallback = {'v2': {'5': 140}}
 
@@ -3555,7 +3555,7 @@ class TestAirspeedSelectedAtLiftoff(unittest.TestCase, NodeTest):
 
     def test_can_operate(self):
         self.assertEqual(self.node_class().get_operational_combinations(),
-            [('Airspeed Selected', 'Liftoff', 'Takeoff Acceleration Start', 'Climb Start')])
+                         [('Airspeed Selected', 'Liftoff', 'Takeoff Acceleration Start', 'Climb Start')])
 
     def test_derive(self):
         '''
@@ -3670,7 +3670,7 @@ class TestAirspeedSelectedAtTakeoffAccelerationStart(unittest.TestCase, NodeTest
 
     def test_can_operate(self):
         self.assertEqual(self.node_class().get_operational_combinations(),
-            [('Airspeed Selected', 'Takeoff Acceleration Start', 'Liftoff')])
+                         [('Airspeed Selected', 'Takeoff Acceleration Start', 'Liftoff')])
 
     def test_derive(self):
         '''
@@ -3696,7 +3696,7 @@ class TestAirspeedSelectedAtTakeoffAccelerationStart(unittest.TestCase, NodeTest
                 np.ma.repeat(137, 435),
                 np.linspace(137, 147, 5),
                 np.ma.repeat(147, 100)
-            ))[::64],
+                ))[::64],
             frequency=1/64.0
         )
         node = self.node_class(frequency=1/64.0)
@@ -4009,7 +4009,7 @@ class TestAirspeedMinusAirspeedSelectedFor3Sec1000To500FtMax(unittest.TestCase,
              'Airspeed Minus Airspeed Selected For 3 Sec',
              'Altitude AAL For Flight Phases',
              'HDF Duration'
-            )]
+             )]
         self.air_rel_fms = P(
             name='Airspeed Minus Airspeed Selected (FMS) For 3 Sec',
             array=np.ma.concatenate((np.linspace(40, 0, 30), np.linspace(1, 100, 20))),
@@ -4067,7 +4067,7 @@ class TestAirspeedMinusAirspeedSelectedFor3Sec1000To500FtMin(unittest.TestCase,
              'Airspeed Minus Airspeed Selected For 3 Sec',
              'Altitude AAL For Flight Phases',
              'HDF Duration'
-            )]
+             )]
         self.air_rel_fms = P(
             name='Airspeed Minus Airspeed Selected (FMS) For 3 Sec',
             array=np.ma.concatenate((np.linspace(40, 0, 30), np.linspace(1, 100, 20))),
@@ -4125,7 +4125,7 @@ class TestAirspeedMinusAirspeedSelectedFor3Sec500To20FtMax(unittest.TestCase,
              'Airspeed Minus Airspeed Selected For 3 Sec',
              'Altitude AAL For Flight Phases',
              'HDF Duration'
-            )]
+             )]
         self.air_rel_fms = P(
             name='Airspeed Minus Airspeed Selected (FMS) For 3 Sec',
             array=np.ma.concatenate((np.linspace(40, 0, 30), np.linspace(1, 100, 20))),
@@ -4183,7 +4183,7 @@ class TestAirspeedMinusAirspeedSelectedFor3Sec500To20FtMin(unittest.TestCase,
              'Airspeed Minus Airspeed Selected For 3 Sec',
              'Altitude AAL For Flight Phases',
              'HDF Duration'
-            )]
+             )]
         self.air_rel_fms = P(
             name='Airspeed Minus Airspeed Selected (FMS) For 3 Sec',
             array=np.ma.concatenate((np.linspace(40, 0, 30), np.linspace(1, 100, 20))),
@@ -4768,7 +4768,7 @@ class TestAirspeedWithFlapMax(unittest.TestCase, NodeTest):
         array = np.ma.concatenate((array, array[::-1]))
         fast = buildsection('Fast', 0, 80)
         array = np.array([0.0, 0.1, 0.6, 1.0] + [1.2, 1.5, 1.9, 2.5, 3.5, 4.5,
-                          5.0, 5.2, 5.9, 6.5, 7.0, 7.9, 8.7, 9.0, 9.8, 10.0,
+                                                 5.0, 5.2, 5.9, 6.5, 7.0, 7.9, 8.7, 9.0, 9.8, 10.0,
                           10.0, 10.2, 10.9, 11.5, 12.0, 12.9, 13.7, 14.0, 14.9, 15.0,
                           15.0, 15.2, 15.9, 16.5, 17.0, 17.9, 18.7, 19.0, 19.5, 20.0])
         array = np.ma.concatenate((array, array[::-1]))
@@ -4787,7 +4787,7 @@ class TestAirspeedWithFlapMax(unittest.TestCase, NodeTest):
         flap_inc_trans = M('Flap Including Transition', array.copy(), values_mapping=mapping)
         fast = buildsection('Fast', 0, 80)
         array = np.array([0.0, 0.1, 0.6, 1.0] + [1.2, 1.5, 1.9, 2.5, 3.5, 4.5] +
-                             [5.0, 5.2, 5.9, 6.5, 7.0, 7.9, 8.7, 9.0, 9.8, 10.0] +
+                         [5.0, 5.2, 5.9, 6.5, 7.0, 7.9, 8.7, 9.0, 9.8, 10.0] +
                              [10.0, 10.2, 10.9, 11.5, 12.0, 12.9, 13.7, 14.0, 14.9, 15.0] +
                              [15.0, 15.2, 15.9, 16.5, 17.0, 17.9, 18.7, 19.0, 19.5, 20.0])
         array = np.concatenate((array, array[::-1]))
@@ -5181,7 +5181,7 @@ class TestAirspeedWithThrustReversersDeployedMin(unittest.TestCase, NodeTest):
     def test_derive_with_epr(self):
         air_spd = P('Airspeed True', array = np.ma.arange(100,0,-10))
         tr = M('Thrust Reversers', array=np.ma.array([0]*3+[1]+[2]*4+[1,0]),
-             values_mapping = {0: 'Stowed', 1: 'In Transit', 2: 'Deployed'})
+               values_mapping = {0: 'Stowed', 1: 'In Transit', 2: 'Deployed'})
         epr = P('Eng (*) EPR Max', array=np.ma.array([1.0]*5+[1.26]*3+[1.0]*2))
         landings=buildsection('Landing', 2, 9)
         node = AirspeedWithThrustReversersDeployedMin()
@@ -5967,7 +5967,7 @@ class TestThrustReversersCancelToEngStopDuration(unittest.TestCase, NodeTest):
             'ThrustReversersCancelToEngStopDuration_ThrustReversers_1.nod'))
         eng_start = KTI('Eng Start', items=[
             KeyTimeInstance(10, 'Eng Start'),
-            ])
+        ])
         eng_stop = load(os.path.join(
             test_data_path,
             'ThrustReversersCancelToEngStopDuration_EngStop_1.nod'))
@@ -6004,10 +6004,10 @@ class TestSpoilersDeployedDurationDuringLanding(unittest.TestCase, NodeTest):
         self.values_mapping = {0: 'Stowed', 1: 'Armed/Cmd Dn', 2: 'Deployed/Cmd Up'}
         self.speedbrake_array =  np.ma.array(([0] * 4 + [1] * 2 + [2] * 4) * 3)
         self.speedbrake = M('Speedbrake Selected', values_mapping=self.values_mapping,
-                       array=self.speedbrake_array)
+                            array=self.speedbrake_array)
         self.landing = S('Landing')
         self.landing.create_section(slice(5, 28, None),
-                           begin=5.265625, end=27.265625)
+                                    begin=5.265625, end=27.265625)
 
     def test_can_operate(self):
         opts = self.node_class.get_operational_combinations()
@@ -6029,9 +6029,9 @@ class TestSpoilersDeployedDurationDuringLanding(unittest.TestCase, NodeTest):
         self.speedbrake.array = self.speedbrake_array
         node.derive(self.speedbrake, self.landing)
         self.assertEqual(node[0], KeyPointValue(27.265625, 9.265625,
-                                              'Spoilers Deployed Duration During Landing'))
+                                                'Spoilers Deployed Duration During Landing'))
         self.assertEqual(node[1], KeyPointValue(40.331, 4.0,
-                                              'Spoilers Deployed Duration During Landing'))
+                                                'Spoilers Deployed Duration During Landing'))
 
     def test_derive_landing_without_spoilers_deployed(self):
         node = self.node_class()
@@ -6120,7 +6120,7 @@ class TestMainGearOnGroundToNoseGearOnGroundDuration(unittest.TestCase,
 
 
 class TestBrakeTempDuringTaxiInMax(unittest.TestCase,
-                                        CreateKPVsWithinSlicesTest):
+                                   CreateKPVsWithinSlicesTest):
     def setUp(self):
         self.node_class = BrakeTempDuringTaxiInMax
         self.operational_combinations = [('Brake (*) Temp Max', 'Taxi In',)]
@@ -6875,7 +6875,7 @@ class TestAltitudeAtFirstFlapRetractionDuringGoAround(unittest.TestCase, NodeTes
                 np.ones(10) * 3000,
                 np.arange(3, -1, -1) * 1000,
                 np.zeros(10),
-            ]),
+                ]),
         )
         self.go_arounds = buildsection('Go Around And Climbout', 97, 112)
 
@@ -6909,7 +6909,7 @@ class TestAltitudeAtFirstFlapRetraction(unittest.TestCase, NodeTest):
             array=np.ma.concatenate([
                 np.zeros(10),
                 np.arange(40) * 1000,
-            ]),
+                ]),
         )
 
     def test_derive_basic(self):
@@ -6942,7 +6942,7 @@ class TestAltitudeAtLastFlapRetraction(unittest.TestCase, NodeTest):
             array=np.ma.concatenate([
                 np.zeros(10),
                 np.arange(40) * 1000,
-            ]),
+                ]),
         )
 
     def test_derive_basic(self):
@@ -7287,9 +7287,9 @@ class TestControlColumnStiffness(unittest.TestCase, NodeTest):
 
     def test_derive_too_few_samples(self):
         cc_disp = P('Control Column',
-                            np.ma.array([0,.3,1,2,2.5,1.4,0,0]))
+                    np.ma.array([0,.3,1,2,2.5,1.4,0,0]))
         cc_force = P('Control Column Force',
-                             np.ma.array([0,2,4,7,8,5,2,1]))
+                     np.ma.array([0,2,4,7,8,5,2,1]))
         phase_fast = Fast()
         phase_fast.derive(P('Airspeed', np.ma.array([100]*10)))
         stiff = ControlColumnStiffness()
@@ -7474,7 +7474,7 @@ class TestHeightSelectedOnApproachMin(unittest.TestCase):
         alt_mcp = P(name='Altitude Selected (MCP)',
                     array=np.ma.array([1000,150,250]))
         apps = App('Approach Information',
-                       items=[ApproachItem('LANDING',
+                   items=[ApproachItem('LANDING',
                                            slice(0, 3),
                                            airport={u'elevation': 35,
                                                     u'name': u'Test'}
@@ -7487,7 +7487,7 @@ class TestHeightSelectedOnApproachMin(unittest.TestCase):
         alt_mcp = P(name='Altitude Selected (MCP)',
                     array=np.ma.array([1000,150,250]))
         apps = App('Approach Information',
-                       items=[ApproachItem('LANDING',
+                   items=[ApproachItem('LANDING',
                                            slice(0, 3),
                                            airport={u'elevation': 350,
                                                     u'name': u'Test'}
@@ -7802,18 +7802,18 @@ class TestILSGlideslopeDeviation1500To1000FtMax(unittest.TestCase, ILSTest):
             'ILS Glideslope',
             'Altitude AAL For Flight Phases',
             'ILS Glideslope Established',
-        ), ac_type=aeroplane))
+            ), ac_type=aeroplane))
         self.assertFalse(self.node_class.can_operate((
             'ILS Glideslope',
             'Altitude AAL For Flight Phases',
             'ILS Glideslope Established',
-        ), ac_type=helicopter))
+            ), ac_type=helicopter))
         self.assertTrue(self.node_class.can_operate((
             'ILS Glideslope',
             'ILS Glideslope Established',
             'Altitude AGL',
             'Descending',
-        ), ac_type=helicopter))
+            ), ac_type=helicopter))
 
     def test_derive_basic(self):
         kpv = ILSGlideslopeDeviation1500To1000FtMax()
@@ -7944,18 +7944,18 @@ class TestILSGlideslopeDeviation500To200FtMax(unittest.TestCase, ILSTest):
             'ILS Glideslope',
             'Altitude AAL For Flight Phases',
             'ILS Glideslope Established',
-        ), ac_type=helicopter))
+            ), ac_type=helicopter))
         self.assertTrue(self.node_class.can_operate((
             'ILS Glideslope',
             'Altitude AAL For Flight Phases',
             'ILS Glideslope Established',
-        ), ac_type=aeroplane))
+            ), ac_type=aeroplane))
         self.assertTrue(self.node_class.can_operate((
             'ILS Glideslope',
             'ILS Glideslope Established',
             'Altitude AGL',
             'Descending',
-        ), ac_type=helicopter))
+            ), ac_type=helicopter))
 
     def test_derive_basic(self):
         kpv = ILSGlideslopeDeviation500To200FtMax()
@@ -7988,12 +7988,12 @@ class TestILSGlideslopeNotEstablishedHighestAltitude1000To200Ft(unittest.TestCas
             'Altitude AAL For Flight Phases',
             'ILS Glideslope',
             'ILS Localizer'
-        ), ac_type=aeroplane))
+            ), ac_type=aeroplane))
         self.assertTrue(self.node_class.can_operate((
             'Altitude AGL',
             'ILS Glideslope',
             'ILS Localizer'
-        ), ac_type=helicopter))
+            ), ac_type=helicopter))
 
     def test_derive_ILS_established_during_one_approach(self):
 
@@ -8096,12 +8096,12 @@ class TestILSGlideslopeNotEstablishedHighestAltitude500To200Ft(unittest.TestCase
             'Altitude AAL For Flight Phases',
             'ILS Glideslope',
             'ILS Localizer'
-        ), ac_type=aeroplane))
+            ), ac_type=aeroplane))
         self.assertTrue(self.node_class.can_operate((
             'Altitude AGL',
             'ILS Glideslope',
             'ILS Localizer'
-        ), ac_type=helicopter))
+            ), ac_type=helicopter))
 
     def test_derive_ILS_established_during_one_approach(self):
 
@@ -8189,11 +8189,11 @@ class TestILSLocalizerNotEstablishedHighestAltitude1000To200Ft(unittest.TestCase
         self.assertTrue(self.node_class.can_operate((
             'Altitude AAL For Flight Phases'
             'ILS Localizer'
-        ), ac_type=aeroplane))
+            ), ac_type=aeroplane))
         self.assertTrue(self.node_class.can_operate((
             'Altitude AGL',
             'ILS Localizer'
-        ), ac_type=helicopter))
+            ), ac_type=helicopter))
 
     def test_derive_ILS_established_during_one_approach(self):
 
@@ -8293,11 +8293,11 @@ class TestILSLocalizerNotEstablishedHighestAltitude500To200Ft(unittest.TestCase)
         self.assertTrue(self.node_class.can_operate((
             'Altitude AAL For Flight Phases'
             'ILS Localizer'
-        ), ac_type=aeroplane))
+            ), ac_type=aeroplane))
         self.assertTrue(self.node_class.can_operate((
             'Altitude AGL',
             'ILS Localizer'
-        ), ac_type=helicopter))
+            ), ac_type=helicopter))
 
     def test_derive_ILS_established_during_one_approach(self):
 
@@ -8398,18 +8398,18 @@ class TestILSLocalizerDeviation1500To1000FtMax(unittest.TestCase, ILSTest):
             'ILS Localizer',
             'Altitude AAL For Flight Phases',
             'ILS Localizer Established',
-        ), ac_type=helicopter))
+            ), ac_type=helicopter))
         self.assertTrue(self.node_class.can_operate((
             'ILS Localizer',
             'Altitude AAL For Flight Phases',
             'ILS Localizer Established',
-        ), ac_type=aeroplane))
+            ), ac_type=aeroplane))
         self.assertTrue(self.node_class.can_operate((
             'ILS Localizer',
             'ILS Localizer Established',
             'Altitude AGL',
             'Descending',
-        ), ac_type=helicopter))
+            ), ac_type=helicopter))
 
     def test_derive_basic(self):
         kpv = ILSLocalizerDeviation1500To1000FtMax()
@@ -8438,18 +8438,18 @@ class TestILSLocalizerDeviation1000To500FtMax(unittest.TestCase, ILSTest):
             'ILS Localizer',
             'Altitude AAL For Flight Phases',
             'ILS Localizer Established',
-        ), ac_type=helicopter))
+            ), ac_type=helicopter))
         self.assertTrue(self.node_class.can_operate((
             'ILS Localizer',
             'Altitude AAL For Flight Phases',
             'ILS Localizer Established',
-        ), ac_type=aeroplane))
+            ), ac_type=aeroplane))
         self.assertTrue(self.node_class.can_operate((
             'ILS Localizer',
             'ILS Localizer Established',
             'Altitude AGL',
             'Descending',
-        ), ac_type=helicopter))
+            ), ac_type=helicopter))
 
     def test_derive_basic(self):
         kpv = ILSLocalizerDeviation1000To500FtMax()
@@ -8478,18 +8478,18 @@ class TestILSLocalizerDeviation500To200FtMax(unittest.TestCase, ILSTest):
             'ILS Localizer',
             'Altitude AAL For Flight Phases',
             'ILS Localizer Established',
-        ), ac_type=aeroplane))
+            ), ac_type=aeroplane))
         self.assertFalse(self.node_class.can_operate((
             'ILS Localizer',
             'Altitude AAL For Flight Phases',
             'ILS Localizer Established',
-        ), ac_type=helicopter))
+            ), ac_type=helicopter))
         self.assertTrue(self.node_class.can_operate((
             'ILS Localizer',
             'ILS Localizer Established',
             'Altitude AGL',
             'Descending',
-        ), ac_type=helicopter))
+            ), ac_type=helicopter))
 
     def test_derive_basic(self):
         kpv = ILSLocalizerDeviation500To200FtMax()
@@ -8780,7 +8780,7 @@ class TestAltitudeFirstStableDuringLastApproach(unittest.TestCase):
         firststable = AltitudeFirstStableDuringLastApproach()
         #                                            stable tooshort stable
         stable = StableApproach(array=np.ma.array([1,4,9,9,  3,2,9,   2,9,9],
-                                             mask=[0,0,0,0,  1,0,0,   0,0,0]))
+                                                  mask=[0,0,0,0,  1,0,0,   0,0,0]))
         alt2app = P(array=np.ma.array([1000,900,800,700,600,500,400,300,200,100]))
         firststable.derive(stable, alt2app)
         self.assertEqual(len(firststable), 1)
@@ -8798,7 +8798,7 @@ class TestAltitudeFirstStableDuringApproachBeforeGoAround(unittest.TestCase):
         firststable = AltitudeFirstStableDuringApproachBeforeGoAround()
         #                                            stable tooshort stable
         stable = StableApproach(array=np.ma.array([1,4,9,9,  3,2,9,   2,9,9],
-                                             mask=[0,0,0,0,  1,0,0,   0,0,0]))
+                                                  mask=[0,0,0,0,  1,0,0,   0,0,0]))
         alt2app = P(array=np.ma.array([1000,900,800,700,600,500,400,300,200,100]))
         firststable.derive(stable, alt2app)
         self.assertEqual(len(firststable), 1)
@@ -8823,7 +8823,7 @@ class TestAltitudeLastUnstableDuringLastApproach(unittest.TestCase):
         lastunstable = AltitudeLastUnstableDuringLastApproach()
         #                                                 stable tooshort stable
         stable = StableApproach(array=np.ma.array([1,4,9,9,  3,2,9,   2,9,9,1,1],
-                                             mask=[0,0,0,0,  1,0,0,   0,0,0,0,0]))
+                                                  mask=[0,0,0,0,  1,0,0,   0,0,0,0,0]))
         alt2app = P(array=np.ma.array([1000,900,800,700,600,500,400,300,200,100,20,0]))
         lastunstable.derive(stable, alt2app)
         self.assertEqual(len(lastunstable), 1)
@@ -8836,7 +8836,7 @@ class TestAltitudeLastUnstableDuringLastApproach(unittest.TestCase):
         lastunstable = AltitudeLastUnstableDuringLastApproach()
         # not stable for either approach
         stable = StableApproach(array=np.ma.array([1,4,4,4,  3,2,2,2,2,2,1,1],
-                                             mask=[0,0,0,0,  1,0,0,0,0,0,0,0]))
+                                                  mask=[0,0,0,0,  1,0,0,0,0,0,0,0]))
         alt2app = P(array=np.ma.array([1000,900,800,700,600,500,400,300,200,100,50,0]))
         lastunstable.derive(stable, alt2app)
         self.assertEqual(len(lastunstable), 1)
@@ -8856,7 +8856,7 @@ class TestAltitudeLastUnstableDuringLastApproachExcludingEngThrust(unittest.Test
         lastunstable = AltitudeLastUnstableDuringLastApproachExcludingEngThrust()
         #                                                 stable tooshort stable
         stable = StableApproach(array=np.ma.array([1,4,9,9,  3,2,9,   2,9,9,1,1],
-                                             mask=[0,0,0,0,  1,0,0,   0,0,0,0,0]))
+                                                  mask=[0,0,0,0,  1,0,0,   0,0,0,0,0]))
         alt2app = P(array=np.ma.array([1000,900,800,700,600,500,400,300,200,100,20,0]))
         lastunstable.derive(stable, alt2app)
         self.assertEqual(len(lastunstable), 1)
@@ -8869,7 +8869,7 @@ class TestAltitudeLastUnstableDuringLastApproachExcludingEngThrust(unittest.Test
         lastunstable = AltitudeLastUnstableDuringLastApproachExcludingEngThrust()
         # not stable for either approach
         stable = StableApproach(array=np.ma.array([1,4,4,4,  3,2,2,2,2,2,1,1],
-                                             mask=[0,0,0,0,  1,0,0,0,0,0,0,0]))
+                                                  mask=[0,0,0,0,  1,0,0,0,0,0,0,0]))
         alt2app = P(array=np.ma.array([1000,900,800,700,600,500,400,300,200,100,50,0]))
         lastunstable.derive(stable, alt2app)
         self.assertEqual(len(lastunstable), 1)
@@ -8888,7 +8888,7 @@ class TestAltitudeLastUnstableDuringApproachBeforeGoAround(unittest.TestCase):
         lastunstable = AltitudeLastUnstableDuringApproachBeforeGoAround()
         #                                                 stable tooshort stable  last
         stable = StableApproach(array=np.ma.array([1,4,9,9,  3,2,9,2,9,9,1,1, 1,3,9,9,9],
-                                             mask=[0,0,0,0,  1,0,0,0,0,0,0,0, 1,0,0,0,0]))
+                                                  mask=[0,0,0,0,  1,0,0,0,0,0,0,0, 1,0,0,0,0]))
         alt2app = P(array=np.ma.array([1500,1400,1200,1000,
                                        900,800,700,600,500,400,300,200,
                                        100,50,20,0,0]))
@@ -8904,7 +8904,7 @@ class TestAltitudeLastUnstableDuringApproachBeforeGoAround(unittest.TestCase):
         lastunstable = AltitudeLastUnstableDuringApproachBeforeGoAround()
         # not stable for either approach
         stable = StableApproach(array=np.ma.array([1,4,4,4,  3,2,2,2,2,2,1,1],
-                                             mask=[0,0,0,0,  1,0,0,0,0,0,0,0]))
+                                                  mask=[0,0,0,0,  1,0,0,0,0,0,0,0]))
         alt2app = P(array=np.ma.array([1000,900,800,700,600,500,400,300,200,100,50,20]))
         lastunstable.derive(stable, alt2app)
         self.assertEqual(len(lastunstable), 1)
@@ -8921,7 +8921,7 @@ class TestLastUnstableStateDuringLastApproach(unittest.TestCase):
     def test_derive(self):
         state = LastUnstableStateDuringLastApproach()
         stable = StableApproach(array=np.ma.array([1,4,9,9,  3,2,4,2,9,9,9,9],
-                                             mask=[0,0,0,0,  1,0,0,0,0,0,0,0]))
+                                                  mask=[0,0,0,0,  1,0,0,0,0,0,0,0]))
         state.derive(stable)
         self.assertEqual(len(state), 1)
         self.assertEqual(state[0].index, 7.5)
@@ -8941,7 +8941,7 @@ class TestLastUnstableStateDuringApproachBeforeGoAround(unittest.TestCase):
     def test_derive(self):
         state = LastUnstableStateDuringApproachBeforeGoAround()
         stable = StableApproach(array=np.ma.array([1,4,9,9,  3,2,4,2,9,9,9,9],
-                                             mask=[0,0,0,0,  1,0,0,0,0,0,0,0]))
+                                                  mask=[0,0,0,0,  1,0,0,0,0,0,0,0]))
         state.derive(stable)
         self.assertEqual(len(state), 1)
         self.assertEqual(state[0].index, 1.5)
@@ -8956,7 +8956,7 @@ class TestPercentApproachStableBelow(unittest.TestCase):
     def test_derive_two_approaches(self):
         percent_stable = PercentApproachStable()
         stable = StableApproach(array=np.ma.array([1,4,9,9,9, 3, 2,9,2,9,9,1,1],
-                                             mask=[0,0,0,0,0, 1, 0,0,0,0,0,0,0]))
+                                                  mask=[0,0,0,0,0, 1, 0,0,0,0,0,0,0]))
         alt2app = P(array=np.ma.array([1100,1000,900,800,700,
                                        600,
                                        600,650,200,100,50,20,1]))
@@ -8966,18 +8966,18 @@ class TestPercentApproachStableBelow(unittest.TestCase):
 
         # First approach reaches only 1000 feet barrier (does not create 500ft)
         self.assertEqual(percent_stable[0].name,
-            "Percent Approach Stable Below 1000 Ft During Approach Before Go Around")
+                         "Percent Approach Stable Below 1000 Ft During Approach Before Go Around")
         self.assertEqual(percent_stable[0].index, 2)
         self.assertEqual(percent_stable[0].value, 75)  #3/4 == 75% - 4 samples below 1000ft
 
         # Last approach is below 1000 and 500 feet
         self.assertEqual(percent_stable[1].name,
-            "Percent Approach Stable Below 1000 Ft During Last Approach")
+                         "Percent Approach Stable Below 1000 Ft During Last Approach")
         self.assertEqual(percent_stable[1].index, 7)
         self.assertEqual(percent_stable[1].value, (3/7.0)*100)  #3/7
 
         self.assertEqual(percent_stable[2].name,
-            "Percent Approach Stable Below 500 Ft During Last Approach")
+                         "Percent Approach Stable Below 500 Ft During Last Approach")
         self.assertEqual(percent_stable[2].index, 9)
         self.assertEqual(percent_stable[2].value, 40)  #2/5 == 40%
 
@@ -8985,8 +8985,8 @@ class TestPercentApproachStableBelow(unittest.TestCase):
         # three approaches
         percent_stable = PercentApproachStable()
         stable = StableApproach(array=np.ma.array(
-              [1,4,9,9,9, 3, 2,9,2,9,9,1,1, 3, 1,1,1,1,1],
-         mask=[0,0,0,0,0, 1, 0,0,0,0,0,0,0, 1, 0,0,0,0,0]))
+            [1,4,9,9,9, 3, 2,9,2,9,9,1,1, 3, 1,1,1,1,1],
+              mask=[0,0,0,0,0, 1, 0,0,0,0,0,0,0, 1, 0,0,0,0,0]))
         alt2app = P(array=np.ma.array([1100,1000,900,800,700,  # approach 1
                                        1000,
                                        600,550,200,100,50,20,10,  # approach 2
@@ -8998,30 +8998,30 @@ class TestPercentApproachStableBelow(unittest.TestCase):
 
         # First Approach
         self.assertEqual(percent_stable[0].name,
-            "Percent Approach Stable Below 1000 Ft During Approach Before Go Around")
+                         "Percent Approach Stable Below 1000 Ft During Approach Before Go Around")
         self.assertEqual(percent_stable[0].index, 2)
         self.assertEqual(percent_stable[0].value, 75)
 
         # Second Approach
         self.assertEqual(percent_stable[1].name,
-            "Percent Approach Stable Below 1000 Ft During Approach Before Go Around")
+                         "Percent Approach Stable Below 1000 Ft During Approach Before Go Around")
         self.assertEqual(percent_stable[1].index, 7)
         self.assertEqual(percent_stable[1].value, (3/7.0)*100)
 
         self.assertEqual(percent_stable[2].name,
-            "Percent Approach Stable Below 500 Ft During Approach Before Go Around")
+                         "Percent Approach Stable Below 500 Ft During Approach Before Go Around")
         self.assertEqual(percent_stable[2].index, 9)
         self.assertEqual(percent_stable[2].value, 40)  # 2/5
 
         # Last Approach (landing)
         # test that there was an approach but non was stable
         self.assertEqual(percent_stable[3].name,
-            "Percent Approach Stable Below 1000 Ft During Last Approach")
+                         "Percent Approach Stable Below 1000 Ft During Last Approach")
         self.assertEqual(percent_stable[3].index, 14)
         self.assertEqual(percent_stable[3].value, 0)  # No stability == 0%
 
         self.assertEqual(percent_stable[4].name,
-            "Percent Approach Stable Below 500 Ft During Last Approach")
+                         "Percent Approach Stable Below 500 Ft During Last Approach")
         self.assertEqual(percent_stable[4].index, 14)
         self.assertEqual(percent_stable[4].value, 0)  # No stability == 0%
 
@@ -9067,7 +9067,7 @@ class TestDecelerationFromTouchdownToStopOnRunway(unittest.TestCase, NodeTest):
         self.node_class = DecelerationFromTouchdownToStopOnRunway
         self.can_operate_kwargs = {'ac_type': aeroplane}
         self.operational_combinations = [('Groundspeed', 'Touchdown',
-            'Landing', 'Latitude Smoothed At Touchdown', 'Longitude Smoothed At Touchdown',
+                                          'Landing', 'Latitude Smoothed At Touchdown', 'Longitude Smoothed At Touchdown',
             'FDR Landing Runway', 'ILS Glideslope Established',
             'ILS Localizer Established', 'Precise Positioning')]
 
@@ -9107,14 +9107,14 @@ class TestGreatCircleDistance(unittest.TestCase):
     def test_can_operate(self):
         self.assertTrue(self.node_class.can_operate(('FDR Takeoff Airport', 'FDR Landing Airport', 'Touchdown')))
         self.assertTrue(self.node_class.can_operate(('Latitude Smoothed At Liftoff',
-                                                    'Longitude Smoothed At Liftoff',
+                                                     'Longitude Smoothed At Liftoff',
                                                     'Latitude Smoothed At Touchdown',
                                                     'Longitude Smoothed At Touchdown',
                                                     'Touchdown')))
 
         self.assertTrue(self.node_class.can_operate(('FDR Takeoff Airport', 'FDR Landing Airport', 'Touchdown')))
         self.assertFalse(self.node_class.can_operate(('Latitude Smoothed At Liftoff',
-                                                    'Longitude Smoothed At Liftoff',
+                                                      'Longitude Smoothed At Liftoff',
                                                     'Latitude Smoothed At Touchdown',
                                                     'Longitude Smoothed At Touchdown')))
 
@@ -9398,7 +9398,7 @@ class TestEngN1OverThresholdDuration(unittest.TestCase):
             'N1': {
                 'takeoff': 101,
                 'mcp':     102
-            },
+                },
         }
 
     @patch('analysis_engine.key_point_values.at')
@@ -9437,7 +9437,7 @@ class TestEngN1OverThresholdDuration(unittest.TestCase):
                 index=13.0, value=12.0,
                 name='Eng N1 Over Takeoff Power Duration'),
                    KeyPointValue(
-                index=14.0, value=11.0,
+                       index=14.0, value=11.0,
                 name='Eng N1 Over MCP Duration')]
         )
 
@@ -9454,7 +9454,7 @@ class TestEngN2OverThresholdDuration(unittest.TestCase):
             'N2': {
                 'takeoff': 101,
                 'mcp':     102
-            },
+                },
         }
 
     @patch('analysis_engine.key_point_values.at')
@@ -9493,7 +9493,7 @@ class TestEngN2OverThresholdDuration(unittest.TestCase):
                 index=13.0, value=12.0,
                 name='Eng N2 Over Takeoff Power Duration'),
                    KeyPointValue(
-                index=14.0, value=11.0,
+                       index=14.0, value=11.0,
                 name='Eng N2 Over MCP Duration')]
         )
 
@@ -9510,7 +9510,7 @@ class TestEngNpOverThresholdDuration(unittest.TestCase):
             'Np': {
                 'takeoff': 101,
                 'mcp':     101
-            },
+                },
         }
 
     @patch('analysis_engine.key_point_values.at')
@@ -9549,7 +9549,7 @@ class TestEngNpOverThresholdDuration(unittest.TestCase):
                 index=13.0, value=12.0,
                 name='Eng Np Over Takeoff Power Duration'),
                    KeyPointValue(
-                index=13.0, value=12.0,
+                       index=13.0, value=12.0,
                 name='Eng Np Over MCP Duration')]
         )
 
@@ -9581,7 +9581,7 @@ class TestEngNpMaxDuringTakeoff(unittest.TestCase):
     def test_derive_short_takeoff(self):
         takeoffs=buildsection('Takeoff 5 Min Rating', 10, 21)
         eng_np_max=P('Eng (*) Np Max', array=np.ma.array([80, 81, 82, 83, 83, 82, 83, 81, 82, 83] +
-                                                             [85, 90, 92, 95, 96, 99] +
+                                                         [85, 90, 92, 95, 96, 99] +
                                                              [99, 100, 99, 99, 99, 100, 99, 98, 98] * 3 +
                                                              [95, 94, 92, 89, 86, 82, 80, 80, 81, 82]))
 
@@ -9589,13 +9589,13 @@ class TestEngNpMaxDuringTakeoff(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_np_max, takeoffs, None)
         self.assertEqual(node, KPV(name=name, items=[
-                KeyPointValue(index=15, value=99, name='Eng (*) Np Max During Takeoff 5 Sec'),
-            ]))
+            KeyPointValue(index=15, value=99, name='Eng (*) Np Max During Takeoff 5 Sec'),
+        ]))
 
     def test_derive_masked_data(self):
         takeoffs=buildsection('Takeoff 5 Min Rating', 10, 40)
         eng_np_max=P('Eng (*) Np Max', array=np.ma.array([80, 81, 82, 83, 83, 82, 83, 81, 82, 83] +
-                                                             [85, 90, 92, 95, 96, 99] +
+                                                         [85, 90, 92, 95, 96, 99] +
                                                              [99, 100, 99, 99, 99, 100, 99, 98] * 3 +
                                                              [95, 94, 92, 89, 86, 82, 80, 80, 81, 82]))
         eng_np_max.array[15:30] = np.ma.masked
@@ -9604,8 +9604,8 @@ class TestEngNpMaxDuringTakeoff(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_np_max, takeoffs, None)
         self.assertEqual(node, KPV(name=name, items=[
-                KeyPointValue(index=34, value=99, name='Eng (*) Np Max During Takeoff 5 Sec'),
-            ]))
+            KeyPointValue(index=34, value=99, name='Eng (*) Np Max During Takeoff 5 Sec'),
+        ]))
 
     def test_derive_multiple_masked_slices(self):
         takeoffs=buildsection('Takeoff 5 Min Rating', 10, 40)
@@ -9627,7 +9627,7 @@ class TestEngNpMaxDuringTakeoff(unittest.TestCase):
     def test_derive_all_data_masked(self):
         takeoffs=buildsection('Takeoff 5 Min Rating', 10, 40)
         eng_np_max=P('Eng (*) Np Max', array=np.ma.array([80, 81, 82, 83, 83, 82, 83, 81, 82, 83] +
-                                                             [85, 90, 92, 95, 96, 99] +
+                                                         [85, 90, 92, 95, 96, 99] +
                                                              [99, 100, 99, 99, 99, 100, 99, 98] * 3 +
                                                              [95, 94, 92, 89, 86, 82, 80, 80, 81, 82]))
         eng_np_max.array[10:40] = np.ma.masked
@@ -9646,8 +9646,8 @@ class TestEngNpMaxDuringTakeoff(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_np_max, takeoffs, None)
         self.assertEqual(node, KPV(name=name, items=[
-                KeyPointValue(index=15, value=86, name='Eng (*) Np Max During Takeoff 5 Sec'),
-            ]))
+            KeyPointValue(index=15, value=86, name='Eng (*) Np Max During Takeoff 5 Sec'),
+        ]))
 
     def test_derive_hz_2(self):
         takeoffs=buildsection('Takeoff 5 Min Rating', 10, 55)
@@ -9661,23 +9661,23 @@ class TestEngNpMaxDuringTakeoff(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_np_max, takeoffs, None)
         self.assertEqual(node, KPV(name=name, items=[
-                KeyPointValue(index=25, value=98, name='Eng (*) Np Max During Takeoff 5 Sec'),
+            KeyPointValue(index=25, value=98, name='Eng (*) Np Max During Takeoff 5 Sec'),
                 KeyPointValue(index=12, value=92, name='Eng (*) Np Max During Takeoff 20 Sec'),
-            ]))
+        ]))
 
     def test_derive_same_values_returned(self):
         takeoffs=buildsection('Takeoff 5 Min Rating', 10, 40)
         eng_np_max=P('Eng (*) Np Max', array=np.ma.array([80, 81, 82, 83, 83, 82, 83, 81, 82, 83] +
-                                                             [85, 90, 92, 95, 96, 99] +
+                                                         [85, 90, 92, 95, 96, 99] +
                                                              [99, 100, 99, 99, 99, 100, 99, 99] * 3 +
                                                              [95, 94, 92, 89, 86, 82, 80, 80, 81, 82]))
         name = self.node_class.get_name()
         node = self.node_class()
         node.derive(eng_np_max, takeoffs, None)
         self.assertEqual(node, KPV(name=name, items=[
-                KeyPointValue(index=18, value=99, name='Eng (*) Np Max During Takeoff 5 Sec'),
+            KeyPointValue(index=18, value=99, name='Eng (*) Np Max During Takeoff 5 Sec'),
                 KeyPointValue(index=15, value=99, name='Eng (*) Np Max During Takeoff 20 Sec'),
-            ]))
+        ]))
 
     def test_derive_with_go_around(self):
         go_arounds=buildsection('Go Around 5 Min Rating', 10, 40)
@@ -9709,7 +9709,7 @@ class TestEngTorqueOverThresholdDuration(unittest.TestCase):
             'Torque': {
                 'takeoff': 95,
                 'mcp':     90
-            },
+                },
         }
 
     @patch('analysis_engine.key_point_values.at')
@@ -9764,7 +9764,7 @@ class TestEngTorqueOverThresholdDuration(unittest.TestCase):
                 index=10.0, value=15.0,
                 name='Eng Torque Over Takeoff Power Duration'),
                    KeyPointValue(
-                index=8.0, value=17.0,
+                       index=8.0, value=17.0,
                 name='Eng Torque Over MCP Duration')]
         )
 
@@ -9823,7 +9823,7 @@ class TestEngTorqueOverThresholdDuration(unittest.TestCase):
                 index=15.0, value=10.0,
                 name='Eng Torque Over Takeoff Power Duration'),
                    KeyPointValue(
-                index=15.0, value=10.0,
+                       index=15.0, value=10.0,
                 name='Eng Torque Over MCP Duration')]
         )
 
@@ -9844,7 +9844,7 @@ class TestEngTorqueLimitExceedanceWithOneEngineInoperativeDuration(unittest.Test
                 'low':        ( 120, 85),
                 'hi':         (   8, 95),
                 'transient':  (   3, 100)
-            },
+                },
         }
 
     @patch('analysis_engine.key_point_values.at')
@@ -9884,7 +9884,7 @@ class TestEngTorqueLimitExceedanceWithOneEngineInoperativeDuration(unittest.Test
                 index=46.0, value=9.0,
                 name=node_name),
                    KeyPointValue(
-                index=41.0, value=4.0,
+                       index=41.0, value=4.0,
                 name=node_name)]
         )
 
@@ -9909,11 +9909,11 @@ class TestEngTorqueMaxDuringMaximumContinuousPower(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_torque_max, mcp)
         self.assertEqual(node, KPV(name=name, items=[
-                KeyPointValue(index=23, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 10 Sec'),
+            KeyPointValue(index=23, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 10 Sec'),
                 KeyPointValue(index=23, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 20 Sec'),
                 KeyPointValue(index=23, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 5 Min'),
                 KeyPointValue(index=23, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 10 Min'),
-            ]))
+        ]))
 
     def test_derive_short_mcp(self):
         mcp=buildsection('Maximum Continuous Power', 20, 400)
@@ -9925,10 +9925,10 @@ class TestEngTorqueMaxDuringMaximumContinuousPower(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_torque_max, mcp)
         self.assertEqual(node, KPV(name=name, items=[
-                KeyPointValue(index=23, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 10 Sec'),
+            KeyPointValue(index=23, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 10 Sec'),
                 KeyPointValue(index=23, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 20 Sec'),
                 KeyPointValue(index=23, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 5 Min'),
-            ]))
+        ]))
 
     def test_derive_masked_data(self):
         mcp=buildsection('Maximum Continuous Power', 20, 700)
@@ -9941,9 +9941,9 @@ class TestEngTorqueMaxDuringMaximumContinuousPower(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_torque_max, mcp)
         self.assertEqual(node, KPV(name=name, items=[
-                KeyPointValue(index=23, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 10 Sec'),
+            KeyPointValue(index=23, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 10 Sec'),
                 KeyPointValue(index=23, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 20 Sec'),
-            ]))
+        ]))
 
     def test_derive_multiple_masked_slices(self):
         mcp=buildsection('Maximum Continuous Power', 20, 700)
@@ -9959,10 +9959,10 @@ class TestEngTorqueMaxDuringMaximumContinuousPower(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_torque_max, mcp)
         self.assertEqual(node, KPV(name=name, items=[
-                KeyPointValue(index=23, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 10 Sec'),
+            KeyPointValue(index=23, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 10 Sec'),
                 KeyPointValue(index=23, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 20 Sec'),
                 KeyPointValue(index=23, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 5 Min'),
-            ]))
+        ]))
 
     def test_derive_all_data_masked(self):
         mcp=buildsection('Maximum Continuous Power', 20, 700)
@@ -9985,11 +9985,11 @@ class TestEngTorqueMaxDuringMaximumContinuousPower(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_torque_max, mcp)
         self.assertEqual(node, KPV(name=name, items=[
-                KeyPointValue(index=43, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 10 Sec'),
+            KeyPointValue(index=43, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 10 Sec'),
                 KeyPointValue(index=43, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 20 Sec'),
                 KeyPointValue(index=43, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 5 Min'),
                 KeyPointValue(index=43, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 10 Min'),
-            ]))
+        ]))
 
 
 class TestEngTorqueMaxDuringTakeoff(unittest.TestCase):
@@ -10029,16 +10029,16 @@ class TestEngTorqueMaxDuringTakeoff(unittest.TestCase):
     def test_derive_masked_data(self):
         takeoffs=buildsection('Takeoff 5 Min Rating', 10, 360)
         eng_torque_max=P('Eng (*) Torque Max', array=np.ma.array([80, 81, 82, 83, 85, 90, 92, 95, 96, 99] +
-                                                                     [99, 100, 99, 99, 99, 100, 99, 98, 99, 98] * 35 +
+                                                                 [99, 100, 99, 99, 99, 100, 99, 98, 99, 98] * 35 +
                                                                      [95, 94, 92, 89, 86, 82, 80, 80, 81, 82]))
         eng_torque_max.array[50:360] = np.ma.masked
         name = self.node_class.get_name()
         node = self.node_class()
         node.derive(eng_torque_max, takeoffs)
         self.assertEqual(node, KPV(name=name, items=[
-                KeyPointValue(index=17, value=98, name='Eng (*) Torque Max During Takeoff 10 Sec'),
+            KeyPointValue(index=17, value=98, name='Eng (*) Torque Max During Takeoff 10 Sec'),
                 KeyPointValue(index=17, value=98, name='Eng (*) Torque Max During Takeoff 20 Sec'),
-            ]))
+        ]))
 
     def test_derive_multiple_masked_slices(self):
         takeoffs=buildsection('Takeoff 5 Min Rating', 10, 360)
@@ -10060,7 +10060,7 @@ class TestEngTorqueMaxDuringTakeoff(unittest.TestCase):
     def test_derive_all_data_masked(self):
         takeoffs=buildsection('Takeoff 5 Min Rating', 10, 360)
         eng_torque_max=P('Eng (*) Torque Max', array=np.ma.array(([80, 81, 82, 83, 85, 90, 92, 95, 96, 99] +
-                                                                     [99, 100, 99, 99, 99, 100, 99, 98, 99, 98] * 35 +
+                                                                  [99, 100, 99, 99, 99, 100, 99, 98, 99, 98] * 35 +
                                                                      [95, 94, 92, 89, 86, 82, 80, 80, 81, 82]), mask=True))
         name = self.node_class.get_name()
         node = self.node_class()
@@ -10075,24 +10075,24 @@ class TestEngTorqueMaxDuringTakeoff(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_torque_max, takeoffs)
         self.assertEqual(node, KPV(name=name, items=[
-                KeyPointValue(index=24, value=86, name='Eng (*) Torque Max During Takeoff 10 Sec'),
+            KeyPointValue(index=24, value=86, name='Eng (*) Torque Max During Takeoff 10 Sec'),
                 KeyPointValue(index=26, value=80, name='Eng (*) Torque Max During Takeoff 20 Sec'),
                 KeyPointValue(index=26, value=80, name='Eng (*) Torque Max During Takeoff 5 Min'),
-            ]))
+        ]))
 
     def test_derive_hz_2(self):
         takeoffs=buildsection('Takeoff 5 Min Rating', 20, 720)
         eng_torque_max=P('Eng (*) Torque Max', array=np.ma.array([80, 81, 82, 83, 85, 90, 92, 95, 96, 99] * 2 +
-                                                                     [99, 100, 99, 99, 99, 100, 99, 98, 99, 98] * 70 +
+                                                                 [99, 100, 99, 99, 99, 100, 99, 98, 99, 98] * 70 +
                                                                      [95, 94, 92, 89, 86, 82, 80, 80, 81, 82] * 2))
         name = self.node_class.get_name()
         node = self.node_class()
         node.derive(eng_torque_max, takeoffs)
         self.assertEqual(node, KPV(name=name, items=[
-                KeyPointValue(index=27, value=98, name='Eng (*) Torque Max During Takeoff 10 Sec'),
+            KeyPointValue(index=27, value=98, name='Eng (*) Torque Max During Takeoff 10 Sec'),
                 KeyPointValue(index=27, value=98, name='Eng (*) Torque Max During Takeoff 20 Sec'),
                 KeyPointValue(index=27, value=98, name='Eng (*) Torque Max During Takeoff 5 Min'),
-            ]))
+        ]))
 
     def test_derive_with_go_around(self):
         go_arounds=buildsection('Go Around 5 Min Rating', 10, 360)
@@ -10124,7 +10124,7 @@ class TestEngN2DuringTakeoffForXSecMax(unittest.TestCase):
     def test_derive(self):
         takeoffs=buildsection('Takeoff 5 Min Rating', 10, 360)
         eng_N2_max=P('Eng (*) N2 Max', array=np.ma.array([80, 81, 82, 83, 85, 90, 92, 95, 96, 99] +
-                                                                 [99, 100, 99, 99, 99, 100, 99, 98, 99, 98] * 35 +
+                                                         [99, 100, 99, 99, 99, 100, 99, 98, 99, 98] * 35 +
                                                                  [95, 94, 92, 89, 86, 82, 80, 80, 81, 82]))
         name = self.node_class.get_name()
         node = self.node_class()
@@ -10138,7 +10138,7 @@ class TestEngN2DuringTakeoffForXSecMax(unittest.TestCase):
     def test_derive_short_takeoff(self):
         takeoffs=buildsection('Takeoff 5 Min Rating', 10, 25)
         eng_N2_max=P('Eng (*) N2 Max', array=np.ma.array([80, 81, 82, 83, 85, 90, 92, 95, 96, 99] +
-                                                                 [99, 100, 99, 99, 99, 100, 99, 98, 99, 98] * 35 +
+                                                         [99, 100, 99, 99, 99, 100, 99, 98, 99, 98] * 35 +
                                                                  [95, 94, 92, 89, 86, 82, 80, 80, 81, 82]))
         name = self.node_class.get_name()
         node = self.node_class()
@@ -10150,21 +10150,21 @@ class TestEngN2DuringTakeoffForXSecMax(unittest.TestCase):
     def test_derive_masked_data(self):
         takeoffs=buildsection('Takeoff 5 Min Rating', 10, 360)
         eng_N2_max=P('Eng (*) N2 Max', array=np.ma.array([80, 81, 82, 83, 85, 90, 92, 95, 96, 99] +
-                                                                     [99, 100, 99, 99, 99, 100, 99, 98, 99, 98] * 35 +
+                                                         [99, 100, 99, 99, 99, 100, 99, 98, 99, 98] * 35 +
                                                                      [95, 94, 92, 89, 86, 82, 80, 80, 81, 82]))
         eng_N2_max.array[50:360] = np.ma.masked
         name = self.node_class.get_name()
         node = self.node_class()
         node.derive(eng_N2_max, takeoffs)
         self.assertEqual(node, KPV(name=name, items=[
-                KeyPointValue(index=17, value=98, name='Eng (*) N2 During Takeoff For 10 Sec Max'),
+            KeyPointValue(index=17, value=98, name='Eng (*) N2 During Takeoff For 10 Sec Max'),
                 KeyPointValue(index=17, value=98, name='Eng (*) N2 During Takeoff For 20 Sec Max'),
-            ]))
+        ]))
 
     def test_derive_multiple_masked_slices(self):
         takeoffs=buildsection('Takeoff 5 Min Rating', 10, 360)
         eng_N2_max=P('Eng (*) N2 Max', array=np.ma.array([80, 81, 82, 83, 85, 90, 92, 95, 96, 99] +
-                                                                 [99, 100, 99, 99, 99, 100, 99, 98, 99, 98] * 35 +
+                                                         [99, 100, 99, 99, 99, 100, 99, 98, 99, 98] * 35 +
                                                                  [95, 94, 92, 89, 86, 82, 80, 80, 81, 82]))
 
         eng_N2_max.array[200:250] = np.ma.masked
@@ -10181,7 +10181,7 @@ class TestEngN2DuringTakeoffForXSecMax(unittest.TestCase):
     def test_derive_all_data_masked(self):
         takeoffs=buildsection('Takeoff 5 Min Rating', 10, 360)
         eng_N2_max=P('Eng (*) N2 Max', array=np.ma.array(([80, 81, 82, 83, 85, 90, 92, 95, 96, 99] +
-                                                                     [99, 100, 99, 99, 99, 100, 99, 98, 99, 98] * 35 +
+                                                          [99, 100, 99, 99, 99, 100, 99, 98, 99, 98] * 35 +
                                                                      [95, 94, 92, 89, 86, 82, 80, 80, 81, 82]), mask=True))
         name = self.node_class.get_name()
         node = self.node_class()
@@ -10191,29 +10191,29 @@ class TestEngN2DuringTakeoffForXSecMax(unittest.TestCase):
     def test_derive_not_enough_high_samples(self):
         takeoffs=buildsection('Takeoff 5 Min Rating', 10, 400)
         eng_N2_max=P('Eng (*) N2 Max', array=np.ma.array([80, 81, 82, 83, 85, 90, 92, 95, 96, 98] * 2 +
-                                                                 [95, 94, 92, 89, 86, 82, 80, 80, 81, 82] * 40))
+                                                         [95, 94, 92, 89, 86, 82, 80, 80, 81, 82] * 40))
         name = self.node_class.get_name()
         node = self.node_class()
         node.derive(eng_N2_max, takeoffs)
         self.assertEqual(node, KPV(name=name, items=[
-                KeyPointValue(index=24, value=86, name='Eng (*) N2 During Takeoff For 10 Sec Max'),
+            KeyPointValue(index=24, value=86, name='Eng (*) N2 During Takeoff For 10 Sec Max'),
                 KeyPointValue(index=26, value=80, name='Eng (*) N2 During Takeoff For 20 Sec Max'),
                 KeyPointValue(index=26, value=80, name='Eng (*) N2 During Takeoff For 5 Min Max'),
-            ]))
+        ]))
 
     def test_derive_hz_2(self):
         takeoffs=buildsection('Takeoff 5 Min Rating', 20, 720)
         eng_N2_max=P('Eng (*) N2 Max', array=np.ma.array([80, 81, 82, 83, 85, 90, 92, 95, 96, 99] * 2 +
-                                                                     [99, 100, 99, 99, 99, 100, 99, 98, 99, 98] * 70 +
+                                                         [99, 100, 99, 99, 99, 100, 99, 98, 99, 98] * 70 +
                                                                      [95, 94, 92, 89, 86, 82, 80, 80, 81, 82] * 2))
         name = self.node_class.get_name()
         node = self.node_class()
         node.derive(eng_N2_max, takeoffs)
         self.assertEqual(node, KPV(name=name, items=[
-                KeyPointValue(index=27, value=98, name='Eng (*) N2 During Takeoff For 10 Sec Max'),
+            KeyPointValue(index=27, value=98, name='Eng (*) N2 During Takeoff For 10 Sec Max'),
                 KeyPointValue(index=27, value=98, name='Eng (*) N2 During Takeoff For 20 Sec Max'),
                 KeyPointValue(index=27, value=98, name='Eng (*) N2 During Takeoff For 5 Min Max'),
-            ]))
+        ]))
 
     def test_derive_with_go_around(self):
         go_arounds=buildsection('Go Around 5 Min Rating', 10, 360)
@@ -10245,54 +10245,54 @@ class TestEngN2DuringMaximumContinuousPowerForXSecMax(unittest.TestCase):
     def test_derive(self):
         mcp=buildsection('Maximum Continuous Power', 20, 700)
         eng_N2_max=P('Eng (*) N2 Max', array=np.ma.array([80, 81, 85, 90, 95, 96, 99, 100, 100, 99,
-                                                                  95, 92, 93, 89, 87, 85, 82, 83, 80, 79] +
-                                                                 [80, 81, 79, 75, 78, 81, 82, 79, 80, 79] * 70 +
+                                                          95, 92, 93, 89, 87, 85, 82, 83, 80, 79] +
+                                                         [80, 81, 79, 75, 78, 81, 82, 79, 80, 79] * 70 +
                                                                  [75, 72, 68, 63, 58, 40, 30, 20, 10, 0]))
         name = self.node_class.get_name()
         node = self.node_class()
         node.derive(eng_N2_max, mcp)
         self.assertEqual(node, KPV(name=name, items=[
-                KeyPointValue(index=23, value=75, name='Eng (*) N2 During Maximum Continuous Power For 10 Sec Max'),
+            KeyPointValue(index=23, value=75, name='Eng (*) N2 During Maximum Continuous Power For 10 Sec Max'),
                 KeyPointValue(index=23, value=75, name='Eng (*) N2 During Maximum Continuous Power For 20 Sec Max'),
                 KeyPointValue(index=23, value=75, name='Eng (*) N2 During Maximum Continuous Power For 5 Min Max'),
                 KeyPointValue(index=23, value=75, name='Eng (*) N2 During Maximum Continuous Power For 10 Min Max'),
-            ]))
+        ]))
 
     def test_derive_short_mcp(self):
         mcp=buildsection('Maximum Continuous Power', 20, 400)
         eng_N2_max=P('Eng (*) N2 Max', array=np.ma.array([80, 81, 85, 90, 95, 96, 99, 100, 100, 99,
-                                                                  95, 92, 93, 89, 87, 85, 82, 83, 80, 79] +
-                                                                 [80, 81, 79, 75, 78, 81, 82, 79, 80, 79] * 70 +
+                                                          95, 92, 93, 89, 87, 85, 82, 83, 80, 79] +
+                                                         [80, 81, 79, 75, 78, 81, 82, 79, 80, 79] * 70 +
                                                                  [75, 72, 68, 63, 58, 40, 30, 20, 10, 0]))
         name = self.node_class.get_name()
         node = self.node_class()
         node.derive(eng_N2_max, mcp)
         self.assertEqual(node, KPV(name=name, items=[
-                KeyPointValue(index=23, value=75, name='Eng (*) N2 During Maximum Continuous Power For 10 Sec Max'),
+            KeyPointValue(index=23, value=75, name='Eng (*) N2 During Maximum Continuous Power For 10 Sec Max'),
                 KeyPointValue(index=23, value=75, name='Eng (*) N2 During Maximum Continuous Power For 20 Sec Max'),
                 KeyPointValue(index=23, value=75, name='Eng (*) N2 During Maximum Continuous Power For 5 Min Max'),
-            ]))
+        ]))
 
     def test_derive_masked_data(self):
         mcp=buildsection('Maximum Continuous Power', 20, 700)
         eng_N2_max=P('Eng (*) N2 Max', array=np.ma.array([80, 81, 85, 90, 95, 96, 99, 100, 100, 99,
-                                                                  95, 92, 93, 89, 87, 85, 82, 83, 80, 79] +
-                                                                 [80, 81, 79, 75, 78, 81, 82, 79, 80, 79] * 70 +
+                                                          95, 92, 93, 89, 87, 85, 82, 83, 80, 79] +
+                                                         [80, 81, 79, 75, 78, 81, 82, 79, 80, 79] * 70 +
                                                                  [75, 72, 68, 63, 58, 40, 30, 20, 10, 0]))
         eng_N2_max.array[60:] =np.ma.masked
         name = self.node_class.get_name()
         node = self.node_class()
         node.derive(eng_N2_max, mcp)
         self.assertEqual(node, KPV(name=name, items=[
-                KeyPointValue(index=23, value=75, name='Eng (*) N2 During Maximum Continuous Power For 10 Sec Max'),
+            KeyPointValue(index=23, value=75, name='Eng (*) N2 During Maximum Continuous Power For 10 Sec Max'),
                 KeyPointValue(index=23, value=75, name='Eng (*) N2 During Maximum Continuous Power For 20 Sec Max'),
-            ]))
+        ]))
 
     def test_derive_multiple_masked_slices(self):
         mcp=buildsection('Maximum Continuous Power', 20, 700)
         eng_N2_max=P('Eng (*) N2 Max', array=np.ma.array([80, 81, 85, 90, 95, 96, 99, 100, 100, 99,
-                                                                  95, 92, 93, 89, 87, 85, 82, 83, 80, 79] +
-                                                                 [80, 81, 79, 75, 78, 81, 82, 79, 80, 79] * 70 +
+                                                          95, 92, 93, 89, 87, 85, 82, 83, 80, 79] +
+                                                         [80, 81, 79, 75, 78, 81, 82, 79, 80, 79] * 70 +
                                                                  [75, 72, 68, 63, 58, 40, 30, 20, 10, 0]))
 
         eng_N2_max.array[350:400] = np.ma.masked
@@ -10302,16 +10302,16 @@ class TestEngN2DuringMaximumContinuousPowerForXSecMax(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_N2_max, mcp)
         self.assertEqual(node, KPV(name=name, items=[
-                KeyPointValue(index=23, value=75, name='Eng (*) N2 During Maximum Continuous Power For 10 Sec Max'),
+            KeyPointValue(index=23, value=75, name='Eng (*) N2 During Maximum Continuous Power For 10 Sec Max'),
                 KeyPointValue(index=23, value=75, name='Eng (*) N2 During Maximum Continuous Power For 20 Sec Max'),
                 KeyPointValue(index=23, value=75, name='Eng (*) N2 During Maximum Continuous Power For 5 Min Max'),
-            ]))
+        ]))
 
     def test_derive_all_data_masked(self):
         mcp=buildsection('Maximum Continuous Power', 20, 700)
         eng_N2_max=P('Eng (*) N2 Max', array=np.ma.array(([80, 81, 85, 90, 95, 96, 99, 100, 100, 99,
-                                                                   95, 92, 93, 89, 87, 85, 82, 83, 80, 79] +
-                                                                  [80, 81, 79, 75, 78, 81, 82, 79, 80, 79] * 70 +
+                                                           95, 92, 93, 89, 87, 85, 82, 83, 80, 79] +
+                                                          [80, 81, 79, 75, 78, 81, 82, 79, 80, 79] * 70 +
                                                                   [75, 72, 68, 63, 58, 40, 30, 20, 10, 0]), mask=True))
         name = self.node_class.get_name()
         node = self.node_class()
@@ -10321,18 +10321,18 @@ class TestEngN2DuringMaximumContinuousPowerForXSecMax(unittest.TestCase):
     def test_derive_hz_2(self):
         mcp=buildsection('Maximum Continuous Power', 40, 1400)
         eng_N2_max=P('Eng (*) N2 Max', array=np.ma.array([80, 81, 85, 90, 95, 96, 99, 100, 100, 99,
-                                                                  95, 92, 93, 89, 87, 85, 82, 83, 80, 79] * 2  +
-                                                                 [80, 81, 79, 75, 78, 81, 82, 79, 80, 79] * 140 +
+                                                          95, 92, 93, 89, 87, 85, 82, 83, 80, 79] * 2  +
+                                                         [80, 81, 79, 75, 78, 81, 82, 79, 80, 79] * 140 +
                                                                  [75, 72, 68, 63, 58, 40, 30, 20, 10, 0] * 2))
         name = self.node_class.get_name()
         node = self.node_class()
         node.derive(eng_N2_max, mcp)
         self.assertEqual(node, KPV(name=name, items=[
-                KeyPointValue(index=43, value=75, name='Eng (*) N2 During Maximum Continuous Power For 10 Sec Max'),
+            KeyPointValue(index=43, value=75, name='Eng (*) N2 During Maximum Continuous Power For 10 Sec Max'),
                 KeyPointValue(index=43, value=75, name='Eng (*) N2 During Maximum Continuous Power For 20 Sec Max'),
                 KeyPointValue(index=43, value=75, name='Eng (*) N2 During Maximum Continuous Power For 5 Min Max'),
                 KeyPointValue(index=43, value=75, name='Eng (*) N2 During Maximum Continuous Power For 10 Min Max'),
-            ]))
+        ]))
 
 
 ##############################################################################
@@ -10995,7 +10995,7 @@ class TestEngGasTempDuringMaximumContinuousPowerForXMinMax(unittest.TestCase, No
                     self.ga_ratings, self.airborne)
 
         expected_results = [
-             (1438.0, 724.0, 'Eng Gas Temp During Maximum Continuous Power For 3 Min Max'),
+            (1438.0, 724.0, 'Eng Gas Temp During Maximum Continuous Power For 3 Min Max'),
              (3362.0, 724.0, 'Eng Gas Temp During Maximum Continuous Power For 3 Min Max'),
              (1208.0, 709.0, 'Eng Gas Temp During Maximum Continuous Power For 5 Min Max'),
              (3277.0, 716.0, 'Eng Gas Temp During Maximum Continuous Power For 5 Min Max'),
@@ -11020,7 +11020,7 @@ class TestEngGasTempDuringMaximumContinuousPowerForXMinMax(unittest.TestCase, No
                     S('Go Around 5 Min Rating'), self.airborne)
 
         expected_results = [
-             (1438.0, 724.0, 'Eng Gas Temp During Maximum Continuous Power For 3 Min Max'),
+            (1438.0, 724.0, 'Eng Gas Temp During Maximum Continuous Power For 3 Min Max'),
              (3277.0, 716.0, 'Eng Gas Temp During Maximum Continuous Power For 5 Min Max'),
              (2927.0, 804.0, 'Eng Gas Temp During Maximum Continuous Power For 10 Sec Max'),
              (2918.0, 777.0, 'Eng Gas Temp During Maximum Continuous Power For 20 Sec Max'),
@@ -11043,7 +11043,7 @@ class TestEngGasTempDuringMaximumContinuousPowerForXMinMax(unittest.TestCase, No
                     None, self.airborne)
 
         expected_results = [
-             (1438.0, 724.0, 'Eng Gas Temp During Maximum Continuous Power For 3 Min Max'),
+            (1438.0, 724.0, 'Eng Gas Temp During Maximum Continuous Power For 3 Min Max'),
              (3277.0, 716.0, 'Eng Gas Temp During Maximum Continuous Power For 5 Min Max'),
              (2927.0, 804.0, 'Eng Gas Temp During Maximum Continuous Power For 10 Sec Max'),
              (2918.0, 777.0, 'Eng Gas Temp During Maximum Continuous Power For 20 Sec Max'),
@@ -12324,7 +12324,7 @@ class TestEngOilPressMin(unittest.TestCase):
         node = self.node_class()
         node.derive(oil_p, airborne)
         self.assertEqual(node, KPV('Eng Oil Press Min',
-                items=[KeyPointValue(
+                                   items=[KeyPointValue(
                     index=3.0, value=10.0,
                     name='Eng Oil Press Min')]))
 
@@ -12337,7 +12337,7 @@ class TestEngOilPressMin(unittest.TestCase):
         node = self.node_class()
         node.derive(oil_p, airborne)
         self.assertEqual(node, KPV('Eng Oil Press Min',
-                items=[KeyPointValue(
+                                   items=[KeyPointValue(
                     index=3.0, value=0.0,
                     name='Eng Oil Press Min')]))
 
@@ -12350,7 +12350,7 @@ class TestEngOilPressMin(unittest.TestCase):
         node = self.node_class()
         node.derive(oil_p, airborne)
         self.assertEqual(node, KPV('Eng Oil Press Min',
-                items=[KeyPointValue(
+                                   items=[KeyPointValue(
                     index=6.0, value=45.0,
                     name='Eng Oil Press Min')]))
 
@@ -12850,7 +12850,7 @@ class TestEngTorqueWithin1SecOfTouchdownMax(unittest.TestCase):
 
     def test_hi_frequency(self):
         touchdown = KTI(name='Touchdown',
-                             items=[KeyTimeInstance(name='Touchdown',
+                        items=[KeyTimeInstance(name='Touchdown',
                                                     index=13),])
         torque=P('Eng (*) Torque Max',
                  np.ma.arange(30,0,-1),
@@ -14083,7 +14083,7 @@ class TestHeadingVariationTouchdownPlus4SecTo60KtsAirspeed(unittest.TestCase, No
         airspeed.array[-5:] = np.ma.masked
         tdwns = KTI(name='Touchdown', items=[
             KeyTimeInstance(index=10, name='Touchdown'),
-            ])
+        ])
         node = self.node_class()
         node.derive(heading, airspeed, tdwns)
         self.assertEqual(len(node), 1, msg="Expected one KPV got %s" % len(node))
@@ -14099,7 +14099,7 @@ class TestHeadingVariationTouchdownPlus4SecTo60KtsAirspeed(unittest.TestCase, No
         airspeed = P('Airspeed True', np.ma.arange(107, 58, -2))
         tdwns = KTI(name='Touchdown', items=[
             KeyTimeInstance(index=4, name='Touchdown'),
-            ])
+        ])
         hvt = HeadingVariationTouchdownPlus4SecTo60KtsAirspeed()
         hvt.derive(heading, airspeed, tdwns)
         self.assertEqual(hvt[0].value, 10)
@@ -14113,7 +14113,7 @@ class TestHeadingVariationTouchdownPlus4SecTo60KtsAirspeed(unittest.TestCase, No
         airspeed = P('Airspeed True', spd_array)
         tdwns = KTI(name='Touchdown', items=[
             KeyTimeInstance(index=6, name='Touchdown'),
-            ])
+        ])
         node = self.node_class()
         node.derive(heading, airspeed, tdwns)
         self.assertEqual(len(node), 0, msg="Expected zero KPVs got %s" % len(node))
@@ -14417,7 +14417,7 @@ class TestFlapLeverAtGearDownSelection(unittest.TestCase, NodeTest):
         self.assertTrue(self.node_class.can_operate(('Flap Lever','Gear Down Selection',),
                                                     family=A('Family','ERJ-170/175')))
         self.assertFalse(self.node_class.can_operate(('Flap Lever','Gear Down Selection',),
-                                                    family=A('Family','Learjet')))
+                                                     family=A('Family','Learjet')))
 
     def test_derive(self):
         array = np.ma.repeat((4,1,1,4,32,1), 5)
@@ -14515,7 +14515,7 @@ class TestFlapWithSpeedbrakeDeployedMax(unittest.TestCase, NodeTest):
                 0: 'Stowed',
                 1: 'Armed/Cmd Dn',
                 2: 'Deployed/Cmd Up',
-            },
+                },
         )
         airborne = buildsection('Airborne', 5, 15)
         landings = buildsection('Landing', 10, 15)
@@ -14537,12 +14537,12 @@ class TestFlapWithSpeedbrakeDeployedMax(unittest.TestCase, NodeTest):
                 0: 'Stowed',
                 1: 'Armed/Cmd Dn',
                 2: 'Deployed/Cmd Up',
-            },
+                },
         )
         airborne = buildsection('Airborne', 5, 15)
         landings = buildsection('Landing', 10, 15)
         lam = P(
-                name = 'Landing Attitude Mode Delta CL',
+            name = 'Landing Attitude Mode Delta CL',
                 array = [0, 0, 10, 0, 0]*3)
         name = self.node_class.get_name()
         node = self.node_class()
@@ -14565,7 +14565,7 @@ class TestFlapAt1000Ft(unittest.TestCase, NodeTest):
         mapping = {30: '30', 45: '45'}
         flap = M(name='Flap', array=array, values_mapping=mapping)
         gates = AltitudeWhenDescending(items=[
-             KeyTimeInstance(index=40, name='1500 Ft Descending'),
+            KeyTimeInstance(index=40, name='1500 Ft Descending'),
              KeyTimeInstance(index=60, name='1000 Ft Descending'),
              KeyTimeInstance(index=80, name='1000 Ft Descending'),  # 2nd descent after G/A?
              KeyTimeInstance(index=90, name='500 Ft Descending'),
@@ -14592,7 +14592,7 @@ class TestFlapAt500Ft(unittest.TestCase, NodeTest):
         mapping = {30: '30', 45: '45'}
         flap = M(name='Flap', array=array, values_mapping=mapping)
         gates = AltitudeWhenDescending(items=[
-             KeyTimeInstance(index=40, name='1500 Ft Descending'),
+            KeyTimeInstance(index=40, name='1500 Ft Descending'),
              KeyTimeInstance(index=60, name='1000 Ft Descending'),
              KeyTimeInstance(index=80, name='1000 Ft Descending'),  # 2nd descent after G/A?
              KeyTimeInstance(index=90, name='500 Ft Descending'),
@@ -14950,7 +14950,7 @@ class TestGroundspeedWithGearOnGroundMax(unittest.TestCase, NodeTest):
     def test_derive_basic(self):
         spd=P('Groundspeed Signed', array = np.ma.arange(100, 0, -10))
         gog=M('Gear On Ground',
-             array=np.ma.array([0]*5 + [1]*5),
+              array=np.ma.array([0]*5 + [1]*5),
              values_mapping = {0: 'Air', 1: 'Ground'})
 
         node = self.node_class()
@@ -15040,7 +15040,7 @@ class TestGroundspeedDuringRejectedTakeoffMax(unittest.TestCase):
 
     def test_derive(self):
         gspd = P('Groundspeed Signed',
-                np.ma.array([0]*20 + list(range(20)) + list(range(20, 1, -1)) + list(range(80))))
+                 np.ma.array([0]*20 + list(range(20)) + list(range(20, 1, -1)) + list(range(80))))
         rto = buildsection('Rejected Takeoff', 22, 40)
         gspd_rto = GroundspeedDuringRejectedTakeoffMax()
         gspd_rto.derive(accel=None, gnd_spd=gspd, rtos=rto)
@@ -15055,7 +15055,7 @@ class TestGroundspeedDuringRejectedTakeoffMax(unittest.TestCase):
                   testwave, frequency=4.0, offset=0.2)
         gnds = buildsections('Grounded', [0, 125], [400, 500])
         eng_running = M('Eng (*) All Running', np_ma_ones_like(accel.array),
-                            values_mapping={0: 'Not Running', 1: 'Running'})
+                        values_mapping={0: 'Not Running', 1: 'Running'})
         trh = buildsections('Takeoff Runway Heading', [0, 125])
         # Create RTO here to ensure it operates as expected
         rto = RejectedTakeoff()
@@ -15177,9 +15177,9 @@ class TestGroundspeedWithThrustReversersDeployedMin(unittest.TestCase, NodeTest)
         epr = P('Eng (*) EPR Max', frequency=0.5,
                 array=np.ma.array([1.0] * 2 + [1.26] * 2 + [1.0] * 1))
         n1=P('Eng (*) N1 Max', frequency=4, # Frequency set to 4 as the derived N1 freq should be ignored anyway
-                 array=np.ma.array([40] * 16 + [70] * 24))
+             array=np.ma.array([40] * 16 + [70] * 24))
         n1_recorded=P('Eng (1) N1', frequency=0.5,
-                 array=np.ma.array([40] * 2 + [70] * 3))
+                      array=np.ma.array([40] * 2 + [70] * 3))
         landings=buildsection('Landing', 2, 9)
         node = GroundspeedWithThrustReversersDeployedMin()
         node.derive(spd, tr, epr, n1, landings, n1_recorded)
@@ -15197,9 +15197,9 @@ class TestGroundspeedWithThrustReversersDeployedMin(unittest.TestCase, NodeTest)
         epr = P('Eng (*) EPR Max', frequency=0.5,
                 array=np.ma.array([1.0] * 2 + [1.26] * 2 + [1.0] * 1))
         n1=P('Eng (*) N1 Max', frequency=4, # Frequency set to 4 as the derived N1 freq should be ignored anyway
-                 array=np.ma.array([40] * 16 + [70] * 24))
+             array=np.ma.array([40] * 16 + [70] * 24))
         n1_recorded=P('Eng (1) N1', frequency=0.25,
-                 array=np.ma.array([40] * 2 + [70] * 3))
+                      array=np.ma.array([40] * 2 + [70] * 3))
         landings=buildsection('Landing', 2, 9)
         node = GroundspeedWithThrustReversersDeployedMin()
         node.derive(spd, tr, epr, n1, landings, n1_recorded)
@@ -15217,9 +15217,9 @@ class TestGroundspeedWithThrustReversersDeployedMin(unittest.TestCase, NodeTest)
         epr = P('Eng (*) EPR Max', frequency=0.25,
                 array=np.ma.array([1.0] * 2 + [1.26] * 2 + [1.0] * 1))
         n1=P('Eng (*) N1 Max', frequency=4, # Frequency set to 4 as the derived N1 freq should be ignored anyway
-                 array=np.ma.array([40] * 16 + [70] * 24))
+             array=np.ma.array([40] * 16 + [70] * 24))
         n1_recorded=P('Eng (1) N1', frequency=0.5,
-                 array=np.ma.array([40] * 2 + [70] * 3))
+                      array=np.ma.array([40] * 2 + [70] * 3))
         landings=buildsection('Landing', 2, 9)
         node = GroundspeedWithThrustReversersDeployedMin()
         node.derive(spd, tr, epr, n1, landings, n1_recorded)
@@ -16014,7 +16014,7 @@ class TestPitchTouchdownTo60KtsAirspeedMax(unittest.TestCase, NodeTest):
 
     def test_derive(self):
         pitch = P('Pitch', np.ma.array([0.7, 1.1, 0.2, -0.8, -1.2,
-                                             -0.7, -0.1, 0.1, 0.5, -0.5,
+                                        -0.7, -0.1, 0.1, 0.5, -0.5,
                                              -0.1, -0.1, -0.1, 1.0, 0.0]))
 
         airspeed = P('Airspeed', np.ma.array(np.linspace(110, 47, 15)))
@@ -17209,7 +17209,7 @@ class TestRollRateMaxAboveLimitAtTouchdown(unittest.TestCase):
                              0, 0, 0, 0, 0, ]))
 
         roll_rate=P('Roll Rate For Touchdown',
-                np.ma.array([0, 0, 0, 0, 0,
+                    np.ma.array([0, 0, 0, 0, 0,
                              0, 0, 0, 0, 0,
                              2, 3, 4, 3, 2,
                              0, 0, 0, 0, 0,
@@ -17226,7 +17226,7 @@ class TestRollRateMaxAboveLimitAtTouchdown(unittest.TestCase):
         touchdowns = KTI('Touchdown', items=[KeyTimeInstance(13, 'Touchdown')])
 
         limit=P('Roll Rate At Touchdown Limit',
-                    np.ma.array([0, 0, 0, 0, 0,
+                np.ma.array([0, 0, 0, 0, 0,
                                  0, 0, 0, 0, 0,
                                  0, 0, 0, 0, 0,
                                  0, 0, 0, 0, 0,
@@ -17250,7 +17250,7 @@ class TestRollRateMaxAboveLimitAtTouchdown(unittest.TestCase):
         touchdowns = KTI('Touchdown', items=[KeyTimeInstance(12, 'Touchdown')])
 
         limit=P('Roll Rate At Touchdown Limit',
-                    np.ma.array([0, 0, 0, 0, 0,
+                np.ma.array([0, 0, 0, 0, 0,
                                  0, 0, 0, 0, 0,
                                  0, 0, 0, 0, 0,
                                  0, 0, 0, 0, 0,
@@ -17274,7 +17274,7 @@ class TestRollRateMaxAboveLimitAtTouchdown(unittest.TestCase):
         touchdowns = KTI('Touchdown', items=[KeyTimeInstance(8, 'Touchdown')])
 
         limit=P('Roll Rate At Touchdown Limit',
-                    np.ma.array([0, 0, 0, 0, 0,
+                np.ma.array([0, 0, 0, 0, 0,
                                  0, 0, 0, 0, 0,
                                  0, 0, 0, 0, 0,
                                  0, 0, 0, 0, 0,
@@ -17298,7 +17298,7 @@ class TestRollRateMaxAboveLimitAtTouchdown(unittest.TestCase):
         touchdowns = KTI('Touchdown', items=[KeyTimeInstance(13, 'Touchdown')])
 
         limit=P('Roll Rate At Touchdown Limit',
-                    np.ma.array([0, 0, 0, 0, 0,
+                np.ma.array([0, 0, 0, 0, 0,
                                  0, 0, 0, 0, 0,
                                  0, 0, 0, 0, 0,
                                  0, 0, 0, 0, 0,
@@ -17322,7 +17322,7 @@ class TestRollRateMaxAboveLimitAtTouchdown(unittest.TestCase):
         touchdowns = KTI('Touchdown', items=[KeyTimeInstance(13, 'Touchdown')])
 
         limit=P('Roll Rate At Touchdown Limit',
-                    np.ma.array([0, 0, 0, 0, 0,
+                np.ma.array([0, 0, 0, 0, 0,
                                  0, 0, 0, 0, 0,
                                  0, 0, 0, 0, 0,
                                  0, 0, 0, 0, 0,
@@ -17354,7 +17354,7 @@ class TestRollRateMaxAboveLimitAtTouchdown(unittest.TestCase):
                              0, 0, 0, 0, 0, ]))
 
         roll_rate=P('Roll Rate For Touchdown',
-                np.ma.array([0, 0, 0, 0, 0,
+                    np.ma.array([0, 0, 0, 0, 0,
                              0, 0, 0, 0, 0,
                              0, 0, 0, 0, 0,
                              3, 3, 3, 0, 0,
@@ -17379,7 +17379,7 @@ class TestRollRateMaxAboveLimitAtTouchdown(unittest.TestCase):
                              0, 0, 0, 0, 0, ]))
 
         roll_rate=P('Roll Rate For Touchdown',
-                np.ma.array([0, 0, 0, 0, 0,
+                    np.ma.array([0, 0, 0, 0, 0,
                              0, 0, 0, 0, 0,
                              2, 3, 4, 0, 0,
                              0, 0, 0, 0, 0,
@@ -17404,7 +17404,7 @@ class TestRollRateMaxAboveLimitAtTouchdown(unittest.TestCase):
                              0, 0, 0, 0, 0, ]))
 
         roll_rate=P('Roll Rate For Touchdown',
-                np.ma.array([0, 0, 0, 0, 0,
+                    np.ma.array([0, 0, 0, 0, 0,
                              0, 0, 0, 0, 0,
                              2, 3, 4, 0, 0,
                              3, 3, 3, 0, 0,
@@ -17432,7 +17432,7 @@ class TestRollRateMaxAboveLimitAtTouchdown(unittest.TestCase):
                              0, 0, 0, 0, 0, ]))
 
         roll_rate=P('Roll Rate For Touchdown',
-                np.ma.array([0, 1, 3, 1, 0,
+                    np.ma.array([0, 1, 3, 1, 0,
                              0, 0, 0, 0, 0,
                              2, 3, 4, 0, 0,
                              3, 3, 3, 0, 0,
@@ -17643,9 +17643,9 @@ class TestSpeedbrakeDeployedWithPowerOnDuration(unittest.TestCase, NodeTest):
             'Speedbrake Selected', values_mapping=values_mapping,
             array=np.ma.array(spd_brk_loop * 3))
         power = P('Eng (*) N1 Avg',
-                 array=np.ma.concatenate((np.ones(10) * 40, np.ones(10) * 60, np.ones(10) * 50)))
+                  array=np.ma.concatenate((np.ones(10) * 40, np.ones(10) * 60, np.ones(10) * 50)))
         aal = P('Altitude AAL For Flight Phases',
-                 array=np.ma.concatenate((np.arange(0, 75, 5), np.arange(70, -5, -5))))
+                array=np.ma.concatenate((np.arange(0, 75, 5), np.arange(70, -5, -5))))
         node = self.node_class()
         node.derive(spd_brk, power, aal)
         self.assertEqual(node, [
@@ -17835,7 +17835,7 @@ class TestAirspeedBelowMinimumAirspeedFlapCleanMin(unittest.TestCase):
                              196, 196, 196, 196, 196, 196, 196, 196, 196, 196,
                              196, 196, 196, 196, 196, 196, 196, 196, 196, 196,
                              196, 196, 196, 196, 196, 196, 196
-                         ], mask=[False]*40 + [True]*27))
+                             ], mask=[False]*40 + [True]*27))
         self.min_spd = P('Minimum Airspeed',
                          np.ma.array([
                              156, 156, 156, 156, 156, 156, 176, 176, 176, 176,
@@ -18154,8 +18154,8 @@ class TestMasterWarningDuration(unittest.TestCase, NodeTest):
     def test_derive(self):
         warn = MasterWarningDuration()
         warn.derive(M(array=np.ma.array([0,1,1,1,0]),
-                     values_mapping={1: 'Warning'}),
-                   M(array=np.ma.array([0,0,1,1,0]),
+                      values_mapping={1: 'Warning'}),
+                    M(array=np.ma.array([0,0,1,1,0]),
                      values_mapping={1: 'Running'})                   )
         self.assertEqual(warn[0].index, 2)
         self.assertEqual(warn[0].value, 2)
@@ -18163,15 +18163,15 @@ class TestMasterWarningDuration(unittest.TestCase, NodeTest):
     def test_no_engines(self):
         warn = MasterWarningDuration()
         warn.derive(M(array=np.ma.array([0,1,1,1,0]),
-                     values_mapping={1: 'Warning'}),None)
+                      values_mapping={1: 'Warning'}),None)
         self.assertEqual(warn[0].index, 1)
         self.assertEqual(warn[0].value, 3)
 
     def test_derive_all_running(self):
         warn = MasterWarningDuration()
         warn.derive(M(array=np.ma.array([0,1,1,1,1]),
-                     values_mapping={1: 'Warning'}),
-                   M(array=np.ma.array([1,1,1,1,1]),
+                      values_mapping={1: 'Warning'}),
+                    M(array=np.ma.array([1,1,1,1,1]),
                      values_mapping={1: 'Running'})                   )
         self.assertEqual(warn[0].index, 1)
         self.assertEqual(warn[0].value, 4)
@@ -18179,8 +18179,8 @@ class TestMasterWarningDuration(unittest.TestCase, NodeTest):
     def test_derive_not_running(self):
         warn = MasterWarningDuration()
         warn.derive(M(array=np.ma.array([0,1,1,1,0]),
-                     values_mapping={1: 'Warning'}),
-                   M(array=np.ma.array([0,0,0,0,0]),
+                      values_mapping={1: 'Warning'}),
+                    M(array=np.ma.array([0,0,0,0,0]),
                      values_mapping={1: 'Running'})                   )
         self.assertEqual(len(warn), 0)
 
@@ -18375,7 +18375,7 @@ class TestLandingConfigurationGearWarningDuration(unittest.TestCase):
         node = LandingConfigurationGearWarningDuration()
         airs = buildsection('Airborne', 2, 8)
         warn = M(array=np.ma.array([0,0,0,0,0,1,1,0,0,0]),
-                             values_mapping={1: 'Warning'})
+                 values_mapping={1: 'Warning'})
         node.derive(warn, airs)
         self.assertEqual(node[0].index, 5)
 
@@ -18833,36 +18833,36 @@ class TestTAWSGlideslopeWarning500To200FtDuration(unittest.TestCase, NodeTest):
         self.assertEqual(node[0].value, 10)
 
     def test_derive_3(self):
-            taws_glideslope = M('TAWS Glideslope',
+        taws_glideslope = M('TAWS Glideslope',
                                 np.ma.concatenate((np.zeros(15), np.ones(10), np.zeros(25))),
                                 values_mapping=self.warn_map)
-            taws_alert = M('TAWS Glideslope Alert',
+        taws_alert = M('TAWS Glideslope Alert',
                            np.ma.concatenate((np.zeros(25), np.ones(10), np.zeros(15))),
                            values_mapping=self.alert_map)
 
-            node = self.node_class()
-            node.derive(taws_glideslope, taws_alert, self.alt_aal)
+        node = self.node_class()
+        node.derive(taws_glideslope, taws_alert, self.alt_aal)
 
-            self.assertEqual(len(node), 1)
-            self.assertEqual(node[0].index, 22)
-            self.assertEqual(node[0].value, 13)
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 22)
+        self.assertEqual(node[0].value, 13)
 
     def test_derive_4(self):
-            taws_glideslope = M('TAWS Glideslope',
+        taws_glideslope = M('TAWS Glideslope',
                                 np.ma.concatenate((np.zeros(23), np.ones(5), np.zeros(22))),
                                 values_mapping=self.warn_map)
-            taws_alert = M('TAWS Glideslope Alert',
+        taws_alert = M('TAWS Glideslope Alert',
                            np.ma.concatenate((np.zeros(30), np.ones(10), np.zeros(10))),
                            values_mapping=self.alert_map)
 
-            node = self.node_class()
-            node.derive(taws_glideslope, taws_alert, self.alt_aal)
+        node = self.node_class()
+        node.derive(taws_glideslope, taws_alert, self.alt_aal)
 
-            self.assertEqual(len(node), 2)
-            self.assertEqual(node[0].index, 23)
-            self.assertEqual(node[0].value, 5)
-            self.assertEqual(node[1].index, 30)
-            self.assertEqual(node[1].value, 10)
+        self.assertEqual(len(node), 2)
+        self.assertEqual(node[0].index, 23)
+        self.assertEqual(node[0].value, 5)
+        self.assertEqual(node[1].index, 30)
+        self.assertEqual(node[1].value, 10)
 
 
 class TestTAWSTooLowTerrainWarningDuration(unittest.TestCase, NodeTest):
@@ -19006,7 +19006,7 @@ class TestTAWSWindshearCautionBelow1500FtDuration(unittest.TestCase,
                 array=np.ma.array([
                     1501, 1502, 1501, 1499, 1498, 1499, 1499, 1499, 1499, 1501,
                     1502, 1501
-                ]),
+                    ]),
             )
         ]
 
@@ -19029,7 +19029,7 @@ class TestTAWSWindshearSirenBelow1500FtDuration(unittest.TestCase,
                 array=np.ma.array([
                     1501, 1502, 1501, 1499, 1498, 1499, 1499, 1499, 1499, 1501,
                     1502, 1501
-                ]),
+                    ]),
             )
         ]
 
@@ -19048,7 +19048,7 @@ class TestTAWSWindshearWarningBelow1500FtDuration(unittest.TestCase, NodeTest):
 
 
 class TestTAWSUnspecifiedDuration(unittest.TestCase,
-                                         CreateKPVsWhereTest):
+                                  CreateKPVsWhereTest):
     def setUp(self):
         self.param_name = 'TAWS Unspecified'
         self.phase_name = 'Airborne'
@@ -19653,7 +19653,7 @@ class TestTCASRASubsequentAcceleration (unittest.TestCase, NodeTest):
             ('Acceleration Vertical', 'TCAS Resolution Advisory', 'TCAS Combined Control', 'TCAS Advisory Rate To Maintain'),
             ('Acceleration Vertical', 'TCAS Resolution Advisory', 'TCAS Combined Control', 'TCAS Altitude Rate To Maintain'),
             ('Acceleration Vertical', 'TCAS Resolution Advisory', 'TCAS Combined Control', 'TCAS Advisory Rate'),
-            ]
+        ]
         self.values_mapping = {
             0: 'None',
             4: 'Up Advisory Corrective',
@@ -20546,11 +20546,11 @@ class TestDualInputAbove200FtDuration(unittest.TestCase, NodeTest):
     def test_derive_from_hdf(self):
         path = os.path.join(test_data_path, 'dual_input.hdf5')
         [alt_aal], phase = self.get_params_from_hdf(path,
-            ['Altitude AAL'])
+                                                    ['Altitude AAL'])
 
         mapping = {0: '-', 1: 'Dual'}
         dual_array = MappedArray(
-        np.ma.zeros(alt_aal.array.size),
+            np.ma.zeros(alt_aal.array.size),
         values_mapping=mapping)
         dual_array[91:122] = 'Dual'
         dual_array[213:272] = 'Dual'
@@ -20598,7 +20598,7 @@ class TestDualInputBelow200FtDuration(unittest.TestCase, NodeTest):
     def test_derive_from_hdf(self):
         path = os.path.join(test_data_path, 'dual_input.hdf5')
         [alt_aal], phase = self.get_params_from_hdf(path,
-            ['Altitude AAL'])
+                                                    ['Altitude AAL'])
 
         takeoff_roll = buildsection('Takeoff Roll', 0, 100)
         landing_roll = buildsection('Landing Roll', 320, 420)
@@ -20725,7 +20725,7 @@ class TestDualInputByCaptMax(unittest.TestCase):
 
     def test_can_operate(self):
         expected = [('Sidestick Angle (Capt)',
-                    'Dual Input',
+                     'Dual Input',
                     'Pilot Flying',
                     'Takeoff Roll',
                     'Landing Roll')]
@@ -20746,7 +20746,7 @@ class TestDualInputByCaptMax(unittest.TestCase):
         pilot_array[40:50] = 2
         pilot_array[66:70] = 2
         pilot = M('Pilot Flying',
-                        array=pilot_array,
+                  array=pilot_array,
                         values_mapping={0: '-', 1: 'Captain', 2: 'First Officer'})
         stick = P('Sidestick Angle (Capt)', array=self.stick_array)
         node = self.node_class()
@@ -20772,7 +20772,7 @@ class TestDualInputByFOMax(unittest.TestCase, NodeTest):
 
     def test_can_operate(self):
         expected = [('Sidestick Angle (FO)',
-                    'Dual Input',
+                     'Dual Input',
                     'Pilot Flying',
                     'Takeoff Roll',
                     'Landing Roll')]
@@ -20793,7 +20793,7 @@ class TestDualInputByFOMax(unittest.TestCase, NodeTest):
         pilot_array[40:50] = 1
         pilot_array[66:70] = 1
         pilot = M('Pilot Flying',
-                        array=pilot_array,
+                  array=pilot_array,
                         values_mapping={0: '-', 1: 'Captain', 2: 'First Officer'})
         stick = P('Sidestick Angle (FO)', array=self.stick_array)
         node = self.node_class()
@@ -21014,7 +21014,7 @@ class TestKineticEnergyAtRunwayTurnoff(unittest.TestCase):
     def test_derive(self):
 
         turn_off = KTI('Landing Turn Off Runway',
-                    items=[KeyTimeInstance(10, 'Landing Turn Off Runway')])
+                       items=[KeyTimeInstance(10, 'Landing Turn Off Runway')])
 
         array = np.ma.array([0, 10, 20, 30, 40, 40, 40, 40, 30, 20, 10, 0])
         kinetic_energy = P('Kinetic Energy', array=array )
@@ -21069,9 +21069,9 @@ class TestAileronPreflightCheck(unittest.TestCase):
 
         # Empty tuple omitted from powerset
         start_deps_powerset = list(itertools.chain.from_iterable(itertools.combinations(start_deps, r)
-                              for r in range(len(start_deps) + 1)))[1:]
+                                                                 for r in range(len(start_deps) + 1)))[1:]
         aileron_deps_powerset = list(itertools.chain.from_iterable(itertools.combinations(aileron_deps, r)
-                              for r in range(len(aileron_deps) + 1)))[1:]
+                                                                   for r in range(len(aileron_deps) + 1)))[1:]
 
         ops = self.node_class.get_operational_combinations(model=self.model, series=self.series, family=self.family)
 
@@ -21107,7 +21107,7 @@ class TestAileronPreflightCheck(unittest.TestCase):
     @patch('analysis_engine.key_point_values.at')
     def test_derive_apu(self, at):
         lasts = KTI('Last APU Start Before Liftoff',
-                     items=[KeyTimeInstance(50, 'Last APU Start Before Liftoff')])
+                    items=[KeyTimeInstance(50, 'Last APU Start Before Liftoff')])
         accels = KTI('Takeoff Acceleration Start',
                      items=[KeyTimeInstance(375, 'Takeoff Acceleration Start')])
         x = np.linspace(0, 10, 400)
@@ -21144,9 +21144,9 @@ class TestElevatorPreflightCheck(unittest.TestCase):
 
         # Empty tuple omitted from powerset
         start_deps_powerset = list(itertools.chain.from_iterable(itertools.combinations(start_deps, r)
-                              for r in range(len(start_deps) + 1)))[1:]
+                                                                 for r in range(len(start_deps) + 1)))[1:]
         elevator_deps_powerset = list(itertools.chain.from_iterable(itertools.combinations(elevator_deps, r)
-                              for r in range(len(elevator_deps) + 1)))[1:]
+                                                                    for r in range(len(elevator_deps) + 1)))[1:]
 
         ops = self.node_class.get_operational_combinations(model=self.model, series=self.series, family=self.family)
 
@@ -21182,7 +21182,7 @@ class TestElevatorPreflightCheck(unittest.TestCase):
     @patch('analysis_engine.key_point_values.at')
     def test_derive_apu(self, at):
         lasts = KTI('Last APU Start Before Liftoff',
-                     items=[KeyTimeInstance(50, 'Last APU Start Before Liftoff')])
+                    items=[KeyTimeInstance(50, 'Last APU Start Before Liftoff')])
         accels = KTI('Takeoff Acceleration Start',
                      items=[KeyTimeInstance(375, 'Takeoff Acceleration Start')])
         x = np.linspace(0, 10, 400)
@@ -21199,6 +21199,25 @@ class TestElevatorPreflightCheck(unittest.TestCase):
             self.assertEqual(len(node), 1)
             self.assertEqual(node[0].index, 318)
             self.assertAlmostEqual(node[0].value, 90, delta=1) # 90% of total movement
+
+    @patch('analysis_engine.key_point_values.at')
+    def test_derive_eng_before_apu(self, at):
+        elev_l = P(name='Elevator (L)', array=load_compressed(os.path.join(test_data_path, 'ElevatorPreflightCheck_elev_l.npz')))
+        elev_r = P(name='Elevator (R)', array=load_compressed(os.path.join(test_data_path, 'ElevatorPreflightCheck_elev_r.npz')))
+        eng_firsts = KTI('First Eng Start Before Liftoff',
+                         items=[KeyTimeInstance(index=8525.3671875, name='First Eng Start Before Liftoff')])
+        apu_lasts = KTI('Last APU Start Before Liftoff',
+                        items=[KeyTimeInstance(10905.9453125, 'Last APU Start Before Liftoff')])
+        accels = KTI('Takeoff Acceleration Start',
+                     items=[KeyTimeInstance(11133.4921875, 'Takeoff Acceleration Start')])
+        at.get_elevator_range.return_value = (-30, 15)
+
+        node = self.node_class()
+        node.derive(None, elev_l, elev_r, eng_firsts, apu_lasts, accels, A('Model', 'A340-313X'), A('Series', 'A340-300'),
+                    A('Family', 'A340'))
+        self.assertEqual(len(node), 1)
+        self.assertAlmostEqual(node[0].index, 8992, places=0)
+        self.assertAlmostEqual(node[0].value, 98, places=0)
 
 
 class TestRudderPreflightCheck(unittest.TestCase):
@@ -21217,15 +21236,15 @@ class TestRudderPreflightCheck(unittest.TestCase):
         ops = self.node_class.get_operational_combinations(model=self.model, series=self.series, family=self.family)
         # assertIn didn't work
         self.assertTrue(tuple(['Rudder', 'First Eng Start Before Liftoff'] + required_deps) in ops or
-                       (tuple(['Rudder', 'Last APU Start Before Liftoff'] + required_deps) in ops))
+                        (tuple(['Rudder', 'Last APU Start Before Liftoff'] + required_deps) in ops))
 
     @patch('analysis_engine.key_point_values.at')
     def test_derive(self, at):
         firsts = KTI('First Eng Start Before Liftoff',
-                       items=[KeyTimeInstance(50, 'First Eng Start Before Liftoff')])
+                     items=[KeyTimeInstance(50, 'First Eng Start Before Liftoff')])
 
         accels = KTI('Takeoff Acceleration Start',
-                       items=[KeyTimeInstance(375, 'Takeoff Acceleration Start')])
+                     items=[KeyTimeInstance(375, 'Takeoff Acceleration Start')])
         x = np.linspace(0, 10, 400)
         rudder = P(
             name='Rudder',
@@ -21245,10 +21264,10 @@ class TestRudderPreflightCheck(unittest.TestCase):
     @patch('analysis_engine.key_point_values.at')
     def test_derive_apu(self, at):
         lasts = KTI('Last APU Start Before Liftoff',
-                       items=[KeyTimeInstance(50, 'Last APU Start Before Liftoff')])
+                    items=[KeyTimeInstance(50, 'Last APU Start Before Liftoff')])
 
         accels = KTI('Takeoff Acceleration Start',
-                       items=[KeyTimeInstance(375, 'Takeoff Acceleration Start')])
+                     items=[KeyTimeInstance(375, 'Takeoff Acceleration Start')])
         x = np.linspace(0, 10, 400)
         rudder = P(
             name='Rudder',
@@ -21330,46 +21349,46 @@ class TestDriftAtTouchdown(unittest.TestCase):
 
 class TestDHSelectedAt1500FtLVO(unittest.TestCase, NodeTest):
 
-	def setUp(self):
-		self.node_class = DHSelectedAt1500FtLVO
+    def setUp(self):
+        self.node_class = DHSelectedAt1500FtLVO
 
-		self.alt_std_desc = AltitudeWhenDescending(
-			items=[KeyTimeInstance(15, '1500 Ft Descending'),
-				   KeyTimeInstance(20, '1500 Ft Descending'),
-				   KeyTimeInstance(28, '1500 Ft Descending'),
-				   KeyTimeInstance(44, '1500 Ft Descending')])
+        self.alt_std_desc = AltitudeWhenDescending(
+                    items=[KeyTimeInstance(15, '1500 Ft Descending'),
+                               KeyTimeInstance(20, '1500 Ft Descending'),
+                                   KeyTimeInstance(28, '1500 Ft Descending'),
+                                   KeyTimeInstance(44, '1500 Ft Descending')])
 
-		self.dh_selected = P('DH Selected', np.ma.concatenate(
-							(np.zeros(25),
-							np.ones(20) * 100,
-							np.zeros(25),
-							np.ones(20) * 100)))
+        self.dh_selected = P('DH Selected', np.ma.concatenate(
+                    (np.zeros(25),
+                                                         np.ones(20) * 100,
+                                                        np.zeros(25),
+                                                        np.ones(20) * 100)))
 
-		self.series_7x = A('Series', 'Falcon-7X')
-		self.series_8x = A('Series', 'Falcon-8X')
-		self.series_invalid = A('Series', 'Boeing B737-800')
+        self.series_7x = A('Series', 'Falcon-7X')
+        self.series_8x = A('Series', 'Falcon-8X')
+        self.series_invalid = A('Series', 'Boeing B737-800')
 
-	def test_can_operate(self):
-		req_params = ('Altitude When Descending', 'DH Selected')
+    def test_can_operate(self):
+        req_params = ('Altitude When Descending', 'DH Selected')
 
-		self.assertFalse(self.node_class.can_operate(
-						 req_params, series=self.series_invalid),
-						 msg='KPV only applies to Falcon 7X/8X')
+        self.assertFalse(self.node_class.can_operate(
+                    req_params, series=self.series_invalid),
+                                 msg='KPV only applies to Falcon 7X/8X')
 
-		self.assertTrue(self.node_class.can_operate(
-						req_params, series=self.series_7x))
+        self.assertTrue(self.node_class.can_operate(
+                    req_params, series=self.series_7x))
 
-		self.assertTrue(self.node_class.can_operate(
-						req_params, series=self.series_8x))
+        self.assertTrue(self.node_class.can_operate(
+                    req_params, series=self.series_8x))
 
-	def test_derive(self):
-		node = self.node_class()
-		node.derive(self.alt_std_desc, self.dh_selected)
-		self.assertEqual(len(node), 2)
-		self.assertEqual(node[0].index, 28)
-		self.assertEqual(node[0].value, 100.0)
-		self.assertEqual(node[1].index, 44)
-		self.assertEqual(node[1].value, 100.0)
+    def test_derive(self):
+        node = self.node_class()
+        node.derive(self.alt_std_desc, self.dh_selected)
+        self.assertEqual(len(node), 2)
+        self.assertEqual(node[0].index, 28)
+        self.assertEqual(node[0].value, 100.0)
+        self.assertEqual(node[1].index, 44)
+        self.assertEqual(node[1].value, 100.0)
 
 
 class TestTransmitInactivityDuration(unittest.TestCase, NodeTest):

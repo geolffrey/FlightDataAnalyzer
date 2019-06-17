@@ -6489,18 +6489,23 @@ class ControlWheelForceMax(KeyPointValueNode):
             max_abs_value)
 
 
-def PreflightCheck(self, firsts, accels, disps, full_disp):
+def preflight_check(self, apu_lasts, eng_firsts, accels, disps, full_disp):
     """
     Compute the total travel of each control during the interval between last APU start
     or first engine start and takeoff start of acceleration, as % of full travel for that control.
     """
-    for first in firsts:
-        acc = accels.get_next(first.index)
-        if acc is None or int(first.index) == int(acc.index): #avoid 0 length slice
+    if eng_firsts and apu_lasts:
+        ktis = min((eng_firsts, apu_lasts), key=lambda x: x.get_first().index)
+    else:
+        ktis = apu_lasts or eng_firsts
+
+    for kti in ktis:
+        acc = accels.get_next(kti.index)
+        if acc is None or int(kti.index) == int(acc.index): #avoid 0 length slice
             continue
-        disps = [d.array[slices_int(first.index, acc.index)] for d in disps]
+        disps = [d.array[slices_int(kti.index, acc.index)] for d in disps]
         ptp = max(np.ma.max(d) for d in disps) - min(np.ma.min(d) for d in disps)
-        index = np.argmax(np.ma.abs(max(disps, key=lambda d: np.ma.ptp(d)))) + first.index
+        index = np.argmax(np.ma.abs(max(disps, key=lambda d: np.ma.ptp(d)))) + kti.index
         # Mark the point where this control displacement was greatest.
         self.create_kpv(index, (ptp / full_disp) * 100.0)
 
@@ -6523,8 +6528,7 @@ class ElevatorPreflightCheck(KeyPointValueNode):
         try:
             at.get_elevator_range(model.value, series.value, family.value)
         except KeyError:
-            cls.warning("No Elevator range available for '%s', '%s', '%s'.",
-                        model.value, series.value, family.value)
+            cls.warning("No Elevator range available for '%s', '%s', '%s'.", model.value, series.value, family.value)
             return False
 
         return True
@@ -6541,7 +6545,7 @@ class ElevatorPreflightCheck(KeyPointValueNode):
         disp_range = at.get_elevator_range(model.value, series.value, family.value)
         full_disp = disp_range * 2 if isinstance(disp_range, (float, int)) else disp_range[1] - disp_range[0]
 
-        PreflightCheck(self, apu_lasts if apu_lasts else eng_firsts, accels, disps, full_disp)
+        preflight_check(self, apu_lasts, eng_firsts, accels, disps, full_disp)
 
 
 class AileronPreflightCheck(KeyPointValueNode):
@@ -6561,8 +6565,7 @@ class AileronPreflightCheck(KeyPointValueNode):
         try:
             at.get_aileron_range(model.value, series.value, family.value)
         except KeyError:
-            cls.warning("No Aileron range available for '%s', '%s', '%s'.",
-                        model.value, series.value, family.value)
+            cls.warning("No Aileron range available for '%s', '%s', '%s'.", model.value, series.value, family.value)
             return False
 
         return True
@@ -6579,7 +6582,7 @@ class AileronPreflightCheck(KeyPointValueNode):
         disp_range = at.get_aileron_range(model.value, series.value, family.value)
         full_disp = disp_range * 2 if isinstance(disp_range, (float, int)) else disp_range[1] - disp_range[0]
 
-        PreflightCheck(self, apu_lasts if apu_lasts else eng_firsts, accels, disps, full_disp)
+        preflight_check(self, apu_lasts, eng_firsts, accels, disps, full_disp)
 
 
 class RudderPreflightCheck(KeyPointValueNode):
@@ -6598,8 +6601,7 @@ class RudderPreflightCheck(KeyPointValueNode):
         try:
             at.get_rudder_range(model.value, series.value, family.value)
         except KeyError:
-            cls.warning("No Rudder range available for '%s', '%s', '%s'.",
-                        model.value, series.value, family.value)
+            cls.warning("No Rudder range available for '%s', '%s', '%s'.", model.value, series.value, family.value)
             return False
 
         return True
@@ -6613,7 +6615,7 @@ class RudderPreflightCheck(KeyPointValueNode):
         disp_range = at.get_rudder_range(model.value, series.value, family.value)
         full_disp = disp_range * 2 if isinstance(disp_range, (float, int)) else disp_range[1] - disp_range[0]
 
-        PreflightCheck(self, apu_lasts if apu_lasts else eng_firsts, accels, [disp], full_disp)
+        preflight_check(self, apu_lasts, eng_firsts, accels, [disp], full_disp)
 
 
 class FlightControlPreflightCheck(KeyPointValueNode):
