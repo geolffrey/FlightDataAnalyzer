@@ -3987,7 +3987,10 @@ class FlapAngle(DerivedParameterNode):
                    "frequency of %sHz" % (flap, base_hz)
             xaxis = np.arange(duration, step=1/flap.hz) + flap.offset
             xx.append(xaxis)
-            yy.append(repair_mask(flap.array, repair_duration=None, extrapolate=True))
+            # We do not repair flap.array. If multiple sensors, blend_two_parameters
+            # will take care of filling the missing values with values from the
+            # good sensor.
+            yy.append(flap.array)
             ##scatter(xaxis, flap.array, edgecolor='none', c=col) # col was in zip with sources in for loop
 
         # if all have the same frequency, offsets are a multiple of the
