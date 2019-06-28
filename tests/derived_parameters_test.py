@@ -2203,7 +2203,7 @@ class TestBrake_TempMin(unittest.TestCase):
                          offset=0.5)
 
         node = self.node_class()
-        node.derive(brake_1, None, brake_3, None, None, None, None, None, None, None, None)
+        node.derive(brake_1, None, brake_3, None, None, None, None, None, None, None, None, None, None, None, None)
 
         assert_array_equal(node.array, expected_array)
         self.assertEqual(node.offset, 0.3)
@@ -2213,7 +2213,7 @@ class TestBrake_TempMin(unittest.TestCase):
         brake_R = P(name='Brake (R) Temp', array=brake_R_array, frequency=1,
                          offset=0.3)
         node = self.node_class()
-        node.derive(None, None, None, None, None, None, None, None, None, None, brake_R)
+        node.derive(None, None, None, None, None, None, None, None, None, None, brake_R, None, None, None, None)
         assert_array_equal(node.array, brake_R_array)
 
 class TestBrakePressure(unittest.TestCase):
