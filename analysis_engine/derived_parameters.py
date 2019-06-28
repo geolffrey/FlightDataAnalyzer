@@ -1928,6 +1928,83 @@ class BrakePressure(DerivedParameterNode):
             self.array = blend_parameters(sources, offset=self.offset,
                                           frequency=self.frequency)
 
+class Brake_C_Temp(DerivedParameterNode):
+    '''
+    This collates the centre gear temperature signals.
+
+    We use the median value to combine these so that in the
+    presence of a faulty signal the result is not skewed.
+    '''
+
+    name = 'Brake (C) Temp'
+
+    @classmethod
+    def can_operate(cls, available):
+        return any_of(cls.get_dependency_names(), available)
+
+    def derive(self,
+               brake1=P('Brake (C) (1) Temp'),
+               brake2=P('Brake (C) (2) Temp'),
+               brake3=P('Brake (C) (3) Temp'),
+               brake4=P('Brake (C) (4) Temp'),
+               brake5=P('Brake (C) (5) Temp'),
+               brake6=P('Brake (C) (6) Temp'),
+               brake7=P('Brake (C) (7) Temp'),
+               brake8=P('Brake (C) (8) Temp')):
+
+        brake_params = (brake1, brake2, brake3, brake4, brake5, brake6, brake7, brake8)
+        brakes = vstack_params(*brake_params)
+        self.array = np.ma.median(brakes, axis=0)
+        self.offset = offset_select('mean', brake_params)
+
+class Brake_L_Temp(DerivedParameterNode):
+    '''
+    See Brake_C_Temp above
+    '''
+
+    name = 'Brake (L) Temp'
+
+    @classmethod
+    def can_operate(cls, available):
+        return any_of(cls.get_dependency_names(), available)
+
+    def derive(self,
+               brake1=P('Brake (L) (1) Temp'),
+               brake2=P('Brake (L) (2) Temp'),
+               brake3=P('Brake (L) (3) Temp'),
+               brake4=P('Brake (L) (4) Temp'),
+               brake5=P('Brake (L) (5) Temp'),
+               brake6=P('Brake (L) (6) Temp')):
+
+        brake_params = (brake1, brake2, brake3, brake4, brake5, brake6)
+        brakes = vstack_params(*brake_params)
+        self.array = np.ma.median(brakes, axis=0)
+        self.offset = offset_select('mean', brake_params)
+
+class Brake_R_Temp(DerivedParameterNode):
+    '''
+    See Brake_C_Temp above
+    '''
+
+    name = 'Brake (R) Temp'
+
+    @classmethod
+    def can_operate(cls, available):
+        return any_of(cls.get_dependency_names(), available)
+
+    def derive(self,
+               brake1=P('Brake (R) (1) Temp'),
+               brake2=P('Brake (R) (2) Temp'),
+               brake3=P('Brake (R) (3) Temp'),
+               brake4=P('Brake (R) (4) Temp'),
+               brake5=P('Brake (R) (5) Temp'),
+               brake6=P('Brake (R) (6) Temp')):
+
+        brake_params = (brake1, brake2, brake3, brake4, brake5, brake6)
+        brakes = vstack_params(*brake_params)
+        self.array = np.ma.median(brakes, axis=0)
+        self.offset = offset_select('mean', brake_params)
+
 
 class Brake_TempAvg(DerivedParameterNode):
     '''
@@ -1952,9 +2029,17 @@ class Brake_TempAvg(DerivedParameterNode):
                brake5=P('Brake (5) Temp'),
                brake6=P('Brake (6) Temp'),
                brake7=P('Brake (7) Temp'),
-               brake8=P('Brake (8) Temp')):
+               brake8=P('Brake (8) Temp'),
+               brake9=P('Brake (9) Temp'),
+               brake10=P('Brake (10) Temp'),
+               brake11=P('Brake (11) Temp'),
+               brake12=P('Brake (12) Temp'),
+               brakeC=P('Brake (C) Temp'),
+               brakeL=P('Brake (L) Temp'),
+               brakeR=P('Brake (R) Temp')):
 
-        brake_params = (brake1, brake2, brake3, brake4, brake5, brake6, brake7, brake8)
+        brake_params = (brake1, brake2, brake3, brake4, brake5, brake6, brake7, brake8,
+                        brake9, brake10, brake11, brake12, brakeC, brakeL, brakeR)
         brakes = vstack_params(*brake_params)
         self.array = np.ma.average(brakes, axis=0)
         self.offset = offset_select('mean', brake_params)
@@ -1984,9 +2069,17 @@ class Brake_TempMax(DerivedParameterNode):
                brake5=P('Brake (5) Temp'),
                brake6=P('Brake (6) Temp'),
                brake7=P('Brake (7) Temp'),
-               brake8=P('Brake (8) Temp')):
+               brake8=P('Brake (8) Temp'),
+               brake9=P('Brake (9) Temp'),
+               brake10=P('Brake (10) Temp'),
+               brake11=P('Brake (11) Temp'),
+               brake12=P('Brake (12) Temp'),
+               brakeC=P('Brake (C) Temp'),
+               brakeL=P('Brake (L) Temp'),
+               brakeR=P('Brake (R) Temp')):
 
-        brake_params = (brake1, brake2, brake3, brake4, brake5, brake6, brake7, brake8)
+        brake_params = (brake1, brake2, brake3, brake4, brake5, brake6, brake7, brake8,
+                        brake9, brake10, brake11, brake12, brakeC, brakeL, brakeR)
         brakes = vstack_params(*brake_params)
         self.array = np.ma.max(brakes, axis=0)
         self.offset = offset_select('mean', brake_params)
@@ -2016,9 +2109,17 @@ class Brake_TempMin(DerivedParameterNode):
                brake5=P('Brake (5) Temp'),
                brake6=P('Brake (6) Temp'),
                brake7=P('Brake (7) Temp'),
-               brake8=P('Brake (8) Temp')):
+               brake8=P('Brake (8) Temp'),
+               brake9=P('Brake (9) Temp'),
+               brake10=P('Brake (10) Temp'),
+               brake11=P('Brake (11) Temp'),
+               brake12=P('Brake (12) Temp'),
+               brakeC=P('Brake (C) Temp'),
+               brakeL=P('Brake (L) Temp'),
+               brakeR=P('Brake (R) Temp')):
 
-        brake_params = (brake1, brake2, brake3, brake4, brake5, brake6, brake7, brake8)
+        brake_params = (brake1, brake2, brake3, brake4, brake5, brake6, brake7, brake8,
+                        brake9, brake10, brake11, brake12, brakeC, brakeL, brakeR)
         brakes = vstack_params(*brake_params)
         self.array = np.ma.min(brakes, axis=0)
         self.offset = offset_select('mean', brake_params)

@@ -93,6 +93,9 @@ from analysis_engine.derived_parameters import (
     AltitudeTail,
     ApproachRange,
     BrakePressure,
+    Brake_C_Temp,
+    Brake_L_Temp,
+    Brake_R_Temp,
     Brake_TempAvg,
     Brake_TempMax,
     Brake_TempMin,
@@ -2031,6 +2034,86 @@ class TestAltitudeTail(unittest.TestCase):
 ###############################################################################
 # Brakes
 
+class TestBrake_C_Temp(unittest.TestCase):
+
+    def setUp(self):
+        self.node_class = Brake_C_Temp
+
+    def test_can_operate(self):
+        poss_combs = self.node_class.get_operational_combinations()
+        self.assertTrue(len(poss_combs[0]), 8)
+        self.assertTrue('Brake (C) (1) Temp' in poss_combs[0])
+        self.assertFalse('Brake (C) (9) Temp' in poss_combs[0])
+        self.assertFalse('Brake (C) Temp' in poss_combs[0])
+
+    def test_derive(self):
+        brake_1_array =   [0, 30, 50, 80,  100, 100, 70, 70, 70, 50, 50, 10,  0,  0, 0]
+        brake_3_array =   [0,  0, 30, 60,   85, 100, 70, 70, 70, 50, 50, 30, 10, 10, 0]
+        expected_array =  [0, 15, 40, 70, 92.5, 100, 70, 70, 70, 50, 50, 20,  5,  5, 0]
+
+        brake_1 = P(name='Brake (C) (1) Temp', array=brake_1_array, frequency=1, offset=0.1)
+        brake_3 = P(name='Brake (C) (3) Temp', array=brake_3_array, frequency=1, offset=0.5)
+        node = self.node_class()
+        node.derive(brake_1, None, brake_3, None, None, None, None, None)
+        assert_array_equal(node.array, expected_array)
+        self.assertEqual(node.offset, 0.3)
+
+    def test_median(self):
+        brake_1_array =   [30, 30]
+        brake_2_array =   [40, 40]
+        brake_3_array =   [100, 100]
+        expected_array =  [40, 40]
+        brake_1 = P(name='Brake (C) (1) Temp', array=brake_1_array)
+        brake_2 = P(name='Brake (C) (2) Temp', array=brake_2_array)
+        brake_3 = P(name='Brake (C) (3) Temp', array=brake_3_array)
+        node = self.node_class()
+        node.derive(brake_1, brake_2, brake_3, None, None, None, None, None)
+        assert_array_equal(node.array, expected_array)
+
+class TestBrake_L_Temp(unittest.TestCase):
+
+    def setUp(self):
+        self.node_class = Brake_L_Temp
+
+    def test_can_operate(self):
+        poss_combs = self.node_class.get_operational_combinations()
+        self.assertTrue(len(poss_combs[0]), 6)
+        self.assertTrue('Brake (L) (1) Temp' in poss_combs[0])
+
+    def test_derive(self):
+        brake_1_array =   [30, 30]
+        brake_2_array =   [40, 40]
+        brake_3_array =   [100, 100]
+        expected_array =  [40, 40]
+        brake_1 = P(name='Brake (L) (1) Temp', array=brake_1_array)
+        brake_2 = P(name='Brake (L) (2) Temp', array=brake_2_array)
+        brake_3 = P(name='Brake (L) (3) Temp', array=brake_3_array)
+        node = self.node_class()
+        node.derive(brake_1, brake_2, brake_3, None, None, None)
+        assert_array_equal(node.array, expected_array)
+
+class TestBrake_R_Temp(unittest.TestCase):
+
+    def setUp(self):
+        self.node_class = Brake_R_Temp
+
+    def test_can_operate(self):
+        poss_combs = self.node_class.get_operational_combinations()
+        self.assertTrue(len(poss_combs[0]), 6)
+        self.assertTrue('Brake (R) (1) Temp' in poss_combs[0])
+
+    def test_derive(self):
+        brake_1_array =   [30, 30]
+        brake_2_array =   [40, 40]
+        brake_3_array =   [100, 100]
+        expected_array =  [40, 40]
+        brake_1 = P(name='Brake (R) (1) Temp', array=brake_1_array)
+        brake_2 = P(name='Brake (R) (2) Temp', array=brake_2_array)
+        brake_3 = P(name='Brake (R) (3) Temp', array=brake_3_array)
+        node = self.node_class()
+        node.derive(brake_1, brake_2, brake_3, None, None, None)
+        assert_array_equal(node.array, expected_array)
+
 class TestBrake_TempAvg(unittest.TestCase):
 
     def setUp(self):
@@ -2038,7 +2121,7 @@ class TestBrake_TempAvg(unittest.TestCase):
 
     def test_can_operate(self):
         poss_combs = self.node_class.get_operational_combinations()
-        self.assertEqual(len(poss_combs), 2**8-1)
+        self.assertEqual(len(poss_combs), 2**15-1)
 
     def test_derive(self):
         brake_1_array =   [0, 30, 50, 80,  100, 100, 70, 70, 70, 50, 50, 10,  0,  0, 0]
@@ -2052,10 +2135,18 @@ class TestBrake_TempAvg(unittest.TestCase):
                          offset=0.5)
 
         node = self.node_class()
-        node.derive(brake_1, None, brake_3, None, None, None, None, None)
+        node.derive(brake_1, None, brake_3, None, None, None, None, None, None, None, None, None, None, None, None)
 
         assert_array_equal(node.array, expected_array)
         self.assertEqual(node.offset, 0.3)
+
+    def test_r(self):
+        brake_R_array =   [0,  0, 30, 60,   85, 100, 70, 70, 70, 50, 50, 30, 10, 10, 0]
+        brake_R = P(name='Brake (R) Temp', array=brake_R_array, frequency=1,
+                         offset=0.3)
+        node = self.node_class()
+        node.derive(None, None, None, None, None, None, None, None, None, None, brake_R, None, None, None, None)
+        assert_array_equal(node.array, brake_R_array)
 
 
 class TestBrake_TempMax(unittest.TestCase):
@@ -2065,7 +2156,7 @@ class TestBrake_TempMax(unittest.TestCase):
 
     def test_can_operate(self):
         poss_combs = self.node_class.get_operational_combinations()
-        self.assertEqual(len(poss_combs), 2**8-1)
+        self.assertEqual(len(poss_combs), 2**15-1)
 
     def test_derive(self):
         brake_1_array =  [0, 30, 50, 80, 100, 100, 70, 70, 70, 50, 50, 10,  0,  0, 0]
@@ -2079,11 +2170,17 @@ class TestBrake_TempMax(unittest.TestCase):
                          offset=0.5)
 
         node = self.node_class()
-        node.derive(brake_1, None, brake_3, None, None, None, None, None)
-
+        node.derive(brake_1, None, brake_3, None, None, None, None, None, None, None, None, None, None, None, None)
         assert_array_equal(node.array, expected_array)
         self.assertEqual(node.offset, 0.3)
 
+    def test_r(self):
+        brake_R_array =   [0,  0, 30, 60,   85, 100, 70, 70, 70, 50, 50, 30, 10, 10, 0]
+        brake_R = P(name='Brake (R) Temp', array=brake_R_array, frequency=1,
+                         offset=0.3)
+        node = self.node_class()
+        node.derive(None, None, None, None, None, None, None, None, None, None, brake_R, None, None, None, None)
+        assert_array_equal(node.array, brake_R_array)
 
 class TestBrake_TempMin(unittest.TestCase):
 
@@ -2092,7 +2189,7 @@ class TestBrake_TempMin(unittest.TestCase):
 
     def test_can_operate(self):
         poss_combs = self.node_class.get_operational_combinations()
-        self.assertEqual(len(poss_combs), 2**8-1)
+        self.assertEqual(len(poss_combs), 2**15-1)
 
     def test_derive(self):
         brake_1_array =  [0, 30, 50, 80, 100, 100, 70, 70, 70, 50, 50, 10,  0,  0, 0]
@@ -2106,11 +2203,18 @@ class TestBrake_TempMin(unittest.TestCase):
                          offset=0.5)
 
         node = self.node_class()
-        node.derive(brake_1, None, brake_3, None, None, None, None, None)
+        node.derive(brake_1, None, brake_3, None, None, None, None, None, None, None, None)
 
         assert_array_equal(node.array, expected_array)
         self.assertEqual(node.offset, 0.3)
 
+    def test_r(self):
+        brake_R_array =   [0,  0, 30, 60,   85, 100, 70, 70, 70, 50, 50, 30, 10, 10, 0]
+        brake_R = P(name='Brake (R) Temp', array=brake_R_array, frequency=1,
+                         offset=0.3)
+        node = self.node_class()
+        node.derive(None, None, None, None, None, None, None, None, None, None, brake_R)
+        assert_array_equal(node.array, brake_R_array)
 
 class TestBrakePressure(unittest.TestCase):
     def test_can_operate(self):
