@@ -1549,7 +1549,7 @@ class TestAccelerationLongitudinalWhileAirborneMax(unittest.TestCase,
 
     def test_attributes(self):
         node = self.node_class()
-        self.assertEqual(node.units, 'g')
+        self.assertEqual(node.units, ut.G)
         self.assertEqual(node.name,
                          'Acceleration Longitudinal While Airborne Max')
 
@@ -1939,7 +1939,7 @@ class TestAccelerationNormalMinusLoadFactorThresholdAtTouchdown(unittest.TestCas
 
     def test_attributes(self):
         node = self.node_class()
-        self.assertEqual(node.units, 'g')
+        self.assertEqual(node.units, ut.G)
         self.assertEqual(
             node.name,
             'Acceleration Normal Minus Load Factor Threshold At Touchdown'
@@ -2244,7 +2244,7 @@ class TestLoadFactorThresholdAtTouchdown(unittest.TestCase):
 
     def test_attributes(self):
         node = self.node_class()
-        self.assertEqual(node.units, 'g')
+        self.assertEqual(node.units, ut.G)
         self.assertEqual(
             node.name,
             'Load Factor Threshold At Touchdown'
@@ -2841,7 +2841,7 @@ class TestAirspeed5000To8000FtMax(unittest.TestCase):
 
     def test_attributes(self):
         node = self.node_class()
-        self.assertEqual(node.units, 'kt')
+        self.assertEqual(node.units, ut.KT)
         self.assertEqual(node.name, 'Airspeed 5000 To 8000 Ft Max')
 
     def test_can_operate(self):
@@ -3116,7 +3116,7 @@ class TestAirspeedAtAPUpperModesEngaged(unittest.TestCase):
     def test_attributes(self):
         node = self.node_class()
         self.assertEqual(node.name, 'Airspeed At AP Upper Modes Engaged')
-        self.assertEqual(node.units, 'kt')
+        self.assertEqual(node.units, ut.KT)
 
     def test_can_operate(self):
         self.assertEqual(self.node_class.get_operational_combinations(
@@ -7407,7 +7407,7 @@ class TestHeightAtOffsetILSTurn(unittest.TestCase):
     def test_attributes(self):
         node = self.node_class()
         self.assertEqual(node.name, 'Height At Offset ILS Turn')
-        self.assertEqual(node.units, 'ft')
+        self.assertEqual(node.units, ut.FT)
 
     def test_can_operate(self):
         opts = self.node_class.get_operational_combinations()
@@ -7438,7 +7438,7 @@ class TestHeightAtRunwayChange(unittest.TestCase):
     def test_attributes(self):
         node = self.node_class()
         self.assertEqual(node.name, 'Height At Runway Change')
-        self.assertEqual(node.units, 'ft')
+        self.assertEqual(node.units, ut.FT)
 
     def test_can_operate(self):
         opts = self.node_class.get_operational_combinations()
@@ -12378,7 +12378,7 @@ class TestEngOilPressWarningDuration(unittest.TestCase):
     def test_attributes(self):
         node = self.node_class()
         self.assertEqual(node.name, 'Eng Oil Press Warning Duration')
-        self.assertEqual(node.units, 's')
+        self.assertEqual(node.units, ut.SECOND)
 
     def test_can_operate(self):
         opts = self.node_class.get_operational_combinations()
@@ -12413,7 +12413,7 @@ class TestEngOilPressLowRedlineExceededDuration(unittest.TestCase):
         node = self.node_class()
         self.assertEqual(node.name,
                          'Eng Oil Press Low Redline Exceeded Duration')
-        self.assertEqual(node.units, 's')
+        self.assertEqual(node.units, ut.SECOND)
 
     def test_can_operate(self):
         opts = self.node_class.get_operational_combinations()
@@ -12803,7 +12803,7 @@ class TestEngTorque7FtToTouchdownMax(unittest.TestCase):
     def test_attributes(self):
         node = self.node_class()
         self.assertEqual(node.name, 'Eng Torque 7 Ft To Touchdown Max')
-        self.assertEqual(node.units, '%')
+        self.assertEqual(node.units, ut.PERCENT)
 
     def test_derive(self):
         torque = P('Eng (*) Torque Max',
@@ -14167,7 +14167,7 @@ class TestFlapAtFirstMovementAfterEngineStart(unittest.TestCase):
     def test_attributes(self):
         node = self.node_class()
         self.assertEqual(node.name, 'Flap At First Movement After Engine Start')
-        self.assertEqual(node.units, 'deg')
+        self.assertEqual(node.units, ut.DEGREE)
 
     def test_can_operate(self):
         opts = self.node_class.get_operational_combinations()
@@ -16010,7 +16010,7 @@ class TestPitchTouchdownTo60KtsAirspeedMax(unittest.TestCase, NodeTest):
         node = self.node_class()
         self.assertEqual(node.name,
                          'Pitch Touchdown To 60 Kts Airspeed Max')
-        self.assertEqual(node.units, 'deg')
+        self.assertEqual(node.units, ut.DEGREE)
 
     def test_derive(self):
         pitch = P('Pitch', np.ma.array([0.7, 1.1, 0.2, -0.8, -1.2,
@@ -16193,7 +16193,7 @@ class TestPitchRateTouchdownTo60KtsAirspeedMax(unittest.TestCase, NodeTest):
         node = self.node_class()
         self.assertEqual(node.name,
                          'Pitch Rate Touchdown To 60 Kts Airspeed Max')
-        self.assertEqual(node.units, 'deg/s')
+        self.assertEqual(node.units, ut.DEGREE_S)
 
     def test_derive(self):
         pitch = P('Pitch Rate', np.ma.array([0.7, 1.1, 0.2, -0.8, -1.2,
@@ -17862,7 +17862,7 @@ class TestAirspeedBelowMinimumAirspeedFlapCleanMin(unittest.TestCase):
 
     def test_attributes(self):
         node = self.node_class()
-        self.assertEqual(node.units, 's')
+        self.assertEqual(node.units, ut.SECOND)
         self.assertEqual(node.name, 'Airspeed Below Minimum Airspeed Flap Clean Min')
 
     def test_can_operate(self):
@@ -18553,7 +18553,7 @@ class TestTAWSTerrainClearanceFloorAlertDuration(unittest.TestCase):
 
     def test_attributes(self):
         node = self.node_class()
-        self.assertEqual(node.units, 's')
+        self.assertEqual(node.units, ut.SECOND)
         self.assertEqual(node.name,
                          'TAWS Terrain Clearance Floor Alert Duration')
 
@@ -18630,7 +18630,7 @@ class TestTAWSGlideslopeWarning1500To1000FtDuration(unittest.TestCase,
         node = self.node_class()
         self.assertEqual(node.name,
                          'TAWS Glideslope Warning 1500 To 1000 Ft Duration')
-        self.assertEqual(node.units, 's')
+        self.assertEqual(node.units, ut.SECOND)
 
     def test_can_operate(self):
         opts = self.node_class.get_operational_combinations()
@@ -18714,7 +18714,7 @@ class TestTAWSGlideslopeWarning1000To500FtDuration(unittest.TestCase,
         node = self.node_class()
         self.assertEqual(node.name,
                          'TAWS Glideslope Warning 1000 To 500 Ft Duration')
-        self.assertEqual(node.units, 's')
+        self.assertEqual(node.units, ut.SECOND)
 
     def test_can_operate(self):
         opts = self.node_class.get_operational_combinations()
@@ -18796,7 +18796,7 @@ class TestTAWSGlideslopeWarning500To200FtDuration(unittest.TestCase, NodeTest):
         node = self.node_class()
         self.assertEqual(node.name,
                          'TAWS Glideslope Warning 500 To 200 Ft Duration')
-        self.assertEqual(node.units, 's')
+        self.assertEqual(node.units, ut.SECOND)
 
     def test_can_operate(self):
         opts = self.node_class.get_operational_combinations()
@@ -21322,7 +21322,7 @@ class TestDriftAtTouchdown(unittest.TestCase):
     def test_attributes(self):
         node = self.node_class()
         self.assertEqual(node.name, 'Drift At Touchdown')
-        self.assertEqual(node.units, 'deg')
+        self.assertEqual(node.units, ut.DEGREE)
 
     def test_can_operate(self):
         opts = self.node_class.get_operational_combinations()

@@ -4953,7 +4953,7 @@ class BrakePressureInTakeoffRollMax(KeyPointValueNode):
     using the rudder (dragging toes on pedals)."
     '''
 
-    units = None  # FIXME
+    units = ut.PSI
 
     def derive(self, bp=P('Brake Pressure'),
                rolls=S('Takeoff Roll Or Rejected Takeoff')):
@@ -5935,6 +5935,7 @@ class ATEngagedAPDisengagedOutsideClimbDuration(KeyPointValueNode):
     '''
 
     name = 'AT Engaged AP Disengaged Outside Climb Duration'
+    units = ut.SECOND
 
     @classmethod
     def can_operate(cls, available, ac_family=A('Family')):
@@ -6368,6 +6369,7 @@ class ATDisengagedAPEngagedDuration(KeyPointValueNode):
     '''
 
     name = 'AT Disengaged AP Engaged Duration'
+    units = ut.SECOND
 
     @classmethod
     def can_operate(cls, available, ac_family=A('Family')):
@@ -13430,6 +13432,9 @@ class FuelQtyWingDifferenceMax(KeyPointValueNode):
     If the value is positive that indicates more fuel in the right wing's tank,
     if negative - in the left wing's tank.
     '''
+
+    units = ut.KG
+
     def derive(self, left_wing=P('Fuel Qty (L)'), right_wing=P('Fuel Qty (R)'),
                airbornes=S('Airborne')):
 
@@ -17348,7 +17353,6 @@ class TCASRAAPDisengaged(KeyPointValueNode):
     '''
 
     name = 'TCAS RA AP Disengaged'
-    # units = ut.LOGICAL
 
     @classmethod
     def can_operate(cls, available):
@@ -19039,6 +19043,8 @@ class TakeoffRatingDuration(KeyPointValueNode):
     Duration for which takeoff power is in use. Measured between the start
     of the takeoff roll and 5 minutes after.
     '''
+
+    units = ut.SECOND
 
     def derive(self, toffs=S('Takeoff 5 Min Rating')):
         '''

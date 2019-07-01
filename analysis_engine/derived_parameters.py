@@ -1523,7 +1523,7 @@ class CabinAltitude(DerivedParameterNode):
 
     def derive(self, cp=P('Cabin Press')):
 
-        # assert cp.units=='psi' # Would like to assert units as 'psi'
+        # XXX: assert cp.units == ut.PSI  # Would like to assert units as 'psi'
         self.array = press2alt(cp.array)
 
 

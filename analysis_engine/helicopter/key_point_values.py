@@ -190,6 +190,7 @@ class AirspeedAbove101PercentRotorSpeed(KeyPointValueNode):
     Airspeed At or Above 101% Rotor Speed. Helicopter only.
     '''
     name = 'Airspeed Above 101 Percent Rotor Speed'
+    units = ut.KT
     can_operate = helicopter_only
 
     def derive(self,

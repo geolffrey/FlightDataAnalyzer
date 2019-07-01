@@ -1397,7 +1397,7 @@ class TestAltitudeQNH(unittest.TestCase):
     def test_attribute(self):
         node = self.node_class()
         self.assertEqual(node.name, 'Altitude QNH')
-        self.assertEqual(node.units, 'ft')
+        self.assertEqual(node.units, ut.FT)
 
     def test_can_operate(self):
         opts = self.node_class.get_operational_combinations()
