@@ -7770,7 +7770,7 @@ class ILSGlideslopeDeviation500To200FtMax(KeyPointValueNode):
 
 class ILSGlideslopeNotEstablishedHighestAltitude1000To200Ft(KeyPointValueNode):
     '''
-    Determine the highest altittude where the ILS glideslope first deviates (>0.5 dots or <-0.5 dots)
+    Determine the highest altitude where the ILS glideslope first deviates (>0.5 dots or <-0.5 dots)
     within the altitude band 1000 to 200 ft
     '''
 
@@ -7821,7 +7821,7 @@ class ILSGlideslopeNotEstablishedHighestAltitude1000To200Ft(KeyPointValueNode):
 
 class ILSGlideslopeNotEstablishedHighestAltitude500To200Ft(KeyPointValueNode):
     '''
-    Determine the highest altittude where the ILS glideslope first deviates (>0.5 dots or <-0.5 dots)
+    Determine the highest altitude where the ILS glideslope first deviates (>0.5 dots or <-0.5 dots)
     within the altitude band 500 to 200 ft
     '''
 
@@ -7872,7 +7872,7 @@ class ILSGlideslopeNotEstablishedHighestAltitude500To200Ft(KeyPointValueNode):
 
 class ILSLocalizerNotEstablishedHighestAltitude1000To200Ft(KeyPointValueNode):
     '''
-    Determine the highest altittude where the ILS localizer first deviates (>0.5 dots or <-0.5 dots)
+    Determine the highest altitude where the ILS localizer first deviates (>0.5 dots or <-0.5 dots)
     within the altitude band 1000 to 200 ft
     '''
 
@@ -7921,7 +7921,7 @@ class ILSLocalizerNotEstablishedHighestAltitude1000To200Ft(KeyPointValueNode):
 
 class ILSLocalizerNotEstablishedHighestAltitude500To200Ft(KeyPointValueNode):
     '''
-    Determine the highest altittude where the ILS localizer first deviates (>0.5 dots or <-0.5 dots)
+    Determine the highest altitude where the ILS localizer first deviates (>0.5 dots or <-0.5 dots)
     within the altitude band 500 to 200 ft
     '''
 
