@@ -7466,6 +7466,8 @@ class HeightLossLiftoffTo35Ft(KeyPointValueNode):
                alt_aal=P('Altitude AAL For Flight Phases')):
 
         for climb in alt_aal.slices_from_to(0, 35):
+            if climb.start == climb.stop:
+                continue
             array = np.ma.masked_greater_equal(vs.array[climb], 0.0)
             drops = np.ma.clump_unmasked(array)
             for drop in drops:
