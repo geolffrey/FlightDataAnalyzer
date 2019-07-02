@@ -2936,9 +2936,12 @@ class TestSpeedbrakeDeployed(unittest.TestCase):
 
     def test_can_operate(self):
         # get_operational_combinations is too slow for lots of dependencies
-        self.assertTrue(self.node_class.can_operate(('Spoiler Deployed',)))
-        self.assertTrue(self.node_class.can_operate(('Spoiler (L) Deployed', 'Spoiler (R) Deployed')))
+        self.assertTrue(self.node_class.can_operate(('Ground Spoiler Deployed',)))
+        self.assertTrue(self.node_class.can_operate(('Speedbrake (Tail) Deployed',)))
+        self.assertTrue(self.node_class.can_operate(('Ground Spoiler (L) Deployed', 'Ground Spoiler (R) Deployed')))
         self.assertTrue(self.node_class.can_operate(('Spoiler (L) (1) Deployed', 'Spoiler (R) (1) Deployed')))
+        self.assertTrue(self.node_class.can_operate(('Ground Spoiler (L) (1) Deployed', 'Ground Spoiler (R) (1) Deployed')))
+        self.assertTrue(self.node_class.can_operate(('Ground Spoiler (L) (2) Deployed', 'Ground Spoiler (R) (2) Deployed')))
         self.assertTrue(self.node_class.can_operate(('Spoiler (L) Outboard Deployed', 'Spoiler (R) Outboard Deployed')))
         self.assertTrue(self.node_class.can_operate(('Spoiler',)))
         self.assertTrue(self.node_class.can_operate(('Spoiler (L)', 'Spoiler (R)')))
@@ -2966,7 +2969,7 @@ class TestSpeedbrakeDeployed(unittest.TestCase):
     def test_derive(self):
         result = [ 0,  0,  0,  0,  0,  1,  1,  1,  0,  0]
         node = self.node_class()
-        node.derive(None, self.deployed_l, self.deployed_r, *[None] * 35)
+        node.derive(None, None, self.deployed_l, self.deployed_r, *[None] * 43)
         np.testing.assert_equal(node.array.data, result)
 
     def test_derive_masked_value(self):
@@ -2977,7 +2980,7 @@ class TestSpeedbrakeDeployed(unittest.TestCase):
         result_mask =  [ 0,  0,  0,  0,  0,  1,  0,  0,  1,  0]
 
         node = self.node_class()
-        node.derive(None, self.deployed_l, self.deployed_r, *[None] * 35)
+        node.derive(None, None, self.deployed_l, self.deployed_r, *[None] * 43)
         np.testing.assert_equal(node.array.data, result_array)
         np.testing.assert_equal(node.array.mask, result_mask)
 
@@ -2987,13 +2990,13 @@ class TestSpeedbrakeDeployed(unittest.TestCase):
 
         result = [ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0]
         node = self.node_class()
-        node.derive(None, self.deployed_l, self.deployed_r, *[None] * 35)
+        node.derive(None, None, self.deployed_l, self.deployed_r, *[None] * 43)
         np.testing.assert_equal(node.array.data, result)
 
     def test_derive_spoiler_angle(self):
         spoiler = P('Spoiler', array=[0, 5, 10, 50, 10, 5, 0])
         node = self.node_class()
-        node.derive(*[None] * 19 + [spoiler] + [None] * 18)
+        node.derive(*[None] * 26 + [spoiler] + [None] * 18)
         self.assertEqual(
             node.array.tolist(),
             ['-', '-', 'Deployed', 'Deployed', 'Deployed', '-', '-'],
@@ -3003,7 +3006,7 @@ class TestSpeedbrakeDeployed(unittest.TestCase):
         spoiler_l = P('Spoiler (L)', array=[0, 5, 10, 50, 10, 5, 0])
         spoiler_r = P('Spoiler (R)', array=[0, 0, 5, 10, 50, 10, 5])
         node = self.node_class()
-        node.derive(*[None] * 20 + [spoiler_l, spoiler_r] + [None] * 15)
+        node.derive(*[None] * 27 + [spoiler_l, spoiler_r] + [None] * 15)
         self.assertEqual(
             node.array.tolist(),
             ['-', '-', '-', 'Deployed', 'Deployed', '-', '-'],
@@ -3013,7 +3016,7 @@ class TestSpeedbrakeDeployed(unittest.TestCase):
         spoiler_l_1 = P('Spoiler (L) (1)', array=[0, 5, 10, 50, 10, 5, 0])
         spoiler_r_1 = P('Spoiler (R) (1)', array=[0, 0, 5, 10, 50, 10, 5])
         node = self.node_class()
-        node.derive(*[None] * 22 + [spoiler_l_1] + [None] * 6 + [spoiler_r_1] + [None] * 8)
+        node.derive(*[None] * 29 + [spoiler_l_1] + [None] * 6 + [spoiler_r_1] + [None] * 8)
         self.assertEqual(
             node.array.tolist(),
             ['-', '-', '-', 'Deployed', 'Deployed', '-', '-'],
