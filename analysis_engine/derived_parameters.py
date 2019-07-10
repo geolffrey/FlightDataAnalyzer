@@ -9309,3 +9309,25 @@ class ElevatorActuatorMismatch(DerivedParameterNode):
         '''
 
         self.array = mismatch
+
+class ElevatorQuadrantOffsetRemoved(DerivedParameterNode):
+    units = ut.DEGREE
+
+    def derive(self,
+               quadrant=P('Elevator Quadrant'),
+               offset=KPV('Elevator Quadrant Offset')):
+
+        if offset:
+            self.array = quadrant.array - offset[0].value
+        else:
+            self.array = quadrant.array
+
+
+class ElevatorQuadrantOffsetRemovedElevatorDifference(DerivedParameterNode):
+    units = ut.DEGREE
+
+    def derive(self,
+               quadrant=P('Elevator Quadrant Offset Removed'),
+               elev=P('Elevator')):
+
+        self.array = np.ma.abs(elev.array-quadrant.array)

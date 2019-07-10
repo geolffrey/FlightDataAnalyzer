@@ -19748,3 +19748,43 @@ class ElevatorQuadrantElevatorActuatorDiffMax(KeyPointValueNode):
         sections = slices_or(sections_ap_l, sections_ap_r)
         sections = slices_and(airborne.get_slices(), sections)
         self.create_kpv_from_slices(diff, sections, max_value)
+
+
+class ElevatorQuadrantElevatorDiffMax(KeyPointValueNode):
+    '''
+    Maximum difference between Elevator Quadrant and Elevator
+    '''
+    def derive(self, quadrant=P('Elevator Quadrant'),
+               elevator=P('Elevator'),
+               airborne=S('Airborne'),):
+
+        sections = airborne.get_slices()
+        diff = np.ma.abs(quadrant.array - elevator.array)
+        avg_diff = np.ma.average(diff)
+        diff = np.ma.abs(quadrant.array - avg_diff - elevator.array)
+        self.create_kpv_from_slices(diff, sections, max_value)
+
+
+class ElevatorQuadrantOffsetRemovedElevatorDiffMax(KeyPointValueNode):
+    '''
+    Maximum difference between Elevator Quadrant and Elevator
+    '''
+    def derive(self, quadrant=P('Elevator Quadrant Offset Removed'),
+               elevator=P('Elevator'),
+               airborne=S('Airborne'),):
+
+        sections = airborne.get_slices()
+        diff = np.ma.abs(quadrant.array - elevator.array)
+        avg_diff = np.ma.average(diff)
+        diff = np.ma.abs(quadrant.array - avg_diff - elevator.array)
+        self.create_kpv_from_slices(diff, sections, max_value)
+
+
+class ElevatorQuadrantOffset(KeyPointValueNode):
+
+    def derive(self, quadrant=P('Elevator Quadrant'),
+               elevator=P('Elevator'),):
+
+        diff = np.ma.abs(quadrant.array - elevator.array)
+        avg_diff = np.ma.average(diff)
+        self.create_kpv(0, avg_diff)
