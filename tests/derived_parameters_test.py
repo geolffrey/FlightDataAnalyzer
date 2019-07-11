@@ -29,7 +29,8 @@ from analysis_engine.library import (align,
 
 from analysis_engine.node import (
     A, M, P, S, KPV, KTI, aeroplane, App, ApproachItem, Attribute,
-    helicopter, KeyPointValue, KeyTimeInstance, load, Parameter, Section
+    helicopter, KeyPointValue, KeyTimeInstance, load, Parameter, powerset,
+    Section
 )
 
 from analysis_engine.process_flight import process_flight
@@ -89,6 +90,7 @@ from analysis_engine.derived_parameters import (
     AltitudeVisualizationWithoutGroundOffset,
     AltitudeRadio,
     AltitudeRadioOffsetRemoved,
+    AltitudeSelected,
     AltitudeSTDSmoothed,
     AltitudeTail,
     ApproachRange,
@@ -2030,6 +2032,101 @@ class TestAltitudeTail(unittest.TestCase):
                              dtype=np.float, mask=False)
         np.testing.assert_array_almost_equal(result.data, answer.data)
 
+
+class TestAltitudeSelected(unittest.TestCase):
+    def test_can_operate(self):
+        expected = set(powerset([
+            'Altitude Selected (1)',
+            'Altitude Selected (2)',
+            'Altitude Selected (3)',
+            'Altitude Selected (4)',
+        ]))
+        # Remove the empty tuple from the powerset. We need at least one param.
+        expected.remove(())
+        opts = set(AltitudeSelected.get_operational_combinations())
+        self.assertEqual(opts, expected)
+
+    def test_two_params_evenly_offset(self):
+        alt1 = P(
+            'Altitude Selected (1)',
+            array=np.ma.concatenate((
+                np.ma.ones(3) * 1000.0,
+                np.ma.ones(1) * 2000.0,
+            )),
+            frequency=0.5, offset=0.0
+        )
+        alt2 = P(
+            'Altitude Selected (2)',
+            array=np.ma.concatenate((
+                np.ma.ones(2) * 1000.0,
+                np.ma.ones(2) * 2000.0,
+            )),
+            frequency=0.5, offset=1.0
+        )
+        node = AltitudeSelected()
+        node.derive(alt1, alt2, None, None)
+
+        expected = np.ma.array(
+            [1000.0, 1000.0, 1000.0, 1000.0, 1250.0, 1750.0, 2000.0, 0.0]
+        )
+        # After blending, the last item is masked
+        expected[-1] = np.ma.masked
+        assert_array_equal(expected, node.array)
+
+
+    def test_two_params_not_evenly_offset(self):
+        alt1 = P(
+            'Altitude Selected (1)',
+            array=np.ma.concatenate((
+                np.ma.ones(3) * 1000.0,
+                np.ma.ones(1) * 2000.0,
+            )),
+            frequency=0.5, offset=0.0
+        )
+        alt2 = P(
+            'Altitude Selected (2)',
+            array=np.ma.concatenate((
+                np.ma.ones(2) * 1000.0,
+                np.ma.ones(2) * 2000.0,
+            )),
+            frequency=0.5, offset=0.1
+        )
+        node = AltitudeSelected()
+        node.derive(alt1, alt2, None, None)
+
+        expected = np.ma.array(
+            [1000.0, 1000.0, 1000.0, 1225.0, 1475.0, 1750.0, 2000.0, 0.0]
+        )
+        # After blending, the last item is masked
+        expected[-1] = np.ma.masked
+        assert_array_equal(expected, node.array)
+
+    def test_two_params_same_offset(self):
+        alt1 = P(
+            'Altitude Selected (1)',
+            array=np.ma.concatenate((
+                np.ma.ones(2) * 1000.0,
+                np.ma.ones(2) * 2000.0,
+            )),
+            frequency=0.5, offset=0.0
+        )
+        alt2 = P(
+            'Altitude Selected (2)',
+            array=np.ma.concatenate((
+                np.ma.ones(2) * 1000.0,
+                np.ma.ones(2) * 2000.0,
+            )),
+            frequency=0.5, offset=0.0
+        )
+        node = AltitudeSelected()
+        node.derive(alt1, alt2, None, None)
+
+        expected = np.ma.array(
+            [1000.0, 1000.0, 1000.0, 1500.0, 2000.0, 2000.0, 0.0, 0.0]
+        )
+        # After blending, the last 2 items are masked
+        expected[-2:] = np.ma.masked
+        assert_array_equal(expected, node.array)
 
 ###############################################################################
 # Brakes

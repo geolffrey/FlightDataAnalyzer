@@ -1504,6 +1504,45 @@ class AltitudeTail(DerivedParameterNode):
         self.array = result
 
 
+class AltitudeSelected(DerivedParameterNode):
+    '''
+    Blending of multiple Altitude Selected sources.
+    '''
+
+    units = ut.FT
+
+    @classmethod
+    def can_operate(cls, available):
+        return any_of(
+            [
+                "Altitude Selected (1)",
+                "Altitude Selected (2)",
+                "Altitude Selected (3)",
+                "Altitude Selected (4)",
+            ],
+            available,
+        )
+
+    def derive(self,
+               alt1=P('Altitude Selected (1)'),
+               alt2=P('Altitude Selected (2)'),
+               alt3=P('Altitude Selected (3)'),
+               alt4=P('Altitude Selected (4)'),
+               ):
+        sources = [alt for alt in (alt1, alt2, alt3, alt4) if alt]
+
+        # Constrict number of sources to be a power of 2 for an even alignable
+        # frequency.
+        sources = sources[:power_floor(len(sources))]
+        self.offset = 0.0
+        self.frequency = len(sources) * sources[0].frequency
+        self.array = blend_parameters(
+            sources,
+            offset=self.offset,
+            frequency=self.frequency
+        )
+
+
 ##############################################################################
 # Automated Systems
 
