@@ -631,6 +631,7 @@ from analysis_engine.key_point_values import (
     StallWarningDuration,
     StickPusherActivatedDuration,
     StickShakerActivatedDuration,
+    TailwindAtAltitudeDuringDescent,
     TAWSAlertDuration,
     TAWSCautionObstacleDuration,
     TAWSCautionTerrainDuration,
@@ -20408,6 +20409,30 @@ class TestWindAcrossLandingRunwayAt50Ft(unittest.TestCase, NodeTest):
     @unittest.skip('Test Not Implemented')
     def test_derive(self):
         self.assertTrue(False, msg='Test not implemented.')
+
+
+class TestTailwindAtAltitudeDuringDescent(unittest.TestCase, NodeTest):
+
+    def setUp(self):
+        self.node_class = TailwindAtAltitudeDuringDescent
+        self.operational_combinations = [('Altitude AAL For Flight Phases', 'Tailwind')]
+
+    def test_derive(self):
+        alt_aal = P(
+            'Altitude AAL For Flight Phases',
+            array=np.ma.array(data=np.linspace(2500, 0, num=51))
+        )
+        tailwind = P(
+            'Tailwind',
+            array=alt_aal.array / 50.0
+        )
+        node = self.node_class()
+        node.derive(alt_aal, tailwind)
+        for alt in (2000, 1500, 1000, 500, 100, 50):
+            kpvs = node.get(name='Tailwind At {} Ft During Descent'.format(alt))
+            self.assertEqual(len(kpvs), 1)
+            kpv = kpvs[0]
+            self.assertAlmostEqual(kpv.value, alt / 50.0)
 
 
 ##############################################################################
