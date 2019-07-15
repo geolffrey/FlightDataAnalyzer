@@ -10911,6 +10911,55 @@ class EngN1WithThrustReversersDeployedMax(KeyPointValueNode):
         self.create_kpv_from_slices(eng_n1_avg.array, slices, max_value)
 
 
+class EngEngStartToN1At60PercentDuration(KeyPointValueNode):
+    '''
+    Duration for engine start to first application of takeoff power,
+    (at least 60%)
+    '''
+    NAME_FORMAT = 'Eng (%(number)d) Eng Start To N1 At 60 Percent Duration'
+    NAME_VALUES = {'number': [1, 2, 3, 4]}
+    units = ut.SECOND
+
+    @classmethod
+    def can_operate(cls, available):
+        eng = any_of(('Eng (1) N1', 'Eng (2) N1', 'Eng (3) N1', 'Eng (4) N1'),
+                     available)
+        engstart = 'Eng Start' in available
+        liftoff = 'Liftoff' in available
+        return eng and engstart and liftoff
+
+    def derive(self,
+               eng1=P('Eng (1) N1'),
+               eng2=P('Eng (2) N1'),
+               eng3=P('Eng (3) N1'),
+               eng4=P('Eng (4) N1'),
+               engstarts=KTI('Eng Start'),
+               liftoffs=KTI('Liftoff')):
+        if not liftoffs or not engstarts:
+            return
+        for eng_num, eng in enumerate((eng1, eng2, eng3, eng4), start=1):
+            if not eng:
+                continue
+            eng_start_name = engstarts.format_name(number=eng_num)
+            eng_number_starts = engstarts.get(name=eng_start_name)
+            if not eng_number_starts:
+                continue
+            n1_repaired = repair_mask(eng.array,
+                                      frequency=eng.frequency,
+                                      repair_duration=30,
+                                      extrapolate=True)
+            n1 = np.ma.masked_greater(n1_repaired, 60.0)
+            n1_slices = slices_and(
+                [slice(eng_number_starts.get_first().index,
+                       liftoffs.get_first().index), ],
+                np.ma.clump_unmasked(n1)
+            )
+            if n1_slices:
+                self.create_kpvs_from_slice_durations(
+                    [n1_slices[0], ], self.frequency, number=eng_num
+                )
+
+
 # NOTE: Was named 'Eng N1 Cooldown Duration'.
 # TODO: Similar KPV for duration between engine under 60 percent and engine shutdown
 class EngN1Below60PercentAfterTouchdownDuration(KeyPointValueNode):

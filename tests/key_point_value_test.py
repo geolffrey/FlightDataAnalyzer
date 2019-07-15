@@ -260,6 +260,7 @@ from analysis_engine.key_point_values import (
     ElevatorPreflightCheck,
     EngBleedValvesAtLiftoff,
     EngChipDetectorWarningDuration,
+    EngEngStartToN1At60PercentDuration,
     EngEPR500To50FtMax,
     EngEPR500To50FtMin,
     EngEPRAtTOGADuringTakeoffMax,
@@ -11694,6 +11695,154 @@ class TestEngN1WithThrustReversersDeployedMax(unittest.TestCase, NodeTest):
         trd = EngN1WithThrustReversersDeployedMax()
         trd.get_derived((n1, tr, lands))
         self.assertAlmostEqual(trd[0].value, 66.0)
+
+
+class TestEngEngStartToN1At60PercentDuration(unittest.TestCase):
+    def setUp(self):
+        self.node_class = EngEngStartToN1At60PercentDuration
+        # Engines N1
+        self.eng1 = P('Eng (1) N1', np.ma.array(
+            [0, 10, 20, 20, 20, 30, 30, 30, 30, 30,
+             59, 61, 61, 40, 40, 40, 65, 75, 85, 85, ]
+        ))
+        self.eng2 = P('Eng (2) N1', np.ma.array(
+            [0, 0, 10, 20, 20, 30, 30, 30, 30, 30,
+             59, 61, 61, 40, 40, 40, 65, 75, 85, 85, ]
+        ))
+        self.eng3 = P('Eng (3) N1', np.ma.array(
+            [0, 0, 0, 10, 20, 20, 30, 30, 30, 30,
+             59, 61, 61, 40, 40, 40, 65, 75, 85, 85, ]
+        ))
+        self.eng4 = P('Eng (4) N1', np.ma.array(
+            [0, 0, 0, 0, 10, 20, 20, 30, 30, 30,
+             59, 61, 61, 40, 40, 40, 65, 75, 85, 85, ]
+        ))
+        # Engine Starts
+        self.engstarts = EngStart(
+            'Eng Start',
+            items=[
+                KeyTimeInstance(1, name='Eng (1) Start'),
+                KeyTimeInstance(2, name='Eng (2) Start'),
+                KeyTimeInstance(3, name='Eng (3) Start'),
+                KeyTimeInstance(4, name='Eng (4) Start'),
+            ]
+        )
+        # Liftoffs
+        self.liftoffs = KTI('Liftoff',
+                            items=[KeyTimeInstance(16, name='Liftoff'), ])
+
+    def test_can_operate(self):
+        opts = self.node_class.get_operational_combinations()
+        self.assertEqual(len(opts), 15)
+        for opt in opts:
+            self.assertTrue('Liftoff' in opt)
+            self.assertTrue('Eng Start' in opt)
+            self.assertTrue(any_of(('Eng (1) N1', 'Eng (2) N1',
+                                    'Eng (3) N1', 'Eng (4) N1'),
+                                   opt))
+
+    def test_derive_no_liftoff(self):
+        ''' No Liftoff KTI or KTI is empty. '''
+        node = self.node_class()
+        node.derive(eng1=self.eng1, eng2=self.eng2, eng3=self.eng3,
+                    eng4=self.eng4, engstarts=self.engstarts, liftoffs=None)
+        self.assertEqual(len(node), 0)
+
+        liftoffs = KTI('Liftoff')
+        node.derive(eng1=self.eng1, eng2=self.eng2, eng3=self.eng3,
+                    eng4=self.eng4, engstarts=self.engstarts,
+                    liftoffs=liftoffs)
+        self.assertEqual(len(node), 0)
+
+    def test_derive_no_eng_start(self):
+        ''' No Eng Start KTI or KTI is empty. '''
+        node = self.node_class()
+        node.derive(eng1=self.eng1, eng2=self.eng2, eng3=self.eng3,
+                    eng4=self.eng4, engstarts=None, liftoffs=self.liftoffs)
+        self.assertEqual(len(node), 0)
+
+        engstarts = EngStart('Eng Start')
+        node.derive(eng1=self.eng1, eng2=self.eng2, eng3=self.eng3,
+                    eng4=self.eng4, engstarts=engstarts,
+                    liftoffs=self.liftoffs)
+        self.assertEqual(len(node), 0)
+
+    def test_derive_4_engs(self):
+        ''' Test 4 Engines'''
+        node = self.node_class()
+        node.derive(eng1=self.eng1, eng2=self.eng2, eng3=self.eng3,
+                    eng4=self.eng4, engstarts=self.engstarts,
+                    liftoffs=self.liftoffs)
+        self.assertEqual(len(node), 4)
+
+        self.assertEqual(
+            node[0].name,
+            'Eng (1) Eng Start To N1 At 60 Percent Duration'
+        )
+        self.assertEqual(node[0].index, 1)
+        self.assertEqual(node[0].value, 10)
+
+        self.assertEqual(
+            node[1].name,
+            'Eng (2) Eng Start To N1 At 60 Percent Duration'
+        )
+        self.assertEqual(node[1].index, 2)
+        self.assertEqual(node[1].value, 9)
+
+        self.assertEqual(
+            node[2].name,
+            'Eng (3) Eng Start To N1 At 60 Percent Duration'
+        )
+        self.assertEqual(node[2].index, 3)
+        self.assertEqual(node[2].value, 8)
+
+        self.assertEqual(
+            node[3].name,
+            'Eng (4) Eng Start To N1 At 60 Percent Duration'
+        )
+        self.assertEqual(node[3].index, 4)
+        self.assertEqual(node[3].value, 7)
+
+    def test_derive_2_engs(self):
+        ''' Test 2 Engines '''
+        node = self.node_class()
+        node.derive(eng1=self.eng1, eng2=self.eng2, eng3=None,
+                    eng4=None, engstarts=self.engstarts,
+                    liftoffs=self.liftoffs)
+        self.assertEqual(len(node), 2)
+
+        self.assertEqual(
+            node[0].name,
+            'Eng (1) Eng Start To N1 At 60 Percent Duration'
+        )
+        self.assertEqual(node[0].index, 1)
+        self.assertEqual(node[0].value, 10)
+
+        self.assertEqual(
+            node[1].name,
+            'Eng (2) Eng Start To N1 At 60 Percent Duration'
+        )
+        self.assertEqual(node[1].index, 2)
+        self.assertEqual(node[1].value, 9)
+
+    def test_derive_2_engs_1_start(self):
+        ''' Test 2 Engines, but only one starts'''
+        engstarts = EngStart(
+            'Eng Start',
+            items=[KeyTimeInstance(2, name='Eng (2) Start'), ]
+        )
+        node = self.node_class()
+        node.derive(eng1=self.eng1, eng2=self.eng2, eng3=None,
+                    eng4=None, engstarts=engstarts,
+                    liftoffs=self.liftoffs)
+        self.assertEqual(len(node), 1)
+
+        self.assertEqual(
+            node[0].name,
+            'Eng (2) Eng Start To N1 At 60 Percent Duration'
+        )
+        self.assertEqual(node[0].index, 2)
+        self.assertEqual(node[0].value, 9)
 
 
 class TestEngN1Below60PercentAfterTouchdownDuration(unittest.TestCase):
