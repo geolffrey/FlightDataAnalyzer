@@ -18525,34 +18525,6 @@ class WindAcrossLandingRunwayAt50Ft(KeyPointValueNode):
                 self.create_kpv(index, value)
 
 
-class TailwindAtAltitudeDuringDescent(KeyPointValueNode):
-    '''
-    Tailwind component at various altitudes (all AAL) during descent.
-    '''
-
-    NAME_FORMAT = 'Tailwind At %(altitude)d Ft During Descent'
-    NAME_VALUES = {'altitude': [2000, 1500, 1000, 500, 100, 50]}
-    units = ut.KT
-
-    def derive(self,
-               alt_aal=P('Altitude AAL For Flight Phases'),
-               tailwind=P('Tailwind')):
-        '''
-        Note: We align to Altitude AAL for cosmetic reasons; alignment to
-          tailwind leads to slightly misaligned KPVs for tailwind, which looks
-          wrong although is arithmetically "correct".
-        '''
-
-        for descent in alt_aal.slices_from_to(2100, 0):
-            for altitude in self.NAME_VALUES['altitude']:
-                index = index_at_value(alt_aal.array, altitude, descent)
-                if not index:
-                    continue
-                value = value_at_index(tailwind.array, index)
-                if value:
-                    self.create_kpv(index, value, altitude=altitude)
-
-
 ##############################################################################
 # Weight
 
