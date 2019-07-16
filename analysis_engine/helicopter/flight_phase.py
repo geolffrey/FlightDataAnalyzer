@@ -37,6 +37,8 @@ from analysis_engine.settings import (
     TAKEOFF_PERIOD
 )
 
+from flightdatautilities.numpy_utils import slices_int
+
 
 class Airborne(FlightPhaseNode):
     '''
@@ -258,7 +260,7 @@ class NoseDownAttitudeAdoption(FlightPhaseNode):
 
                 for i, d in enumerate(diffs):
                     # Look for the first big negative pitch spike
-                    if diffs[i:i+window_size].sum() < window_threshold:
+                    if diffs[slices_int(i, i+window_size)].sum() < window_threshold:
 
                         # Find the first significant negative value within the
                         # spike and make that the starting point of the phase
