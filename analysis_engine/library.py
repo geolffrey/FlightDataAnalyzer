@@ -2413,7 +2413,7 @@ def runway_deviation(array, runway={}, heading=None):
     :type dev: Numpy masked array.
     '''
     if heading is not None:
-        rwy_hdg = heading
+        rwy_hdg = float(heading)
     else:
         rwy_hdg = runway_heading(runway)
     dev = (array - rwy_hdg) % 360
