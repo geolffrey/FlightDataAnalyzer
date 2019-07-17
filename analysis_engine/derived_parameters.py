@@ -795,8 +795,21 @@ class AltitudeAAL(DerivedParameterNode):
                             })
                     n += 2
                 else:
-                    raise ValueError('Problem in Altitude AAL where data '
-                                     'should dip, but instead has a peak.')
+                    if n + 3 == n_vals:
+                        # Final section has a masked peak, so treat as a
+                        # falling section from the highest value.
+                        dips.append({
+                            'type': 'land',
+                            'slice': slice(quick.stop, (alt_idx or 1) - 1, -1),
+                            # was 'slice': slice(next_alt_idx - 1, alt_idx - 1, -1),
+                            'alt_std': next_alt,
+                            'highest_ground': next_alt,
+                        })
+                        n += 1
+                        continue
+                    else:
+                        raise ValueError('Problem in Altitude AAL where data '
+                                         'should dip, but instead has a peak.')
 
             for n, dip in enumerate(dips):
                 if dip['type'] == 'high':
@@ -870,9 +883,9 @@ class AltitudeAAL(DerivedParameterNode):
 
         '''
         # Quick visual check of the altitude aal.
-        import matplotlib.pyplot as plt
-        plt.plot(alt_aal, 'b-')
-        plt.plot(alt_std.array, 'y-')
+            import matplotlib.pyplot as plt
+            plt.plot(alt_aal, 'b-')
+            plt.plot(alt_std.array, 'y-')
         if alt_rad:
             plt.plot(alt_rad.array, 'r-')
         plt.show()
@@ -1006,7 +1019,7 @@ class AltitudeRadio(DerivedParameterNode):
                                                hz=source.frequency)
 
             # Some data frames reference altimeters which are optionally
-            # recorded. It is impractical to maintain the LFL patching 
+            # recorded. It is impractical to maintain the LFL patching
             # required, so we only manage altimeters with a significant
             # signal.
             if np.ma.ptp(source.array) > 10.0:
