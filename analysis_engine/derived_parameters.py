@@ -4839,7 +4839,7 @@ class CoordinatesSmoothed(object):
             toff_slice = None
 
         if ac_type != helicopter:
-            if toff_slice and precise:
+            if toff_slice and precise and len(lat.array[begin:toff_slice.start]):
                 try:
                     lat_out, lon_out = self.taxi_out_track_pp(
                         lat.array[begin:toff_slice.start],
