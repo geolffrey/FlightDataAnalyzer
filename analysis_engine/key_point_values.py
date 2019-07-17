@@ -6848,9 +6848,11 @@ class DecelerationToAbortTakeoffAtRotation(KeyPointValueNode):
                                                lat.array[int(rot_idx)],
                                                lon.array[int(rot_idx)])
             if rot_end:
-                lift_speed = ut.convert(value_at_index(speed, rot_idx), ut.KT, ut.METER_S)
-                mu = (lift_speed**2.0) / (2.0 * GRAVITY_METRIC * rot_end)
-                self.create_kpv(rot_idx, mu)
+                rot_ias = value_at_index(speed, rot_idx)
+                if rot_ias:
+                    lift_speed = ut.convert(rot_ias, ut.KT, ut.METER_S)
+                    mu = (lift_speed**2.0) / (2.0 * GRAVITY_METRIC * rot_end)
+                    self.create_kpv(rot_idx, mu)
 
 
 """
