@@ -1410,7 +1410,8 @@ class FlapLeverSynthetic(MultistateDerivedParameterNode):
             # The Lever 4 and 5 share the same flap/slat config.
             # On approaches the config is refferred to as Lever 5
             self.array[self.array == 32] = 16  # ensure lever 4 before approach mod
-            self.array[approach_slices][self.array[approach_slices] == 16] = 32
+            for approach_slice in approach_slices:
+                self.array[approach_slice][self.array[approach_slice] == 16] = 32
 
 
 class Flaperon(MultistateDerivedParameterNode):
