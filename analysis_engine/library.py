@@ -5413,8 +5413,12 @@ def align_altitudes(alt_rad, alt_std, good_slices, fast_slices, hz):
         if not np.ma.count(baro):
             continue
         peak_index = int(np.ma.argmax(baro))
-        baro[:peak_index] -= first_valid_sample(baro).value
-        baro[peak_index:] -= last_valid_sample(baro).value
+        first_baro = first_valid_sample(baro).value
+        last_baro = last_valid_sample(baro).value
+        if not (first_baro and last_baro):
+            continue
+        baro[:peak_index] -= first_baro
+        baro[peak_index:] -= last_baro
         # fgs = fast and good slice
         for fgs in slices_and(good_slices, [fast_slice]):
             # The reference data will be just this piece of baro altitude
