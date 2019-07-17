@@ -715,7 +715,7 @@ class Fast(FlightPhaseNode):
             fast_slices = slices_remove_small_gaps(fast_slices, time_limit=30,
                                                    hz=self.frequency)
 
-        self.create_phases(fast_slices)
+        self.create_phases(slices_remove_small_slices(fast_slices))
 
 
 class FinalApproach(FlightPhaseNode):
