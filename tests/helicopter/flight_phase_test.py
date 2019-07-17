@@ -224,8 +224,6 @@ class TestHover(unittest.TestCase):
         alt_agl = P(name='Altitude AGL', array=np.ma.ones(30) * 10, frequency=0.2)
         gspd = P('Groundspeed', array=np.ma.concatenate((np.zeros(10), np.ones(10) * 20, np.zeros(10))))
         airs = buildsections('Airborne', [0, 30])
-        t_hf = buildsections('Transition Hover To Flight', [2, 4])
-        t_fh = buildsections('Transition Flight To Hover', [28, 30])
         node = Hover()
         node.derive(alt_agl, airs, gspd)
         self.assertEqual(len(node), 2)

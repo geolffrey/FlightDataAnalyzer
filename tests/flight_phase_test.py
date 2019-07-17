@@ -120,8 +120,13 @@ class TestAirborne(unittest.TestCase):
         fast = SectionNode('Fast', items=[Section(name='Airborne', slice=slice(3, 80, None), start_edge=3, stop_edge=80)])
         air = Airborne()
         air.derive(altitude, fast)
-        expected = [Section(name='Airborne', slice=slice(8, 80, None), start_edge=8, stop_edge=80)]
-        self.assertEqual(list(air), expected)
+        expected = [Section(name='Airborne', slice=slice(8.714285714285714, 80, None), start_edge=8.714285714285714, stop_edge=80)]
+
+        self.assertEqual(len(air), 1)
+        self.assertAlmostEqual(air[0].slice.start, expected[0].slice.start, places=3)
+        self.assertEqual(air[0].slice.stop, expected[0].slice.stop)
+        self.assertAlmostEqual(air[0].start_edge, expected[0].start_edge, places=3)
+        self.assertEqual(air[0].stop_edge, expected[0].stop_edge)
 
     def test_airborne_aircraft_not_fast(self):
         altitude_data = np.ma.arange(0, 10)
@@ -150,8 +155,13 @@ class TestAirborne(unittest.TestCase):
         fast = buildsection('Fast', 2, None)
         air = Airborne()
         air.derive(alt_aal, fast)
-        expected = buildsection('Airborne', 5, None)
-        self.assertEqual(list(air), list(expected))
+        expected = buildsection('Airborne', 5.4333, None)
+        self.assertEqual(len(air), 1)
+        self.assertAlmostEqual(air[0].slice.start, expected[0].slice.start, places=3)
+        self.assertEqual(air[0].slice.stop, expected[0].slice.stop)
+        self.assertAlmostEqual(air[0].start_edge, expected[0].start_edge, places=3)
+        self.assertEqual(air[0].stop_edge, expected[0].stop_edge)
+
 
     def test_airborne_aircraft_fast_with_gaps(self):
         alt_aal = P('Altitude AAL For Flight Phases',
@@ -174,6 +184,21 @@ class TestAirborne(unittest.TestCase):
         air = Airborne()
         air.derive(alt_aal, fast)
         self.assertEqual(len(air), 0)
+
+    def test_transient_on_takeoff(self):
+        alt_aal = P('Altitude AAL For Flight Phases',
+                    np.ma.concatenate([
+                        np.zeros(10),
+                        np.arange(0, 5, 2),
+                        np.arange(4, -1, -2),
+                        np.zeros(10),
+                        np.arange(0, 1000, 10),
+                        np.arange(1000, -10, -10),
+                        np.zeros(10)]))
+        fast = buildsection('Fast', 8, 235)
+        air = Airborne()
+        air.derive(alt_aal, fast)
+        self.assertGreater(air.get_first().slice.start, 25)
 
 
 class TestAirborneRadarApproach(unittest.TestCase):
@@ -316,7 +341,6 @@ class TestApproachAndLanding(unittest.TestCase):
     def test_approach_and_landing_aircraft_basic(self):
         alt = np.ma.concatenate((np.arange(5000, 500, -500), np.zeros(10)))
         # No Go-arounds detected
-        gas = KTI(items=[])
         app = ApproachAndLanding()
         app.derive(aeroplane, Parameter('Altitude AAL For Flight Phases', alt, 0.5), None, None, None)
         self.assertEqual(app.get_slices(), [slice(4.0, 9)])
@@ -2203,9 +2227,6 @@ class TestRejectedTakeoff(unittest.TestCase):
                                             'rejectedTakeoffEngRunning.nod'))
         groundeds = load(os.path.join(test_data_path,
                                      'rejectedTakeoffGroundeds.nod'))
-
-        takeoffs = load(os.path.join(test_data_path,
-                                         'rejectedTakeoffTakeoffs.nod'))
         eng_n1 = load(os.path.join(test_data_path,
                                        'rejectedTakeoffEngN1.nod'))
         toff_rwy_hdg = buildsections('Takeoff Runway Heading',
@@ -2414,7 +2435,7 @@ class TestTaxiOut(unittest.TestCase):
         self.assertEqual(tout[0].slice.start, 387)
         self.assertEqual(tout[0].slice.stop, 526)
 
-    def test_taxi_out_empty(self):
+    def test_taxi_out_empty_2(self):
         gnd = buildsection('Mobile', 4816, 6681)
         toff = buildsection('Takeoff', 4611, 4926)
         first_eng_starts = KTI('First Eng Start Before Liftoff', items=[KeyTimeInstance(4754, 'First Eng Start Before Liftoff')])

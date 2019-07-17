@@ -18,7 +18,6 @@ from analysis_engine.node import P
 from analysis_engine.library import (align,
                                      blend_parameters,
                                      calculate_timebase,
-                                     closest_unmasked_value,
                                      hash_array,
                                      min_value,
                                      normalise,
@@ -184,18 +183,16 @@ def _segment_type_and_slice(speed_array, speed_frequency,
         if col:
             col_window_sample = int(120 * col.frequency)
             col_min_sample = int(4 * col.frequency)
-            speedy = np.ma.where(speed_array[speed_start:speed_stop] > thresholds['speed_threshold'])[0]
+            speedy = np.ma.where(speed_array > thresholds['speed_threshold'])[0]
             if len(speedy):
                 col_start = int((speed_start + speedy[0]) * (col.frequency / speed_frequency))
                 col_stop = int((speed_start + speedy[-1]) * (col.frequency / speed_frequency))
                 try:  # shift start backwards to earlier low Collective value
-                    col_start = col_start - col_window_sample + \
-                        np.ma.where(col.array[col_start - col_window_sample:col_start])[0][0]
+                    col_start -= col_window_sample + np.ma.where(col.array[col_start - col_window_sample:col_start])[0][0]
                 except IndexError:
                     pass
                 try: # shift stop forwards to later low Collective value
-                    col_stop = col_stop + \
-                        np.ma.where(col.array[col_stop:col_stop + col_window_sample])[0][0]
+                    col_stop += np.ma.where(col.array[col_stop:col_stop + col_window_sample])[0][-1]
                 except IndexError:
                     pass
             elif unmasked_slices:
@@ -208,17 +205,14 @@ def _segment_type_and_slice(speed_array, speed_frequency,
                 col_start = int(start * col.frequency)
                 col_stop = int(stop * col.frequency)
 
-            col_start_slice = runs_of_ones(
+            slow_start = runs_of_ones(
                 col.array[col_start:col_start+col_window_sample] < settings.COLLECTIVE_ON_GROUND_THRESHOLD,
                 min_samples=col_min_sample
             )
-            col_stop_slice = runs_of_ones(
+            slow_stop = runs_of_ones(
                 col.array[col_stop-col_window_sample:col_stop] < settings.COLLECTIVE_ON_GROUND_THRESHOLD,
                 min_samples=col_min_sample
             )
-            slow_start = True if col_start_slice else False
-            slow_stop = True if col_stop_slice else False
-
     else:
         # Check Heading change for fixed wing.
         if eng_arrays is not None:
@@ -261,8 +255,6 @@ def _segment_type_and_slice(speed_array, speed_frequency,
     segment = slice(start, stop)
 
     supf_start_secs, supf_stop_secs, array_start_secs, array_stop_secs = segment_boundaries(segment, boundary)
-
-    start_padding = segment.start - supf_start_secs
 
     return segment_type, segment, array_start_secs
 
@@ -893,8 +885,17 @@ def calculate_fallback_dt(hdf, fallback_dt=None, validation_dt=None,
         # The time parameters are not available/operational
         return fallback_dt
     else:
+        now = datetime.utcnow().replace(tzinfo=pytz.utc)
+        assert timebase <= now, (
+            "Fallback time '%s' in the future is not allowed. Current time "
+            "is '%s'." % (fallback_dt, now))
+        if validation_dt is not None:
+            assert timebase <= validation_dt, (
+                "Fallback time '%s' ahead of validation time is not allowed. "
+                "Validation time is '%s'." % (timebase, validation_dt))
         logger.warning("Time doesn't change, using the starting time as the fallback_dt")
         return timebase
+
 
 def get_valid_dt_slices(hdf, min_threshold_count=360):
     aspd = hdf.get('Airspeed')
@@ -906,6 +907,7 @@ def get_valid_dt_slices(hdf, min_threshold_count=360):
     aspd_gt_threshold = np.ma.where(aspd > settings.AIRSPEED_THRESHOLD)[0].size
 
     return np.ma.clump_unmasked(aspd) if aspd_gt_threshold > min_threshold_count else []
+
 
 def _calculate_start_datetime(hdf, fallback_dt, validation_dt):
     """
@@ -930,24 +932,16 @@ def _calculate_start_datetime(hdf, fallback_dt, validation_dt):
     """
     now = datetime.utcnow().replace(tzinfo=pytz.utc)
     if fallback_dt is not None:
-        if (fallback_dt.tzinfo is None or
-                fallback_dt.tzinfo.utcoffset(fallback_dt) is None):
+        if (fallback_dt.tzinfo is None or fallback_dt.tzinfo.utcoffset(fallback_dt) is None):
             # Assume fallback_dt is UTC
             fallback_dt = fallback_dt.replace(tzinfo=pytz.utc)
 
         # Even if fallback_dt is UTC, there's a chance that the timezone was
         # wrong, so if we're still in the future, let's see if it's less than
         # 12 hours, and if it is, try to fix it
-        if fallback_dt >= now and (fallback_dt - now).seconds/3600 < 12:
+        if fallback_dt >= now and (fallback_dt - now).seconds / 3600 < 12:
             fallback_dt -= fallback_dt - now
 
-        assert fallback_dt <= now, (
-            "Fallback time '%s' in the future is not allowed. Current time "
-            "is '%s'." % (fallback_dt, now))
-        if validation_dt is not None:
-            assert fallback_dt <= validation_dt, (
-                "Fallback time '%s' ahead of validation time is not allowed. "
-                "Validation time is '%s'." % (fallback_dt, validation_dt))
     # align required parameters to 1Hz
     dt_arrays, precise_timestamp, timestamp_configuration = get_dt_arrays(hdf, fallback_dt, validation_dt,
                                                                           valid_slices=get_valid_dt_slices(hdf))
@@ -1144,7 +1138,13 @@ def split_hdf_to_segments(hdf_path, aircraft_info, fallback_dt=None,
 
         # ARINC 717 data has frames or superframes. ARINC 767 will be split
         # on a minimum boundary of 4 seconds for the analyser.
-        boundary = 64 if hdf.superframe_present else 4
+        if hdf.arinc == '717':
+            boundary = 64 if hdf.superframe_present else 4
+        elif hdf.arinc == '767':
+            boundary = max(int(1 / min(hdf.frequencies)), 4)
+        else:
+            # For CSV and similar single frequency formats, there is no boundary constraint.
+            boundary = 4
 
         segment_tuples = split_segments(hdf, aircraft_info)
         frame_doubled = aircraft_info.get('Frame Doubled', False)

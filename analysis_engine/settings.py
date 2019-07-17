@@ -38,7 +38,7 @@ NODE_HELICOPTER_MODULE_PATHS = [
     'analysis_engine.helicopter.derived_parameters',
     'analysis_engine.helicopter.multistate_parameters',
     'analysis_engine.helicopter.key_point_values',
-    #'analysis_engine.helicopter.key_time_instances',
+    'analysis_engine.helicopter.key_time_instances',
     #'analysis_engine.helicopter.flight_attribute',
     'analysis_engine.helicopter.flight_phase',
 ]
@@ -188,6 +188,9 @@ ALTITUDE_AAL_LAG_TC = 3.0
 # This is applied to altitude with hysteresis, so break will happen when
 # climbing above 15000 ft and below 10000 ft.
 ALTITUDE_FOR_CLB_CRU_DSC = 12500
+
+# The maximum signal range we accommodate.
+ALTITUDE_RADIO_MAX_RANGE = 5000.0 # ft
 
 # The maximum radio altimeter offset we are able to compensate for.
 # NB: Negative offsets are not corrected, assumed to be from oleo compression.

@@ -128,6 +128,15 @@ class Airborne(FlightPhaseNode):
                 begin = air.start
                 if begin + start_point == 0: # Was in the air at start of data
                     begin = None
+                else:
+                    # Fine tune the liftoff to avoid transient non-zero altitudes
+                    # during the takeoff run causing premature airborne state.
+                    up = index_at_value(working_alt[air], 50.0)
+                    if up:
+                        # We did climb through 50ft, now scan back to the last time we climbed
+                        # through 1ft, thereby ignoring transients, and refine the beginning point.
+                        end = begin + up
+                        begin = end - index_at_value(working_alt[slices_int(end, None, -1)], 1.0) + 1
                 end = air.stop
                 if end + start_point >= len(alt_aal.array): # Was in the air at end of data
                     end = None
@@ -385,6 +394,9 @@ class BouncedLanding(FlightPhaseNode):
     Note: Airborne includes rejection of short segments, so the bounced period is within
     an airborne phase.
     '''
+
+    can_operate = aeroplane_only
+
     def derive(self, alt_aal=P('Altitude AAL For Flight Phases'),
                airs=S('Airborne')):
         gnds = np.ma.clump_masked(np.ma.masked_less(alt_aal.array,
@@ -1462,6 +1474,8 @@ class TakeoffRunwayHeading(FlightPhaseNode):
                 if not np.ma.count(gnd_hdg):
                     continue
                 rwy_hdg = np.ma.mean(hdg.array[toff.slice])
+                if np.ma.is_masked(rwy_hdg):
+                    continue
                 max_hdg = (rwy_hdg + diff) % overflow
                 min_hdg = (rwy_hdg - diff) % overflow
                 min_hdg, max_hdg = min(min_hdg, max_hdg), max(min_hdg, max_hdg)

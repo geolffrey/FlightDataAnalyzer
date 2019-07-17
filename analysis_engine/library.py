@@ -9,20 +9,19 @@ import logging
 import math
 import numpy as np
 import pytz
-import six
 
 from builtins import zip
-from collections import defaultdict, OrderedDict, namedtuple
+from collections import OrderedDict, namedtuple
 from copy import copy, deepcopy
 from datetime import datetime, timedelta
 from decimal import Decimal
 from hashlib import sha256
-from math import ceil, copysign, cos, floor, log, radians, sin, sqrt, pow
+from math import ceil, copysign, cos, floor, log, radians, sin, sqrt
 from operator import attrgetter
 from scipy import interpolate as scipy_interpolate, optimize
 from scipy.ndimage import filters
 from scipy.signal import medfilt
-from six.moves import filterfalse, zip_longest
+from six.moves import zip_longest
 
 from hdfaccess.parameter import MappedArray
 
@@ -34,7 +33,7 @@ from flightdatautilities.numpy_utils import (
 )
 
 from analysis_engine.settings import (
-    ALTITUDE_RADIO_OVERFLY_SUPPRESSION,
+    ALTITUDE_RADIO_MAX_RANGE,
     BUMP_HALF_WIDTH,
     ILS_CAPTURE,
     ILS_CAPTURE_ROC,
@@ -390,7 +389,10 @@ def align_args(slave_array, slave_frequency, slave_offset, master_frequency, mas
         return slave_array
     if slave_frequency == master_frequency and slave_offset == master_offset:
         # No alignment is required, return the slave's array unchanged.
-        return slave_array
+        if isinstance(original_array, MappedArray):
+            return original_array
+        else:
+            return slave_array
 
     # Get the sample rates for the two parameters
     wm = master_frequency
@@ -2411,7 +2413,7 @@ def runway_deviation(array, runway={}, heading=None):
     :type dev: Numpy masked array.
     '''
     if heading is not None:
-        rwy_hdg = heading
+        rwy_hdg = float(heading)
     else:
         rwy_hdg = runway_heading(runway)
     dev = (array - rwy_hdg) % 360
@@ -3790,14 +3792,8 @@ def slices_not(slice_list, begin_at=None, end_at=None):
 
     :returns: list of slices. If begin or end is specified, the range will extend to these points. Otherwise the scope is within the end slices.
     '''
-    # Only integers or None allowed
-    begin = None if begin_at is None else int(begin_at)
-    end = None if end_at is None else int(end_at)
-
     if not slice_list:
-        return [slice(begin, end)]
-
-    slice_list = slices_int(slice_list)
+        return [slice(begin_at, end_at)]
 
     start_slices = [s.start for s in slice_list]
     a = None if None in start_slices else min(start_slices)
@@ -3814,10 +3810,12 @@ def slices_not(slice_list, begin_at=None, end_at=None):
     except TypeError:
         startpoint = None
 
-    if begin is not None and startpoint is not None and begin < startpoint:
-        startpoint = begin
+    if begin_at is not None \
+       and startpoint is not None \
+       and begin_at < startpoint:
+        startpoint = begin_at
     if startpoint is None:
-        startpoinstartpointt = 0
+        startpoint = 0
 
     starts = [s for s in start_slices if s is not None]
     c = max(starts) if starts else None
@@ -3828,16 +3826,19 @@ def slices_not(slice_list, begin_at=None, end_at=None):
     endpoint = max(c,d) if c and d else c or d
 
     try:
-        endpoint = end if end > endpoint else endpoint
+        endpoint = end_at if end_at > endpoint else endpoint
     except TypeError:
-        endpoint = end or endpoint
+        endpoint = end_at or endpoint
 
-    workspace = np.ma.zeros(endpoint)
+    workspace = np.ma.zeros(int(endpoint))
     for each_slice in slice_list:
-        workspace[each_slice] = 1
+        workspace[slices_int(each_slice)] = 1
     workspace=np.ma.masked_equal(workspace, 1)
-    return shift_slices(np.ma.clump_unmasked(workspace[startpoint:endpoint]),
-                        startpoint)
+
+    return shift_slices(
+        np.ma.clump_unmasked(workspace[slices_int(startpoint,endpoint)]),
+        startpoint
+    )
 
 
 def slices_or(*slice_lists):
@@ -4482,11 +4483,17 @@ def blend_nonequispaced_sensors(array_one, array_two, padding):
 
     both = merge_sources(array_one, array_two)
     mask_array = np.ma.getmaskarray(both)
+    first_mask = mask_array[0]
+    last_mask = mask_array[-1]
     mask_array[0] = False
     mask_array[-1] = False
 
     mean_array = np.divide(np.roll(both, -1) + np.roll(both, 1), 2.0)
     both[mask_array] = mean_array[mask_array]
+    if first_mask:
+        both[0] = np.ma.masked
+    if last_mask:
+        both[-1] = np.ma.masked
 
     # A simpler technique than trying to append to the averaged array.
     av_pairs = np.ma.empty_like(both)
@@ -4698,12 +4705,10 @@ def blend_parameters(params, offset=0.0, frequency=1.0, small_slice_duration=4, 
     # Find out about the parameters we have to deal with...
     min_ip_freq = min(p.frequency for p in params)
 
-    tol_mask = None
     if tolerance:
         test_array = np.ma.zeros((len(params), int(len(params[0].array) * min_ip_freq / params[0].frequency)))
         for n, p in enumerate(params):
             test_array[n, :] = resample(p.array, p.frequency, min_ip_freq)
-        tol_mask = np.ma.masked_greater(np.ma.ptp(test_array, axis=0), tolerance)
 
     if mode == 'linear':
         return blend_parameters_linear(params, frequency, tolerance=tolerance, offset=offset)
@@ -4743,7 +4748,7 @@ def blend_parameters(params, offset=0.0, frequency=1.0, small_slice_duration=4, 
     if validity == 'all':
         bad = num_valid < len(params)
     elif validity == 'all_but_one':
-        bad = num_valid < len(params) - 1
+        bad = num_valid < max(len(params) - 1, 1)
     elif validity == 'any_one':
         bad = num_valid == 0
     else:
@@ -4895,11 +4900,10 @@ def blend_parameters_cubic(frequency, offset, params, result_slice, tolerance=No
     if curves:
         a = np.vstack(tuple(curves))
         result = np.ma.average(a, axis=0, weights=weights)
+        if tolerance:
+            result.mask = np.ma.masked_greater(np.ma.ptp(a, axis=0), tolerance).mask
     else:
         result = np_ma_masked_zeros_like(new_t)
-
-    if curves and tolerance:
-        result.mask = np.ma.masked_greater(np.ma.ptp(a, axis=0), tolerance).mask
 
     return result
 
@@ -5352,7 +5356,7 @@ def offset_select(mode, param_list):
     raise ValueError ("offset_select called with unrecognised mode")
 
 
-def overflow_correction(array, fast=None, hz=1):
+def overflow_correction(array, ref=None, fast=None, hz=1):
     '''
     Overflow Correction postprocessing procedure. Used only on Altitude Radio
     signals.
@@ -5370,21 +5374,71 @@ def overflow_correction(array, fast=None, hz=1):
     :type hz: float
     '''
     array = array.astype(np.float64)  # int32 not supported
-    good_slices = slices_remove_small_slices(
-        slices_remove_small_gaps(np.ma.clump_unmasked(array),
-                                 time_limit=10, hz=hz),
-        time_limit=10, hz=hz)
+    good_slices = slices_remove_small_gaps(
+        slices_remove_small_slices(np.ma.clump_unmasked(array),
+                                   time_limit=10, hz=hz),
+        time_limit=5, hz=hz)
+    # Due to aircraft power-up sequences, the first few samples of data is
+    # sometimes corrupt.
+    if not good_slices:
+        return array
+
+    end = good_slices[0].stop
+    begin = min(good_slices[0].start + 4, end - 1)
+    good_slices[0] = slice(begin, end)
 
     if not fast:
         # The first time we use this algorithm we don't have speed information
-        for good_slice in good_slices:
-            array[good_slice] = overflow_correction_array(array[good_slice])
+        for good_slice in slices_int(good_slices):
+            if np.ma.ptp(array[good_slice]) > 20.0:
+                array[good_slice] = overflow_correction_array(array[good_slice])
+            else:
+                if abs(np.ma.average(array[good_slice])) > 100.0:
+                    array[good_slice] = np.ma.masked
     else:
         # The second time our challenge is to make sure the segments are
         # adjusted correctly
-        array = pin_to_ground(array, good_slices, fast.get_slices(), hz)
+
+        # array = pin_to_ground(array, good_slices, fast.get_slices(), hz)
+        array = align_altitudes(array,
+                                ref,
+                                slices_int(good_slices),
+                                slices_int(fast.get_slices()),
+                                hz)
 
     return array
+
+def align_altitudes(alt_rad, alt_std, good_slices, fast_slices, hz):
+    '''
+    This corrects the offset for each section of radio altitude data,
+    using a crude height above ground level estimate.
+    '''
+    for fast_slice in fast_slices:
+        # crude altitude aal for this slice only
+        baro = alt_std[fast_slice]
+        peak_index = int(np.ma.argmax(baro))
+        baro[:peak_index] -= first_valid_sample(baro).value
+        baro[peak_index:] -= last_valid_sample(baro).value
+        # fgs = fast and good slice
+        for fgs in slices_and(good_slices, [fast_slice]):
+            # The reference data will be just this piece of baro altitude
+            ref = baro[shift_slice(fgs, -fast_slice.start)]
+            # We want the lower altitudes to be more closely matched
+            peak = min(ALTITUDE_RADIO_MAX_RANGE, np.ma.max(ref))
+            weights = np.ma.masked_outside((peak - ref) / peak, 0.0, 1.0)
+            if not np.ma.count(weights):
+                # This segment was entirely outside the range of interest
+                alt_rad[fgs] = np.ma.masked
+                continue
+            # The average difference, with emphasized weighting is...
+            mean_diff = np.ma.average(baro[shift_slice(fgs, -fast_slice.start)] - alt_rad[fgs],
+                                      weights = weights**2)
+            # and we only adjust by 1k blocks
+            delta = 1024.0 * np.rint(mean_diff / 1024)
+            if delta:
+                alt_rad[fgs] += delta
+
+    return alt_rad
 
 
 def overflow_correction_array(array):
@@ -5393,13 +5447,22 @@ def overflow_correction_array(array):
     '''
     keep_mask = np.ma.getmaskarray(array).copy()
     array.mask = False
+    midpoint = len(array) // 2
     jump = np.ma.ediff1d(array, to_begin=0.0)
     abs_jump = np.ma.abs(jump)
-    jump_sign = -jump / abs_jump
 
     # Most radio altimeters are scaled to overflow at 2048ft, but occasionally the signed
     # value changes by half this amount. Hence jumps more than half a power lower than 2**10.
-    steps = np.ma.where(abs_jump > 800.0, 2**np.rint(np.ma.log2(abs_jump)) * jump_sign, 0)
+    # We want to correct the step, hence the change of sign in the resulting array.
+    steps = -np.ma.where(abs_jump > 900.0, 2**np.rint(np.ma.log2(abs_jump)) * np.sign(jump), 0)
+    for check in np.ma.nonzero(steps):
+        if len(check) == 0:
+            continue
+        index = check[0]
+        if index >= len(steps)-1:
+            continue
+        if steps[index] == -steps[index+1]:
+            steps[index:index+2] = 0.0
 
     biggest_step_up = np.ma.max(steps)
     biggest_step_down = np.ma.min(steps)
@@ -5408,79 +5471,25 @@ def overflow_correction_array(array):
         # Compute and apply the correction
         biggest_step = max(abs(x) for x in (biggest_step_up, biggest_step_down) if x is not None)
         steps = np.ma.where(abs(steps) >= biggest_step / 4, steps, 0.0)
-        array += np.ma.cumsum(steps)
+        # Climb data has positive changes for most samples...
+        dy = np.average(np.sign(np.ma.ediff1d(array)))
+        if dy > 0.0:
+            array += np.ma.cumsum(steps)
+            delta = 1024.0 * np.rint((np.min(array[:midpoint]) + 20) / 1024)
+        elif dy < 0.0:
+            # Roll the steps array to account for the reversal of direction
+            # compared to the original ediff1d computation.
+            array[::-1] -= np.cumsum(np.roll(steps[::-1], 1))
+            delta = 1024.0 * np.rint((np.min(array[midpoint:]) + 20) / 1024)
+        else:
+            # Rare case of perfectly balanced changes; make no changes.
+            delta = None
 
-    # Simple check to make sure the lowest value is not badly below zero following
-    # this adjustment, because the resulting array will be displayed to the user
-    # as the converted single sensor parameter.
-    if np.min(array) < 0.0:
-        delta = 1024.0 * np.rint((np.min(array) + 20) / 1024)
         if delta:
             array -= delta
 
     return np.ma.array(data=array, mask=keep_mask)
 
-
-def pin_to_ground(array, good_slices, fast_slices, hz=1.0):
-    '''
-    Fix the altitude within given slice based on takeoff and landing
-    information.
-
-    We assume that at takeoff and landing the altitude radio is close
-    to zero, so we can postprocess the array accordingly.
-    '''
-    def nearest_step(x):
-        delta=1024.0
-        multiple = np.rint(abs(x) / float(delta))
-        if multiple:
-            return multiple * delta * np.sign(x)
-        else:
-            return 0.0
-
-    array.mask = np.ma.getmaskarray(array)
-
-    # We detect the corrections based on fast slices
-    for f in fast_slices:
-        begin_step = end_step = begin_peak = end_peak = 0.0
-        end_peak_idx = len(array)
-        for sl in good_slices:
-            if is_index_within_slice(f.start, sl):
-                # go_fast starts in the slice
-                begin_step = nearest_step(array[int(f.start)])
-                array[sl] -=  begin_step
-                begin_peak_idx = sl.stop - 1
-                begin_peak = array[begin_peak_idx]
-
-            elif is_index_within_slice(f.stop, sl):
-                # go_fast stops in the slice
-                end_step = nearest_step(array[int(f.stop)])
-                array[sl] -=  end_step
-                end_peak_idx = sl.start
-                end_peak = array[end_peak_idx]
-
-            elif is_index_within_slice(sl.start, f) and \
-                 slice_duration(sl, hz) < ALTITUDE_RADIO_OVERFLY_SUPPRESSION:
-                # For in-flight slices, be ready to suppress short bursts
-                array[sl].mask = True
-
-        # We have the corrections for either the start or end of the fast slice, so
-        # apply this to all sections wholly within the fast slice.
-        for sl in good_slices:
-            if is_slice_within_slice(sl, f):
-                if sl.start - (sl.stop - 1) < end_peak_idx - sl.stop:
-                    delta = array[sl.start] - begin_peak
-                else:
-                    delta = array[sl.stop - 1] - end_peak
-                array[sl] -=  nearest_step(delta)
-
-    # Everything not fast must be on the ground
-    for g in slices_not(fast_slices, begin_at=0, end_at=len(array)):
-        for sl in good_slices:
-            if is_slice_within_slice(sl, g):
-                delta = nearest_step(np.ma.average(array[sl]))
-                array[sl] -=  delta
-
-    return array
 
 def peak_curvature(array, _slice=slice(None), curve_sense='Concave',
                    gap = TRUCK_OR_TRAILER_INTERVAL,
@@ -5947,7 +5956,7 @@ def rms_noise(array, ignore_pc=None):
     return sqrt(np.ma.mean(np.ma.power(to_rms, 2))) # RMS in one line !
 
 
-def runs_of_ones(bits, min_samples=None):
+def runs_of_ones(bits, min_samples=None, skip_mask=False):
     '''
     Q: This function used to have a min_len kwarg which was a result of its
     implementation. If there is a use case for only returning sections greater
@@ -5957,6 +5966,10 @@ def runs_of_ones(bits, min_samples=None):
     :returns: S
     :rtype: [slice]
     '''
+    if not len(bits):
+        return []
+    if skip_mask:
+        bits = repair_mask(bits)
     runs = np.ma.clump_unmasked(np.ma.masked_not_equal(bits, 1))
     if min_samples:
         runs = slices_remove_small_slices(runs, count=min_samples)
@@ -7434,7 +7447,6 @@ def index_at_distance(distance, index_ref, latitude_ref, longitude_ref, latitude
         longitude_ref = args[2]
         latitude = args[3]
         longitude = args[4]
-        index_ref = args[5]
 
         rad = distance_at_index(index[0], latitude, longitude, latitude_ref, longitude_ref)
         # and simply squaring the error allows robust minimum searching.
@@ -8440,15 +8452,12 @@ def find_rig_approach(condition_defs, phase_map, approach_map,
         turns = int((h[-1]-h0+180)/360)
         return (h-h0) - (360.0*turns)
 
-    m_per_nm = 1852
-
     # Local names
     u = param_arrays['Airspeed']
     lat = param_arrays['Latitude']
     lon = param_arrays['Longitude']
     heading = param_arrays['Heading']
     height = param_arrays['Altitude ADH']
-    roll = param_arrays['Roll']
     distance = param_arrays['Distance To Landing']
 
     duration = len(u)

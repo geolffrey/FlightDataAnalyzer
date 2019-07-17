@@ -493,7 +493,6 @@ class TestAirspeed500To100FtMax(unittest.TestCase):
         self.node_class = Airspeed500To100FtMax
 
     def test_can_operate(self):
-        opts = self.node_class.get_operational_combinations(ac_type=helicopter)
         self.assertTrue(self.node_class.can_operate, [('Airspeed', 'Altitude AGL', 'Final Approach')])
 
     def test_derive_basic(self):
@@ -516,7 +515,6 @@ class TestAirspeed500To100FtMin(unittest.TestCase):
         self.node_class = Airspeed500To100FtMin
 
     def test_can_operate(self):
-        opts = self.node_class.get_operational_combinations(ac_type=helicopter)
         self.assertTrue(self.node_class.can_operate, [('Airspeed', 'Altitude AGL', 'Final Approach')])
 
     def test_derive_basic(self):
@@ -539,7 +537,6 @@ class TestAirspeed100To20FtMax(unittest.TestCase):
         self.node_class = Airspeed100To20FtMax
 
     def test_can_operate(self):
-        opts = self.node_class.get_operational_combinations(ac_type=helicopter)
         self.assertTrue(self.node_class.can_operate, [('Airspeed', 'Altitude AGL', 'Approach And Landing')])
 
     def test_derive_basic(self):
@@ -562,7 +559,6 @@ class TestAirspeed100To20FtMin(unittest.TestCase):
         self.node_class = Airspeed100To20FtMin
 
     def test_can_operate(self):
-        opts = self.node_class.get_operational_combinations(ac_type=helicopter)
         self.assertTrue(self.node_class.can_operate, [('Airspeed', 'Altitude AGL', 'Approach And Landing')])
 
     def test_derive_basic(self):
@@ -609,7 +605,7 @@ class TestAirspeed2NMToOffshoreTouchdown(unittest.TestCase):
     def test_attributes(self):
         node = self.node_class()
         self.assertEqual(node.name, 'Airspeed 2 NM To Touchdown')
-        self.assertEqual(node.units, 'kt')
+        self.assertEqual(node.units, ut.KT)
 
     def test_can_operate(self):
         self.assertEqual(self.node_class.get_operational_combinations(
@@ -839,7 +835,7 @@ class TestAirspeedAt200FtDuringOnshoreApproach(unittest.TestCase, NodeTest):
     def test_attributes(self):
         node = self.node_class()
         self.assertEqual(node.name, 'Airspeed At 200 Ft During Onshore Approach')
-        self.assertEqual(node.units, 'kt')
+        self.assertEqual(node.units, ut.KT)
 
     def test_derive(self):
         x = np.linspace(3, 141, 17).tolist() + [140] + \
@@ -1175,7 +1171,7 @@ class TestAltitudeDuringCruiseMin(unittest.TestCase):
     def test_attributes(self):
         node = self.node_class()
         self.assertEqual(node.name, 'Altitude During Cruise Min')
-        self.assertEqual(node.units, 'ft')
+        self.assertEqual(node.units, ut.FT)
 
     def test_can_operate(self):
         self.assertEqual(self.node_class.get_operational_combinations(
@@ -1865,7 +1861,7 @@ class TestEngTorqueAbove90KtsMax(unittest.TestCase):
             node.name,
             'Eng Torque Above 90 Kts Max'
         )
-        self.assertEqual(node.units, '%')
+        self.assertEqual(node.units, ut.PERCENT)
 
     def test_can_operate(self):
         self.assertEqual(self.node_class.get_operational_combinations(
@@ -1991,7 +1987,7 @@ class TestEngTorqueAbove100KtsMax(unittest.TestCase):
             node.name,
             'Eng Torque Above 100 Kts Max'
         )
-        self.assertEqual(node.units, '%')
+        self.assertEqual(node.units, ut.PERCENT)
 
     def test_can_operate(self):
         self.assertEqual(self.node_class.get_operational_combinations(
@@ -2178,7 +2174,7 @@ class TestMGBOilPressLowDuration(unittest.TestCase):
 
     def test_attributes(self):
         node = self.node_class()
-        self.assertEqual(node.units, 's')
+        self.assertEqual(node.units, ut.SECOND)
         self.assertEqual(node.name, 'MGB Oil Press Low Duration')
 
     def test_can_operate(self):
@@ -2334,7 +2330,7 @@ class TestHeadingVariation1_5NMTo1_0NMFromOffshoreTouchdownMaxSpecialProcedure(u
             node.name,
             'Heading Variation 1.5 NM To 1.0 NM From Offshore Touchdown Max Special Procedure'
         )
-        self.assertEqual(node.units, 'deg')
+        self.assertEqual(node.units, ut.DEGREE)
 
     def test_can_operate(self):
         self.assertEqual(self.node_class.get_operational_combinations(
@@ -2454,7 +2450,7 @@ class TestHeadingVariation1_5NMTo1_0NMFromOffshoreTouchdownMaxStandardApproach(u
             node.name,
             'Heading Variation 1.5 NM To 1.0 NM From Offshore Touchdown Max Standard Approach'
         )
-        self.assertEqual(node.units, 'deg')
+        self.assertEqual(node.units, ut.DEGREE)
 
     def test_can_operate(self):
         self.assertEqual(self.node_class.get_operational_combinations(
@@ -2661,7 +2657,7 @@ class TestGroundspeed20SecToOffshoreTouchdownMax(unittest.TestCase):
     def test_attributes(self):
         node = self.node_class()
         self.assertEqual(node.name, 'Groundspeed 20 Sec To Offshore Touchdown Max')
-        self.assertEqual(node.units, 'kt')
+        self.assertEqual(node.units, ut.KT)
 
     def test_can_operate(self):
         self.assertEqual(self.node_class.get_operational_combinations(
@@ -2710,7 +2706,7 @@ class TestGroundspeed0_8NMToOffshoreTouchdownSpecialProcedure(unittest.TestCase)
     def test_attributes(self):
         node = self.node_class()
         self.assertEqual(node.name, 'Groundspeed 0.8 NM To Offshore Touchdown Special Procedure')
-        self.assertEqual(node.units, 'kt')
+        self.assertEqual(node.units, ut.KT)
 
     def test_can_operate(self):
         self.assertEqual(self.node_class.get_operational_combinations(
@@ -2817,7 +2813,7 @@ class TestGroundspeed0_8NMToOffshoreTouchdownStandardApproach(unittest.TestCase)
     def test_attributes(self):
         node = self.node_class()
         self.assertEqual(node.name, 'Groundspeed 0.8 NM To Offshore Touchdown Standard Approach')
-        self.assertEqual(node.units, 'kt')
+        self.assertEqual(node.units, ut.KT)
 
     def test_can_operate(self):
         self.assertEqual(self.node_class.get_operational_combinations(
@@ -3078,7 +3074,7 @@ class TestGroundspeedBelow100FtMax(unittest.TestCase):
     def test_attributes(self):
         node = self.node_class()
         self.assertEqual(node.name, 'Groundspeed Below 100 Ft Max')
-        self.assertEqual(node.units, 'kt')
+        self.assertEqual(node.units, ut.KT)
 
     def test_can_operate(self):
         self.assertEqual(
@@ -3153,7 +3149,7 @@ class TestPitchBelow5FtMax(unittest.TestCase):
     def test_attributes(self):
         node = self.node_class()
         self.assertEquals(node.name, 'Pitch Below 5 Ft Max')
-        self.assertEquals(node.units, 'deg')
+        self.assertEquals(node.units, ut.DEGREE)
 
     def test_can_operate(self):
         self.assertEquals(self.node_class.get_operational_combinations(
@@ -3184,7 +3180,7 @@ class TestPitch5To10FtMax(unittest.TestCase):
     def test_attributes(self):
         node = self.node_class()
         self.assertEquals(node.name, 'Pitch 5 To 10 Ft Max')
-        self.assertEquals(node.units, 'deg')
+        self.assertEquals(node.units, ut.DEGREE)
 
     def test_can_operate(self):
         self.assertEquals(self.node_class.get_operational_combinations(
@@ -3219,7 +3215,7 @@ class TestPitch10To5FtMax(unittest.TestCase):
     def test_attributes(self):
         node = self.node_class()
         self.assertEquals(node.name, 'Pitch 10 To 5 Ft Max')
-        self.assertEquals(node.units, 'deg')
+        self.assertEquals(node.units, ut.DEGREE)
 
     def test_can_operate(self):
         self.assertEquals(self.node_class.get_operational_combinations(
@@ -3827,7 +3823,7 @@ class TestVerticalSpeedAtAltitude(unittest.TestCase):
         self.assertEqual(node.name, 'Vertical Speed At Altitude')
         self.assertIn('Vertical Speed At 300 Ft', node.names())
         self.assertIn('Vertical Speed At 500 Ft', node.names())
-        self.assertEqual(node.units, 'fpm')
+        self.assertEqual(node.units, ut.FPM)
 
     def test_can_operate(self):
         opts = self.node_class.get_operational_combinations(
@@ -3923,7 +3919,7 @@ class TestRollBelow300FtMax(unittest.TestCase):
     def test_attribute(self):
         node = self.node_class()
         self.assertEqual(node.name, 'Roll Below 300 Ft Max')
-        self.assertEqual(node.units, 'deg')
+        self.assertEqual(node.units, ut.DEGREE)
 
     def test_can_operate(self):
         self.assertEqual(self.node_class.get_operational_combinations(
@@ -3957,7 +3953,7 @@ class TestRollWithAFCSDisengagedMax(unittest.TestCase):
     def test_attributes(self):
         node = self.node_class()
         self.assertEqual(node.name, 'Roll With AFCS Disengaged Max')
-        self.assertEqual(node.units, 'deg')
+        self.assertEqual(node.units, ut.DEGREE)
 
     def test_can_operate(self):
         self.assertEqual(self.node_class.get_operational_combinations(
@@ -4158,7 +4154,7 @@ class TestRotorSpeedDuringAutorotationAbove108KtsMin(unittest.TestCase):
         node = self.node_class()
         self.assertEqual(node.name,
                          'Rotor Speed During Autorotation Above 108 Kts Min')
-        self.assertEqual(node.units, '%')
+        self.assertEqual(node.units, ut.PERCENT)
 
     def test_can_operate(self):
         self.assertEqual(self.node_class.get_operational_combinations(
@@ -4193,7 +4189,7 @@ class TestRotorSpeedDuringAutorotationBelow108KtsMin(unittest.TestCase):
         node = self.node_class()
         self.assertEqual(node.name,
                          'Rotor Speed During Autorotation Below 108 Kts Min')
-        self.assertEqual(node.units, '%')
+        self.assertEqual(node.units, ut.PERCENT)
 
     def test_can_operate(self):
         self.assertEqual(self.node_class.get_operational_combinations(
@@ -4227,7 +4223,7 @@ class TestRotorSpeedDuringAutorotationMax(unittest.TestCase):
     def test_attributes(self):
         node = self.node_class()
         self.assertEqual(node.name, 'Rotor Speed During Autorotation Max')
-        self.assertEqual(node.units, '%')
+        self.assertEqual(node.units, ut.PERCENT)
 
     def test_can_operate(self):
         self.assertEqual(self.node_class.get_operational_combinations(
@@ -4258,7 +4254,7 @@ class TestRotorSpeedDuringAutorotationMin(unittest.TestCase):
     def test_attributes(self):
         node = self.node_class()
         self.assertEqual(node.name, 'Rotor Speed During Autorotation Min')
-        self.assertEqual(node.units, '%')
+        self.assertEqual(node.units, ut.PERCENT)
 
     def test_can_operate(self):
         self.assertEqual(self.node_class.get_operational_combinations(
@@ -4461,7 +4457,7 @@ class TestRotorSpeed36To49Duration(unittest.TestCase):
     def test_attributes(self):
         node = self.node_class()
         self.assertEqual(node.name, 'Rotor Speed 36 To 49 Duration')
-        self.assertEqual(node.units, 's')
+        self.assertEqual(node.units, ut.SECOND)
 
     def test_can_operate(self):
         self.assertEqual(self.node_class.get_operational_combinations(
@@ -4492,7 +4488,7 @@ class TestRotorSpeed56To67Duration(unittest.TestCase):
     def test_attributes(self):
         node = self.node_class()
         self.assertEqual(node.name, 'Rotor Speed 56 To 67 Duration')
-        self.assertEqual(node.units, 's')
+        self.assertEqual(node.units, ut.SECOND)
 
     def test_can_operate(self):
         self.assertEqual(self.node_class.get_operational_combinations(
@@ -4525,7 +4521,7 @@ class TestRotorSpeedAt6PercentCollectiveDuringEngStart(unittest.TestCase):
             node.name,
             'Rotor Speed At 6 Percent Collective During Eng Start'
         )
-        self.assertEqual(node.units, '%')
+        self.assertEqual(node.units, ut.PERCENT)
 
     def test_can_operate(self):
         self.assertEqual(self.node_class.get_operational_combinations(

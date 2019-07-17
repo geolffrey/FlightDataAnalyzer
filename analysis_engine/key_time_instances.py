@@ -9,7 +9,7 @@ from flightdatautilities import units as ut
 from flightdatautilities.geometry import great_circle_distance__haversine
 
 from analysis_engine.node import (
-    A, M, P, S, KTI, aeroplane, aeroplane_only, App,
+    A, M, P, S, KTI, App,
     helicopter, KeyTimeInstanceNode
 )
 
@@ -22,7 +22,6 @@ from analysis_engine.library import (
     find_toc_tod,
     first_valid_sample,
     hysteresis,
-    index_at_distance,
     index_at_value,
     is_index_within_slice,
     last_valid_sample,
@@ -315,7 +314,9 @@ class ClimbAccelerationStart(KeyTimeInstanceNode):
                 ics = initial_climbs.get_aligned(alt_aal)
                 if ics.get_slices():
                     _slice = ics.get_first().slice
-                    self.create_kti(index_at_value(alt_aal.array, alt, _slice=_slice))
+                    index = index_at_value(alt_aal.array, alt, _slice=_slice)
+                    if index:
+                        self.create_kti(index)
 
 
 class ClimbThrustDerateDeselected(KeyTimeInstanceNode):
@@ -849,7 +850,7 @@ class FirstFlapExtensionWhileAirborne(KeyTimeInstanceNode):
             retracted = flap.array == '0'
         mask = np.ma.getmaskarray(retracted)
         for air in airborne:
-            cleans = runs_of_ones(retracted[air.slice])
+            cleans = runs_of_ones(retracted[air.slice], skip_mask=True)
             for clean in cleans:
                 # Skip the case where the airborne slice ends:
                 if clean.stop == air.slice.stop - air.slice.start:

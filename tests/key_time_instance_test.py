@@ -215,7 +215,6 @@ class TestClimbStart(unittest.TestCase):
         kti = ClimbStart()
         kti.derive(alt_aal, liftoffs, tocs)
         # These values give an result with an index of 4.5454 recurring.
-        expected = [KeyTimeInstance(index=5/1.1, name='Climb Start')]
         self.assertEqual(len(kti), 1)
         self.assertAlmostEqual(kti[0].index, 4.5, 1)
 
@@ -259,7 +258,6 @@ class TestClimbAccelerationStart(unittest.TestCase):
         self.node_class = ClimbAccelerationStart
 
     def test_can_operate(self):
-        opts = self.node_class.get_operational_combinations()
         self.assertTrue(self.node_class.can_operate(('Airspeed Selected',
                                                      'Initial Climb')))
         self.assertTrue(self.node_class.can_operate(('Altitude AAL For Flight Phases',
@@ -948,8 +946,6 @@ class TestTouchdown(unittest.TestCase):
                                     'TestTouchdown-gog.nod'))
         #FIXME: MappedArray should take values_mapping and apply it itself
         gog.array.values_mapping = gog.values_mapping
-        roc = load(os.path.join(test_data_path,
-                                    'TestTouchdown-roc.nod'))
         lands = buildsection('Landing', 23279, 23361)
         tdwn = Touchdown()
         tdwn.derive(None, None, alt, alt, gog, lands)
@@ -1356,7 +1352,6 @@ class TestLastEngStopAfterTouchdown(unittest.TestCase):
                                    KeyTimeInstance(170, name='Eng (1) Stop'),
                                    KeyTimeInstance(180, name='Eng (2) Stop'),])
         touchdowns = KTI('Touchdown', items=[KeyTimeInstance(100, 'Touchdown')])
-        duration = A('HDF Duration', 200)
         node = LastEngStopAfterTouchdown()
         node.derive(eng_stops, eng_count, touchdowns)
         self.assertEqual(len(node), 1)

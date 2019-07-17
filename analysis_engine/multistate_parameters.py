@@ -63,6 +63,68 @@ from flightdatautilities.numpy_utils import slices_int
 
 logger = logging.getLogger(name=__name__)
 
+class AOAAbnormalOperation(MultistateDerivedParameterNode):
+    '''
+    AOA operation state. A multistate parameter that stacks all the AOA failure, signal failure,
+    heater and correction parameters to identify abnormal operation of the AOA sensors.
+    '''
+    name = 'AOA Abnormal Operation'
+
+    values_mapping = {
+        0: '-',
+        1: 'AOA (L) Failure',
+        2: 'AOA (L) Signal Failure',
+        3: 'AOA (L) Primary Heater',
+        4: 'AOA (R) Failure',
+        5: 'AOA (R) Signal Failure',
+        6: 'AOA (R) Primary Heater',
+        7: 'AOA Signal Failure',
+        8: 'AOA Secondary Heater',
+        9: 'AOA Correction Program',
+    }
+
+    @classmethod
+    def can_operate(cls, available):
+        return any_of(cls.get_dependency_names(), available)
+
+
+    def derive(self,
+                 aoa_l_fail=P('AOA (L) Failure'),
+                 aoa_l_signal_fail=P('AOA (L) Signal Failure'),
+                 aoa_l_heater=P('AOA (L) Primary Heater'),
+                 aoa_r_fail=P('AOA (R) Failure'),
+                 aoa_r_signal_fail=P('AOA (R) Signal Failure'),
+                 aoa_r_heater=P('AOA (R) Primary Heater'),
+                 aoa_signal_fail=P('AOA Signal Failure'),
+                 aoa_sec_heater=P('AOA Secondary Heater'),
+                 aoa_correction=P('AOA Correction Program'),):
+
+        parameter = first_valid_parameter(aoa_l_fail, aoa_l_signal_fail, aoa_l_heater,
+                  aoa_r_fail, aoa_r_signal_fail, aoa_r_heater,
+                  aoa_signal_fail, aoa_sec_heater, aoa_correction)
+
+        if parameter:
+            self.array = np_ma_zeros_like(parameter.array)
+
+        if aoa_l_fail:
+            self.array[(aoa_l_fail.array == 'Failed').filled(False)] = aoa_l_fail.name
+        if aoa_l_signal_fail:
+            self.array[(aoa_l_signal_fail.array == 'Failed').filled(False)] = aoa_l_signal_fail.name
+        if aoa_l_heater:
+            self.array[(aoa_l_heater.array != 'On').filled(False)] = aoa_l_heater.name
+        if aoa_r_fail:
+            self.array[(aoa_r_fail.array == 'Failed').filled(False)] = aoa_r_fail.name
+        if aoa_r_signal_fail:
+            self.array[(aoa_r_signal_fail.array == 'Failed').filled(False)] = aoa_r_signal_fail.name
+        if aoa_r_heater:
+            self.array[(aoa_r_heater.array != 'On').filled(False)] = aoa_r_heater.name
+        if aoa_signal_fail:
+            self.array[(aoa_signal_fail.array == 'Failed').filled(False)] = aoa_signal_fail.name
+        if aoa_sec_heater:
+            self.array[(aoa_sec_heater.array != 'On').filled(False)] = aoa_sec_heater.name
+        if aoa_correction:
+            self.array[(aoa_correction.array == 'Yes').filled(False)] = aoa_correction.name
+
 
 class APEngaged(MultistateDerivedParameterNode):
     '''
@@ -1348,7 +1410,8 @@ class FlapLeverSynthetic(MultistateDerivedParameterNode):
             # The Lever 4 and 5 share the same flap/slat config.
             # On approaches the config is refferred to as Lever 5
             self.array[self.array == 32] = 16  # ensure lever 4 before approach mod
-            self.array[approach_slices][self.array[approach_slices] == 16] = 32
+            for approach_slice in approach_slices:
+                self.array[approach_slice][self.array[approach_slice] == 16] = 32
 
 
 class Flaperon(MultistateDerivedParameterNode):
@@ -1473,7 +1536,6 @@ class GearDownInTransit(MultistateDerivedParameterNode):
     @classmethod
     def can_operate(cls, available, model=A('Model'), series=A('Series'), family=A('Family')):
         # Can operate with a any combination of parameters available
-        gear_transits = ('Gear (L) Down In Transit', 'Gear (N) Down In Transit', 'Gear (R) Down In Transit', 'Gear (C) Down In Transit')
         gears_available = all_of(('Gear Down', 'Gear Down Selected'), available) \
             or all_of(('Gear Up', 'Gear Down'), available) \
             or all_of(('Gear Down Selected', 'Gear In Transit'), available) \
@@ -2309,9 +2371,18 @@ class SlatFullyExtended(MultistateDerivedParameterNode):
                slat_r1=P('Slat (R1) Fully Extended'),
                slat_r2=P('Slat (R2) Fully Extended'),
                slat_r3=P('Slat (R3) Fully Extended'),
-               slat_r4=P('Slat (R4) Fully Extended')):
+               slat_r4=P('Slat (R4) Fully Extended'),
+               slat_1=P('Slat (1) Fully Extended'),
+               slat_2=P('Slat (2) Fully Extended'),
+               slat_3=P('Slat (3) Fully Extended'),
+               slat_4=P('Slat (4) Fully Extended'),
+               slat_5=P('Slat (5) Fully Extended'),
+               slat_6=P('Slat (6) Fully Extended'),
+               slat_7=P('Slat (7) Fully Extended'),
+               slat_8=P('Slat (8) Fully Extended'),):
 
-        extended_params = (slat_l1, slat_l2, slat_l3, slat_l4, slat_r1, slat_r2, slat_r3, slat_r4)
+        extended_params = (slat_l1, slat_l2, slat_l3, slat_l4, slat_r1, slat_r2, slat_r3, slat_r4,
+                           slat_1, slat_2, slat_3, slat_4, slat_5, slat_6, slat_7, slat_8)
         extended_stack = vstack_params_where_state(*[(d, 'Extended') for d in extended_params])
 
         array = np_ma_zeros_like(extended_stack[0], dtype=np.short)
@@ -2344,9 +2415,18 @@ class SlatPartExtended(MultistateDerivedParameterNode):
                slat_r1=P('Slat (R1) Part Extended'),
                slat_r2=P('Slat (R2) Part Extended'),
                slat_r3=P('Slat (R3) Part Extended'),
-               slat_r4=P('Slat (R4) Part Extended')):
+               slat_r4=P('Slat (R4) Part Extended'),
+               slat_1=P('Slat (1) Part Extended'),
+               slat_2=P('Slat (2) Part Extended'),
+               slat_3=P('Slat (3) Part Extended'),
+               slat_4=P('Slat (4) Part Extended'),
+               slat_5=P('Slat (5) Part Extended'),
+               slat_6=P('Slat (6) Part Extended'),
+               slat_7=P('Slat (7) Part Extended'),
+               slat_8=P('Slat (8) Part Extended')):
 
-        extended_params = (slat_l1, slat_l2, slat_l3, slat_l4, slat_r1, slat_r2, slat_r3, slat_r4)
+        extended_params = (slat_l1, slat_l2, slat_l3, slat_l4, slat_r1, slat_r2, slat_r3, slat_r4,
+                           slat_1, slat_2, slat_3, slat_4, slat_5, slat_6, slat_7, slat_8)
         extended_stack = vstack_params_where_state(*[(d, 'Part Extended') for d in extended_params])
 
         array = np_ma_zeros_like(extended_stack[0], dtype=np.short)
@@ -2379,9 +2459,17 @@ class SlatInTransit(MultistateDerivedParameterNode):
                slat_r1=P('Slat (R1) In Transit'),
                slat_r2=P('Slat (R2) In Transit'),
                slat_r3=P('Slat (R3) In Transit'),
-               slat_r4=P('Slat (R4) In Transit')):
-
-        transit_params = (slat_l1, slat_l2, slat_l3, slat_l4, slat_r1, slat_r2, slat_r3, slat_r4)
+               slat_r4=P('Slat (R4) In Transit'),
+               slat_1=P('Slat (1) In Transit'),
+               slat_2=P('Slat (2) In Transit'),
+               slat_3=P('Slat (3) In Transit'),
+               slat_4=P('Slat (4) In Transit'),
+               slat_5=P('Slat (5) In Transit'),
+               slat_6=P('Slat (6) In Transit'),
+               slat_7=P('Slat (7) In Transit'),
+               slat_8=P('Slat (8) In Transit')):
+        transit_params = (slat_l1, slat_l2, slat_l3, slat_l4, slat_r1, slat_r2, slat_r3, slat_r4,
+                          slat_1, slat_2, slat_3, slat_4, slat_5, slat_6, slat_7, slat_8)
         transit_stack = vstack_params_where_state(*[(d, 'In Transit') for d in transit_params])
 
         array = np_ma_zeros_like(transit_stack[0], dtype=np.short)
@@ -3087,6 +3175,8 @@ class StableApproachStages(object):
             # lookup descent from approach, dont zip as not guanenteed to have the same
             # number of descents and approaches
             phase = phases.get_last(within_slice=approach.slice, within_use='any')
+            if not phase:
+                continue
             # use Combined descent phase slice as it contains the data from
             # top of descent to touchdown (approach starts and finishes later)
             approach.slice = phase.slice

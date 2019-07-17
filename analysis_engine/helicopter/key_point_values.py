@@ -190,6 +190,7 @@ class AirspeedAbove101PercentRotorSpeed(KeyPointValueNode):
     Airspeed At or Above 101% Rotor Speed. Helicopter only.
     '''
     name = 'Airspeed Above 101 Percent Rotor Speed'
+    units = ut.KT
     can_operate = helicopter_only
 
     def derive(self,
@@ -915,7 +916,9 @@ class HeadingDuringLanding(KeyPointValueNode):
                land_helos=S('Transition Flight To Hover')):
         for land_helo in land_helos:
             index = land_helo.slice.start
-            self.create_kpv(index, float(round(hdg.array[index], 8)) % 360.0)
+            value = hdg.array[index]
+            if not np.ma.is_masked(value):
+                self.create_kpv(index, float(round(value, 8)) % 360.0)
 
 ##############################################################################
 # Groundspeed

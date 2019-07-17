@@ -111,6 +111,7 @@ from analysis_engine.library import (
 from analysis_engine.settings import (
     AIRSPEED_THRESHOLD,
     ALTITUDE_RADIO_OFFSET_LIMIT,
+    ALTITUDE_RADIO_MAX_RANGE,
     ALTITUDE_AAL_TRANS_ALT,
     AZ_WASHOUT_TC,
     BOUNCED_LANDING_THRESHOLD,
@@ -978,6 +979,7 @@ class AltitudeRadio(DerivedParameterNode):
                source_efis=P('Altitude Radio (EFIS)'),
                source_efis_L=P('Altitude Radio (EFIS) (L)'),
                source_efis_R=P('Altitude Radio (EFIS) (R)'),
+               alt_std=P('Altitude STD'),
                pitch=P('Pitch'),
                fast=S('Fast'),
                family=A('Family')):
@@ -999,9 +1001,16 @@ class AltitudeRadio(DerivedParameterNode):
             aligned_fast = fast.get_aligned(source)
 
             source.array = overflow_correction(source.array,
+                                               align(alt_std, source),
                                                fast=aligned_fast,
                                                hz=source.frequency)
-            osources.append(source)
+
+            # Some data frames reference altimeters which are optionally
+            # recorded. It is impractical to maintain the LFL patching 
+            # required, so we only manage altimeters with a significant
+            # signal.
+            if np.ma.ptp(source.array) > 10.0:
+                osources.append(source)
 
         sources = osources
         # Blend parameters was written around the Boeing 737NG frames where three sources
@@ -1018,6 +1027,8 @@ class AltitudeRadio(DerivedParameterNode):
                                       mode='cubic',
                                       validity='all_but_one',
                                       tolerance=500.0)
+
+        self.array = np.ma.masked_greater(self.array, ALTITUDE_RADIO_MAX_RANGE)
 
         # For aircraft where the antennae are placed well away from the main
         # gear, and especially where it is aft of the main gear, compensation
@@ -1321,7 +1332,6 @@ class AltitudeVisualizationWithoutGroundOffset(DerivedParameterNode):
                 stop_idx = cruises.pop().slice.stop - 1
 
                 if cruises:
-                    previous_start_idx = cruises[-1].slice.start
                     previous_stop_idx = cruises[-1].slice.stop - 1
             else:
                 max_alt_std = max_value(alt_std.array)
@@ -1513,7 +1523,7 @@ class CabinAltitude(DerivedParameterNode):
 
     def derive(self, cp=P('Cabin Press')):
 
-        # assert cp.units=='psi' # Would like to assert units as 'psi'
+        # XXX: assert cp.units == ut.PSI  # Would like to assert units as 'psi'
         self.array = press2alt(cp.array)
 
 
@@ -1918,6 +1928,83 @@ class BrakePressure(DerivedParameterNode):
             self.array = blend_parameters(sources, offset=self.offset,
                                           frequency=self.frequency)
 
+class Brake_C_Temp(DerivedParameterNode):
+    '''
+    This collates the centre gear temperature signals.
+
+    We use the median value to combine these so that in the
+    presence of a faulty signal the result is not skewed.
+    '''
+
+    name = 'Brake (C) Temp'
+
+    @classmethod
+    def can_operate(cls, available):
+        return any_of(cls.get_dependency_names(), available)
+
+    def derive(self,
+               brake1=P('Brake (C) (1) Temp'),
+               brake2=P('Brake (C) (2) Temp'),
+               brake3=P('Brake (C) (3) Temp'),
+               brake4=P('Brake (C) (4) Temp'),
+               brake5=P('Brake (C) (5) Temp'),
+               brake6=P('Brake (C) (6) Temp'),
+               brake7=P('Brake (C) (7) Temp'),
+               brake8=P('Brake (C) (8) Temp')):
+
+        brake_params = (brake1, brake2, brake3, brake4, brake5, brake6, brake7, brake8)
+        brakes = vstack_params(*brake_params)
+        self.array = np.ma.median(brakes, axis=0)
+        self.offset = offset_select('mean', brake_params)
+
+class Brake_L_Temp(DerivedParameterNode):
+    '''
+    See Brake_C_Temp above
+    '''
+
+    name = 'Brake (L) Temp'
+
+    @classmethod
+    def can_operate(cls, available):
+        return any_of(cls.get_dependency_names(), available)
+
+    def derive(self,
+               brake1=P('Brake (L) (1) Temp'),
+               brake2=P('Brake (L) (2) Temp'),
+               brake3=P('Brake (L) (3) Temp'),
+               brake4=P('Brake (L) (4) Temp'),
+               brake5=P('Brake (L) (5) Temp'),
+               brake6=P('Brake (L) (6) Temp')):
+
+        brake_params = (brake1, brake2, brake3, brake4, brake5, brake6)
+        brakes = vstack_params(*brake_params)
+        self.array = np.ma.median(brakes, axis=0)
+        self.offset = offset_select('mean', brake_params)
+
+class Brake_R_Temp(DerivedParameterNode):
+    '''
+    See Brake_C_Temp above
+    '''
+
+    name = 'Brake (R) Temp'
+
+    @classmethod
+    def can_operate(cls, available):
+        return any_of(cls.get_dependency_names(), available)
+
+    def derive(self,
+               brake1=P('Brake (R) (1) Temp'),
+               brake2=P('Brake (R) (2) Temp'),
+               brake3=P('Brake (R) (3) Temp'),
+               brake4=P('Brake (R) (4) Temp'),
+               brake5=P('Brake (R) (5) Temp'),
+               brake6=P('Brake (R) (6) Temp')):
+
+        brake_params = (brake1, brake2, brake3, brake4, brake5, brake6)
+        brakes = vstack_params(*brake_params)
+        self.array = np.ma.median(brakes, axis=0)
+        self.offset = offset_select('mean', brake_params)
+
 
 class Brake_TempAvg(DerivedParameterNode):
     '''
@@ -1942,9 +2029,17 @@ class Brake_TempAvg(DerivedParameterNode):
                brake5=P('Brake (5) Temp'),
                brake6=P('Brake (6) Temp'),
                brake7=P('Brake (7) Temp'),
-               brake8=P('Brake (8) Temp')):
+               brake8=P('Brake (8) Temp'),
+               brake9=P('Brake (9) Temp'),
+               brake10=P('Brake (10) Temp'),
+               brake11=P('Brake (11) Temp'),
+               brake12=P('Brake (12) Temp'),
+               brakeC=P('Brake (C) Temp'),
+               brakeL=P('Brake (L) Temp'),
+               brakeR=P('Brake (R) Temp')):
 
-        brake_params = (brake1, brake2, brake3, brake4, brake5, brake6, brake7, brake8)
+        brake_params = (brake1, brake2, brake3, brake4, brake5, brake6, brake7, brake8,
+                        brake9, brake10, brake11, brake12, brakeC, brakeL, brakeR)
         brakes = vstack_params(*brake_params)
         self.array = np.ma.average(brakes, axis=0)
         self.offset = offset_select('mean', brake_params)
@@ -1974,9 +2069,17 @@ class Brake_TempMax(DerivedParameterNode):
                brake5=P('Brake (5) Temp'),
                brake6=P('Brake (6) Temp'),
                brake7=P('Brake (7) Temp'),
-               brake8=P('Brake (8) Temp')):
+               brake8=P('Brake (8) Temp'),
+               brake9=P('Brake (9) Temp'),
+               brake10=P('Brake (10) Temp'),
+               brake11=P('Brake (11) Temp'),
+               brake12=P('Brake (12) Temp'),
+               brakeC=P('Brake (C) Temp'),
+               brakeL=P('Brake (L) Temp'),
+               brakeR=P('Brake (R) Temp')):
 
-        brake_params = (brake1, brake2, brake3, brake4, brake5, brake6, brake7, brake8)
+        brake_params = (brake1, brake2, brake3, brake4, brake5, brake6, brake7, brake8,
+                        brake9, brake10, brake11, brake12, brakeC, brakeL, brakeR)
         brakes = vstack_params(*brake_params)
         self.array = np.ma.max(brakes, axis=0)
         self.offset = offset_select('mean', brake_params)
@@ -2006,9 +2109,17 @@ class Brake_TempMin(DerivedParameterNode):
                brake5=P('Brake (5) Temp'),
                brake6=P('Brake (6) Temp'),
                brake7=P('Brake (7) Temp'),
-               brake8=P('Brake (8) Temp')):
+               brake8=P('Brake (8) Temp'),
+               brake9=P('Brake (9) Temp'),
+               brake10=P('Brake (10) Temp'),
+               brake11=P('Brake (11) Temp'),
+               brake12=P('Brake (12) Temp'),
+               brakeC=P('Brake (C) Temp'),
+               brakeL=P('Brake (L) Temp'),
+               brakeR=P('Brake (R) Temp')):
 
-        brake_params = (brake1, brake2, brake3, brake4, brake5, brake6, brake7, brake8)
+        brake_params = (brake1, brake2, brake3, brake4, brake5, brake6, brake7, brake8,
+                        brake9, brake10, brake11, brake12, brakeC, brakeL, brakeR)
         brakes = vstack_params(*brake_params)
         self.array = np.ma.min(brakes, axis=0)
         self.offset = offset_select('mean', brake_params)
@@ -3977,7 +4088,10 @@ class FlapAngle(DerivedParameterNode):
                    "frequency of %sHz" % (flap, base_hz)
             xaxis = np.arange(duration, step=1/flap.hz) + flap.offset
             xx.append(xaxis)
-            yy.append(repair_mask(flap.array, repair_duration=None, extrapolate=True))
+            # We do not repair flap.array. If multiple sensors, blend_two_parameters
+            # will take care of filling the missing values with values from the
+            # good sensor.
+            yy.append(flap.array)
             ##scatter(xaxis, flap.array, edgecolor='none', c=col) # col was in zip with sources in for loop
 
         # if all have the same frequency, offsets are a multiple of the
@@ -4364,7 +4478,7 @@ class HeadingIncreasing(DerivedParameterNode):
 
     def derive(self, head=P('Heading Continuous')):
         rot = np.ma.ediff1d(head.array, to_begin = 0.0)
-        self.array = integrate(np.ma.abs(rot), head.frequency)
+        self.array = integrate(np.ma.abs(rot), 1.0)
 
 
 class HeadingTrueContinuous(DerivedParameterNode):
@@ -6409,12 +6523,19 @@ class Headwind(DerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return all_of((
+        wind_based = all_of((
             'Wind Speed',
             'Wind Direction',
             'Heading True',
             'Altitude AAL',
         ), available)
+
+        aspd_based = all_of((
+            'Airspeed True',
+            'Groundspeed'
+        ), available)
+
+        return wind_based or aspd_based
 
     def derive(self, aspd=P('Airspeed True'),
                windspeed=P('Wind Speed'),
@@ -6423,24 +6544,35 @@ class Headwind(DerivedParameterNode):
                alt_aal=P('Altitude AAL'),
                gspd=P('Groundspeed')):
 
+        if all((windspeed, wind_dir, head, alt_aal)):
+            # Wind based
+            if aspd:
+                # mask windspeed data while going slow
+                windspeed.array[aspd.array.mask] = np.ma.masked
+            rad_scale = radians(1.0)
+            headwind = windspeed.array * np.ma.cos((wind_dir.array-head.array)*rad_scale)
 
+            # If we have airspeed and groundspeed, overwrite the values for the
+            # altitudes below one hundred feet.
+            if aspd and gspd:
+                for below_100ft in alt_aal.slices_below(100):
+                    try:
+                        headwind[below_100ft] = moving_average((aspd.array[below_100ft] - gspd.array[below_100ft]),
+                                                               window=5)
+                    except:
+                        pass # Leave the data unchanged as one of the parameters is fully masked.
+            self.array = headwind
 
-        if aspd:
-            # mask windspeed data while going slow
-            windspeed.array[aspd.array.mask] = np.ma.masked
-        rad_scale = radians(1.0)
-        headwind = windspeed.array * np.ma.cos((wind_dir.array-head.array)*rad_scale)
+        else:
+            # Airspeed based
+            try:
+                headwind = moving_average((aspd.array - gspd.array),
+                                          window=5)
+            except ValueError:
+                # one of the parameters is fully masked.
+                headwind = np_ma_masked_zeros_like(aspd.array)
 
-        # If we have airspeed and groundspeed, overwrite the values for the
-        # altitudes below one hundred feet.
-        if aspd and gspd:
-            for below_100ft in alt_aal.slices_below(100):
-                try:
-                    headwind[below_100ft] = moving_average((aspd.array[below_100ft] - gspd.array[below_100ft]),
-                                                           window=5)
-                except:
-                    pass # Leave the data unchanged as one of the parameters is fully masked.
-        self.array = headwind
+            self.array = headwind
 
 
 class Tailwind(DerivedParameterNode):
@@ -8218,8 +8350,6 @@ class VLSLookup(DerivedParameterNode):
             return
 
         parameter = flap_lever or flap_synth
-
-        max_detent = max(table.vls_detents, key=lambda x: parameter.state.get(x, -1))
 
         for approach in approaches:
             phase = slices_int(approach.slice)
