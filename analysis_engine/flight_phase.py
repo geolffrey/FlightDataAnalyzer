@@ -2007,7 +2007,8 @@ class TCASOperational(FlightPhaseNode):
                tcas_valid=P('TCAS Valid'),
                tcas_fail=P('TCAS Failure')):
 
-        operating = runs_of_ones(alt_aal.array >= 900.0)
+        operating = slices_remove_small_gaps(runs_of_ones(alt_aal.array >= 900.0),
+                                             time_limit=10, hz=alt_aal.frequency)
         invalid_slices = []
         possible_ras = []
 
