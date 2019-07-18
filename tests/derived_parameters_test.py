@@ -4426,9 +4426,9 @@ class TestAOA(unittest.TestCase):
             ('AOA (L)',),
             ('AOA (R)',),
             ('AOA (L)', 'AOA (R)'),
-            ('AOA (L)', 'Family'),
-            ('AOA (R)', 'Family'),
-            ('AOA (L)', 'AOA (R)', 'Family'),
+            ('AOA (L)', 'Model'),
+            ('AOA (R)', 'Model'),
+            ('AOA (L)', 'AOA (R)', 'Model'),
         ])
 
     def test_derive(self):
@@ -4453,11 +4453,11 @@ class TestAOA(unittest.TestCase):
         self.assertEqual(aoa.hz, 1)
         self.assertEqual(aoa.offset, 0.1484375)
 
-    def test_cl_600_family(self):
+    def test_cl_600_2D24_model(self):
         aoa_r = P('AOA (R)', [0.0, 1.0])
-        family = A('Family', 'CL-600')
+        model = A('Model', 'CL-600-2D24')
         aoa = AOA()
-        aoa.get_derived([None, aoa_r, family])
+        aoa.get_derived([None, aoa_r, model])
         self.assertAlmostEqual(aoa.array[0], -1.404)
         self.assertAlmostEqual(aoa.array[1], 0.257)
 
