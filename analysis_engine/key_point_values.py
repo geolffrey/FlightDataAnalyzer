@@ -4463,6 +4463,38 @@ class AOABelowStickShakerAOAMin(KeyPointValueNode):
         self.create_kpv_from_slices(aoa_diff, airborne.get_slices(), min_value)
 
 
+class AOAWithFlapUpWhileAirborneMax(KeyPointValueNode):
+    '''
+    Maximum Angle of Attack with flaps retracted while airborne.
+
+    Note that this KPV uses the flap lever angle, not the flap surface angle.
+    '''
+
+    name = 'AOA With Flap Up While Airborne Max'
+    units = ut.DEGREE
+
+    @classmethod
+    def can_operate(cls, available):
+
+        return any_of(('Flap Lever', 'Flap Lever (Synthetic)'), available) and \
+            all_of(('AOA', 'Airborne'), available)
+
+    def derive(self,
+               aoa=P('AOA'),
+               flap_lever=M('Flap Lever'),
+               flap_synth=M('Flap Lever (Synthetic)'),
+               airborne=S('Airborne')):
+
+        flap = flap_lever or flap_synth
+        if 'Lever 0' in flap.array.state:
+            retracted = flap.array == 'Lever 0'
+        if '0' in flap.array.state:
+            retracted = flap.array == '0'
+
+        aoa_flap_up = np.ma.masked_where(~retracted, aoa.array)
+        self.create_kpv_from_slices(aoa_flap_up, remove_bump(airborne), max_value)
+
+
 ##############################################################################
 # Sensor Mismatch
 

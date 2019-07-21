@@ -39,6 +39,7 @@ from analysis_engine.key_point_values import (
     AOAWithFlapDuringClimbMax,
     AOAWithFlapDuringDescentMax,
     AOAWithFlapMax,
+    AOAWithFlapUpWhileAirborneMax,
     AOADifference5SecMax,
     AOAFlapsUpAPOffMax,
     AOAAbnormalOperationDuration,
@@ -5545,6 +5546,34 @@ class TestAOADuringGoAroundMax(unittest.TestCase, CreateKPVsWithinSlicesTest):
     @unittest.skip('Test not implemented.')
     def test_derive(self):
         pass
+
+
+class TestAOAWithFlapUpWhileAirborneMax(unittest.TestCase, NodeTest):
+
+    def setUp(self):
+        self.node_class = AOAWithFlapUpWhileAirborneMax
+        self.operational_combinations = [
+            ('AOA', 'Flap Lever', 'Airborne'),
+            ('AOA', 'Flap Lever (Synthetic)', 'Airborne'),
+            ('AOA', 'Flap Lever', 'Flap Lever (Synthetic)', 'Airborne'),
+        ]
+
+    def test_derive(self):
+        aoa = P(
+            name='AOA',
+            array=np.ma.array(np.tile([1.0, 3.0, -1.0, -2.0, 1.0, 2.0], 10)),
+        )
+        airborne = buildsection('Airborne', 2, 48)
+        name = "AOA With Flap Up While Airborne Max"
+
+        array = np.ma.repeat((0, 1, 5, 15, 25, 30), 10)
+        mapping = {int(f): str(f) for f in np.ma.unique(array)}
+        flap_lever = M(name='Flap Lever', array=array, values_mapping=mapping)
+        node = self.node_class()
+        node.derive(aoa, flap_lever, None, airborne)
+        self.assertEqual(node, KPV(name=name, items=[
+            KeyPointValue(index=7.0, value=3.0, name=name),
+        ]))
 
 
 ##############################################################################
