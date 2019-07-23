@@ -6564,8 +6564,8 @@ def slices_from_to(array, from_, to, threshold=0.1):
             else:
                 # climbing
                 slice_stop = value.index
-
-        filtered_slices.append(slice(slice_start, slice_stop))
+        if int(slice_start) != int(slice_stop):
+            filtered_slices.append(slice(slice_start, slice_stop))
 
     return rep_array, filtered_slices
 
@@ -6775,7 +6775,7 @@ def including_transition(array, steps, hz=1, mode='include'):
                 if change[band.start] > 0:
                     output[band.start] = flap
                 else:
-                    output[band.stop] = flap
+                    output[band.stop - 1] = flap
                 continue
 
             if np.ma.count(partial):
@@ -6786,7 +6786,7 @@ def including_transition(array, steps, hz=1, mode='include'):
                 # through the flap setting of interest.
                 index = index_at_value(array[band], flap)
                 if index:
-                    if array[band.start:band.stop + 1][-1] > array[band.start]:
+                    if array[band.start:band.stop][-1] > array[band.start]:
                         # Going up
                         output[int(index + band.start - 1)] = flap
                     else:

@@ -1253,12 +1253,12 @@ class TestFast(unittest.TestCase):
         self.assertEqual(phase_fast.get_slices(), expected.get_slices())
 
     def test_fast_all_fast(self):
-        fast_data = np.ma.ones(10) * 120
+        fast_data = np.ma.ones(20) * 120
         ias = Parameter('Airspeed', fast_data, 1, 0)
         phase_fast = Fast()
         phase_fast.derive(ias)
         # Q: Should we really create no fast sections?
-        expected = buildsection('Fast', 0, 10)
+        expected = buildsection('Fast', 0, 20)
         self.assertEqual(phase_fast.get_slices(), expected.get_slices())
 
     def test_fast_all_slow(self):
@@ -1269,19 +1269,19 @@ class TestFast(unittest.TestCase):
         self.assertEqual(phase_fast, [])
 
     def test_fast_slowing_only(self):
-        fast_data = np.ma.arange(110, 60, -10)
+        fast_data = np.ma.arange(120, 60, -2)
         ias = Parameter('Airspeed', fast_data, 1, 0)
         phase_fast = Fast()
         phase_fast.derive(ias)
-        expected = buildsection('Fast', 0, 4)
+        expected = buildsection('Fast', 0, 21)
         self.assertEqual(phase_fast.get_slices(), expected.get_slices())
 
     def test_fast_speeding_only(self):
-        fast_data = np.ma.arange(60, 120, 10)
+        fast_data = np.ma.arange(60, 120, 2)
         ias = Parameter('Airspeed', fast_data, 1, 0)
         phase_fast = Fast()
         phase_fast.derive(ias)
-        expected = buildsection('Fast', 2, 6)
+        expected = buildsection('Fast', 10, 30)
         self.assertEqual(phase_fast.get_slices(), expected.get_slices())
 
     def test_fast_real_data_1(self):

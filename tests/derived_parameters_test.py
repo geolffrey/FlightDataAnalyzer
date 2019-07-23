@@ -928,15 +928,15 @@ class TestAltitudeAAL(unittest.TestCase):
         self.assertTrue(('Altitude Radio Offset Removed', 'Altitude STD Smoothed', 'Fast') in opts)
 
     def test_alt_aal_basic(self):
-        data = np.ma.array([-3, 0, 30, 80, 250, 560, 220, 70, 20, -5])
+        data = np.ma.array([-3, 0, 30, 80, 250,] + [560]*10 + [560, 220, 70, 20, -5])
         alt_std = P(array=data + 300)
         alt_rad = P(array=data)
-        fast_data = np.ma.ones(10) * 100
+        fast_data = np.ma.ones(20) * 100
         phase_fast = Fast()
         phase_fast.derive(Parameter('Airspeed', fast_data))
         alt_aal = AltitudeAAL()
         alt_aal.derive(alt_rad,alt_std, phase_fast)
-        expected = np.ma.array([0, 0, 30, 80, 250, 560, 220, 70, 20, 0])
+        expected = np.ma.array([0, 0, 30, 80, 250,] + [560]*10 + [560, 220, 70, 20, 0])
         assert_array_equal(expected, alt_aal.array.data)
 
     def test_alt_aal_bounce_rejection(self):
@@ -954,15 +954,15 @@ class TestAltitudeAAL(unittest.TestCase):
         assert_array_equal(expected, alt_aal.array.data)
 
     def test_alt_aal_no_ralt(self):
-        data = np.ma.array([-3, 0, 30, 80, 250, 580, 220, 70, 20, 25])
+        data = np.ma.array([-3, 0, 30, 80, 250,] + [580]*10 + [580, 220, 70, 20, 25])
         alt_std = P(array=data + 300)
-        slow_and_fast_data = np.ma.array([70] + [85] * 7 + [70]*2)
+        slow_and_fast_data = np.ma.array([70] + [85] * 17 + [70]*2)
         phase_fast = Fast()
         phase_fast.derive(Parameter('Airspeed', slow_and_fast_data))
         pitch = P('Pitch', np_ma_ones_like(slow_and_fast_data))
         alt_aal = AltitudeAAL()
         alt_aal.derive(None, alt_std, phase_fast, pitch)
-        expected = np.ma.array([0, 0, 30, 80, 250, 560, 200, 50, 0, 0])
+        expected = np.ma.array([0, 0, 30, 80, 250,] + [560]*10 + [560, 200, 50, 0, 0])
         assert_array_equal(expected, alt_aal.array.data)
 
     def test_alt_aal_complex(self):
@@ -2282,12 +2282,12 @@ class TestClimbForFlightPhases(unittest.TestCase):
         self.assertEqual(opts, expected)
 
     def test_climb_for_flight_phases_basic(self):
-        up_and_down_data = np.ma.array([0,0,2,5,3,2,5,6,8,0])
+        up_and_down_data = np.ma.array([0,0,2,5,3,] + [3]*10 + [2,5,6,8,0])
         phase_fast = Fast()
-        phase_fast.derive(P('Airspeed', np.ma.array([0]+[100]*8+[0])))
+        phase_fast.derive(P('Airspeed', np.ma.array([0]+[100]*18+[0])))
         climb = ClimbForFlightPhases()
         climb.derive(Parameter('Altitude STD Smoothed', up_and_down_data), phase_fast)
-        expected = np.ma.array([0,0,2,5,0,0,3,4,6,0])
+        expected = np.ma.array([0,0,2,5,0,] + [0]*10 + [0,3,4,6,0])
         ma_test.assert_masked_array_approx_equal(climb.array, expected)
 
 
@@ -2382,12 +2382,12 @@ class TestDescendForFlightPhases(unittest.TestCase):
         self.assertEqual(opts, expected)
 
     def test_descend_for_flight_phases_basic(self):
-        down_and_up_data = np.ma.array([0,0,12,5,3,12,15,10,7,0])
+        down_and_up_data = np.ma.array([0,0,12,5,3,] + [12]*10 + [12,15,10,7,0])
         phase_fast = Fast()
-        phase_fast.derive(P('Airspeed', np.ma.concatenate((np.zeros(1), np.ones(8) * 100, np.zeros(1)))))
+        phase_fast.derive(P('Airspeed', np.ma.concatenate((np.zeros(1), np.ones(18) * 100, np.zeros(1)))))
         descend = DescendForFlightPhases()
         descend.derive(Parameter('Altitude STD Smoothed', down_and_up_data), phase_fast)
-        expected = np.ma.array([0,0,0,-7,-9,0,0,-5,-8,0])
+        expected = np.ma.array([0,0,0,-7,-9,] + [0]*10 + [0,0,-5,-8,0])
         ma_test.assert_masked_array_approx_equal(descend.array, expected)
 
 

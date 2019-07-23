@@ -2025,7 +2025,7 @@ class TestDerivedParameterNode(unittest.TestCase):
         alt_aal = P('Altitude AAL', array)
         tdwns = [KeyTimeInstance(index=34, name='Touchdown')]
         result = alt_aal.slices_to_kti(50, tdwns)
-        self.assertEqual(result, [slice(24, 34)])
+        self.assertEqual(result, [slice(26, 34)])
 
 
     def test_save_and_load_node(self):

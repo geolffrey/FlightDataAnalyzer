@@ -6311,7 +6311,7 @@ class TestSlicesFromTo(unittest.TestCase):
         # threshold
         array = np.ma.array([10, 8, 6, 4, 2, 4, 6, 8, 10, 8, 7, 8, 10])
         _, slices = slices_from_to(array, 8, 0)
-        self.assertEqual(slices, [slice(2, 4), slice(10, 10)])
+        self.assertEqual(slices, [slice(2, 4), ])
         _, slices = slices_from_to(array, 8, 0, threshold=0.2)
         self.assertEqual(slices, [slice(2, 4)])
         _, slices = slices_from_to(array, 8, 0, threshold=0.8)
@@ -6330,7 +6330,7 @@ class TestSlicesFromTo(unittest.TestCase):
         # threshold
         array = np.ma.array([10, 12, 14, 16, 18, 16, 14, 12, 10, 12, 13, 12, 10, 10, 12, 14, 16, 18, 20, 22])
         _, slices = slices_from_to(array, 12, 20)
-        self.assertEqual(slices, [slice(2, 4), slice(10, 10), slice(15, 18)])
+        self.assertEqual(slices, [slice(2, 4), slice(15, 18)])
         _, slices = slices_from_to(array, 12, 20, threshold=0.2)
         self.assertEqual(slices, [slice(2, 4), slice(15, 18)])
         _, slices = slices_from_to(array, 12, 20, threshold=0.8)

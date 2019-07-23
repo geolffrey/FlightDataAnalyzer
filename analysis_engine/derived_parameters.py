@@ -4369,6 +4369,9 @@ class ApproachFlightPathAngle(DerivedParameterNode):
                 continue
 
             alt_band = runs_of_ones(alt_cropped < 500)[0]
+            if alt_band.stop - alt_band.start <= 1:
+                # Cannot call coreg with data of length 1
+                continue
 
             corr, slope, offset = coreg(
                 alt_aal.array[shift_slice(alt_band, app.slice.start)],
@@ -4839,7 +4842,7 @@ class CoordinatesSmoothed(object):
             toff_slice = None
 
         if ac_type != helicopter:
-            if toff_slice and precise and len(lat.array[begin:toff_slice.start]):
+            if toff_slice and precise and len(lat.array[begin:toff_slice.start]) >= 2:
                 try:
                     lat_out, lon_out = self.taxi_out_track_pp(
                         lat.array[begin:toff_slice.start],
