@@ -5056,7 +5056,7 @@ class TestOverflowCorrection(unittest.TestCase):
         first_pass = overflow_correction(radioA.array, None, None)
         resA = overflow_correction(first_pass, alt_baro, fast)
         sects = np.ma.clump_unmasked(resA)
-        self.assertEqual(len(sects), 8)
+        self.assertEqual(len(sects), 5)
         self.assertGreater(resA.max(), 5000)
         self.assertEqual(resA.min(), -2)
 
@@ -5065,7 +5065,7 @@ class TestOverflowCorrection(unittest.TestCase):
         first_pass = overflow_correction(radioB.array, None, None)
         resB = overflow_correction(first_pass, alt_baro, fast)
         sects = np.ma.clump_unmasked(resB)
-        self.assertEqual(len(sects), 9)
+        self.assertEqual(len(sects), 5)
         self.assertGreater(resB.max(), 5000)
         self.assertEqual(resB.min(), -2)
 
@@ -5083,7 +5083,7 @@ class TestOverflowCorrection(unittest.TestCase):
         resA = overflow_correction(first_pass, alt_baro, fast)
         sects = np.ma.clump_unmasked(resA)
         # 1 section for climb, one for descent
-        self.assertEqual(len(sects), 4)
+        self.assertEqual(len(sects), 2)
         self.assertGreater(resA.max(), 7500)
         self.assertEqual(resA.min(), 0)
 
@@ -5093,7 +5093,7 @@ class TestOverflowCorrection(unittest.TestCase):
         resB = overflow_correction(first_pass, alt_baro, fast)
         sects = np.ma.clump_unmasked(resB)
         # 1 section for climb, one for descent
-        self.assertEqual(len(sects), 4)
+        self.assertEqual(len(sects), 2)
         self.assertGreater(resB.max(), 7500)
         self.assertEqual(resB.min(), 0)
 
@@ -8282,7 +8282,8 @@ class TestNearestRunway(unittest.TestCase):
     '''
     Tests for Nearest Runway
     '''
-    airports = yaml.load(open(os.path.join(test_data_path, 'airports.yaml'), 'rb'))
+    airports = yaml.load(open(os.path.join(test_data_path, 'airports.yaml'), 'rb'),
+                         Loader=yaml.FullLoader)
     _airports = airports['airports']
     _expected = {
         '001': {

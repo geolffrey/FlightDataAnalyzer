@@ -5466,7 +5466,9 @@ def overflow_correction_array(array):
 
     biggest_step_up = np.ma.max(steps)
     biggest_step_down = np.ma.min(steps)
+
     # Only fix things that need fixing
+    delta = None
     if biggest_step_up or biggest_step_down:
         # Compute and apply the correction
         biggest_step = max(abs(x) for x in (biggest_step_up, biggest_step_down) if x is not None)
@@ -5483,12 +5485,24 @@ def overflow_correction_array(array):
             delta = 1024.0 * np.rint((np.min(array[midpoint:]) + 20) / 1024)
         else:
             # Rare case of perfectly balanced changes; make no changes.
-            delta = None
+            pass
+    else:
+        # Stray piece of data. Let's make sure it is at least positive!
+        delta = 1024.0 * np.rint(np.min(array + 20) / 1024)
 
-        if delta:
-            array -= delta
+    if delta:
+        # Adjust the data by offsetting by this delta.
+        array -= delta
 
-    return np.ma.array(data=array, mask=keep_mask)
+    # Where there was a jump, the original data was masked, which we no longer
+    # need. The mask may have been assigned to the exact point of the change or
+    # possibly one sample earlier or later, or even two of these samples.
+    # Therefore the masking across steps is hidden for the step +/- 1 index.
+    hide_steps = np.zeros_like(array)
+    for index in np.flatnonzero(steps != 0):
+        hide_steps[index-1:index+2] = 1
+
+    return np.ma.array(data=array, mask=np.logical_and(keep_mask, hide_steps == 0))
 
 
 def peak_curvature(array, _slice=slice(None), curve_sense='Concave',
