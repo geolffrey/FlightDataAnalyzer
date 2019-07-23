@@ -808,8 +808,8 @@ class AltitudeAAL(DerivedParameterNode):
                         n += 1
                         continue
                     else:
-                        raise ValueError('Problem in Altitude AAL where data '
-                                         'should dip, but instead has a peak.')
+                        # Problem as the data should dip, but instead has a peak. Rare case, so just skip past it.
+                        n += 1
 
             for n, dip in enumerate(dips):
                 if dip['type'] == 'high':
