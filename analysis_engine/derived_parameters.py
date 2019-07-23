@@ -1025,33 +1025,30 @@ class AltitudeRadio(DerivedParameterNode):
             if np.ma.ptp(source.array) > 10.0:
                 osources.append(source)
 
-        sources = osources
-        # Blend parameters was written around the Boeing 737NG frames where three sources
-        # are available with different sample rates and latency. Some airbus aircraft
-        # have three altimeters but one of the sensors can give signals that appear to be
-        # valid in the cruise, hence the alternative validity level. Finally, the overflow
-        # correction algorithms can be out of step, giving differences of the order of
-        # 1,000ft between two sensors. The tolerance threshold ensures these are rejected
-        # (a wide tolerance ensures we don't react to normal levels of noise between altimeters).
-        self.array = blend_parameters(sources,
-                                      offset=self.offset,
-                                      frequency=self.frequency,
-                                      small_slice_duration=10,
-                                      mode='cubic',
-                                      validity='all_but_one',
-                                      tolerance=500.0)
+        if osources:
+            # Blend parameters was written around the Boeing 737NG frames where three sources
+            # are available with different sample rates and latency. Some airbus aircraft
+            # have three altimeters but one of the sensors can give signals that appear to be
+            # valid in the cruise, hence the alternative validity level. Finally, the overflow
+            # correction algorithms can be out of step, giving differences of the order of
+            # 1,000ft between two sensors. The tolerance threshold ensures these are rejected
+            # (a wide tolerance ensures we don't react to normal levels of noise between altimeters).
+            self.array = blend_parameters(osources, offset=self.offset, frequency=self.frequency, small_slice_duration=10,
+                                          mode='cubic', validity='all_but_one', tolerance=500.0)
 
-        self.array = np.ma.masked_greater(self.array, ALTITUDE_RADIO_MAX_RANGE)
+            self.array = np.ma.masked_greater(self.array, ALTITUDE_RADIO_MAX_RANGE)
 
-        # For aircraft where the antennae are placed well away from the main
-        # gear, and especially where it is aft of the main gear, compensation
-        # is necessary.
+            # For aircraft where the antennae are placed well away from the main
+            # gear, and especially where it is aft of the main gear, compensation
+            # is necessary.
 
-        #TODO: Implement this type of correction on other types and embed
-        #coefficients in a database table.
+            #TODO: Implement this type of correction on other types and embed
+            #coefficients in a database table.
+        else:
+            samples = int(len(alt_std.array) * self.frequency / alt_std.frequency)
+            self.array=np_ma_masked_zeros(samples)
 
         if family and family.value in ['CL-600'] and pitch:
-
             assert pitch.frequency == 4.0
             # There is no alignment process for this small correction term,
             # but it relies upon pitch being sampled at 4Hz and the blended

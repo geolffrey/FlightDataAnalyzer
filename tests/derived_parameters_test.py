@@ -1806,6 +1806,18 @@ class TestAltitudeRadio(unittest.TestCase):
         self.assertEqual(alt_rad.array.data[36], -3.675) # -1.5ft & 5deg
         self.assertEqual(alt_rad.array.data[76], 6.15) # -1.5ft & 10 deg
 
+    def test_altitude_radio_no_valid_data(self):
+        fast = buildsection('Fast', 0, 10)
+        array = np.ma.array(data=[1]*10, mask=[1]*10)
+        radio_L = P('Altitude Radio (L)', array, 1.0, 0.0)
+        radio_R = P('Altitude Radio (R)', array, 1.0, 0.0)
+        alt_baro = P('Altitude STD', array, frequency = 1.0)
+        rad = AltitudeRadio()
+        rad.derive(radio_L, radio_R, None, None, None, None, None, None,
+                   alt_baro, None,
+                   fast=fast, family=A('Family', 'A330'))
+        self.assertEqual(len(rad.array), 40)
+
 
 class TestAltitudeRadioOffsetRemoved(unittest.TestCase):
     def setUp(self):
