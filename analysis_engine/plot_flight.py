@@ -213,8 +213,9 @@ def track_to_kml(hdf_path, kti_list, kpv_list, approach_list,
         # Get altitude param from hdf.
         if plot_altitude and plot_altitude in hdf.keys():
             alt = derived_param_from_hdf(hdf[plot_altitude]).get_aligned(one_hz)
-            alt.array = repair_mask(alt.array, frequency=alt.frequency, repair_duration=None)
-            alt.array = ut.convert(alt.array, ut.FT, ut.METER)
+            if np.ma.count(alt.array):
+                alt.array = repair_mask(alt.array, frequency=alt.frequency, repair_duration=None)
+                alt.array = ut.convert(alt.array, ut.FT, ut.METER)
         else:
             alt = None
 

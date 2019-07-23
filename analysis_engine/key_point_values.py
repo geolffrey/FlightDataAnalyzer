@@ -5558,10 +5558,10 @@ class AltitudeAtLastFlapSelectionBeforeTouchdown(KeyPointValueNode):
         last_tdwn = 0
         for tdwn in tdwns:
             for flap_pos in self.NAME_VALUES['flap']:
-                flap_slices = slices_and(
+                flap_slices = slices_int(slices_and(
                     [slice(last_tdwn, tdwn.index), ],
                     slices_between(flap.array.raw, flap_pos-1, flap_pos+1)[1]
-                )
+                ))
                 if not flap_slices:
                     continue
 
@@ -17520,7 +17520,7 @@ class TCASRAErroneousAcceleration(KeyPointValueNode):
                         to_scan = slice(to_scan.start, tcas_ra_acc.index)
                         continue
 
-            if direction == 0:
+            if direction == 0 or slice_duration(to_scan, 1) == 0.0:
                 continue
                 ## To monitor accelerations that are larger than threshold...
                 ## peak_index = np.ma.argmax(np.ma.abs(acc.array[to_scan] - 1.0)) + to_scan.start

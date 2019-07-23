@@ -8424,7 +8424,10 @@ class VLSLookup(DerivedParameterNode):
             phase = slices_int(approach.slice)
             # Find the maximum flap detent selection point during the phase:
             max_flap_selected = max_value(parameter.array, phase)
-            weight = repaired_gw[max_flap_selected.index]
+            if max_flap_selected.index:
+                weight = repaired_gw[max_flap_selected.index]
+            else:
+                weight = None
             if center_of_gravity:
                 cg = center_of_gravity.array[max_flap_selected.index]
             else:

@@ -5891,6 +5891,11 @@ class TestRunsOfOnes(unittest.TestCase):
     def test_runs_of_ones_empty_array(self):
         self.assertEqual(runs_of_ones(np.empty(0)), [])
 
+    def test_runs_of_ones_all_masked(self):
+        result = runs_of_ones(np.ma.array(data=[1]*5,
+                                          mask=[True]*5))
+        self.assertEqual(np.ma.count(result), 0)
+
 
 class TestSlicesOfRuns(unittest.TestCase):
 
