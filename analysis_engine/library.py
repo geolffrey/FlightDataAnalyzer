@@ -6775,7 +6775,7 @@ def including_transition(array, steps, hz=1, mode='include'):
                 if change[band.start] > 0:
                     output[band.start] = flap
                 else:
-                    output[band.stop - 1] = flap
+                    output[min(band.stop - 1, len(array) - 1)] = flap
                 continue
 
             if np.ma.count(partial):

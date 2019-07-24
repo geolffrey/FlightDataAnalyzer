@@ -13724,7 +13724,8 @@ class GroundspeedDuringRejectedTakeoffMax(KeyPointValueNode):
         for rto_slice in rtos.get_slices():
             spd = integrate(accel.array[slices_int(rto_slice)], accel.frequency, scale=scale)
             index, value = max_value(spd)
-            self.create_kpv(rto_slice.start + index, value)
+            if value:
+                self.create_kpv(rto_slice.start + index, value)
 
 
 class GroundspeedAtLiftoff(KeyPointValueNode):
