@@ -4455,7 +4455,7 @@ class TestAOA(unittest.TestCase):
 
     def test_cl_600_2B19_model(self):
         aoa_r = P('AOA (R)', [0.0, 1.0])
-        model = A('Model', 'CL-600-2B19')
+        model = A('Model', 'CRJ-200ER (CL-600-2B19)')
         aoa = AOA()
         aoa.get_derived([None, aoa_r, model])
         self.assertAlmostEqual(aoa.array[0], -1.404)
