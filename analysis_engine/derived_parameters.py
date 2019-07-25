@@ -1599,7 +1599,7 @@ class AOA(DerivedParameterNode):
             aoa = aoa_l or aoa_r
             self.array = aoa.array
 
-        if model and model.value == 'CL-600-2D24':
+        if model and model.value == 'CL-600-2B19':
             # The Angle of Attack recorded in the FDR is "filtered" Body AoA
             # and is not compensated for sideslip, it must be converted back to
             # Vane before it can be used. See Bombardier AOM-1281 document.
