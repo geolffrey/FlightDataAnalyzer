@@ -551,8 +551,9 @@ class AltitudeAAL(DerivedParameterNode):
             # What was the maximum pitch attitude reached in the last 50ft of the descent?
             max_pitch = max(land_pitch[check_slice])
             # and the last index at this attitude is given by:
-            max_pch_idx = (land_pitch[check_slice] == max_pitch).nonzero()[-1][0]
-            pit = alt_std[lowest_index + max_pch_idx]
+            if max_pitch:
+                max_pch_idx = (land_pitch[check_slice] == max_pitch).nonzero()[-1][0]
+                pit = alt_std[lowest_index + max_pch_idx]
 
             '''
             # Quick visual check of the operation of the takeoff point detection.

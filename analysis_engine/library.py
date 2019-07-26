@@ -3012,21 +3012,25 @@ def ils_established(array, _slice, hz, point='established'):
     elif point == 'immediate':
         time_required = 1.0
 
+    scope = slices_int(_slice)
+    if scope.start == scope.stop:
+        return None
+
     # When is the ILS signal within ILS_CAPTURE (0.5 dots)?
     captures = np.ma.clump_unmasked(
         np.ma.masked_greater(
-            np.ma.abs(array[slices_int(_slice)]),
+            np.ma.abs(array[scope]),
             ILS_CAPTURE)
     )
     # When is the signal changing at less than ILS_CAPTURE_RATE (+/- 0.1 dots/second)?
-    ils_rate = rate_of_change_array(array[slices_int(_slice)], hz)
+    ils_rate = rate_of_change_array(array[scope], hz)
     low_rocs = np.ma.clump_unmasked(np.ma.masked_greater(np.ma.abs(ils_rate), ILS_CAPTURE_ROC))
 
     # We want both conditions to be true at the same time, so AND the two conditions
     capture_slices = slices_and(captures, low_rocs)
     if point == 'end':
         valid = slices_remove_small_gaps(
-            np.ma.clump_unmasked(array[slices_int(_slice)]),
+            np.ma.clump_unmasked(array[scope]),
             time_limit=time_required,
             hz=hz
         )

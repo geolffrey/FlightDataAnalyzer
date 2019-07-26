@@ -3891,6 +3891,13 @@ class TestILSEstablished(unittest.TestCase):
         result = ils_established(array, _slice, hz)
         self.assertEqual(result, None)
 
+    def test_very_short(self):
+        array = np.ma.array([1.0, 1.0, -1.0, -1.0]*3 + [0.0]*10)
+        _slice = slice(20.2,20.8)
+        hz = 1.0
+        result = ils_established(array, _slice, hz)
+        self.assertEqual(result, None)
+
     def test_immediate(self):
         array = np.ma.array([1.0, 1.0, -1.0, -1.0]*3 + [0.0]*10)
         _slice = slice(2,21)

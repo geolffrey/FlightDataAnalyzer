@@ -2234,8 +2234,10 @@ class V2LookupAtLiftoff(KeyPointValueNode):
             if weight_liftoffs:
                 weight_liftoff = weight_liftoffs.get_first(within_slice=phase)
                 index, weight = weight_liftoff.index, weight_liftoff.value
-            else:
+            elif liftoffs.get_first(within_slice=phase).index:
                 index, weight = liftoffs.get_first(within_slice=phase).index, None
+            else:
+                continue
 
             if index is None:
                 continue
@@ -6947,6 +6949,9 @@ class DistanceFromRunwayStartToTouchdown(KeyPointValueNode):
         distance_to_tdn = runway_distance_from_end(rwy.value,
                                                    lat_tdn.get_last().value,
                                                    lon_tdn.get_last().value)
+        if not distance_to_tdn:
+            # Problem with recorded position data
+            return
         distance_start_tdn = distance_to_start - distance_to_tdn
         if distance_start_tdn > -500:
             # sanity check asumes landed on runway, allows for touching down on stopway
@@ -7034,7 +7039,7 @@ class DecelerationFromTouchdownToStopOnRunway(KeyPointValueNode):
                                              lat_tdn.get_last().value,
                                              lon_tdn.get_last().value)
                 kts = value_at_index(repair_mask(gspd.array), index)
-                if not kts:
+                if not kts or not distance_at_tdn:
                     return
                 speed = ut.convert(kts, ut.KT, ut.METER_S)
                 mu = (speed * speed) / (2.0 * GRAVITY_METRIC * (distance_at_tdn))
