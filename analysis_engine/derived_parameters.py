@@ -492,8 +492,8 @@ class AltitudeAAL(DerivedParameterNode):
         Return Altitude STD Smoothed shifted relative to 0 for cases where we do not
         have a reliable Altitude Radio.
         '''
+        pit = 0.0
         if land_pitch is None or not np.ma.count(land_pitch):
-
             # This is a takeoff case where we ideally recognise the reduction
             # in pressure at liftoff as the aircraft rotates and the static
             # pressure field around the aircraft changes.
