@@ -1346,48 +1346,37 @@ class TestAimingPointRange(unittest.TestCase):
 
 class TestAltitudeAALForFlightPhases(unittest.TestCase):
     def test_can_operate(self):
-        expected = [('Altitude AAL',)]
+        expected = [('Altitude AAL',), ('Altitude AAL','Gear On Ground')]
         opts = AltitudeAALForFlightPhases.get_operational_combinations()
         self.assertEqual(opts, expected)
 
     def test_altitude_AAL_for_flight_phases_basic(self):
         alt_4_ph = AltitudeAALForFlightPhases()
-        alt_4_ph.derive(Parameter('Altitude AAL',
-                                  np.ma.array(data=[-1,100,200,100,0],
-                                              mask=[0,0,1,1,0])))
+        alt_aal = P('Altitude AAL',np.ma.array(data=[-1,100,200,100,0],
+                                               mask=[0,0,1,1,0]))
+        alt_4_ph.derive(alt_aal, None)
         expected = np.ma.array(data=[0,100,66,33,0],mask=False)
         # ...because data interpolates across the masked values and integer
         # values are rounded.
         assert_array_equal(alt_4_ph.array, expected)
 
-
-'''
-class TestAltitudeForFlightPhases(unittest.TestCase):
-    def test_can_operate(self):
-        expected = [('Altitude STD',)]
-        opts = AltitudeForFlightPhases.get_operational_combinations()
-        self.assertEqual(opts, expected)
-
-    def test_altitude_for_phases_repair(self):
-        alt_4_ph = AltitudeForFlightPhases()
+    def test_altitude_AAL_for_flight_phases_repair(self):
+        alt_4_ph = AltitudeAALForFlightPhases()
         raw_data = np.ma.array([0,1,2])
         raw_data[1] = np.ma.masked
-        alt_4_ph.derive(Parameter('Altitude STD', raw_data, 1,0.0))
-        expected = np.ma.array([0,0,0],mask=False)
+        alt_4_ph.derive(Parameter('Altitude AAL', raw_data, 1,0.0))
+        expected = np.ma.array([0,1,2], mask=False)
         assert_array_equal(alt_4_ph.array, expected)
 
-    def test_altitude_for_phases_hysteresis(self):
-        alt_4_ph = AltitudeForFlightPhases()
-        testwave = np.sin(np.arange(0,6,0.1))*200
-        alt_4_ph.derive(Parameter('Altitude STD', np.ma.array(testwave), 1,0.0))
-        answer = np.ma.array(data=[50.0]*3+
-                             list(testwave[3:6])+
-                             [np.ma.max(testwave)-100.0]*21+
-                             list(testwave[27:39])+
-                             [testwave[-1]-50.0]*21,
-                             mask = False)
+    def test_altitude_AAL_for_flight_phases_reject_ground(self):
+        alt_4_ph = AltitudeAALForFlightPhases()
+        testwave = np.abs(np.sin(np.arange(0,6.35,0.1))*200)
+        alt_AAL = P('Altitude AAL', np.ma.array(testwave), 1,0.0)
+        gog = M('Gear On Ground', array=(['Air']*32 + ['Ground']*32),
+                values_mapping = {0: 'Air', 1: 'Ground'})
+        alt_4_ph.derive(alt_AAL, gog)
+        answer = np.ma.array(list(testwave[:32])+[0.0]*32)
         np.testing.assert_array_almost_equal(alt_4_ph.array, answer)
-        '''
 
 
 class TestAltitudeQNH(unittest.TestCase):
