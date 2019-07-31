@@ -20,6 +20,7 @@ from analysis_engine.library import (align,
                                      calculate_timebase,
                                      hash_array,
                                      min_value,
+                                     mask_outside_slices,
                                      normalise,
                                      repair_mask,
                                      rate_of_change,
@@ -828,7 +829,7 @@ def get_dt_arrays(hdf, fallback_dt, validation_dt, valid_slices=[]):
         else:
             raise TimebaseError("Required parameter '%s' not available" % name)
 
-    validated_dt_arrays = [np.concatenate([a[s] for s in valid_slices]) for a in dt_arrays] if valid_slices else dt_arrays
+    validated_dt_arrays = [mask_outside_slices(np.ma.array(a), valid_slices) for a in dt_arrays] if valid_slices else dt_arrays
 
     return validated_dt_arrays, precise, dt_parameter_origin
 

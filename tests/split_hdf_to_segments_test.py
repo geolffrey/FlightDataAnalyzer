@@ -109,8 +109,8 @@ class TestDateTimeFunctions(unittest.TestCase):
         month = P('Month', array=np.ma.array([2]*duration))
         day = P('Day', array=np.ma.array([1]*duration))
         hour = P('Hour', array=np.ma.array([0]*duration))
-        minute = P('Minute', array=np.ma.repeat(np.ma.arange(duration//60), 60))
-        second = P('Second', array=np.ma.array(np.tile(np.arange(60), duration//60)))
+        minute = P('Minute', array=np.ma.repeat(np.ma.arange(duration//60), 61)[:duration])
+        second = P('Second', array=np.ma.array(np.tile(np.arange(60), duration//59))[:duration])
         values = {'Year': year, 'Month': month, 'Day': day, 'Hour': hour, 'Minute': minute, 'Second': second}
 
         def hdf_get(arg):
@@ -124,7 +124,7 @@ class TestDateTimeFunctions(unittest.TestCase):
                                                                      valid_slices=[slice(150, 1000), slice(1500, 3000)])
 
         self.assertTrue(len(dt_arrays[0]) == len(dt_arrays[1]) == len(dt_arrays[2]) == \
-                        len(dt_arrays[3]) == len(dt_arrays[4]) == len(dt_arrays[5] == 2350))
+                        len(dt_arrays[3]) == len(dt_arrays[4]) == len(dt_arrays[5]) == duration)
 
     def test_get_valid_dt_slices_all_unmasked(self):
 
@@ -190,6 +190,32 @@ class TestDateTimeFunctions(unittest.TestCase):
         valid_dt_slices = get_valid_dt_slices(hdf)
 
         self.assertEqual(valid_dt_slices, [])
+
+    def test_calculate_start_datetime_multiple_valid_slices(self):
+        aspd = load_array('airspeed_sample_masked_under_80.npz')
+        duration = len(aspd)
+
+        airspeed = P('Airspeed', array=aspd)
+        year = P('Year', array=np.ma.array([2019]*duration))
+        month = P('Month', array=np.ma.array([2]*duration))
+        day = P('Day', array=np.ma.array([1]*duration))
+        hour = P('Hour', array=np.ma.array([0]*duration))
+        minute = P('Minute', array=np.ma.repeat(np.ma.arange(duration//60), 61)[:duration])
+        second = P('Second', array=np.ma.array(np.tile(np.arange(60), duration//59))[:duration])
+        values = {'Year': year, 'Month': month, 'Day': day, 'Hour': hour, 'Minute': minute, 'Second': second, 'Airspeed': airspeed}
+
+        def hdf_get(arg):
+            return values[arg]
+
+        hdf = mock.Mock()
+        hdf.duration = duration
+        hdf.get = mock.Mock()
+        hdf.get.side_effect = hdf_get
+        start_dt = datetime(2019, 2, 1, 0, 0, tzinfo=pytz.utc)
+        new_dt, _precise_timestamp, _conf = _calculate_start_datetime(hdf, datetime(2019, 2, 2, 0, 1, 1, tzinfo=pytz.utc),
+                                           datetime(2012, 2, 2, 1, 2, 2, tzinfo=pytz.utc))
+
+        self.assertEqual(new_dt, start_dt)
 
 
 class TestSplitSegments(unittest.TestCase):
