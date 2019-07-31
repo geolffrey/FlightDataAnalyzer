@@ -4710,6 +4710,10 @@ class TouchdownToSpoilersDeployedDuration(KeyPointValueNode):
 
     units = ut.SECOND
 
+    @classmethod
+    def can_operate(cls, available):
+        return all_of(('Speedbrake Selected', 'Landing', 'Touchdown'), available)
+
     def derive(self, brake=M('Speedbrake Selected'),
                lands=S('Landing'), tdwns=KTI('Touchdown')):
         '''
@@ -4718,17 +4722,14 @@ class TouchdownToSpoilersDeployedDuration(KeyPointValueNode):
         '''
         deploys = find_edges_on_state_change('Deployed/Cmd Up', brake.array, phase=lands)
         for land in lands:
-            deployed = False
-            for deploy in deploys:
-                if not is_index_within_slice(deploy, land.slice):
+            for tdwn in tdwns:
+                if not is_index_within_slice(tdwn.index, land.slice):
                     continue
-                for tdwn in tdwns:
-                    if not is_index_within_slice(tdwn.index, land.slice):
+                for deploy in deploys:
+                    if not is_index_within_slice(deploy, land.slice):
                         continue
                     self.create_kpv(deploy, (deploy - tdwn.index) / brake.hz)
-                    deployed = True
-            if not deployed:
-                self.create_kpv(land.slice.start, 0)
+                    break
 
 
 class SpoilersDeployedDurationDuringLanding(KeyPointValueNode):

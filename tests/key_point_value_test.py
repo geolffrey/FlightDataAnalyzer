@@ -717,6 +717,7 @@ from analysis_engine.key_point_values import (
     TouchdownTo60KtsDuration,
     TouchdownToPitch2DegreesAbovePitchAt60KtsDuration,
     TouchdownToElevatorDownDuration,
+    TouchdownToSpoilersDeployedDuration,
     TouchdownToThrustReversersDeployedDuration,
     TurbulenceDuringApproachMax,
     TurbulenceDuringCruiseMax,
@@ -5989,15 +5990,31 @@ class TestTouchdownToThrustReversersDeployedDuration(unittest.TestCase, NodeTest
         self.assertTrue(False, msg='Test not implemented.')
 
 
-class TouchdownToSpoilersDeployedDuration(unittest.TestCase):
-    @unittest.skip('Test Not Implemented')
+class TestTouchdownToSpoilersDeployedDuration(unittest.TestCase, NodeTest):
+
+    def setUp(self):
+        self.node_class = TouchdownToSpoilersDeployedDuration
+
+        self.speedbrake = M('Speedbrake Selected')
+        self.speedbrake.values_mapping = {0:'Down', 1:'Armed', 2:'Deployed/Cmd Up'}
+        self.speedbrake.array = np.ma.array(data=[0]*7 + [1] + [2]*8 + [1] + [2]*8 + [1, 1, 0, 0])
+
+        self.landing = S('Landing')
+        self.landing.create_sections([slice(5,20), slice(35,40)]) # No deployment on second landing
+
+        self.touchdown = KTI('Touchdown', items=[KeyTimeInstance(5, 'Touchdown'),
+                                                 KeyTimeInstance(37, 'Touchdown')])
+
     def test_can_operate(self):
-        self.assertTrue(False, msg='Test not implemented.')
+        opts = self.node_class.get_operational_combinations()
+        self.assertEqual(opts, [('Speedbrake Selected', 'Landing', 'Touchdown')])
 
-    @unittest.skip('Test Not Implemented')
     def test_derive(self):
-        self.assertTrue(False, msg='Test not implemented.')
-
+        node = self.node_class()
+        node.derive(self.speedbrake, self.landing, self.touchdown)
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node, [KeyPointValue(index=7.5, value=2.5,
+                                              name='Touchdown To Spoilers Deployed Duration')])
 
 class TestSpoilersDeployedDurationDuringLanding(unittest.TestCase, NodeTest):
 
