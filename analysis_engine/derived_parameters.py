@@ -1898,7 +1898,8 @@ class Drift(DerivedParameterNode):
         else:
             self.frequency = track.frequency
             self.offset = track.offset
-            self.array = track.array - align(heading, track)
+            dev = np.ma.mod(track.array - align(heading, track), 360.0)
+            self.array = np.ma.where(dev > 180.0, dev - 360.0, dev)
 
 
 ##############################################################################

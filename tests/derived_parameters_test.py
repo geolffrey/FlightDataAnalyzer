@@ -2521,10 +2521,34 @@ class TestDrift(unittest.TestCase):
         self.assertTrue(Drift.can_operate(('Drift (1)', 'Drift (2)')))
         self.assertTrue(Drift.can_operate(('Track', 'Heading Continuous')))
 
-    @unittest.skip('Test Not Implemented')
-    def test_derive(self):
-        self.assertTrue(False, msg='Test not implemented.')
+    def test_combining_drift_signals(self):
+        d1 = P('Drift (1)', array=np.ma.ones(10) * 1.0, offset = 0.2)
+        d2 = P('Drift (2)', array=np.ma.ones(10) * -3.0, offset = 0.7)
+        # blend_two_parameters complains if they are invariant!
+        d1.array[5] = 0.0
+        d2.array[5] = 0.0
+        drift = Drift()
+        drift.derive(d1, d2, None, None)
+        self.assertEqual(drift.array[0], -1.0)
 
+    def test_combining_track_and_heading(self):
+        trk = P('Track', array=np.ma.ones(10) * 5.0)
+        hdg = P('Heading Continuous', array=np.ma.zeros(10))
+        drift = Drift()
+        drift.derive(None, None, trk, hdg)
+        self.assertEqual(drift.array[0], 5.0)
+
+        trk = P('Track', array=np.ma.zeros(10))
+        hdg = P('Heading Continuous', array=np.ma.ones(10) * 3.0)
+        drift = Drift()
+        drift.derive(None, None, trk, hdg)
+        self.assertEqual(drift.array[0], -3.0)
+
+        trk = P('Track', array=np.ma.ones(10) * 270.0)
+        hdg = P('Heading Continuous', array=np.ma.ones(10) * (270.0 + 360.0))
+        drift = Drift()
+        drift.derive(None, None, trk, hdg)
+        self.assertEqual(drift.array[0], 0.0)
 
 class TestEng_EPRAvg(unittest.TestCase, NodeTest):
 
