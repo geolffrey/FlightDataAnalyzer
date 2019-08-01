@@ -19055,6 +19055,85 @@ class DualInputByFOMax(KeyPointValueNode):
         )
 
 
+class ControlColumnDualInputOppositeDirectionForceMax(KeyPointValueNode):
+    '''
+    AE-2115 ATR 72 specific KPV, created in accordance with ATRs specification to monitor for opposite dual input on
+    the elevator axis as it might lead to pitch disconnect events.
+
+    The parameter uses Control Column Force At Control Wheel parameters, which are derived in accordance with ATR's
+    guidelines.
+
+    ATR's criteria:
+    - remove offset
+    - effort has to be greater than 20N
+    - for at least 0.5s
+    - monitoring window of 5s
+
+    We only look for opposite direction dual input.
+    '''
+
+    units = ut.DECANEWTON
+
+    @classmethod
+    def can_operate(cls, available, family=A('Family')):
+        is_atr = family and family.value in ('ATR-72')
+        return all_of(('Control Column Force At Control Wheel (Capt)', 'Control Column Force At Control Wheel (FO)'), available) and is_atr
+
+    def derive(self,
+               force_capt=P('Control Column Force At Control Wheel (Capt)'),
+               force_fo=P('Control Column Force At Control Wheel (FO)'),
+               taxiing=S('Taxiing'),
+               turns=S('Turning On Ground'), ):
+
+        # find offset during taxi in straight line
+        if taxiing and turns:
+            straights = slices_and([s.slice for s in taxiing],
+                                   slices_not([s.slice for s in turns]), )
+            unmasked_capt = np.ma.compressed(np.ma.concatenate([force_capt.array[s] for s in straights]))
+            unmasked_fo = np.ma.compressed(np.ma.concatenate([force_fo.array[s] for s in straights]))
+            delta_capt = np.ma.average(unmasked_capt) if len(unmasked_capt) > 20 else 0
+            delta_fo = np.ma.average(unmasked_fo) if len(unmasked_fo) > 20 else 0
+            # if unable just assume that there's no offset
+        else:
+            delta_capt = delta_fo = 0
+
+        # remove offset
+        capt_offset_removed = force_capt.array - delta_capt
+        fo_offset_removed = force_fo.array - delta_fo
+
+        # effort required to trigger the event: both >20N = 2dN/kgF
+        dual_slices = slices_and(runs_of_ones(np.ma.abs(capt_offset_removed) > 2), runs_of_ones(np.ma.abs(fo_offset_removed) > 2))
+
+        #for at least 0.5s
+        dual_slices = slices_remove_small_slices(dual_slices, time_limit=0.5, hz=self.hz)
+
+        # end of monitoring window: 5s below 20N
+        dual_slices = slices_remove_small_gaps(dual_slices, time_limit=5, hz=self.hz)
+
+
+        for s in dual_slices:
+            # identify max force diff in section, along with its index
+            section_diff = capt_offset_removed[s] - fo_offset_removed[s]
+            max_diff_in_section = np.ma.max(np.ma.abs(section_diff))
+            index = s.start + np.ma.argmax(section_diff)
+
+            # find max force on Captain's and FO's CCs
+            max_capt_in_section = np.ma.abs(np.ma.max(capt_offset_removed))
+            max_fo_in_section = np.ma.abs(np.ma.max(fo_offset_removed))
+
+            # we're only interested in dual input in opposite directions, so check that the difference is greater than both forces
+            if max_diff_in_section > max_capt_in_section and max_diff_in_section > max_fo_in_section:
+                self.create_kpv(index, max_diff_in_section)
+
+
+class PitchDisconnectDuration(KeyPointValueNode):
+
+    unit = ut.SECOND
+
+    def derive(self, pitch_disconnect=M('Pitch Disconnect'),):
+        self.create_kpvs_where(pitch_disconnect.array == 'Disconnect')
+
+
 ##############################################################################
 
 

@@ -243,6 +243,7 @@ from analysis_engine.key_point_values import (
     ControlColumnForceMax,
     ControlColumnStiffness,
     ControlWheelForceMax,
+    ControlColumnDualInputOppositeDirectionForceMax,
     DecelerationFromTouchdownToStopOnRunway,
     DelayedBrakingAfterTouchdown,
     DHSelectedAt1500FtLVO,
@@ -562,6 +563,7 @@ from analysis_engine.key_point_values import (
     PitchAtLiftoff,
     PitchAtTouchdown,
     PitchCyclesDuringFinalApproach,
+    PitchDisconnectDuration,
     PitchDuringGoAroundMax,
     Pitch500To50FtMin,
     PitchWhileAirborneMax,
@@ -7411,6 +7413,48 @@ class TestControlWheelForceMax(unittest.TestCase, NodeTest):
                 items=[KeyPointValue(
                     index=3.0, value=47.0,
                     name='Control Wheel Force Max')]))
+
+
+class TestControlColumnDualInputOppositeDirectionForceMax(unittest.TestCase):
+    def setUp(self):
+        self.node_class = ControlColumnDualInputOppositeDirectionForceMax
+
+    def test_can_operate(self):
+        self.assertTrue(self.node_class.can_operate(('Control Column Force At Control Wheel (Capt)', 'Control Column Force At Control Wheel (FO)',),
+                                                    family=A('Family', 'ATR-72')))
+
+    def test_derive_opposite_direction(self):
+        array = np.ma.array([0, 0, 0, 0, 0, 2, 5, 20, 50, 30, 4, 2, 0, 0, 0, 0])
+        cc_capt = P(name='Control Column Force At Control Wheel (Capt)', array=array)
+        cc_fo = P(name='Control Column Force At Control Wheel (FO)', array=-array)
+        node = self.node_class()
+        node.derive(cc_capt, cc_fo, None, None)
+        self.assertEqual(node[0].value, 100)
+        self.assertEqual(node[0].index, 8)
+
+    def test_derive_same_direction(self):
+        array_capt = np.ma.array([0, 0, 0, 0, 0, 2, 5, 20, 50, 30, 4, 2, 0, 0, 0, 0])
+        array_fo =   np.ma.array([0, 0, 0, 0, 0, 1, 4, 15, 32, 21, 5, 1, 0, 0, 0, 0])
+        cc_capt = P(name='Control Column Force At Control Wheel (Capt)', array=array_capt)
+        cc_fo = P(name='Control Column Force At Control Wheel (FO)', array=array_fo)
+        node = self.node_class()
+        node.derive(cc_capt, cc_fo, None, None)
+        self.assertEqual(len(node), 0)
+
+    def test_offset_remove(self):
+        array_capt = np.ma.array([0] * 30 + [0, 0, 0, 0, 0, 2, 5, 20, 50, 30, 4, 2, 0, 0, 0, 0])
+        array_fo =   np.ma.array([0] * 30 + [0, 0, 0, 0, 0, 1, 4, 15, 32, 21, 5, 1, 0, 0, 0, 0])
+        array_capt += 2
+        array_fo += 3
+        taxi = S(items=[Section('Taxiing', slice(0,30), 0, 30)])
+        turns = S('Turning On Ground')
+        turns.create_sections([slice(0, 5, None),
+                               slice(28, 30, None),])
+        cc_capt = P(name='Control Column Force At Control Wheel (Capt)', array=array_capt)
+        cc_fo = P(name='Control Column Force At Control Wheel (FO)', array=-array_fo)
+        node = self.node_class()
+        node.derive(cc_capt, cc_fo, taxi, turns)
+        self.assertEqual(node[0].value, 82)
 
 
 class TestHeightAtDistancesFromThreshold(unittest.TestCase):
@@ -16291,6 +16335,25 @@ class TestPitchCyclesDuringFinalApproach(unittest.TestCase, NodeTest):
     @unittest.skip('Test Not Implemented')
     def test_derive(self):
         self.assertTrue(False, msg='Test not implemented.')
+
+
+class TestPitchDisconnectDuration(unittest.TestCase):
+
+    def setUp(self):
+        self.node_class = PitchDisconnectDuration
+
+    def test_derive(self):
+        pitch_disc = M(
+            name='Pitch Disconnect',
+            array=np.ma.array([0, 0, 0, 1, 1, 1]),
+            values_mapping={0: '-', 1: 'Disconnect'},
+            frequency=1,
+            offset=0.1,
+        )
+        node = self.node_class()
+        node.derive(pitch_disc)
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].value, 3)
 
 
 class TestPitchDuringGoAroundMax(unittest.TestCase, CreateKPVsWithinSlicesTest):
