@@ -1678,6 +1678,7 @@ class TestFlapIncludingTransition(unittest.TestCase, NodeTest):
         flap_mapping = {8: '39', 1: '0', 2: '10', 4: '20'}
         array = np.ma.array([0]*4 + [10, 10, 10] + [0]*3 + [10, 10, 10, 40, 40, 40] + \
                             [20] * 6 + [40, 10] + [0] * 6)
+        array = (1.1 * array + 0.9 * np.roll(array, 1))/ 2.0
         array.mask = np.ma.getmaskarray(array)
         flap_array = MappedArray(array, values_mapping=flap_mapping)
         flap = M(name='Flap', array=flap_array, frequency=1)
@@ -1688,10 +1689,9 @@ class TestFlapIncludingTransition(unittest.TestCase, NodeTest):
         self.assertEqual(node.values_mapping, at.get_flap_map.return_value)
         self.assertEqual(node.units, ut.DEGREE)
         self.assertIsInstance(node.array, MappedArray)
-        expected = [0.0, 0.0, 0.0, 0.0, 10.0, 10.0, 10.0, 10.0, 0.0,
-                    0.0, 10.0, 10.0, 10.0, 39.0, 39.0, 39.0, 39.0, 20.0,
-                    20.0, 20.0, 20.0, 20.0, 39.0, 39.0, 10.0, 0.0, 0.0,
-                    0.0, 0.0, 0.0]
+        expected = [0.0, 0.0, 0.0, 0.0, 10.0, 10.0, 10.0, 10.0, 10.0, 0.0,
+                    10.0, 10.0, 10.0, 20.0, 39.0, 39.0, 39.0, 39.0, 20.0,
+                    20.0, 20.0, 20.0, 39.0, 20.0, 20.0, 20.0, 0.0, 0.0, 0.0, 0.0]
         self.assertEqual(node.array.raw.tolist(), expected)
 
 
