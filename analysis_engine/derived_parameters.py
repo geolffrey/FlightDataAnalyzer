@@ -8483,7 +8483,8 @@ class VLSLookup(DerivedParameterNode):
             'Family',
             'Engine Type',
             'Engine Series',
-            'Gross Weight Smoothed'
+            'Gross Weight Smoothed',
+            'Airborne',
         ), available)
 
         flap = any_of((
@@ -8505,7 +8506,9 @@ class VLSLookup(DerivedParameterNode):
                family=A('Family'),
                engine_type=A('Engine Type'),
                engine_series=A('Engine Series'),
-               center_of_gravity=P('Center Of Gravity'),):
+               center_of_gravity=P('Center Of Gravity'),
+               alt_std=P('Altitude STD Smoothed'),
+               airborne=S('Airborne')):
 
         # Prepare a zeroed, masked array based on the airspeed:
         self.array = np_ma_masked_zeros_like(air_spd.array, np.int)
@@ -8544,6 +8547,28 @@ class VLSLookup(DerivedParameterNode):
             except (KeyError, ValueError) as error:
                 self.warning("Error in '%s': %s", self.name, error)
                 continue
+
+        # Compute VLS clean
+        table = lookup_table(self, 'vls_clean', *attrs)
+
+        if table is None or alt_std is None:
+            return
+
+        # Repair gaps in Altitude STD Smoothed up to 2 superframes in length:
+        try:
+            repaired_alt = repair_mask(alt_std.array, repair_duration=130,
+                                          extrapolate=True)
+        except ValueError:
+            self.warning("'%s' will be fully masked for VLS clean because "
+                         "'%s' array could not be repaired.", self.name, alt_std.name)
+            return
+
+        flaps_0 = parameter.array == 'Lever 0'
+        self.array[flaps_0] = table.vls_clean(repaired_gw[flaps_0], repaired_alt[flaps_0])
+
+        # We want to mask out grounded sections of flight:
+        self.array = mask_outside_slices(self.array, airborne.get_slices())
+
 
 
 ########################################
