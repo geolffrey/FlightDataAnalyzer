@@ -13630,6 +13630,30 @@ class FuelJettisonDuration(KeyPointValueNode):
 
         self.create_kpvs_where(jet.array == 'Disagree', jet.hz, phase=airborne)
 
+class FuelCrossFeedValveStateAtLiftoff(KeyPointValueNode):
+    '''
+    DHK SOP requires the fuel cross feed valve to be in the closed position
+    during liftoff. An open fuel cross feed valve may be a precursor to
+    fuel imbalance.
+
+    This KPV determines whether the valve was open during each liftoff.
+    '''
+
+    @classmethod
+    def can_operate(cls, available):
+        return any_of(['Fuel Cross Feed Valve Position',
+                       'Fuel Cross Feed Valve'], available)
+
+    def derive(self, fuel_valve=P('Fuel Cross Feed Valve Position'),
+               fuel_valve_fallback=P('Fuel Cross Feed Valve'),
+               liftoffs=KTI('Liftoff')):
+
+        if fuel_valve:
+            self.create_kpvs_at_ktis(fuel_valve.array == 'Open', liftoffs,
+                                    suppress_zeros=True)
+        else:
+            self.create_kpvs_at_ktis(fuel_valve_fallback.array == 'Disagree',
+                                     liftoffs, suppress_zeros=True)
 
 class MainFuelQuantityOffBlockWithFuelInCenterTank(KeyPointValueNode):
     '''
