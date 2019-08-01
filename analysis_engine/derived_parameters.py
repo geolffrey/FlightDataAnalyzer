@@ -1168,6 +1168,40 @@ class AltitudeSTDSmoothed(DerivedParameterNode):
         self.array = moving_average(moving_average(self.array))
 
 
+class BaroCorrection(DerivedParameterNode):
+    '''This computes the Baro correction by either merging
+    Baro Correction (Capt) and (FO) or by using the difference
+    between Altitude Baro and Altitude STD.
+    '''
+
+    units = ut.MILLIBAR
+
+    @classmethod
+    def can_operate(cls, available):
+        baro_corr = all_of(('Baro Correction (Capt)', 'Baro Correction (FO)'), available)
+        alt_baro_first = all_of(('Altitude STD', 'Altitude Baro (1)'), available)
+        alt_baro_solo = all_of(('Altitude STD', 'Altitude Baro'), available)
+        return baro_corr or alt_baro_first or alt_baro_solo
+
+    def derive(self,
+               baro_cpt=P('Baro Correction (Capt)'),
+               baro_fo=P('Baro Correction (FO)'),
+               alt_baro=P('Altitude Baro (1)'),
+               alt_baro_solo=P('Altitude Baro'),
+               alt_std=P('Altitude STD')):
+
+        alt_baro = alt_baro_solo or alt_baro
+
+        if baro_cpt and baro_fo:
+            self.array, self.frequency, self.offset = \
+                blend_two_parameters(baro_cpt, baro_fo)
+        else:
+            baro = alt2press(alt_std.array - alt_baro.array)
+            # Some Altitude Baro have poor precision (16 ft)
+            # Remove noise by using hysteresis and round result
+            self.array = np.ma.round(hysteresis(baro, 1))
+
+
 class AltitudeQNH(DerivedParameterNode):
     '''
     This computes the displayed pressure altitude for aircraft where the datum pressure

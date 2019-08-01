@@ -24,6 +24,7 @@ from analysis_engine.library import (
     align,
     all_deps,
     all_of,
+    alt2press,
     ambiguous_runway,
     any_of,
     bearings_and_distances,
@@ -6113,6 +6114,47 @@ class HeightSelectedOnApproachMin(KeyPointValueNode):
             sel_ht_index = np.ma.argmin(sel_ht)
             sel_ht_value = max(sel_ht[sel_ht_index], 0.0)
             self.create_kpv(sel_ht_index + app.slice.start, sel_ht_value)
+
+
+########################################
+# QNH difference during Approach
+
+
+class QNHDifferenceDuringApproach(KeyPointValueNode):
+    '''
+    This KPV calculates the QNH difference between actual QNH and expected
+    QNH during approach when crossing 100 ft AAL in descent or at the minimum
+    altitude reached (due to go around) whichever is greater. 100 ft altitude
+    will avoid any ground effect which induces a dip in Altitude STD during
+    flare. Actual QNH is the QNH set by the pilots. Expected QNH is the QNH 
+    required to read the runway elevation on the ground.
+
+    Altitude Visualization With Ground Offset provides the expected QNH altitude.
+
+    Wrong QNH are particularly dangerous during non-precision approaches, as
+    they are the sole reference to the aircraft vertical profile.
+    '''
+
+    name = 'QNH Difference During Approach'
+    units = ut.MILLIBAR
+
+    def derive(self, alt_qnh=P('Altitude QNH'),
+               alt_viz=P('Altitude Visualization With Ground Offset'),
+               alt_aal=P('Altitude AAL'),
+               apps=App('Approach Information')):
+
+        qnh_ref = alt2press(0)
+        for app in apps:
+            index = index_at_value(alt_aal.array, 100,
+                                   slice(app.slice.stop, app.slice.start, -1),
+                                   endpoint='closing')
+            if index is None:
+                continue
+            alt_qnh_lo = alt_qnh.array[int(index)]
+            alt_viz_lo = alt_viz.array[int(index)]
+            diff = alt_qnh_lo - alt_viz_lo
+            qnh_error = qnh_ref - alt2press(diff)
+            self.create_kpv(index, qnh_error)
 
 
 ########################################

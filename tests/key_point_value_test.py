@@ -575,6 +575,7 @@ from analysis_engine.key_point_values import (
     PitchRate35ToClimbAccelerationStartMax,
     PitchRateWhileAirborneMax,
     PitchTakeoffMax,
+    QNHDifferenceDuringApproach,
     RateOfClimb35To1000FtMin,
     RateOfClimb35ToClimbAccelerationStartMin,
     RateOfClimbBelow10000FtMax,
@@ -7533,6 +7534,64 @@ class TestHeightSelectedOnApproachMin(unittest.TestCase):
         node = self.node_class()
         node.derive(alt_mcp, apps)
         self.assertEqual(node[0].value, 0) # 150-350 = -200
+
+
+##############################################################################
+# QNH errors on Approach
+
+
+class TestQNHDifferenceDuringApproach(unittest.TestCase):
+    def setUp(self):
+        self.node_class = QNHDifferenceDuringApproach
+
+    def test_attributes(self):
+        node = self.node_class()
+        self.assertEqual(node.units, 'mb')
+        self.assertEqual(node.name,
+                         'QNH Difference During Approach')
+
+    def test_derive_single_app(self):
+        alt_qnh = P(name='Altitude QNH',
+                    array=np.ma.array([210, 180, 160, 140, 120, 100]))
+        alt_viz = P('Altitude Visualization with Ground Offset',
+                    array=np.ma.array([270, 240, 220, 200, 180, 160]))
+        alt_all = P('Altitude AAL',
+                    array=np.ma.array([110, 80, 60, 40, 20, 0]))
+        apps = App('Approach Information',
+                   items=[ApproachItem('LANDING', slice(0, 6))])
+
+        node = self.node_class()
+        node.derive(alt_qnh, alt_viz, alt_all, apps)
+        # 60 ft below is roughly 2 mBar difference
+        self.assertAlmostEqual(node[0].value, -2, delta=0.2)
+        self.assertAlmostEqual(node[0].index, 1/3., delta=0.01)
+
+    def test_derive_multiple_app(self):
+        alt_qnh = P(name='Altitude QNH',
+                    array=np.ma.array([
+                        400, 380, 350, 320, 330, 350,    # Go around
+                        275, 245, 225, 205, 185, 165]))  #  Landing
+        alt_viz = P('Altitude Visualization with Ground Offset',
+                    array=np.ma.array([
+                        460, 440, 410, 380, 390, 410,    # Go around
+                        270, 240, 220, 200, 180, 160]))  # Landing
+        alt_aal = P('Altitude AAL',
+                    array=np.ma.array([
+                        300, 280, 250, 220, 230, 250,  # Go around
+                        110, 80, 60, 40, 20, 0]))      # Landing
+        apps = App('Approach Information',
+                   items=[ApproachItem('GO-AROUND', slice(0, 5)),
+                          ApproachItem('LANDING', slice(6, 12))])
+
+        node = self.node_class()
+        node.derive(alt_qnh, alt_viz, alt_aal, apps)
+        self.assertEqual(len(node), 2)
+        # 60 ft below is roughly 2 mBar difference
+        self.assertAlmostEqual(node[0].value, -2, delta=0.2)
+        self.assertEqual(node[0].index, 3)
+        # Second approach had only 5 ft diff. Almost 0 mBar difference
+        self.assertAlmostEqual(node[1].value, 0, delta=0.2)
+        self.assertAlmostEqual(node[1].index, 6 + 1/3., delta=0.01)
 
 
 ##############################################################################
