@@ -401,18 +401,3 @@ class TailRotorPedal(DerivedParameterNode):
         self.array, self.frequency, self.offset = blend_two_parameters(capt, fo)
 
 
-class TorqueAsymmetry(DerivedParameterNode):
-    '''
-    '''
-
-    align_frequency = 1 # Forced alignment to allow fixed window period.
-    align_offset = 0
-    units = ut.PERCENT
-
-    can_operate = helicopter_only
-
-    def derive(self, torq_max=P('Eng (*) Torque Max'), torq_min=P('Eng (*) Torque Min')):
-        diff = (torq_max.array - torq_min.array)
-        window = 5 # 5 second window
-        self.array = moving_average(diff, window=window)
-

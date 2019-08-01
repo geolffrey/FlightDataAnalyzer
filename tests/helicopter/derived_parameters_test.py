@@ -20,8 +20,7 @@ from analysis_engine.helicopter.derived_parameters import (
     CyclicLateral,
     MGBOilTemp,
     MGBOilPress,
-    Nr,
-    TorqueAsymmetry
+    Nr
 )
 
 
@@ -316,26 +315,4 @@ class TestNr(unittest.TestCase):
         self.assertEqual(node.frequency, 1.0)
         self.assertEqual(node.offset, 0.0)
 
-
-class TestTorqueAsymmetry(unittest.TestCase):
-
-    def setUp(self):
-        self.node_class = TorqueAsymmetry
-
-    def test_can_operate(self):
-        self.assertFalse(self.node_class.can_operate([], ac_type=helicopter))
-        self.assertTrue(self.node_class.can_operate(('Eng (*) Torque Max', 'Eng (*) Torque Min'), ac_type=helicopter))
-        self.assertFalse(self.node_class.can_operate(('Eng (*) Torque Max', 'Eng (*) Torque Min'), ac_type=aeroplane))
-
-    def test_derive(self):
-        torque_max = P('Eng (*) Torque Max', np.arange(10, 30))
-        torque_min = P('Eng (*) Torque Min', np.arange(8, 28))
-
-        node = self.node_class()
-        node.derive(torque_max, torque_min)
-
-        self.assertEqual(len(node.array), len(torque_max.array))
-        uniq = unique_values(node.array.astype(int))
-        # there should be all 20 values being 2 out
-        self.assertEqual(uniq, {2: 20})
 

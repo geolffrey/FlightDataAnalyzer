@@ -12317,6 +12317,10 @@ class TorqueAsymmetryWhileAirborneMax(KeyPointValueNode):
 
     units = ut.PERCENT
 
+    @classmethod
+    def can_operate(cls, available):
+        return all_of(('Torque Asymmetry', 'Airborne'), available)
+
     def derive(self, torq_asym=P('Torque Asymmetry'), airborne=S('Airborne')):
         self.create_kpvs_within_slices(torq_asym.array, airborne.get_slices(), max_value)
 

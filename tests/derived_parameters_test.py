@@ -202,6 +202,7 @@ from analysis_engine.derived_parameters import (
     TAT,
     ThrottleLevers,
     ThrustAsymmetry,
+    TorqueAsymmetry,
     Track,
     TrackContinuous,
     TrackDeviationFromRunway,
@@ -6216,6 +6217,32 @@ class TestThrottleLevers(unittest.TestCase):
     @unittest.skip('Test Not Implemented')
     def test_derive(self):
         self.assertTrue(False, msg='Test not implemented.')
+
+
+class TestTorqueAsymmetry(unittest.TestCase):
+
+    def setUp(self):
+        self.node_class = TorqueAsymmetry
+
+    def test_can_operate(self):
+        prop = A('Engine Propulsion', 'PROP')
+        jet = A('Engine Propulsion', 'JET')
+        self.assertTrue(self.node_class.can_operate(('Eng (*) Torque Max', 'Eng (*) Torque Min'), eng_type=prop))
+        self.assertFalse(self.node_class.can_operate(('Eng (*) Torque Max', 'Eng (*) Torque Min'), eng_type=jet))
+        self.assertTrue(self.node_class.can_operate(('Eng (*) Torque Max', 'Eng (*) Torque Min'), ac_type=helicopter))
+
+
+    def test_derive(self):
+        torque_max = P('Eng (*) Torque Max', np.arange(10, 30))
+        torque_min = P('Eng (*) Torque Min', np.arange(8, 28))
+
+        node = self.node_class()
+        node.derive(torque_max, torque_min)
+
+        self.assertEqual(len(node.array), len(torque_max.array))
+        uniq = unique_values(node.array.astype(int))
+        # there should be all 20 values being 2 out
+        self.assertEqual(uniq, {2: 20})
 
 
 class TestTurbulence(unittest.TestCase):
