@@ -8632,23 +8632,19 @@ class MinimumAirspeed(DerivedParameterNode):
 
         core = all_of(('Airborne', 'Airspeed'), available)
         a = any_of((
-            'FMF Min Manoeuvre Speed',
             'FC Min Operating Speed',
             'Min Operating Speed',
-            'Minimum Clean Lookup',
             'VLS',
             'VLS Lookup',
         ), available)
         b = any_of((
-            'FMC Min Manoeuvre Speed',
+            'Minimum Clean Lookup',
         ), available)
         f = any_of(('Flap Lever', 'Flap Lever (Synthetic)'), available)
         return core and (a or (b and f))
 
     def derive(self,
                airspeed=P('Airspeed'),
-               mms_fmf=P('FMF Min Manoeuvre Speed'),
-               mms_fmc=P('FMC Min Manoeuvre Speed'),
                mos_fc=P('FC Min Operating Speed'),
                mos=P('Min Operating Speed'),
                vls=P('VLS'),
@@ -8659,7 +8655,7 @@ class MinimumAirspeed(DerivedParameterNode):
                airborne=S('Airborne')):
 
         # Use whatever minimum speed parameter we have available:
-        parameter = first_valid_parameter(vls, vls_lookup, mms_fmf, min_clean, mms_fmc, mos_fc, mos)
+        parameter = first_valid_parameter(vls, vls_lookup, min_clean, mos_fc, mos)
         if not parameter:
             self.array = np_ma_masked_zeros_like(airspeed.array)
             return
@@ -8667,15 +8663,11 @@ class MinimumAirspeed(DerivedParameterNode):
             self.array = parameter.array
 
         # Handle where minimum manoeuvre speed is for clean configuration only:
-        if parameter in (mms_fmc, min_clean):
+        if parameter is min_clean:
             flap = flap_lever or flap_synth
-            self.array[flap.array != '0'] = np.ma.masked
-
-        # No matter what parameter we've used, we still want to use 'Minimum
-        # Clean Lookup' if available for clean config.
-        if min_clean:
-            flap = flap_lever or flap_synth
-            self.array[flap.array == '0'] = min_clean.array[flap.array == '0']
+            flaps_up = flap.array == '0'
+            self.array[~flaps_up] = np.ma.masked
+            self.array[flaps_up] = min_clean.array[flaps_up]
 
         # We want to mask out grounded sections of flight:
         self.array = mask_outside_slices(self.array, airborne.get_slices())
