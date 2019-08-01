@@ -522,6 +522,7 @@ from analysis_engine.key_point_values import (
     MachAboveFL200Min,
     MagneticVariationAtLandingTurnOffRunway,
     MagneticVariationAtTakeoffTurnOntoRunway,
+    MainFuelQuantityOffBlockWithFuelInCenterTank,
     MainGearOnGroundToNoseGearOnGroundDuration,
     MasterCautionDuringTakeoffDuration,
     MasterWarningDuration,
@@ -15179,6 +15180,36 @@ class TestFuelJettisonDuration(unittest.TestCase, CreateKPVsWhereTest):
         self.values_mapping = {0: '-', 1: 'Disagree'}
 
         self.basic_setup()
+
+
+class TestMainFuelQuantityOffBlockWithFuelInCenterTank(unittest.TestCase):
+    def setUp(self):
+	self.qty_l = P('Fuel Qty (L)', array=np.ma.array(data=[16150, 18100, 27050, 32400, 35650],
+	                                                mask=[0,0,1,0,0]), frequency=1.0/4)
+	self.qty_r = P('Fuel Qty (R)', array=np.ma.array([13850, 20400, 25250, 33700, 34350]), frequency=1.0/4)
+	self.qty_c = P('Fuel Qty (C)', array=np.ma.array([50, 60, 70, 80, 90]), frequency=1.0/4)
+
+	self.offblocks = KTI('Off Blocks', items=[KeyTimeInstance(3, 'Off Blocks')])
+
+    def test_can_operate(self):
+	opts = MainFuelQuantityOffBlockWithFuelInCenterTank.get_operational_combinations()
+	self.assertEqual(opts,
+	                 [('Fuel Qty (L)', 'Fuel Qty (R)',
+	                   'Fuel Qty (C)', 'Off Blocks')])
+
+    def test_no_ctr_tank_fuel(self):
+	node = MainFuelQuantityOffBlockWithFuelInCenterTank()
+	node.derive(self.qty_l, self.qty_r, self.qty_c, self.offblocks)
+	self.assertEqual(len(node), 0)
+
+    def test_ctr_tank_fuel(self):
+	self.qty_c.array += 1000
+
+	node = MainFuelQuantityOffBlockWithFuelInCenterTank()
+	node.derive(self.qty_l, self.qty_r, self.qty_c, self.offblocks)
+	self.assertEqual(len(node), 1)
+	self.assertEqual(node[0].value, 32400 + 33700)
+	self.assertEqual(node[0].index, 3)
 
 
 ##############################################################################

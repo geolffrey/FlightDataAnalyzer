@@ -13631,6 +13631,28 @@ class FuelJettisonDuration(KeyPointValueNode):
         self.create_kpvs_where(jet.array == 'Disagree', jet.hz, phase=airborne)
 
 
+class MainFuelQuantityOffBlockWithFuelInCenterTank(KeyPointValueNode):
+    '''
+    Sum of main fuel tank quantity when fuel is present in the center tank.
+
+    This KPV can be useful to detect cases where the main tanks were not full
+    but fuel was loaded in the center tank.
+    '''
+
+    units = ut.KG
+
+    def derive(self,
+               fuel_l=P('Fuel Qty (L)'),
+               fuel_r=P('Fuel Qty (R)'),
+               fuel_c=P('Fuel Qty (C)'),
+               offblocks=KTI('Off Blocks')):
+
+        offblocks = [offblock for offblock in offblocks
+                     if fuel_c.array[int(offblock.index)] > 100]
+
+        self.create_kpvs_at_ktis(fuel_l.array + fuel_r.array, offblocks)
+
+
 ##############################################################################
 # Groundspeed
 
