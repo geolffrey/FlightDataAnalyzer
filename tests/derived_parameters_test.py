@@ -2219,7 +2219,7 @@ class TestBrake_TempAvg(unittest.TestCase):
                     offset=0.5)
 
         node = self.node_class()
-        node.derive(brake_1, None, brake_3, None, None, None, None, None, None, None, None, None, None, None, None)
+        node.derive(brake_1, None, brake_5, None, None, None, None, None, None, None, None, None, None, None, None)
 
         assert_array_equal(node.array, expected_array)
         self.assertEqual(node.offset, 0.3)
@@ -2254,7 +2254,7 @@ class TestBrake_TempMax(unittest.TestCase):
                          offset=0.5)
 
         node = self.node_class()
-        node.derive(brake_1, None, brake_3, None, None, None, None, None, None, None, None, None, None, None, None)
+        node.derive(brake_1, None, brake_5, None, None, None, None, None, None, None, None, None, None, None, None)
         assert_array_equal(node.array, expected_array)
         self.assertEqual(node.offset, 0.3)
 
@@ -2287,7 +2287,7 @@ class TestBrake_TempMin(unittest.TestCase):
                          offset=0.5)
 
         node = self.node_class()
-        node.derive(brake_1, None, brake_3, None, None, None, None, None, None, None, None, None, None, None, None)
+        node.derive(brake_1, None, brake_5, None, None, None, None, None, None, None, None, None, None, None, None)
 
         assert_array_equal(node.array, expected_array)
         self.assertEqual(node.offset, 0.3)
