@@ -5063,7 +5063,7 @@ class TestOverflowCorrection(unittest.TestCase):
         first_pass = overflow_correction(radioA.array, None, None)
         resA = overflow_correction(first_pass, alt_baro, fast)
         sects = np.ma.clump_unmasked(resA)
-        self.assertEqual(len(sects), 5)
+        self.assertEqual(len(sects), 4)
         self.assertGreater(resA.max(), 5000)
         self.assertEqual(resA.min(), -2)
 
