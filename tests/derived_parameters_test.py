@@ -198,7 +198,10 @@ from analysis_engine.derived_parameters import (
     SidestickAngleCapt,
     SidestickAngleFO,
     SlatAngle,
+    SlopeAngleToAimingPoint,
     SlopeAngleToLanding,
+    SlopeToAimingPoint,
+    SlopeToLanding,
     Speedbrake,
     Stabilizer,
     TAT,
@@ -5997,13 +6000,36 @@ class TestSlatAngle(unittest.TestCase):
 
 
 class TestSlopeToLanding(unittest.TestCase):
-    @unittest.skip('Test Not Implemented')
-    def test_can_operate(self):
-        self.assertTrue(False, msg='Test not implemented.')
+    def setUp(self):
+        self.node_class = SlopeToLanding
 
-    @unittest.skip('Test Not Implemented')
+    def test_can_operate(self):
+        combinations = self.node_class.get_operational_combinations()
+        self.assertEqual(len(combinations), 1)
+        combination = set(combinations[0])
+        self.assertSetEqual(combination, {'Altitude AAL', 'Distance To Landing',
+                                          'Altitude STD', 'SAT', 'Approach And Landing'})
+
     def test_derive(self):
-        self.assertTrue(False, msg='Test not implemented.')
+        alt = np.ma.array([3000 , 2000, 1000, 0], dtype=float)
+        # Airport is at 3000 ft elevation -> ISA temp is 9 deg
+        # Make SAT -1 deg -> 10 deg below ISA
+        # 4% height correction per 10 deg ISA deviation
+        sat = P('SAT', array=np.ma.ones(4) * -1)
+         # Imagine we fly on a 3 deg glideslope. Altimeter would read 4% higher
+         # due to low temperature.
+        alt_aal = P('Altitude AAL', array=alt * 1.04)
+        alt_std = P('Altitude STD', array=alt + 3000)
+        apps = buildsection('Approach And Landing', 1, 4)
+        dist = P('Distance To Landing', array=np.ma.array([9.42, 6.28, 3.14, 0.0]))
+        node = self.node_class()
+        node.derive(alt_aal, dist, alt_std, sat, apps)
+
+        expected = np.ma.array(
+            np.tan(np.deg2rad(np.ones(4) * 3)),
+            mask=[True, False, False, False]
+        )
+        assert_array_almost_equal(node.array, expected, decimal=3)
 
 
 class TestSlopeAngleToLanding(unittest.TestCase):
@@ -6016,6 +6042,53 @@ class TestSlopeAngleToLanding(unittest.TestCase):
     def test_derive(self):
         slope = P('Slope To Landing', np.ma.array([0.5, 1, 2, 4, 8, 16]))
         node = SlopeAngleToLanding()
+        node.derive(slope)
+        assert_array_almost_equal(node.array, [26.6, 45.0, 63.43, 76.0, 82.9, 86.4], decimal=1)
+
+
+class TestSlopeToAimingPoint(unittest.TestCase):
+    def setUp(self):
+        self.node_class = SlopeToAimingPoint
+
+    def test_can_operate(self):
+        combinations = self.node_class.get_operational_combinations()
+        self.assertEqual(len(combinations), 1)
+        combination = set(combinations[0])
+        self.assertSetEqual(combination, {'Altitude AAL', 'Aiming Point Range',
+                                          'Altitude STD', 'SAT', 'Approach And Landing'})
+
+    def test_derive(self):
+        alt = np.ma.array([3000 , 2000, 1000, 0], dtype=float)
+        # Airport is at 3000 ft elevation -> ISA temp is 9 deg
+        # Make SAT -1 deg -> 10 deg below ISA
+        # 4% height correction per 10 deg ISA deviation
+        sat = P('SAT', array=np.ma.ones(4) * -1)
+         # Imagine we fly on a 3 deg glideslope. Altimeter would read 4% higher
+         # due to low temperature.
+        alt_aal = P('Altitude AAL', array=alt * 1.04)
+        alt_std = P('Altitude STD', array=alt + 3000)
+        apps = buildsection('Approach And Landing', 1, 4)
+        dist = P('Aiming Point Range', array=np.ma.array([9.42, 6.28, 3.14, 0.0]))
+        node = self.node_class()
+        node.derive(alt_aal, dist, alt_std, sat, apps)
+
+        expected = np.ma.array(
+            np.tan(np.deg2rad(np.ones(4) * 3)),
+            mask=[True, False, False, False]
+        )
+        assert_array_almost_equal(node.array, expected, decimal=3)
+
+
+class TestSlopeAngleToAimingPoint(unittest.TestCase):
+    def test_can_operate(self):
+        self.assertEqual(
+            SlopeAngleToAimingPoint.get_operational_combinations(),
+            [('Slope To Aiming Point',)],
+        )
+
+    def test_derive(self):
+        slope = P('Slope To Aiming Point', np.ma.array([0.5, 1, 2, 4, 8, 16]))
+        node = SlopeAngleToAimingPoint()
         node.derive(slope)
         assert_array_almost_equal(node.array, [26.6, 45.0, 63.43, 76.0, 82.9, 86.4], decimal=1)
 

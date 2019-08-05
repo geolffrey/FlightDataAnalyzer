@@ -4348,7 +4348,47 @@ class SlatAngle(DerivedParameterNode):
             self.array = nearest_neighbour_mask_repair(array)
 
 
-class SlopeToLanding(DerivedParameterNode):
+class _SlopeMixin(object):
+    '''
+    Mixin class to provide similar functionality to Slope To Landing and to
+    Slope To Aiming Point.
+    '''
+    def calculate_slope(self, alt_aal, dist, alt_std, sat, apps):
+        '''
+        Calculate the slope based on Altitude AAL, the reference distance (could
+        be Distance To Landing or Aiming Point Range) and correcting for ISA
+        deviation using Altitude STD, SAT and Approach and Landing sections.
+
+        :param alt_aal: Altitude AAL
+        :type alt_aal: Parameter object
+        :param dist: Distance to a reference point on the runway
+        :type dist: Parameter object
+        :param alt_std: Altitude STD
+        :type alt_std: Parameter object
+        :param sat: SAT
+        :type sat: Parameter object
+        :param apps: Approach and Landing sections
+        :type sat: SectionNode
+        :returns: Slope to the reference point on the runway
+        :rtype: np.ma.array
+        '''
+        array = np_ma_masked_zeros_like(alt_aal.array)
+        for app in apps:
+            if not np.ma.count(alt_aal.array[app.slice]):
+                continue
+            # What's the temperature deviation from ISA at landing?
+            land_alt = last_valid_sample(alt_std.array[app.slice]).value
+            land_sat = last_valid_sample(sat.array[app.slice]).value
+            # alt and sat can both be valid zero values, hence clunky test:
+            if land_alt is not None and land_sat is not None:
+                dev = from_isa(land_alt, land_sat)
+                # now correct the altitude for temperature deviation.
+                alt = alt_dev2alt(alt_aal.array[app.slice], dev)
+                array[app.slice] = alt / ut.convert(dist.array[app.slice], ut.NM, ut.FT)
+        return array
+
+
+class SlopeToLanding(DerivedParameterNode, _SlopeMixin):
     '''
     This parameter was developed as part of the Artificical Intelligence
     analysis of approach profiles, 'Identifying Abnormalities in Aircraft
@@ -4363,22 +4403,11 @@ class SlopeToLanding(DerivedParameterNode):
 
     def derive(self, alt_aal=P('Altitude AAL'),
                dist=P('Distance To Landing'),
+               alt_std=P('Altitude STD'),
                sat=P('SAT'),
-               apps=S('Approach And Landing')):
+               apps=S('Approach')):
 
-        self.array = np_ma_masked_zeros_like(alt_aal.array)
-        for app in apps:
-            if not np.ma.count(alt_aal.array[app.slice]):
-                continue
-            # What's the temperature deviation from ISA at landing?
-            land_alt = last_valid_sample(alt_aal.array[app.slice]).value
-            land_sat = last_valid_sample(sat.array[app.slice]).value
-            # alt and sat can both be valid zero values, hence clunky test:
-            if land_alt != None and land_sat != None:
-                dev = from_isa(land_alt, land_sat)
-                # now correct the altitude for temperature deviation.
-                alt = alt_dev2alt(alt_aal.array[app.slice], dev)
-                self.array[app.slice] = alt / ut.convert(dist.array[app.slice], ut.NM, ut.FT)
+        self.array = self.calculate_slope(alt_aal, dist, alt_std, sat, apps)
 
 
 class SlopeAngleToLanding(DerivedParameterNode):
@@ -4393,16 +4422,22 @@ class SlopeAngleToLanding(DerivedParameterNode):
         self.array = np.degrees(np.arctan(slope_to_ldg.array))
 
 
-class SlopeToAimingPoint(DerivedParameterNode):
+class SlopeToAimingPoint(DerivedParameterNode, _SlopeMixin):
     '''
+    Slope to the Aiming Point.
 
+    Amended June 2019 to allow for changes in SAT from ISA standard.
     '''
 
     units = None
 
-    def derive(self, alt_aal=P('Altitude AAL'), dist=P('Aiming Point Range')):
+    def derive(self, alt_aal=P('Altitude AAL'),
+               dist=P('Aiming Point Range'),
+               alt_std=P('Altitude STD'),
+               sat=P('SAT'),
+               apps=S('Approach')):
 
-        self.array = alt_aal.array / ut.convert(dist.array, ut.NM, ut.FT)
+        self.array = self.calculate_slope(alt_aal, dist, alt_std, sat, apps)
 
 
 class SlopeAngleToAimingPoint(DerivedParameterNode):
