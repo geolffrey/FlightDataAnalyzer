@@ -6008,7 +6008,7 @@ class TestSlopeToLanding(unittest.TestCase):
         self.assertEqual(len(combinations), 1)
         combination = set(combinations[0])
         self.assertSetEqual(combination, {'Altitude AAL', 'Distance To Landing',
-                                          'Altitude STD', 'SAT', 'Approach And Landing'})
+                                          'Altitude STD', 'SAT', 'Approach'})
 
     def test_derive(self):
         alt = np.ma.array([3000 , 2000, 1000, 0], dtype=float)
@@ -6055,7 +6055,7 @@ class TestSlopeToAimingPoint(unittest.TestCase):
         self.assertEqual(len(combinations), 1)
         combination = set(combinations[0])
         self.assertSetEqual(combination, {'Altitude AAL', 'Aiming Point Range',
-                                          'Altitude STD', 'SAT', 'Approach And Landing'})
+                                          'Altitude STD', 'SAT', 'Approach'})
 
     def test_derive(self):
         alt = np.ma.array([3000 , 2000, 1000, 0], dtype=float)
