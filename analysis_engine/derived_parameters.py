@@ -9013,7 +9013,8 @@ class AirspeedMinusV2(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return (all_of(('Airspeed', 'Liftoff', 'Climb Start', 'Grounded'), available) and
+        return (all_of(('Airspeed', 'Liftoff', 'Climb Start',
+                        'Climb Acceleration Start', 'Grounded'), available) and
                 any_of(('V2 At Liftoff', 'Airspeed Selected At Takeoff Acceleration Start',
                         'V2 Lookup At Liftoff'), available))
 
@@ -9024,6 +9025,7 @@ class AirspeedMinusV2(DerivedParameterNode):
                v2_lookup=KPV('V2 Lookup At Liftoff'),
                liftoffs=KTI('Liftoff'),
                climb_starts=KTI('Climb Start'),
+               climb_accel_starts=KTI('Climb Acceleration Start'),
                grounded=S('Grounded')):
 
         # Prepare a zeroed, masked array based on the airspeed:
@@ -9040,7 +9042,9 @@ class AirspeedMinusV2(DerivedParameterNode):
             start_index = max(search_start, ground.slice.start + 1 if ground else 0)
             my_climb_start = climb_starts.get_next(liftoff.index)
             if my_climb_start:
-                stop_index = climb_starts.get_next(liftoff.index).index
+                # Extend to the greatest of Climb Start or Climb Acceleration Start
+                my_climb_accel_start = climb_accel_starts.get_next(liftoff.index)
+                stop_index = max(my_climb_start.index, my_climb_accel_start.index if my_climb_accel_start else 0)
             else:
                 continue
             phases.append((search_start, start_index, stop_index))

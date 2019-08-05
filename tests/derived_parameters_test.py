@@ -8469,11 +8469,11 @@ class TestAirspeedMinusV2(unittest.TestCase, NodeTest):
     def setUp(self):
         self.node_class = AirspeedMinusV2
         self.operational_combinations = [
-            ('Airspeed', 'V2 At Liftoff', 'Liftoff', 'Climb Start', 'Grounded'),
-            ('Airspeed', 'Airspeed Selected At Takeoff Acceleration Start', 'Liftoff', 'Climb Start', 'Grounded'),
-            ('Airspeed', 'V2 At Liftoff', 'Airspeed Selected At Takeoff Acceleration Start', 'Liftoff', 'Climb Start', 'Grounded'),
-            ('Airspeed', 'Airspeed Selected At Takeoff Acceleration Start', 'V2 Lookup At Liftoff', 'Liftoff', 'Climb Start', 'Grounded'),
-            ('Airspeed', 'V2 At Liftoff', 'Airspeed Selected At Takeoff Acceleration Start', 'V2 Lookup At Liftoff', 'Liftoff', 'Climb Start', 'Grounded'),
+            ('Airspeed', 'V2 At Liftoff', 'Liftoff', 'Climb Start', 'Climb Acceleration Start', 'Grounded'),
+            ('Airspeed', 'Airspeed Selected At Takeoff Acceleration Start', 'Liftoff', 'Climb Start', 'Climb Acceleration Start', 'Grounded'),
+            ('Airspeed', 'V2 At Liftoff', 'Airspeed Selected At Takeoff Acceleration Start', 'Liftoff', 'Climb Start', 'Climb Acceleration Start', 'Grounded'),
+            ('Airspeed', 'Airspeed Selected At Takeoff Acceleration Start', 'V2 Lookup At Liftoff', 'Liftoff', 'Climb Start', 'Climb Acceleration Start', 'Grounded'),
+            ('Airspeed', 'V2 At Liftoff', 'Airspeed Selected At Takeoff Acceleration Start', 'V2 Lookup At Liftoff', 'Liftoff', 'Climb Start', 'Climb Acceleration Start', 'Grounded'),
         ]
         self.airspeed = P('Airspeed', np.ma.repeat(102, 2000))
         self.v2_record = KPV([KeyPointValue(index=500, value=90, name='V2 At Liftoff')])
@@ -8482,57 +8482,78 @@ class TestAirspeedMinusV2(unittest.TestCase, NodeTest):
         self.liftoffs = KTI(name='Liftoff', items=[
             KeyTimeInstance(name='Liftoff', index=500),
         ])
+        self.climb_accels = KTI(name='Climb Acceleration Start', items=[
+            KeyTimeInstance(name='Climb Acceleration Start', index = 999.5)
+        ])
         self.climbs = KTI(name='Climb Start', items=[
-            KeyTimeInstance(name='Climb Start', index=999.5),
+            KeyTimeInstance(name='Climb Start', index=899.5),
         ])
         self.grounded = buildsection('Grounded', 0, 500)
 
     def test_derive__recorded_only(self):
         node = self.node_class()
-        node.derive(self.airspeed, self.v2_record, None, None, self.liftoffs, self.climbs, self.grounded)
+        node.derive(self.airspeed, self.v2_record, None, None, self.liftoffs, self.climbs, self.climb_accels, self.grounded)
         expected = np.ma.repeat((0, 12, 0), (180, 820, 1000))
         expected[expected == 0] = np.ma.masked
         ma_test.assert_masked_array_equal(node.array, expected)
 
     def test_derive__lookup_only(self):
         node = self.node_class()
-        node.derive(self.airspeed, None, None, self.v2_lookup, self.liftoffs, self.climbs, self.grounded)
+        node.derive(self.airspeed, None, None, self.v2_lookup, self.liftoffs, self.climbs, self.climb_accels, self.grounded)
         expected = np.ma.repeat((0, 7, 0), (180, 820, 1000))
         expected[expected == 0] = np.ma.masked
         ma_test.assert_masked_array_equal(node.array, expected)
 
     def test_derive__prefer_recorded(self):
         node = self.node_class()
-        node.derive(self.airspeed, self.v2_record, self.airspeed_selected, self.v2_lookup, self.liftoffs, self.climbs, self.grounded)
+        node.derive(self.airspeed, self.v2_record, self.airspeed_selected, self.v2_lookup, self.liftoffs, self.climbs, self.climb_accels, self.grounded)
         expected = np.ma.repeat((0, 12, 0), (180, 820, 1000))
         expected[expected == 0] = np.ma.masked
         ma_test.assert_masked_array_equal(node.array, expected)
 
     def test_derive__prefer_selected(self):
         node = self.node_class()
-        node.derive(self.airspeed, None, self.airspeed_selected, self.v2_lookup, self.liftoffs, self.climbs, self.grounded)
+        node.derive(self.airspeed, None, self.airspeed_selected, self.v2_lookup, self.liftoffs, self.climbs, self.climb_accels, self.grounded)
         expected = np.ma.repeat((0, -8, 0), (180, 820, 1000))
         expected[expected == 0] = np.ma.masked
         ma_test.assert_masked_array_equal(node.array, expected)
 
     def test_derive__recorded_masked(self):
         node = self.node_class()
-        node.derive(self.airspeed, KPV(items=[]), None, self.v2_lookup, self.liftoffs, self.climbs, self.grounded)
+        node.derive(self.airspeed, KPV(items=[]), None, self.v2_lookup, self.liftoffs, self.climbs, self.climb_accels, self.grounded)
         expected = np.ma.repeat((0, 7, 0), (180, 820, 1000))
         expected[expected == 0] = np.ma.masked
         ma_test.assert_masked_array_equal(node.array, expected)
 
     def test_derive__recorded_and_lookup_masked(self):
         node = self.node_class()
-        node.derive(self.airspeed, KPV(items=[]), None, KPV(items=[]), self.liftoffs, self.climbs, self.grounded)
+        node.derive(self.airspeed, KPV(items=[]), None, KPV(items=[]), self.liftoffs, self.climbs, self.climb_accels, self.grounded)
         expected = np.ma.repeat(0, 2000)
         expected[expected == 0] = np.ma.masked
         ma_test.assert_masked_array_equal(node.array, expected)
 
     def test_derive__masked_within_phase(self):
         node = self.node_class()
-        node.derive(self.airspeed, KPV(items=[]), None, KPV(items=[]), self.liftoffs, self.climbs, self.grounded)
+        node.derive(self.airspeed, KPV(items=[]), None, KPV(items=[]), self.liftoffs, self.climbs, self.climb_accels, self.grounded)
         expected = np_ma_masked_zeros_like(self.airspeed.array)
+        ma_test.assert_masked_array_equal(node.array, expected)
+
+    def test_derive__early_climb_accel_start(self):
+        climb_accels = KTI(name='Climb Acceleration Start', items=[
+            KeyTimeInstance(name='Climb Acceleration Start', index = 700.0)
+        ])
+        node = self.node_class()
+        node.derive(self.airspeed, self.v2_record, None, None, self.liftoffs, self.climbs, climb_accels, self.grounded)
+        expected = np.ma.repeat((0, 12, 0), (180, 720, 1100))
+        expected[expected == 0] = np.ma.masked
+        ma_test.assert_masked_array_equal(node.array, expected)
+
+    def test_derive__empty_climb_accel_start(self):
+        climb_accels = KTI(name='Climb Acceleration Start', items=[])
+        node = self.node_class()
+        node.derive(self.airspeed, self.v2_record, None, None, self.liftoffs, self.climbs, climb_accels, self.grounded)
+        expected = np.ma.repeat((0, 12, 0), (180, 720, 1100))
+        expected[expected == 0] = np.ma.masked
         ma_test.assert_masked_array_equal(node.array, expected)
 
 
