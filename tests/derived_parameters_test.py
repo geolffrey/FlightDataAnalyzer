@@ -1367,8 +1367,71 @@ class TestAltitudeAALForFlightPhases(unittest.TestCase):
         # values are rounded.
         assert_array_equal(alt_4_ph.array, expected)
 
-    def test_altitude_AAL_for_flight_phases_repair(self):
-        alt_4_ph = AltitudeAALForFlightPhases()
+class TestAltitudeAGL(unittest.TestCase):
+
+    def test_basic(self):
+        # Although "basic" the synthetic radio altitude tests for noise rejection, transfer from radio to pressure altimetry and use of
+        # the gear on ground signals. The wide tolerance is because the noise signal varies from run to run.
+        alt_rad = P(name='Altitude Radio', array=(np.minimum(6000,
+                                                             (1.0-np.cos(np.arange(100)*3.14/50))*4000 + np.random.rand(100)*300)),
+                                           frequency = 2)
+        alt_baro = P(name='Altitude STD', array=np.ma.array((1.0-np.cos(np.arange(100)*3.14/50))*4000 + 1000))
+        gog = M(name='Gear On Ground', array=np.ma.array([1]*5+[0]*90+[1]*5), values_mapping={0:'Air', 1:'Ground'})
+        alt_aal = AltitudeAGL()
+        alt_aal.derive(alt_rad, None, alt_baro, gog)
+        # if the setting.ALTITUDE_AGL_TRANS_ALT is changed the expected result will be affected.
+        self.assertLess(abs(np.max(alt_aal.array)-8000), 350)
+
+    def test_negative(self):
+        alt_rad = P(name='Altitude Radio', array=np.ma.array([-1, 0, 0, 0, -1]))
+        alt_baro = P(name='Altitude STD', array=np.ma.array([0]*5))
+        gog = M(name='Gear On Ground', array=np.ma.array([0]*5), values_mapping={0:'Air', 1:'Ground'})
+        alt_aal = AltitudeAGL()
+        alt_aal.derive(alt_rad, None, alt_baro, gog)
+        expected = [0, 0, 0, 0, 0]
+        assert_array_equal(alt_aal.array, expected)
+
+    def test_on_ground(self):
+        alt_rad = P(name='Altitude Radio', array=np.ma.array([-1, 0, 6, 0, -1, -1, 0, 6, 0, -1, -1, 0, 6, 0, -1, -1, 0, 6, 0, -1]))
+        alt_baro = P(name='Altitude STD', array=np.ma.array([0]*20))
+        gog = M(name='Gear On Ground', array=np.ma.array([1]*20), values_mapping={0:'Air', 1:'Ground'})
+        alt_aal = AltitudeAGL()
+        alt_aal.derive(alt_rad, None, alt_baro, gog)
+        expected = [0]*20
+        assert_array_equal(alt_aal.array, expected)
+
+
+class TestAltitudeDensity(unittest.TestCase):
+
+    def setUp(self):
+        self.node_class = AltitudeDensity
+
+    def test_can_operate(self):
+        available = ('Altitude STD', 'SAT', 'SAT International Standard Atmosphere')
+        self.assertTrue(self.node_class.can_operate(available))
+
+    def test_derive(self):
+
+        alt_std = P('Altitude STD', array=np.ma.array([12000, 15000, 3000, 5000, 3500, 2000]))
+        sat = P('SAT', array=np.ma.array([0, -45, 35, 40, 32, 8]))
+        isa = P('SAT International Standard Atmosphere', array=np.ma.array([-9, -15, 9, 5, 8, 11]))
+
+        node = self.node_class()
+        node.derive(alt_std, sat, isa)
+
+        expected = [13080, 11400, 6120, 9200, 6380, 1640]
+        assert_array_equal(node.array, expected)
+
+
+'''
+class TestAltitudeForFlightPhases(unittest.TestCase):
+    def test_can_operate(self):
+        expected = [('Altitude STD',)]
+        opts = AltitudeForFlightPhases.get_operational_combinations()
+        self.assertEqual(opts, expected)
+
+    def test_altitude_for_phases_repair(self):
+        alt_4_ph = AltitudeForFlightPhases()
         raw_data = np.ma.array([0,1,2])
         raw_data[1] = np.ma.masked
         alt_4_ph.derive(Parameter('Altitude AAL', raw_data, 1,0.0))
