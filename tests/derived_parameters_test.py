@@ -2704,6 +2704,9 @@ class TestDistanceTravelled(unittest.TestCase):
 
 class TestDrift(unittest.TestCase):
 
+    def setUp(self):
+        self.node_class = Drift
+
     def test_can_operate(self):
         self.assertTrue(Drift.can_operate(('Drift (1)',)))
         self.assertTrue(Drift.can_operate(('Drift (2)',)))
@@ -2738,6 +2741,29 @@ class TestDrift(unittest.TestCase):
         drift = Drift()
         drift.derive(None, None, trk, hdg)
         self.assertEqual(drift.array[0], 0.0)
+
+    def test_derive_hdg_trk(self):
+        hdg = P('Heading Continuous', array=np.ma.array([10, 10, 350, 350, 360, 360, 370, 370]))
+        track = P('Track', array=np.ma.array([30, 350, 10, 330, 20, 340, 30, 350]))
+        node = self.node_class()
+        node.derive(None, None, track, hdg)
+
+        assert_array_equal(node.array, np.ma.array([20, -20] * 4))
+        self.assertEqual(node.hz, 1.0)
+        self.assertEqual(node.offset, 0.0)
+
+    def test_derive_drifts(self):
+        array = np.ma.array([10, 20, 30, 40, 50])
+        drift_1 = P('Drift (1)', array=array, frequency=0.5, offset=0.0)
+        drift_2 = P('Drift (2)', array=array+5, frequency=0.5, offset=1.0)
+        node = self.node_class()
+        node.derive(drift_1, drift_2, None, None)
+
+        expected = np.ma.array([12.5, 15, 20, 25, 30, 35, 40, 45, 50, 52.5])
+        assert_array_almost_equal(node.array, expected)
+        self.assertEqual(node.hz, 1.0)
+        self.assertEqual(node.offset, 0.0)
+
 
 class TestEng_EPRAvg(unittest.TestCase, NodeTest):
 
