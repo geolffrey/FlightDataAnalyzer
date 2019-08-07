@@ -4961,11 +4961,12 @@ class BrakeTempBeforeTakeoffMax(KeyPointValueNode):
 
     def derive(self, brakes=P('Brake (*) Temp Max'), taxiout=S('Taxi Out'),
                liftoff=KTI('Liftoff')):
-        self.create_kpvs_within_slices(
-            brakes.array,
-            [slice(taxiout.get_first().slice.start, liftoff.get_first().index),],
-            max_value
-        )
+        if taxiout and liftoff:
+            self.create_kpvs_within_slices(
+                brakes.array,
+                [slice(taxiout.get_first().slice.start, liftoff.get_first().index),],
+                max_value
+            )
 
 
 class BrakePressureInTakeoffRollMax(KeyPointValueNode):
@@ -6189,7 +6190,7 @@ class QNHDifferenceDuringApproach(KeyPointValueNode):
     QNH during approach when crossing 100 ft AAL in descent or at the minimum
     altitude reached (due to go around) whichever is greater. 100 ft altitude
     will avoid any ground effect which induces a dip in Altitude STD during
-    flare. Actual QNH is the QNH set by the pilots. Expected QNH is the QNH 
+    flare. Actual QNH is the QNH set by the pilots. Expected QNH is the QNH
     required to read the runway elevation on the ground.
 
     Altitude Visualization With Ground Offset provides the expected QNH altitude.
@@ -6541,6 +6542,8 @@ class NumberOfAPChannelsEngagedAtTouchdown(KeyPointValueNode):
                ap_engaged=P('AP Engaged'),
                ap_ch_count=P('AP Channels Engaged'),):
 
+        if not tdwn:
+            return
         if ap_ch_count and not np.ma.is_masked(ap_ch_count.array[int(tdwn.get_last().index)]):
             self.create_kpv(int(tdwn.get_last().index), ap_ch_count.array.data[int(tdwn.get_last().index)])
         elif ap_engaged and ap_engaged.array[int(tdwn.get_last().index)] == 'Engaged':

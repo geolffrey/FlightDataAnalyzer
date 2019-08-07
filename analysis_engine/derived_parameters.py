@@ -94,6 +94,7 @@ from analysis_engine.library import (
     slices_and,
     slices_of_runs,
     slices_between,
+    slices_find_small_slices,
     slices_from_to,
     slices_from_ktis,
     slices_not,
@@ -113,6 +114,8 @@ from analysis_engine.settings import (
     ALTITUDE_RADIO_OFFSET_LIMIT,
     ALTITUDE_RADIO_MAX_RANGE,
     ALTITUDE_AAL_TRANS_ALT,
+    ALTITUDE_AGL_SMOOTHING,
+    ALTITUDE_AGL_TRANS_ALT,
     AZ_WASHOUT_TC,
     BOUNCED_LANDING_THRESHOLD,
     CLIMB_THRESHOLD,
@@ -975,14 +978,19 @@ class AltitudeAALForFlightPhases(DerivedParameterNode):
         short_spikes = slices_find_small_slices(gear_on_grounds, time_limit=20, hz=gog.hz)
         for _slice in short_spikes:
             gog.array[_slice] = 0
-        
+
         # Remove slices shorter than 20 seconds as these are most likely created in error.
         gear_on_grounds = slices_remove_small_slices(gear_on_grounds, time_limit=20, hz=gog.hz)
         # Compute the half period which we will need.
         hp = int(alt_rad.frequency*ALTITUDE_AGL_SMOOTHING)/2
-        # We force altitude AGL to be zero when the gear shows 'Ground' state
-        repair_mask(alt_rad.array, frequency=alt_rad.frequency, repair_duration=20.0, extrapolate=True)
-        alt_agl = moving_average(np.maximum(alt_rad.array, 0.0) * (1 - gog.array.data), window=hp*2+1, weightings=None)
+
+        # If the bulk of the rad alt data is masked, let's substitute a zero array so that we
+        # at least show something. This may happen, for example, during ground runs.
+        if np.ma.count(alt_rad.array) > len(alt_rad.array) / 2:
+            # We force altitude AGL to be zero when the gear shows 'Ground' state
+            alt_agl = moving_average(np.maximum(alt_rad.array, 0.0) * (1 - gog.array.data), window=hp*2+1, weightings=None)
+        else:
+            alt_agl = np.ma.zeros(len(alt_rad.array))
 
         # Refine the baro estimates
         length = len(alt_agl)-1
@@ -1023,8 +1031,8 @@ class AltitudeAGLForFlightPhases(DerivedParameterNode):
     detecting altitude bands on the climb and descent. The parameter should not
     be used to compute KPV values themselves, to avoid using interpolated
     values in an event.
-    
-    Hysteresis avoids repeated triggering of KPVs when operating at one of 
+
+    Hysteresis avoids repeated triggering of KPVs when operating at one of
     the nominal heights. For example, helicopter searches at 500ft.
     '''
 
