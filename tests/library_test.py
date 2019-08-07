@@ -4894,8 +4894,13 @@ class TestNormalise(unittest.TestCase):
         res3 = normalise(md, axis=0)
         # each axis should be between 0 and 1
         self.assertEqual(res3.shape, (2,10))
-        ##self.assertEqual(res3[0,:].max(), 1.0)
-        ##self.assertEqual(res3[1,:].max(), 1.0)
+
+        # normalise with an invariant zero axis
+        md[1] *= 0
+        res4 = normalise(md, axis=1)
+        # each axis should be between 0 and 1
+        self.assertEqual(res4.shape, (2,10))
+        self.assertEqual(np.ma.count(res4[1]), 0)
 
     def test_normalise_masked(self):
         arr = np.ma.arange(10, dtype=float)
@@ -4904,11 +4909,17 @@ class TestNormalise(unittest.TestCase):
         arr[9] = np.ma.masked
         # mask the max value
         # Q: This does not modify the array in place, yet res is not used?
-        normalise(arr)
-        index, value = max_value(arr)
+        norm = normalise(arr)
+        index, value = max_value(norm)
         self.assertEqual(index, 8)
-        self.assertEqual(value, 8)
+        self.assertEqual(value, 1.0)
 
+    def test_normalise_no_variation(self):
+        arr = np.ma.array([0.0]*10)
+        norm = normalise(arr)
+        index, value = max_value(norm)
+        self.assertEqual(index, None)
+        self.assertEqual(value, None)
 
 class TestNpMaZerosLike(unittest.TestCase):
     def test_zeros_like_basic(self):

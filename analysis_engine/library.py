@@ -5125,6 +5125,13 @@ def normalise(array, normalise_max=1.0, scale_max=None, copy=True, axis=None):
     if copy:
         array = array.copy()
     scaling = normalise_max / (scale_max or array.max(axis=axis))
+    try:
+        if np.isinf(scaling):
+            return np_ma_masked_zeros_like(array)
+    except:
+        # Multi-dimensional process gives scaling = np.ma.masked
+        pass
+
     if axis == 1:
         # transpose
         scaling = scaling.reshape(scaling.shape[0],-1)
