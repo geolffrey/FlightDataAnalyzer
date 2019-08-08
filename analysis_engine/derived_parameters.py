@@ -1484,7 +1484,7 @@ class AltitudeVisualizationWithoutGroundOffset(DerivedParameterNode):
             start_offset = alt_std.array[start_idx] - alt_aal.array[start_idx]
             stop_offset = alt_std.array[stop_idx] - alt_aal.array[stop_idx]
 
-            if len(cruises) >= 1:
+            if cruises and len(cruises) >= 1:
                 alt_qnh[previous_stop_idx:start_idx] = alt_aal.array[previous_stop_idx:start_idx]
             else:
                 alt_qnh[:start_idx] = alt_aal.array[:start_idx]
