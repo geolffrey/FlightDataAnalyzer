@@ -305,7 +305,8 @@ class APVerticalMode(MultistateDerivedParameterNode):
                                      altitude_mode,
                                      expedite_climb_mode,
                                      expedite_descent_mode,
-                                     vert_spd_engaged) if p)
+                                     vert_spd_engaged,
+                                     pitch_mode) if p)
         self.array = np_ma_zeros_like(parameter.array)
 
         if at_active:
