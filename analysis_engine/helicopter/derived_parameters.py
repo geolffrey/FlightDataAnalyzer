@@ -188,14 +188,14 @@ class AltitudeAGL(DerivedParameterNode):
         # When was the helicopter on the ground?
         gear_on_grounds = np.ma.clump_masked(np.ma.masked_equal(gog.array, 1))
         # Find and eliminate short spikes (15 seconds) as these are most likely errors.
-        short_spikes = slices_find_small_slices(gear_on_grounds, time_limit=15, hz=gog.hz)
-        for slice in short_spikes:
-            gog.array[slice.start:slice.stop] = 0
+        short_spikes = slices_find_small_slices(gear_on_grounds, time_limit=20, hz=gog.hz)
+        for _slice in short_spikes:
+            gog.array[_slice.start:_slice.stop] = 0
 
         # Remove slices shorter than 15 seconds as these are most likely created in error.
-        gear_on_grounds = slices_remove_small_slices(gear_on_grounds, time_limit=15, hz=gog.hz)
+        gear_on_grounds = slices_remove_small_slices(gear_on_grounds, time_limit=20, hz=gog.hz)
         # Compute the half period which we will need.
-        hp = int(alt_rad.frequency*ALTITUDE_AGL_SMOOTHING)//2
+        hp = int(alt_rad.frequency*ALTITUDE_AGL_SMOOTHING) // 2
 
         # If the bulk of the rad alt data is masked, let's substitute a zero array so that we
         # at least show something. This may happen, for example, during ground runs.

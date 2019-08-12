@@ -1367,61 +1367,6 @@ class TestAltitudeAALForFlightPhases(unittest.TestCase):
         # values are rounded.
         assert_array_equal(alt_4_ph.array, expected)
 
-class TestAltitudeAGL(unittest.TestCase):
-
-    def test_basic(self):
-        # Although "basic" the synthetic radio altitude tests for noise rejection, transfer from radio to pressure altimetry and use of
-        # the gear on ground signals. The wide tolerance is because the noise signal varies from run to run.
-        alt_rad = P(name='Altitude Radio', array=(np.minimum(6000,
-                                                             (1.0-np.cos(np.arange(100)*3.14/50))*4000 + np.random.rand(100)*300)),
-                                           frequency = 2)
-        alt_baro = P(name='Altitude STD', array=np.ma.array((1.0-np.cos(np.arange(100)*3.14/50))*4000 + 1000))
-        gog = M(name='Gear On Ground', array=np.ma.array([1]*5+[0]*90+[1]*5), values_mapping={0:'Air', 1:'Ground'})
-        alt_aal = AltitudeAGL()
-        alt_aal.derive(alt_rad, None, alt_baro, gog)
-        # if the setting.ALTITUDE_AGL_TRANS_ALT is changed the expected result will be affected.
-        self.assertLess(abs(np.max(alt_aal.array)-8000), 350)
-
-    def test_negative(self):
-        alt_rad = P(name='Altitude Radio', array=np.ma.array([-1, 0, 0, 0, -1]))
-        alt_baro = P(name='Altitude STD', array=np.ma.array([0]*5))
-        gog = M(name='Gear On Ground', array=np.ma.array([0]*5), values_mapping={0:'Air', 1:'Ground'})
-        alt_aal = AltitudeAGL()
-        alt_aal.derive(alt_rad, None, alt_baro, gog)
-        expected = [0, 0, 0, 0, 0]
-        assert_array_equal(alt_aal.array, expected)
-
-    def test_on_ground(self):
-        alt_rad = P(name='Altitude Radio', array=np.ma.array([-1, 0, 6, 0, -1, -1, 0, 6, 0, -1, -1, 0, 6, 0, -1, -1, 0, 6, 0, -1]))
-        alt_baro = P(name='Altitude STD', array=np.ma.array([0]*20))
-        gog = M(name='Gear On Ground', array=np.ma.array([1]*20), values_mapping={0:'Air', 1:'Ground'})
-        alt_aal = AltitudeAGL()
-        alt_aal.derive(alt_rad, None, alt_baro, gog)
-        expected = [0]*20
-        assert_array_equal(alt_aal.array, expected)
-
-
-class TestAltitudeDensity(unittest.TestCase):
-
-    def setUp(self):
-        self.node_class = AltitudeDensity
-
-    def test_can_operate(self):
-        available = ('Altitude STD', 'SAT', 'SAT International Standard Atmosphere')
-        self.assertTrue(self.node_class.can_operate(available))
-
-    def test_derive(self):
-
-        alt_std = P('Altitude STD', array=np.ma.array([12000, 15000, 3000, 5000, 3500, 2000]))
-        sat = P('SAT', array=np.ma.array([0, -45, 35, 40, 32, 8]))
-        isa = P('SAT International Standard Atmosphere', array=np.ma.array([-9, -15, 9, 5, 8, 11]))
-
-        node = self.node_class()
-        node.derive(alt_std, sat, isa)
-
-        expected = [13080, 11400, 6120, 9200, 6380, 1640]
-        assert_array_equal(node.array, expected)
-
 
 '''
 class TestAltitudeForFlightPhases(unittest.TestCase):
@@ -1447,6 +1392,7 @@ class TestAltitudeForFlightPhases(unittest.TestCase):
         alt_4_ph.derive(alt_AAL, gog)
         answer = np.ma.array(list(testwave[:32])+[0.0]*32)
         np.testing.assert_array_almost_equal(alt_4_ph.array, answer)
+'''
 
 class TestBaroCorrection(unittest.TestCase):
     def test_can_operate(self):
@@ -2005,13 +1951,11 @@ class TestAltitudeRadioOffsetRemoved(unittest.TestCase):
         expected = np_ma_masked_zeros_like(testwave)
         expected = testwave - 1.2
 
-        '''
-        # Plot to check shape of test waveform
-        import matplotlib.pyplot as plt
-        plt.plot(testwave)
-        plt.plot(expected)
-        plt.show()
-        '''
+        ## Plot to check shape of test waveform
+        #import matplotlib.pyplot as plt
+        #plt.plot(testwave)
+        #plt.plot(expected)
+        #plt.show()
         ma_test.assert_masked_array_equal(aor.array, expected)
 
     def test_with_go_around(self):
@@ -2023,13 +1967,11 @@ class TestAltitudeRadioOffsetRemoved(unittest.TestCase):
         aor = AltitudeRadioOffsetRemoved()
         aor.derive(ralt, fast)
 
-        '''
-        # Plot to check shape of test waveform
-        import matplotlib.pyplot as plt
-        plt.plot(testwave+100) # Offset to make it easier to see.
-        plt.plot(aor.array)
-        plt.show()
-        '''
+        ## Plot to check shape of test waveform
+        #import matplotlib.pyplot as plt
+        #plt.plot(testwave+100) # Offset to make it easier to see.
+        #plt.plot(aor.array)
+        #plt.show()
 
         ma_test.assert_masked_array_equal(aor.array, testwave.copy())
 
