@@ -4,6 +4,7 @@ import numpy as np
 import six
 
 from math import ceil, floor
+from operator import itemgetter
 
 from flightdatautilities import units as ut
 from flightdatautilities.geometry import great_circle_distance__haversine
@@ -215,7 +216,6 @@ class ClimbStart(KeyTimeInstanceNode):
 
         to_scan = [[l.index, 'lift'] for l in liftoffs] + \
             [[l.index, 'toc'] for l in tocs]
-        from operator import itemgetter
         to_scan = sorted(to_scan, key=itemgetter(0))
         for i in range(len(to_scan)-1):
             if to_scan[i][1]=='lift' and to_scan[i+1][1]=='toc':
