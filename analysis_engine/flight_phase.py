@@ -2350,7 +2350,11 @@ class BaroDifference(FlightPhaseNode):
                baro_fo=P('Baro Correction (FO)')):
 
         diff = abs(baro_cpt.array - baro_fo.array)
+        if not np.ma.count(diff):
+            return
         _, diff_slices = slices_above(diff, 1.0)
         diff_slices = filter_slices_duration(diff_slices, 10, frequency=self.hz)
+        if self.hz < 0.25:  # handle slices from superframe parameters extending beyond end of flight
+            diff_slices = [slice(s.start, s.stop - 1 if s.stop > s.start else s.stop) for s in diff_slices]
         self.create_sections(diff_slices)
 
