@@ -325,21 +325,22 @@ class ClimbAccelerationStart(KeyTimeInstanceNode):
 
         if eng_type:
             if eng_type.value == 'JET':
-                # Base on first engine throttle change after liftoff.
-                # Align to throttle.
-                _slice = initial_climbs.get_aligned(throttle).get_first().slice
-                climbing_4000 = alt_climbing.get_aligned(throttle).get(name='4000 Ft Climbing').get_first()
-                _slice = slice(_slice.start, int(climbing_4000.index) if climbing_4000 else _slice.stop)
-                # XXX: Width is too small for low frequency params.
-                throttle.array = throttle.array[_slice]
-                throttle_threshold = 2 / throttle.frequency
-                throttle_roc = np.ma.abs(rate_of_change(throttle, 2 * (1 / throttle.frequency)))
-                index = index_at_value(throttle_roc, throttle_threshold)
-                if index:
-                    self.frequency = throttle.frequency
-                    self.offset = throttle.offset
-                    self.create_kti(index + (_slice.start or 0))
-                    return
+                if throttle:
+                    # Base on first engine throttle change after liftoff.
+                    # Align to throttle.
+                    _slice = initial_climbs.get_aligned(throttle).get_first().slice
+                    climbing_4000 = alt_climbing.get_aligned(throttle).get(name='4000 Ft Climbing').get_first()
+                    _slice = slice(_slice.start, int(climbing_4000.index) if climbing_4000 else _slice.stop)
+                    # XXX: Width is too small for low frequency params.
+                    throttle.array = throttle.array[_slice]
+                    throttle_threshold = 2 / throttle.frequency
+                    throttle_roc = np.ma.abs(rate_of_change(throttle, 2 * (1 / throttle.frequency)))
+                    index = index_at_value(throttle_roc, throttle_threshold)
+                    if index:
+                        self.frequency = throttle.frequency
+                        self.offset = throttle.offset
+                        self.create_kti(index + (_slice.start or 0))
+                        return
 
                 alt = 800
 
