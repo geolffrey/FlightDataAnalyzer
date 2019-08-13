@@ -2621,7 +2621,7 @@ def runway_heading(runway):
                                            runway['start'])
         rwy_brg = float(brg.data)
         try:
-            rwy_data = runway['magnetic_heading']
+            rwy_data = float(runway['magnetic_heading'])
         except KeyError:
             return rwy_brg
         diff = (rwy_brg - rwy_data + 180) % 360 - 180
