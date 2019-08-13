@@ -232,6 +232,8 @@ from analysis_engine.key_point_values import (
     ATEngagedAPDisengagedOutsideClimbDuration,
     ATDisengagedAPEngagedDuration,
     AutobrakeRejectedTakeoffNotSetDuringTakeoff,
+    BaroDifferenceDuration,
+    BaroCorrectionMinus1013Above20000FtDuringLevelFlightMax,
     BrakePressureInTakeoffRollMax,
     BrakeTempAfterTouchdownDelta,
     BrakeTempDuringTaxiInMax,
@@ -7694,7 +7696,7 @@ class TestHeightSelectedOnApproachMin(unittest.TestCase):
 
 
 ##############################################################################
-# QNH errors on Approach
+# Baro Correction
 
 
 class TestQNHDifferenceDuringApproach(unittest.TestCase):
@@ -7749,6 +7751,159 @@ class TestQNHDifferenceDuringApproach(unittest.TestCase):
         # Second approach had only 5 ft diff. Almost 0 mBar difference
         self.assertAlmostEqual(node[1].value, 0, delta=0.2)
         self.assertAlmostEqual(node[1].index, 6 + 1/3., delta=0.01)
+
+
+class TestBaroCorrectionMinus1013Above20000FtMax(unittest.TestCase):
+    def setUp(self):
+        self.node_class = BaroCorrectionMinus1013Above20000FtDuringLevelFlightMax
+
+    def test_attributes(self):
+        node = self.node_class()
+        self.assertEqual(node.units, 'mb')
+        self.assertEqual(node.name,
+                         'Baro Correction Minus 1013 Above 20000 Ft During Level Flight Max')
+
+    def test_can_operate(self):
+        ops = set(self.node_class.get_operational_combinations())
+        expected = {('Baro Correction', 'Altitude STD', 'Level Flight'),
+                    ('Altitude STD', 'Level Flight')}
+        self.assertEqual(ops, expected)
+
+    def test_baro_correction_below_std(self):
+        node = self.node_class()
+        # Climb to 30,000ft, cruise and descend
+        alt_std = P('Altitude STD',
+                    array=np.ma.concatenate([
+                        np.linspace(0, 30000, num=31),
+                        np.ma.ones(28) * 30000,
+                        np.linspace(30000, 0, num=31)
+                    ]))
+        baro = P('Baro Correction', array=np.ma.ones(90) * 1010)
+        level = buildsection('Level Flight', 30, 59)
+        node.derive(baro, alt_std, level)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].value, 3)
+        self.assertEqual(node[0].index, 30)
+
+    def test_baro_correction_no_difference(self):
+        node = self.node_class()
+        # Climb to 30,000ft, cruise and descend
+        alt_std = P('Altitude STD',
+                    array=np.ma.concatenate([
+                        np.linspace(0, 30000, num=31),
+                        np.ma.ones(28) * 30000,
+                        np.linspace(30000, 0, num=31)
+                    ]))
+        baro = P('Baro Correction', array=np.ma.concatenate([
+            np.ma.ones(10) * 999,
+            np.ma.ones(70) * 1013.8,
+            np.ma.ones(10) * 1021
+        ]))
+        level = buildsection('Level Flight', 30, 59)
+        node.derive(baro, alt_std, level)
+
+        self.assertEqual(len(node), 0)
+
+    def test_2_level_sections(self):
+        node = self.node_class()
+        # Climb to 18,000ft, cruise, climb to 30,000ft, cruise and descend
+        alt_std = P('Altitude STD',
+                    array=np.ma.concatenate([
+                        np.linspace(0, 18000, num=19),
+                        np.ma.ones(13) * 18000,
+                        np.linspace(18000, 30000, num=13),
+                        np.ma.ones(14) * 30000,
+                        np.linspace(30000, 0, num=31)
+                    ]))
+        baro = P('Baro Correction', array=np.ma.ones(90) * 1010)
+        level = buildsections('Level Flight', [18, 33], [45, 59])
+        node.derive(baro, alt_std, level)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].value, 3)
+        self.assertEqual(node[0].index, 45)
+
+    def test_change_qnh_in_descent(self):
+        node = self.node_class()
+        alt_std = P('Altitude STD',
+                    array=np.ma.concatenate([
+                        np.linspace(0, 30000, num=31),
+                        np.ma.ones(28) * 30000,
+                        np.linspace(30000, 0, num=31)
+                    ]))
+        baro = P('Baro Correction',
+                 array=np.ma.concatenate([
+                     np.ma.ones(15) * 1010,
+                     np.ma.ones(50) * 1013,
+                     np.ma.ones(25) * 1005,
+                 ]))
+        level = buildsection('Level Flight', 30, 59)
+        node.derive(baro, alt_std, level)
+
+        self.assertEqual(len(node), 0)
+
+    def test_alt_std_only(self):
+        node = self.node_class()
+        # Climb to 29,700ft, cruise, climb to 30,000ft, cruise and descend
+        alt_std = P('Altitude STD',
+                    array=np.ma.concatenate([
+                        np.linspace(0, 29700, num=31),
+                        np.ma.ones(8) * 29700,
+                        np.linspace(29700, 30000, num=5),
+                        np.ma.ones(15) * 30000,
+                        np.linspace(30000, 0, num=31)
+                    ]))
+        level = buildsections('Level Flight', [30, 38], [43, 59])
+        node.derive(None, alt_std, level)
+
+        self.assertEqual(len(node), 1)
+        self.assertAlmostEqual(node[0].value, 300.0/27.3, delta = 0.1)
+        self.assertEqual(node[0].index, 30)
+
+
+class TestBaroDifferenceDuration(unittest.TestCase):
+    def setUp(self):
+        self.node_class = BaroDifferenceDuration
+
+    def test_attributes(self):
+        node = self.node_class()
+        self.assertEqual(node.units, 's')
+        self.assertEqual(node.name,
+                         'Baro Difference Duration')
+
+    def test_differ_for_20_sec(self):
+        baro_diff = buildsection('Baro Difference', 10, 15)
+        baro_diff.hz = 1./4.
+
+        node = self.node_class()
+        node.get_derived((baro_diff,))
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].value, 5 * 4)  # 5 samples at 1/4 Hz
+        self.assertEqual(node[0].index, 10)
+
+    def test_no_difference(self):
+        baro_diff = S('Baro Difference')
+        baro_diff.hz = 1./4.
+
+        node = self.node_class()
+        node.get_derived((baro_diff,))
+
+        self.assertEqual(len(node), 0)
+
+    def test_multiple_differences(self):
+        baro_diff = buildsections('Baro Difference', [0, 3], [10, 15])
+        baro_diff.hz = 1./4.
+
+        node = self.node_class()
+        node.get_derived((baro_diff,))
+
+        self.assertEqual(len(node), 2)
+        self.assertEqual(node[0].value, 3 * 4)  # 3 sample at 1/4 Hz
+        self.assertEqual(node[0].index, 0)
+        self.assertEqual(node[1].value, 5 * 4)  # 5 samples at 1/4 Hz
+        self.assertEqual(node[1].index, 10)
 
 
 ##############################################################################

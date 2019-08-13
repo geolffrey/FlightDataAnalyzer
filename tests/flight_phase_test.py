@@ -21,6 +21,7 @@ from analysis_engine.flight_phase import (
     AirborneRadarApproach,
     Approach,
     ApproachAndLanding,
+    BaroDifference,
     BouncedLanding,
     ClimbCruiseDescent,
     Climbing,
@@ -3225,4 +3226,75 @@ class TestTakeoffRunwayHeading(unittest.TestCase):
             slice(2119, 2123, None),
             slice(2525, 2632, None)
         ])
+
+class TestBaroDifference(unittest.TestCase):
+
+    def setUp(self):
+        self.node_class = BaroDifference
+
+    def test_derive_baro_difference(self):
+        baro_capt = P('Baro Correction (Capt)',
+                      array=np.ma.concatenate([
+                          np.ma.ones(3) * 995,
+                          np.ma.ones(7) * 998,
+                          np.ma.ones(10) * 1013
+                          ]),
+                      frequency=1./4)
+        baro_fo = P('Baro Correction (FO)',
+                    array=np.ma.concatenate([
+                        np.ma.ones(15) * 998,
+                        np.ma.ones(5) * 1013
+                        ]),
+                    frequency=1./4)
+
+        node = self.node_class()
+        node.get_derived((baro_capt, baro_fo))
+
+        self.assertEqual(len(node), 2)
+        self.assertEqual(node.get_slices(), [
+            slice(0, 3, None),
+            slice(10, 15, None)
+        ])
+
+        self.assertEqual(node.frequency, 1./4.)
+
+    def test_no_difference(self):
+        baro_capt = P('Baro Correction (Capt)',
+                      array=np.ma.concatenate([
+                          np.ma.ones(10) * 998,
+                          np.ma.ones(10) * 1013
+                          ]),
+                      frequency=1./4)
+        baro_fo = P('Baro Correction (FO)',
+                    array=np.ma.concatenate([
+                        np.ma.ones(10) * 998,
+                        np.ma.ones(10) * 1013
+                        ]),
+                    frequency=1./4)
+
+        node = self.node_class()
+        node.get_derived((baro_capt, baro_fo))
+
+        self.assertEqual(len(node), 0)
+
+    def test_short_duration_difference(self):
+        baro_capt = P('Baro Correction (Capt)',
+                      array=np.ma.concatenate([
+                          np.ma.array([989]),
+                          np.ma.ones(9) * 998,
+                          np.ma.ones(10) * 1013
+                          ]),
+                      frequency=1./4)
+        baro_fo = P('Baro Correction (FO)',
+                    array=np.ma.concatenate([
+                        np.ma.ones(10) * 998,
+                        np.ma.ones(9) * 1013,
+                        np.ma.array([1021])
+                        ]),
+                    frequency=1./4)
+
+        node = self.node_class()
+        node.get_derived((baro_capt, baro_fo))
+
+        self.assertEqual(len(node), 0)
 

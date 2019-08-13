@@ -18,6 +18,7 @@ from analysis_engine.library import (
     any_one_of,
     bearing_and_distance,
     cycle_finder,
+    filter_slices_duration,
     find_low_alts,
     find_nearest_slice,
     first_order_washout,
@@ -36,6 +37,7 @@ from analysis_engine.library import (
     runs_of_ones,
     shift_slice,
     shift_slices,
+    slices_above,
     slices_and,
     slices_and_not,
     slices_extend_duration,
@@ -2329,3 +2331,20 @@ class AirborneRadarApproach(FlightPhaseNode):
         for approach in approaches:
             if approach.type == 'AIRBORNE_RADAR':
                 self.create_section(approach.slice, name='Airborne Radar Approach')
+
+
+class BaroDifference(FlightPhaseNode):
+    """
+    Baro Correction difference between Capt and FO phase
+
+    Minimum 10 sec duration.
+    """
+
+    def derive(self, baro_cpt=P('Baro Correction (Capt)'),
+               baro_fo=P('Baro Correction (FO)')):
+
+        diff = abs(baro_cpt.array - baro_fo.array)
+        _, diff_slices = slices_above(diff, 1.0)
+        diff_slices = filter_slices_duration(diff_slices, 10, frequency=self.hz)
+        self.create_sections(diff_slices)
+

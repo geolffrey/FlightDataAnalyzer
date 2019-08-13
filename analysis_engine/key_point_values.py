@@ -6181,7 +6181,7 @@ class HeightSelectedOnApproachMin(KeyPointValueNode):
 
 
 ########################################
-# QNH difference during Approach
+# Baro Correction
 
 
 class QNHDifferenceDuringApproach(KeyPointValueNode):
@@ -6219,6 +6219,69 @@ class QNHDifferenceDuringApproach(KeyPointValueNode):
             diff = alt_qnh_lo - alt_viz_lo
             qnh_error = qnh_ref - alt2press(diff)
             self.create_kpv(index, qnh_error)
+
+
+class BaroCorrectionMinus1013Above20000FtDuringLevelFlightMax(KeyPointValueNode):
+    '''
+    Maximum difference between Baro Correction and 1013 hPa (absolute value) for
+    altitudes above 20,000 ft STD during level flight. This should assure we are
+    above any transition altitudes. Only consider differences of minimum 1 hPa.
+
+    We only consider level flight sections as local QNH could be set above
+    20,000 ft during descend when cleared to an altitude.
+
+    If Baro Correction parameter is not available, we compare Altitude STD to
+    rounded flight levels and detect significant deviations (more than 100ft)
+    and convert this difference to a QNH difference from 1013.
+    '''
+
+    units = ut.MILLIBAR
+
+    @classmethod
+    def can_operate(cls, available):
+        return all_of(('Altitude STD', 'Level Flight'), available)
+
+    def derive(self, baro=P('Baro Correction'),
+               alt_std=P('Altitude STD'),
+               level=S('Level Flight')):
+
+        _, above_20000ft = slices_above(alt_std.array, 20000)
+        above_20000ft_level = slices_and(above_20000ft, level.get_slices())
+
+        if baro:
+            baro_dev = abs(baro.array - 1013)
+            _, significant_diffs = slices_above(baro_dev, 1)
+            above_20000ft_level = slices_and(above_20000ft_level, significant_diffs)
+            above_20000ft_level = slices_int(above_20000ft_level)
+            self.create_kpv_from_slices(baro_dev, above_20000ft_level, max_value)
+
+        else:
+            significant_diffs = []
+            for high_level in slices_int(above_20000ft_level):
+                avg_alt = np.ma.average(alt_std.array[high_level])
+                nearest_1000ft = round(avg_alt, -3)
+                diff = abs(avg_alt - nearest_1000ft)
+                if diff > 100:
+                    significant_diffs.append((diff, high_level))
+
+            if significant_diffs:
+                diff, high_level = max(significant_diffs)
+                qnh_error = alt2press(0) - alt2press(diff)
+                self.create_kpv(high_level.start, qnh_error)
+
+
+class BaroDifferenceDuration(KeyPointValueNode):
+    '''
+    Duration where Captain and FO baro correction differ by 1 mbar or more.
+
+    Filter out durations less than 10 seconds.
+    '''
+
+    units = ut.SECOND
+
+    def derive(self, baro_diff=S('Baro Difference')):
+
+        self.create_kpvs_from_slice_durations(baro_diff, self.hz)
 
 
 ########################################
