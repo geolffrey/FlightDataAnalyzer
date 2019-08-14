@@ -1543,8 +1543,12 @@ class GearDown(MultistateDerivedParameterNode):
         if gear_sel and gear_transit:
             gear_sel_array = align(gear_sel, gear_transit) if gear_sel.hz != gear_transit.hz else gear_sel.array
             self.array = (gear_sel_array == 'Down') & ~(gear_transit.array == 'Extending')
+            self.frequency = gear_transit.frequency
+            self.offset = gear_transit.offset
         else:
             self.array = gear_pos.array == 'Down'
+            self.frequency = gear_pos.frequency
+            self.offset = gear_pos.offset
 
 
 class GearDownInTransit(MultistateDerivedParameterNode):
