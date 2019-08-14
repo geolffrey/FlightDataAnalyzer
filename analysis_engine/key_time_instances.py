@@ -346,22 +346,23 @@ class ClimbAccelerationStart(KeyTimeInstanceNode):
                 alt = 800
 
             elif eng_type.value == 'PROP':
-                # Base on first Np drop after liftoff.
-                # Align to Np.
-                _slice = initial_climbs.get_aligned(eng_np).get_first().slice
-                climbing_4000 = alt_climbing.get_aligned(eng_np).get(name='4000 Ft Climbing').get_first()
-                if climbing_4000:
-                    _slice = slice(_slice.start, int(climbing_4000.index))
-                # XXX: Width is too small for low frequency params.
-                eng_np.array = hysteresis(eng_np.array[_slice], 4 / eng_np.hz)
-                eng_np_threshold = -0.5 / eng_np.frequency
-                eng_np_roc = rate_of_change(eng_np, 2 * (1 / eng_np.frequency))
-                index = index_at_value(eng_np_roc, eng_np_threshold)
-                if index:
-                    self.frequency = eng_np.frequency
-                    self.offset = eng_np.offset
-                    self.create_kti(index + (_slice.start or 0))
-                    return
+                if eng_np:
+                    # Base on first Np drop after liftoff.
+                    # Align to Np.
+                    _slice = initial_climbs.get_aligned(eng_np).get_first().slice
+                    climbing_4000 = alt_climbing.get_aligned(eng_np).get(name='4000 Ft Climbing').get_first()
+                    if climbing_4000:
+                        _slice = slice(_slice.start, int(climbing_4000.index))
+                    # XXX: Width is too small for low frequency params.
+                    eng_np.array = hysteresis(eng_np.array[_slice], 4 / eng_np.hz)
+                    eng_np_threshold = -0.5 / eng_np.frequency
+                    eng_np_roc = rate_of_change(eng_np, 2 * (1 / eng_np.frequency))
+                    index = index_at_value(eng_np_roc, eng_np_threshold)
+                    if index:
+                        self.frequency = eng_np.frequency
+                        self.offset = eng_np.offset
+                        self.create_kti(index + (_slice.start or 0))
+                        return
 
                 alt = 400
 
