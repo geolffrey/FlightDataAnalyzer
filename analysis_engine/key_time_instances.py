@@ -263,8 +263,6 @@ class ClimbAccelerationStart(KeyTimeInstanceNode):
                spd=P('Airspeed'),
                flap=KTI('Flap Lever Set')):
 
-        if not initial_climbs:
-            return
         if spd_sel and spd_sel.frequency >= 0.125:
             # Use first Airspeed Selected change in Initial Climb up to 4000 Ft
             _slice = initial_climbs.get_aligned(spd_sel).get_first().slice
