@@ -10,6 +10,7 @@ import six
 from copy import deepcopy
 from math import ceil, copysign
 from operator import itemgetter
+import itertools
 
 from hdfaccess.parameter import NO_MAPPING
 from flightdatautilities import aircrafttables as at, units as ut
@@ -4478,7 +4479,48 @@ class AOABelowStickShakerAOAMin(KeyPointValueNode):
 ##############################################################################
 # Sensor Mismatch
 
-class AOADifference5SecMax(KeyPointValueNode):
+
+class SensorDifference5SecMaxMixin(object):
+    '''
+    Maximum recorded Sensor difference sustained for at least 5 seconds while Airborne.
+
+    This mixin can be added to any KPV measuring the greatest difference between
+    all the sensors available.
+    '''
+
+    def derive_sensors_diff(self, sensors, airs):
+        '''
+        Calculate the maximum difference among all sensors for at least 5
+        seconds while Airborne.
+
+        :param sensors: iterable of sensor parameter
+        :type sensors: Iterable[Optional[Parameter]]
+        :param airs: Airborne flight phases
+        :type airs: Section
+        '''
+
+        sensors = [s for s in sensors if s is not None]
+        if len(sensors) < 2:
+            # Only one sensor or none. Cannot disagree with oneself.
+            return
+
+        # Find the maximum diff for each combinations of 2 sensors
+        maximums = []
+        for sensor_l, sensor_r in itertools.combinations(sensors, 2):
+            diff = sensor_l.array - sensor_r.array
+            diff = second_window(diff, sensor_l.hz, 5, extend_window=True)
+            for air in airs:
+                idx, val = max_abs_value(
+                    diff, _slice=air.slice,
+                    start_edge=air.start_edge, stop_edge=air.stop_edge
+                )
+                maximums.append((idx, val))
+        idx, value = max(maximums, key=lambda idx_val: abs(idx_val[1]))
+
+        self.create_kpv(idx, value)
+
+
+class AOADifference5SecMax(KeyPointValueNode, SensorDifference5SecMaxMixin):
     '''
     Maximum recorded AoA difference sustained for at least 5 seconds while Airborne.
     Left greater than Right = negative value.
@@ -4491,12 +4533,10 @@ class AOADifference5SecMax(KeyPointValueNode):
                aoa_l=P('AOA (L)'),
                aoa_r=P('AOA (R)'),
                airs=S('Airborne'),):
-        diff = aoa_r.array - aoa_l.array
-        diff = second_window(diff, self.hz, 5, extend_window=True)
-        self.create_kpvs_within_slices(diff, airs, max_abs_value)
+        self.derive_sensors_diff([aoa_l, aoa_r], airs)
 
 
-class AirspeedDifference5SecMax(KeyPointValueNode):
+class AirspeedDifference5SecMax(KeyPointValueNode, SensorDifference5SecMaxMixin):
     '''
     Maximum recorded Airspeed difference sustained for at least 5 seconds while Airborne.
     '''
@@ -4508,9 +4548,7 @@ class AirspeedDifference5SecMax(KeyPointValueNode):
                ias=P('Airspeed'),
                ias_2=P('Airspeed (2)'),
                airs=S('Airborne'),):
-        diff = ias_2.array - ias.array
-        diff = second_window(diff, self.hz, 5, extend_window=True)
-        self.create_kpvs_within_slices(diff, airs, max_abs_value)
+        self.derive_sensors_diff([ias, ias_2], airs)
 
 
 ##############################################################################

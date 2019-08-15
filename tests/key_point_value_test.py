@@ -5600,15 +5600,15 @@ class TestAOADifference5SecMax(unittest.TestCase, NodeTest):
         self.function = max_value
 
     def test_derive(self):
-        aoa_r_arr = np.sin(np.arange(1,20))
-        aoa_l_arr = np.cos(np.arange(1,20))
+        aoa_r_arr = np.sin(np.arange(1, 20))
+        aoa_l_arr = np.cos(np.arange(1, 20))
         aoa_l = P('AOA (L)', array=aoa_l_arr)
         aoa_r = P('AOA (R)', array=aoa_r_arr)
         airs = buildsection('Airborne', 3, 15)
         node = self.node_class()
         node.derive(aoa_l, aoa_r, airs)
         self.assertEqual(len(node), 1)
-        self.assertAlmostEqual(node[0].value, 0.30, places=2)
+        self.assertAlmostEqual(node[0].value, -0.30, places=2)
         self.assertEqual(node[0].index, 3)
 
 
@@ -5717,7 +5717,7 @@ class TestAirspeedDifference5SecMax(unittest.TestCase, NodeTest):
         node = self.node_class()
         node.derive(ias_1, ias_2, airs)
         self.assertEqual(len(node), 1)
-        self.assertAlmostEqual(node[0].value, -0.30, places=2)
+        self.assertAlmostEqual(node[0].value, 0.30, places=2)
         self.assertEqual(node[0].index, 3)
 
 
