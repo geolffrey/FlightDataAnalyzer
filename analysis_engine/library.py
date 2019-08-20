@@ -7818,7 +7818,7 @@ def value_at_index(array, index, interpolate=True):
     allow for offsets within the data frame.
 
     :param array: input data
-    :type array: masked array
+    :type array: masked array or list
     :param index: index into the array where we want to find the array value.
     :type index: float
     :param interpolate: whether to interpolate the value if index is float.
@@ -7838,18 +7838,22 @@ def value_at_index(array, index, interpolate=True):
     else:
         high = low + 1
         r = index - low
-        low_value = array.data[low]
-        high_value = array.data[high]
-        # Crude handling of masked values. TODO: Must be a better way !
-        if array.mask.any(): # An element is masked
-            if array.mask[low]:
-                if array.mask[high]:
-                    return None
+        if isinstance(array, np.ma.masked_array):
+            low_value = array.data[low]
+            high_value = array.data[high]
+            # Crude handling of masked values. TODO: Must be a better way !
+            if array.mask.any(): # An element is masked
+                if array.mask[low]:
+                    if array.mask[high]:
+                        return None
+                    else:
+                        return high_value
                 else:
-                    return high_value
-            else:
-                if array.mask[high]:
-                    return low_value
+                    if array.mask[high]:
+                        return low_value
+        else:
+            low_value = array[low]
+            high_value = array[high]
         # If not interpolating and no mask or masked samples:
         if not interpolate:
             return array[int(index + 0.5)]
