@@ -7721,6 +7721,10 @@ class TestValueAtIndex(unittest.TestCase):
         array = np.ma.arange(4)
         self.assertEquals(value_at_index(array, 1.5), 1.5)
 
+    def test_value_at_index_basic_list(self):
+        array = list(range(4))
+        self.assertEquals(value_at_index(array, 1.5), 1.5)
+
     def test_value_at_index_just_above_range(self):
         array = np.ma.arange(4)
         self.assertEquals(value_at_index(array, 3.7), 3.0)
