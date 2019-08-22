@@ -800,22 +800,30 @@ class AccelerationNormalAtTouchdown(KeyPointValueNode):
 
     @classmethod
     def can_operate(cls, available):
-        return all_of(('Acceleration Normal Offset Removed', 'Touchdown',),
+        return all_of(('Acceleration Normal Offset Removed', 'Touchdown',
+                       'Landing', 'Landing Roll'),
                       available)
 
     def derive(self,
                acc_norm=P('Acceleration Normal Offset Removed'),
                touchdowns=KTI('Touchdown'),
-               touch_and_go=KTI('Touch And Go'),
-               bounces=S('Bounced Landing')):
-        tdwns = touchdowns
-        if touch_and_go:
-            tdwns += touch_and_go
-        for touchdown in tdwns:
-            self.create_kpv(*bump(acc_norm, touchdown.index))
-        if bounces is not None:
-            for bounce in bounces:
-                self.create_kpv(*bump(acc_norm, bounce.slice.stop))
+               ldgs=S('Landing'),
+               ldg_rolls=S('Landing Roll'),
+               touch_and_gos=KTI('Touch And Go')):
+        touch_and_gos = touch_and_gos or []
+
+        for ldg in ldgs:
+            # Find the corresponding Touchdown KTI
+            tdwn = next(tdwn for tdwn in touchdowns
+                        if is_index_within_slice(tdwn.index, ldg.slice))
+            # Find the corresponding Landing Roll flight phase
+            ldg_roll = next(ldg_roll for ldg_roll in ldg_rolls
+                           if is_slice_within_slice(ldg_roll.slice, ldg.slice))
+            self.create_kpv(*bump(acc_norm, tdwn.index, end=ldg_roll.slice.stop))
+
+        if touch_and_gos:
+            for touch_and_go in touch_and_gos:
+                self.create_kpv(*bump(acc_norm, touch_and_go.index)
 
 
 class AccelerationNormalAboveWeightLimitAtTouchdown(KeyPointValueNode):
