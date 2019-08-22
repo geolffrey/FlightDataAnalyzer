@@ -71,7 +71,7 @@ def get_verbose_name(class_name):
     :type class_name: str
     :rtype: str
     '''
-    if re.match('^_\d.*$', class_name):
+    if re.match(r'^_\d.*$', class_name):
         # Remove initial underscore to allow class names starting with numbers
         # e.g. '_1000FtInClimb' will become '1000 Ft In Climb'
         class_name = class_name[1:]
