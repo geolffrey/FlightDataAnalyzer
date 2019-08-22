@@ -47,6 +47,7 @@ from analysis_engine.library import (
     integrate,
     is_index_within_slice,
     is_index_within_slices,
+    is_slice_within_slice,
     last_valid_sample,
     level_off_index,
     lookup_table,
@@ -823,7 +824,7 @@ class AccelerationNormalAtTouchdown(KeyPointValueNode):
 
         if touch_and_gos:
             for touch_and_go in touch_and_gos:
-                self.create_kpv(*bump(acc_norm, touch_and_go.index)
+                self.create_kpv(*bump(acc_norm, touch_and_go.index))
 
 
 class AccelerationNormalAboveWeightLimitAtTouchdown(KeyPointValueNode):
