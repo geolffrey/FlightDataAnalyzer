@@ -13,7 +13,8 @@ import re
 import six
 
 from abc import ABCMeta
-from collections import namedtuple, Iterable, OrderedDict
+from collections import namedtuple, OrderedDict
+from collections.abc import Iterable
 from functools import total_ordering
 from itertools import product
 from operator import attrgetter
