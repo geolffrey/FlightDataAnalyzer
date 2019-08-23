@@ -10,18 +10,12 @@ from analysis_engine.library import (
     vstack_params_where_state,
 )
 
-from analysis_engine.node import (
-    M,
-    MultistateDerivedParameterNode,
-)
+from analysis_engine.node import M, MultistateDerivedParameterNode
 
 
 class GearDown(MultistateDerivedParameterNode):
-
-    values_mapping = {
-        0: 'Up',
-        1: 'Down',
-    }
+    units = None
+    values_mapping = {0: 'Up', 1: 'Down'}
 
     @classmethod
     def can_operate(cls, available):
@@ -43,11 +37,8 @@ class GearDown(MultistateDerivedParameterNode):
 
 
 class GearUp(MultistateDerivedParameterNode):
-
-    values_mapping = {
-        0: 'Down',
-        1: 'Up',
-    }
+    units = None
+    values_mapping = {0: 'Down', 1: 'Up'}
 
     @classmethod
     def can_operate(cls, available):
@@ -75,11 +66,8 @@ class GearUp(MultistateDerivedParameterNode):
 
 
 class GearInTransit(MultistateDerivedParameterNode):
-
-    values_mapping = {
-        0: '-',
-        1: 'In Transit',
-    }
+    units = None
+    values_mapping = {0: '-', 1: 'In Transit'}
 
     @classmethod
     def can_operate(cls, available):
@@ -101,11 +89,8 @@ class GearInTransit(MultistateDerivedParameterNode):
 
 
 class GearDownInTransit(MultistateDerivedParameterNode):
-
-    values_mapping = {
-        0: '-',
-        1: 'Extending',
-    }
+    units = None
+    values_mapping = {0: '-', 1: 'Extending'}
 
     @classmethod
     def can_operate(cls, available):
@@ -123,11 +108,8 @@ class GearDownInTransit(MultistateDerivedParameterNode):
 
 
 class GearUpInTransit(MultistateDerivedParameterNode):
-
-    values_mapping = {
-        0: '-',
-        1: 'Retracting',
-    }
+    units = None
+    values_mapping = {0: '-', 1: 'Retracting'}
 
     @classmethod
     def can_operate(cls, available):
@@ -145,15 +127,9 @@ class GearUpInTransit(MultistateDerivedParameterNode):
 
 
 class GearPosition(MultistateDerivedParameterNode):
-
     align = False
-    values_mapping = {
-        0: '-',
-        1: 'Up',
-        2: 'In Transit',
-        3: 'Down',
-    }
-
+    units = None
+    values_mapping = {0: '-', 1: 'Up', 2: 'In Transit', 3: 'Down'}
 
     @classmethod
     def can_operate(cls, available):

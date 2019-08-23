@@ -1073,6 +1073,8 @@ class AltitudeRadioOffsetRemoved(DerivedParameterNode):
     Remove the offset form Altitude Radio parameters so that it averages 0ft on
     the ground.
     """
+    units = ut.FT
+
     def derive(self, alt_rad=P('Altitude Radio'), fasts=S('Fast')):
         self.array = alt_rad.array
         smoothed = np.ma.copy(alt_rad.array)
@@ -2021,6 +2023,7 @@ class Brake_C_Temp(DerivedParameterNode):
     '''
 
     name = 'Brake (C) Temp'
+    units = ut.CELSIUS
 
     @classmethod
     def can_operate(cls, available):
@@ -2047,6 +2050,7 @@ class Brake_L_Temp(DerivedParameterNode):
     '''
 
     name = 'Brake (L) Temp'
+    units = ut.CELSIUS
 
     @classmethod
     def can_operate(cls, available):
@@ -2071,6 +2075,7 @@ class Brake_R_Temp(DerivedParameterNode):
     '''
 
     name = 'Brake (R) Temp'
+    units = ut.CELSIUS
 
     @classmethod
     def can_operate(cls, available):
@@ -3744,6 +3749,7 @@ class FuelQtyC(DerivedParameterNode):
     Note: A340 has up to 4 centre tanks!
     '''
     name = 'Fuel Qty (C)'
+    units = ut.KG
 
     @classmethod
     def can_operate(cls, available):
@@ -3770,6 +3776,7 @@ class FuelQtyL(DerivedParameterNode):
     Total fuel quantity measured in the left wing.
     '''
     name = 'Fuel Qty (L)'
+    units = ut.KG
 
     @classmethod
     def can_operate(cls, available):
@@ -3797,6 +3804,7 @@ class FuelQtyR(DerivedParameterNode):
     Total fuel quantity measured in the right wing.
     '''
     name = 'Fuel Qty (R)'
+    units = ut.KG
 
     @classmethod
     def can_operate(cls, available):
@@ -3825,6 +3833,7 @@ class FuelQtyAux(DerivedParameterNode):
     '''
 
     name = 'Fuel Qty (Aux)'
+    units = ut.KG
 
     @classmethod
     def can_operate(cls, available):
@@ -5483,6 +5492,8 @@ class MagneticVariationFromRunway(DerivedParameterNode):
     Example: A Magnetic Variation of +5 deg means one adds 5 degrees to
     the Magnetic Heading to obtain the True Heading.
     '''
+    units = ut.DEGREE
+
     def derive(self,
                mag=P('Magnetic Variation'),
                head_toff = KPV('Heading During Takeoff'),
@@ -6162,6 +6173,8 @@ class RollRateForTouchdown(DerivedParameterNode):
     Unsmoothed roll rate (required for touchdown).
     '''
 
+    units = ut.DEGREE_S
+
     @classmethod
     def can_operate(cls, available,
                     family=A('Family'),):
@@ -6195,6 +6208,7 @@ class RollRateAtTouchdownLimit(DerivedParameterNode):
     Maximum roll rate at touchdown for current weight.
     Applicable only for Embraer E-175.
     '''
+    units = ut.DEGREE_S
 
     @classmethod
     def can_operate(cls, available,
@@ -6252,6 +6266,7 @@ class AccelerationNormalLimitForLandingWeight(DerivedParameterNode):
     If the landing weight is lighter than 25500 the threshold for a
     hard landing is 2.1g
     '''
+    units = ut.G
 
     @classmethod
     def can_operate(cls, available,
@@ -6285,6 +6300,7 @@ class AccelerationNormalLowLimitForLandingWeight(DerivedParameterNode):
     If the landing weight is between 22500 and 25500 the threshold for
     a hard landing is a slope line from 2.2g at 22500 to 2.0g at 25500
     '''
+    units = ut.G
 
     @classmethod
     def can_operate(cls, available,
@@ -6320,6 +6336,7 @@ class AccelerationNormalHighLimitForLandingWeight(DerivedParameterNode):
     If the landing weight is between 22500 and 25500 the threshold for
     a hard landing is a slope line from 2.42g at 22500 to 2.2g at 25500
     '''
+    units = ut.G
 
     @classmethod
     def can_operate(cls, available,
@@ -7726,6 +7743,8 @@ class AirspeedSelectedForApproaches(DerivedParameterNode):
     Use Airspeed Selected if frequency >= 0.25, otherwise upsample to 1Hz using
     next sampled value.
     '''
+    units = ut.KT
+
     def derive(self, aspd=P('Airspeed Selected'), fast=S('Fast')):
         if aspd.frequency >= 0.25:
             self.array = aspd.array
@@ -8769,6 +8788,7 @@ class MinimumCleanLookup(DerivedParameterNode):
 
     757/767: Vref30+80kts below FL250, Vref30+100kts above FL250
     '''
+    units = ut.KT
 
     @classmethod
     def can_operate(cls, available, family=A('Family')):

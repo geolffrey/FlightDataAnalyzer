@@ -71,6 +71,7 @@ class AOAAbnormalOperation(MultistateDerivedParameterNode):
     heater and correction parameters to identify abnormal operation of the AOA sensors.
     '''
     name = 'AOA Abnormal Operation'
+    units = None
 
     values_mapping = {
         0: '-',
@@ -137,6 +138,7 @@ class APEngaged(MultistateDerivedParameterNode):
     '''
 
     name = 'AP Engaged'
+    units = None
     values_mapping = {0: '-', 1: 'Engaged'}
 
     @classmethod
@@ -166,6 +168,7 @@ class APChannelsEngaged(MultistateDerivedParameterNode):
     2 APs, Boeing is happier with 3 though some older types may only have 2.
     '''
     name = 'AP Channels Engaged'
+    units = None
     values_mapping = {0: '-', 1: 'Single', 2: 'Dual', 3: 'Triple'}
 
     @classmethod
@@ -189,6 +192,7 @@ class APLateralMode(MultistateDerivedParameterNode):
     '''
     '''
     name = 'AP Lateral Mode'
+    units = None
     # Values and states match X-Plane visualisation model documentation.
     values_mapping = {
         0: '-',
@@ -250,6 +254,7 @@ class APVerticalMode(MultistateDerivedParameterNode):
     '''
     '''
     name = 'AP Vertical Mode'
+    units = None
     # Values and states match X-Plane visualisation model documentation.
     values_mapping = {
         0: '-',
@@ -377,7 +382,7 @@ class APUOn(MultistateDerivedParameterNode):
     '''
 
     name = 'APU On'
-
+    units = None
     values_mapping = {0: '-', 1: 'On'}
 
     @classmethod
@@ -398,7 +403,7 @@ class APURunning(MultistateDerivedParameterNode):
     '''
 
     name = 'APU Running'
-
+    units = None
     values_mapping = {0: '-', 1: 'Running'}
 
     @classmethod
@@ -430,6 +435,7 @@ class CargoSmokeOrFire(MultistateDerivedParameterNode):
     Merges all the cargo smoke and fire signals into one.
     '''
     name = 'Cargo (*) Smoke Or Fire'
+    units = None
     values_mapping = {0: '-', 1: 'Warning'}
 
     @classmethod
@@ -527,6 +533,7 @@ class Configuration(MultistateDerivedParameterNode):
     ''' % pformat(at.constants.AVAILABLE_CONF_STATES)
     values_mapping = at.constants.AVAILABLE_CONF_STATES
     align_frequency = 2
+    units = None
 
     @classmethod
     def can_operate(cls, available, manufacturer=A('Manufacturer'),
@@ -590,6 +597,7 @@ class ConfigurationExcludingTransition(MultistateDerivedParameterNode):
     ''' % pformat(at.constants.AVAILABLE_CONF_STATES)
     values_mapping = at.constants.AVAILABLE_CONF_STATES
     align_frequency = 2
+    units = None
 
     @classmethod
     def can_operate(cls, available, manufacturer=A('Manufacturer'),
@@ -661,6 +669,7 @@ class Daylight(MultistateDerivedParameterNode):
     # of 4 seconds.
     align_frequency = 1 / 4.0
     align_offset = 0.0
+    units = None
 
     values_mapping = {
         0: 'Night',
@@ -718,6 +727,7 @@ class DualInput(MultistateDerivedParameterNode):
     - A320 Flight Profile Specification
     - A321 Flight Profile Specification
     '''
+    units = None
     values_mapping = {0: '-', 1: 'Dual'}
 
     def derive(self,
@@ -763,6 +773,7 @@ class Eng_1_Fire(MultistateDerivedParameterNode):
     '''
 
     name = 'Eng (1) Fire'
+    units = None
     values_mapping = {0: '-', 1: 'Fire'}
 
     def derive(self,
@@ -781,6 +792,7 @@ class Eng_2_Fire(MultistateDerivedParameterNode):
     '''
 
     name = 'Eng (2) Fire'
+    units = None
     values_mapping = {0: '-', 1: 'Fire'}
 
     def derive(self,
@@ -799,6 +811,7 @@ class Eng_3_Fire(MultistateDerivedParameterNode):
     '''
 
     name = 'Eng (3) Fire'
+    units = None
     values_mapping = {0: '-', 1: 'Fire'}
 
     def derive(self,
@@ -817,6 +830,7 @@ class Eng_4_Fire(MultistateDerivedParameterNode):
     '''
 
     name = 'Eng (4) Fire'
+    units = None
     values_mapping = {0: '-', 1: 'Fire'}
 
     def derive(self,
@@ -834,6 +848,7 @@ class Eng_Fire(MultistateDerivedParameterNode):
     Merges all the engine fire signals into one.
     '''
     name = 'Eng (*) Fire'
+    units = None
     values_mapping = {0: '-', 1: 'Fire'}
 
     @classmethod
@@ -865,6 +880,7 @@ class Eng_Oil_Press_Warning(MultistateDerivedParameterNode):
     '''
 
     name = 'Eng (*) Oil Press Warning'
+    units = None
     values_mapping = {0: '-', 1: 'Warning'}
 
     @classmethod
@@ -920,6 +936,7 @@ class EngRunning(object):
     Abstract class for inheriting by EngRunning derived parameters.
     '''
     engnum = 0  # Replace with '2' for Eng (2)
+    units = None
     values_mapping = {
         0: 'Not Running',
         1: 'Running',
@@ -966,6 +983,7 @@ class Eng1Running(EngRunning, MultistateDerivedParameterNode):
     '''
     engnum = 1
     name = 'Eng (1) Running'
+    units = None
 
     def derive(self,
                eng_n1=P('Eng (1) N1'),
@@ -982,6 +1000,7 @@ class Eng2Running(EngRunning, MultistateDerivedParameterNode):
     '''
     engnum = 2
     name = 'Eng (2) Running'
+    units = None
 
     def derive(self,
                eng_n1=P('Eng (2) N1'),
@@ -998,6 +1017,7 @@ class Eng3Running(EngRunning, MultistateDerivedParameterNode):
     '''
     engnum = 3
     name = 'Eng (3) Running'
+    units = None
 
     def derive(self,
                eng_n1=P('Eng (3) N1'),
@@ -1014,6 +1034,7 @@ class Eng4Running(EngRunning, MultistateDerivedParameterNode):
     '''
     engnum = 4
     name = 'Eng (4) Running'
+    units = None
 
     def derive(self,
                eng_n1=P('Eng (4) N1'),
@@ -1029,6 +1050,7 @@ class Eng_AllRunning(MultistateDerivedParameterNode, EngRunning):
     Discrete parameter describing when all available engines are running.
     '''
     name = 'Eng (*) All Running'
+    units = None
 
     @classmethod
     def can_operate(cls, available, ac_type=A('Aircraft Type')):
@@ -1057,6 +1079,7 @@ class Eng_AnyRunning(MultistateDerivedParameterNode, EngRunning):
     running.
     '''
     name = 'Eng (*) Any Running'
+    units = None
 
     @classmethod
     def can_operate(cls, available, ac_type=A('Aircraft Type')):
@@ -1082,6 +1105,7 @@ class ThrustModeSelected(MultistateDerivedParameterNode):
     Combines Thrust Mode Selected parameters.
     '''
 
+    units = None
     values_mapping = {
         0: '-',
         1: 'Selected',
@@ -1119,6 +1143,7 @@ class EventMarker(MultistateDerivedParameterNode):
     '''
     values_mapping = {0: '-', 1: 'Event'}
     name = 'Event Marker'
+    units = None
 
     @classmethod
     def can_operate(cls, available):
@@ -1453,6 +1478,7 @@ class Flaperon(MultistateDerivedParameterNode):
     Note: This is used for Airbus models and does not necessarily mean as
     much to other aircraft types.
     '''
+    units = ut.DEGREE
 
     @classmethod
     def can_operate(cls, available,
@@ -1494,6 +1520,7 @@ class FuelQty_Low(MultistateDerivedParameterNode):
     '''
     '''
     name = "Fuel Qty (*) Low"
+    units = None
     values_mapping = {
         0: '-',
         1: 'Warning',
@@ -1524,6 +1551,7 @@ class GearDown(MultistateDerivedParameterNode):
     '''
 
     align = False
+    units = None
     values_mapping = {
         0: 'Up',
         1: 'Down',
@@ -1552,10 +1580,7 @@ class GearDown(MultistateDerivedParameterNode):
 
 
 class GearDownInTransit(MultistateDerivedParameterNode):
-    '''
-
-    '''
-
+    units = None
     values_mapping = {
         0: '-',
         1: 'Extending',
@@ -1592,8 +1617,6 @@ class GearDownInTransit(MultistateDerivedParameterNode):
                 return False
         else:
             return False
-
-
 
     def derive(self,
                gear_down=M('Gear Down'),
@@ -1717,10 +1740,7 @@ class GearDownInTransit(MultistateDerivedParameterNode):
 
 
 class GearUpInTransit(MultistateDerivedParameterNode):
-    '''
-
-    '''
-
+    units = None
     values_mapping = {
         0: '-',
         1: 'Retracting',
@@ -1887,6 +1907,7 @@ class GearUp(MultistateDerivedParameterNode):
     '''
 
     align = False
+    units = None
     values_mapping = {
         0: 'Down',
         1: 'Up',
@@ -1921,6 +1942,7 @@ class GearInTransit(MultistateDerivedParameterNode):
     '''
 
     align = False
+    units = None
     values_mapping = {
         0: '-',
         1: 'In Transit',
@@ -1938,6 +1960,7 @@ class GearOnGround(MultistateDerivedParameterNode):
     Combination of left and right main gear signals.
     '''
     align = False
+    units = None
     values_mapping = {
         0: 'Air',
         1: 'Ground',
@@ -1981,9 +2004,8 @@ class GearOnGround(MultistateDerivedParameterNode):
 
 
 class GearDownSelected(MultistateDerivedParameterNode):
-
-
     align_frequency = 1
+    units = None
     values_mapping = {
         0: 'Up',
         1: 'Down',
@@ -2000,6 +2022,7 @@ class GearUpSelected(MultistateDerivedParameterNode):
     Warnings.
     '''
     align_frequency = 1
+    units = None
     values_mapping = {
         0: 'Down',
         1: 'Up',
@@ -2030,8 +2053,8 @@ class Gear_RedWarning(MultistateDerivedParameterNode):
     Ensures that false warnings on the ground are ignored.
     '''
     name = 'Gear (*) Red Warning'
-    values_mapping = {0: '-',
-                      1: 'Warning'}
+    units = None
+    values_mapping = {0: '-', 1: 'Warning'}
     #store in hdf = False! glimpse into the future ;)
 
     @classmethod
@@ -2074,6 +2097,7 @@ class ILSInnerMarker(MultistateDerivedParameterNode):
     values_mapping = {0: '-', 1: 'Present'}
     align = False
     name = 'ILS Inner Marker'
+    units = None
 
     @classmethod
     def can_operate(cls, available):
@@ -2096,6 +2120,7 @@ class ILSMiddleMarker(MultistateDerivedParameterNode):
     values_mapping = {0: '-', 1: 'Present'}
     align = False
     name = 'ILS Middle Marker'
+    units = None
 
     @classmethod
     def can_operate(cls, available):
@@ -2118,6 +2143,7 @@ class ILSOuterMarker(MultistateDerivedParameterNode):
     values_mapping = {0: '-', 1: 'Present'}
     align = False
     name = 'ILS Outer Marker'
+    units = None
 
     @classmethod
     def can_operate(cls, available):
@@ -2136,6 +2162,7 @@ class ILSOuterMarker(MultistateDerivedParameterNode):
 class KeyVHFCapt(MultistateDerivedParameterNode):
 
     name = 'Key VHF (Capt)'
+    units = None
     values_mapping = {0: '-', 1: 'Keyed'}
 
     @classmethod
@@ -2155,6 +2182,7 @@ class KeyVHFCapt(MultistateDerivedParameterNode):
 class KeyVHFFO(MultistateDerivedParameterNode):
 
     name = 'Key VHF (FO)'
+    units = None
     values_mapping = {0: '-', 1: 'Keyed'}
 
     @classmethod
@@ -2175,6 +2203,7 @@ class MasterCaution(MultistateDerivedParameterNode):
     '''
     Combine Master Caution for captain and first officer.
     '''
+    units = None
     values_mapping = {0: '-', 1: 'Caution'}
 
     @classmethod
@@ -2200,6 +2229,7 @@ class MasterWarning(MultistateDerivedParameterNode):
     '''
     Combine master warning for captain and first officer.
     '''
+    units = None
     values_mapping = {0: '-', 1: 'Warning'}
 
     @classmethod
@@ -2222,7 +2252,7 @@ class PackValvesOpen(MultistateDerivedParameterNode):
     '''
 
     name = 'Pack Valves Open'
-
+    units = None
     values_mapping = {
         0: 'All closed',
         1: 'One engine low flow',
@@ -2266,6 +2296,7 @@ class PilotFlying(MultistateDerivedParameterNode):
     - A320 Flight Profile Specification
     - A321 Flight Profile Specification
     '''
+    units = None
     values_mapping = {0: '-', 1: 'Captain', 2: 'First Officer'}
 
     def derive(self,
@@ -2318,7 +2349,7 @@ class PitchAlternateLaw(MultistateDerivedParameterNode):
     '''
     Combine Pitch Alternate Law from sources (1) and/or (2).
     '''
-
+    units = None
     values_mapping = {0: '-', 1: 'Engaged'}
 
     @classmethod
@@ -2340,6 +2371,7 @@ class PitchDisconnect(MultistateDerivedParameterNode):
     '''
     Combine Pitch Disconnect Parameters from sources (1) and (2).
     '''
+    units = None
     values_mapping = {
         0: '-',
         1: 'Disconnect',
@@ -2459,13 +2491,8 @@ class SlatIncludingTransition(MultistateDerivedParameterNode):
 
 
 class SlatFullyExtended(MultistateDerivedParameterNode):
-    '''
-    '''
-
-    values_mapping = {
-        0: '-',
-        1: 'Extended'
-    }
+    units = None
+    values_mapping = {0: '-', 1: 'Extended'}
 
     @classmethod
     def can_operate(cls, available):
@@ -2503,13 +2530,8 @@ class SlatFullyExtended(MultistateDerivedParameterNode):
 
 
 class SlatPartExtended(MultistateDerivedParameterNode):
-    '''
-    '''
-
-    values_mapping = {
-        0: '-',
-        1: 'Part Extended'
-    }
+    units = None
+    values_mapping = {0: '-', 1: 'Part Extended'}
 
     @classmethod
     def can_operate(cls, available):
@@ -2547,13 +2569,8 @@ class SlatPartExtended(MultistateDerivedParameterNode):
 
 
 class SlatInTransit(MultistateDerivedParameterNode):
-    '''
-    '''
-
-    values_mapping = {
-        0: '-',
-        1: 'In Transit'
-    }
+    units = None
+    values_mapping = {0: '-', 1: 'In Transit'}
 
     @classmethod
     def can_operate(cls, available):
@@ -2590,13 +2607,8 @@ class SlatInTransit(MultistateDerivedParameterNode):
 
 
 class SlatRetracted(MultistateDerivedParameterNode):
-    '''
-    '''
-
-    values_mapping = {
-        0: '-',
-        1: 'Retracted'
-    }
+    units = None
+    values_mapping = {0: '-', 1: 'Retracted'}
 
     @classmethod
     def can_operate(cls, available):
@@ -2631,10 +2643,8 @@ class StickPusher(MultistateDerivedParameterNode):
     triggering.
     '''
 
-    values_mapping = {
-        0: '-',
-        1: 'Push'
-    }
+    units = None
+    values_mapping = {0: '-', 1: 'Push'}
 
     @classmethod
     def can_operate(cls, available):
@@ -2659,10 +2669,8 @@ class StickShaker(MultistateDerivedParameterNode):
     operates in response to either system triggering.
     '''
 
-    values_mapping = {
-        0: '-',
-        1: 'Shake',
-    }
+    units = None
+    values_mapping = {0: '-', 1: 'Shake'}
 
     @classmethod
     def can_operate(cls, available):
@@ -2706,10 +2714,8 @@ class StallWarning(MultistateDerivedParameterNode):
     operates in response to either system triggering.
     '''
 
-    values_mapping = {
-        0: '-',
-        1: 'Warning',
-    }
+    units = None
+    values_mapping = {0: '-', 1: 'Warning'}
 
     @classmethod
     def can_operate(cls, available):
@@ -2737,9 +2743,8 @@ class SmokeWarning(MultistateDerivedParameterNode):
     Merging all available smoke alert signals into a single parameter for
     subsequent monitoring.
     '''
-    values_mapping = {
-        0: '-',
-        1: 'Smoke'}
+    units = None
+    values_mapping = {0: '-', 1: 'Smoke'}
 
     @classmethod
     def can_operate(cls, available):
@@ -2787,10 +2792,8 @@ class SpeedbrakeDeployed(MultistateDerivedParameterNode):
     matching spoilers in deployed state indicates speedbrake, single side
     depolyment indicates roll.
     '''
-    values_mapping = {
-        0: '-',
-        1: 'Deployed',
-    }
+    units = None
+    values_mapping = {0: '-', 1: 'Deployed'}
 
     @classmethod
     def can_operate(cls, available, family=A('Family')):
@@ -2924,12 +2927,8 @@ class SpeedbrakeSelected(MultistateDerivedParameterNode):
     - 1 -- Armed / Commanded (Spoilers Down)
     - 2 -- Deployed / Commanded (Spoilers Up)
     '''
-
-    values_mapping = {
-        0: 'Stowed',
-        1: 'Armed/Cmd Dn',
-        2: 'Deployed/Cmd Up',
-    }
+    units = None
+    values_mapping = {0: 'Stowed', 1: 'Armed/Cmd Dn', 2: 'Deployed/Cmd Up'}
 
     @classmethod
     def can_operate(cls, available, family=A('Family')):
@@ -3253,7 +3252,7 @@ class StableApproachStages(object):
     * Engine cycling check
     * Use Engine TPR for B787 instead of EPR if available.
     '''
-
+    units = None
     values_mapping = {
         0: '-',  # All values should be masked anyway, this helps align values
         1: 'Gear Not Down',
@@ -3503,8 +3502,8 @@ class StableApproachStages(object):
         return stable
 
 
-class StableApproach(MultistateDerivedParameterNode,
-                     StableApproachStages):
+class StableApproach(MultistateDerivedParameterNode, StableApproachStages):
+    units = None
 
     @classmethod
     def can_operate(cls, available):
@@ -3537,8 +3536,8 @@ class StableApproach(MultistateDerivedParameterNode,
                                     eng_epr, alt, vapp, family, model)
 
 
-class StableApproachExcludingEngThrust(MultistateDerivedParameterNode,
-                                       StableApproachStages):
+class StableApproachExcludingEngThrust(MultistateDerivedParameterNode, StableApproachStages):
+    units = None
 
     @classmethod
     def can_operate(cls, available):
@@ -3577,10 +3576,8 @@ class StickShaker(MultistateDerivedParameterNode):
     '''
 
     align = False
-    values_mapping = {
-        0: '-',
-        1: 'Shake',
-    }
+    units = None
+    values_mapping = {0: '-', 1: 'Shake'}
 
     @classmethod
     def can_operate(cls, available):
@@ -3617,11 +3614,8 @@ class ThrustReversers(MultistateDerivedParameterNode):
     # The mapping "In Transit" is used for anything other than the fully
     # established conditions, so for example one locked and the other not is
     # still treated as in transit.
-    values_mapping = {
-        0: 'Stowed',
-        1: 'In Transit',
-        2: 'Deployed',
-    }
+    units = None
+    values_mapping = {0: 'Stowed', 1: 'In Transit', 2: 'Deployed'}
 
     @classmethod
     def can_operate(cls, available):
@@ -3722,9 +3716,8 @@ class ThrustReversers(MultistateDerivedParameterNode):
 
 
 class ThrustReversersEffective(MultistateDerivedParameterNode):
-    values_mapping = {
-        0: '-',
-        1: 'Effective'}
+    units = None
+    values_mapping = {0: '-', 1: 'Effective'}
 
     @classmethod
     def can_operate(cls, available):
@@ -3760,9 +3753,8 @@ class TAWSAlert(MultistateDerivedParameterNode):
     subsequent monitoring.
     '''
     name = 'TAWS Alert'
-    values_mapping = {
-        0: '-',
-        1: 'Alert'}
+    units = None
+    values_mapping = {0: '-', 1: 'Alert'}
 
     @classmethod
     def can_operate(cls, available):
@@ -3829,11 +3821,8 @@ class TAWSAlert(MultistateDerivedParameterNode):
 
 class TAWSDontSink(MultistateDerivedParameterNode):
     name = 'TAWS Dont Sink'
-
-    values_mapping = {
-        0: '-',
-        1: 'Warning',
-    }
+    units = None
+    values_mapping = {0: '-', 1: 'Warning'}
 
     @classmethod
     def can_operate(cls, available):
@@ -3850,11 +3839,8 @@ class TAWSDontSink(MultistateDerivedParameterNode):
 
 class TAWSGlideslopeCancel(MultistateDerivedParameterNode):
     name = 'TAWS Glideslope Cancel'
-
-    values_mapping = {
-        0: '-',
-        1: 'Cancel',
-    }
+    units = None
+    values_mapping = {0: '-', 1: 'Cancel'}
 
     @classmethod
     def can_operate(cls, available):
@@ -3871,11 +3857,8 @@ class TAWSGlideslopeCancel(MultistateDerivedParameterNode):
 
 class TAWSTooLowGear(MultistateDerivedParameterNode):
     name = 'TAWS Too Low Gear'
-
-    values_mapping = {
-        0: '-',
-        1: 'Warning',
-    }
+    units = None
+    values_mapping = {0: '-', 1: 'Warning'}
 
     @classmethod
     def can_operate(cls, available):
@@ -3895,10 +3878,8 @@ class TakeoffConfigurationWarning(MultistateDerivedParameterNode):
     Merging all available Takeoff Configuration Warning signals into a single
     parameter for subsequent monitoring.
     '''
-    values_mapping = {
-        0: '-',
-        1: 'Warning',
-    }
+    units = None
+    values_mapping = {0: '-', 1: 'Warning'}
 
     @classmethod
     def can_operate(cls, available):
@@ -3926,11 +3907,8 @@ class TakeoffConfigurationWarning(MultistateDerivedParameterNode):
 
 class TCASFailure(MultistateDerivedParameterNode):
     name = 'TCAS Failure'
-
-    values_mapping = {
-        0: '-',
-        1: 'Failed',
-    }
+    units = None
+    values_mapping = {0: '-', 1: 'Failed'}
 
     @classmethod
     def can_operate(cls, available):
@@ -3947,11 +3925,8 @@ class TCASFailure(MultistateDerivedParameterNode):
 
 class TCASRA(MultistateDerivedParameterNode):
     name = 'TCAS RA'
-
-    values_mapping = {
-        0: '-',
-        1: 'RA',
-    }
+    units = None
+    values_mapping = {0: '-', 1: 'RA'}
 
     @classmethod
     def can_operate(cls, available):
@@ -3967,7 +3942,7 @@ class TCASRA(MultistateDerivedParameterNode):
 
 
 class SpeedControl(MultistateDerivedParameterNode):
-
+    units = None
     values_mapping = {0: 'Manual', 1: 'Auto'}
 
     @classmethod
@@ -3994,7 +3969,7 @@ class Transmitting(MultistateDerivedParameterNode):
     '''
     Whenever the HF, VHF or Satcom transmits are used, this parameter outputs Transmit.
     '''
-
+    units = None
     values_mapping = {0: '-', 1: 'Transmit'}
 
     @classmethod
@@ -4032,4 +4007,3 @@ class Transmitting(MultistateDerivedParameterNode):
         )))
         self.array = stacked.any(axis=0)
         self.array.mask = stacked.mask.any(axis=0)
-

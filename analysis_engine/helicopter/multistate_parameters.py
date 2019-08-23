@@ -39,11 +39,8 @@ class AllEnginesOperative(MultistateDerivedParameterNode):
     OEI: One Engine Inoperative
     AEO: All Engines Operative
     '''
-
-    values_mapping = {
-        0: '-',
-        1: 'AEO',
-    }
+    units = None
+    values_mapping = {0: '-', 1: 'AEO'}
 
     can_operate = helicopter_only
 
@@ -64,8 +61,8 @@ class ASEEngaged(MultistateDerivedParameterNode):
 
     This is a discrete with only the Engaged state.
     '''
-
     name = 'ASE Engaged'
+    units = None
     values_mapping = {0: '-', 1: 'Engaged'}
 
     @classmethod
@@ -90,6 +87,7 @@ class ASEChannelsEngaged(MultistateDerivedParameterNode):
     '''
     '''
     name = 'ASE Channels Engaged'
+    units = None
     values_mapping = {0: '-', 1: 'Single', 2: 'Dual', 3: 'Triple'}
 
     @classmethod
@@ -118,11 +116,8 @@ class Eng1OneEngineInoperative(MultistateDerivedParameterNode):
     '''
 
     name = 'Eng (1) One Engine Inoperative'
-
-    values_mapping = {
-        0: '-',
-        1: 'Active',
-    }
+    units = None
+    values_mapping = {0: '-', 1: 'Active'}
 
     can_operate = helicopter_only
 
@@ -146,11 +141,8 @@ class Eng2OneEngineInoperative(MultistateDerivedParameterNode):
     '''
 
     name = 'Eng (2) One Engine Inoperative'
-
-    values_mapping = {
-        0: '-',
-        1: 'Active',
-    }
+    units = None
+    values_mapping = {0: '-', 1: 'Active'}
 
     can_operate = helicopter_only
 
@@ -170,10 +162,8 @@ class GearOnGround(MultistateDerivedParameterNode):
     Combination of left and right main gear signals.
     '''
     align = False
-    values_mapping = {
-        0: 'Air',
-        1: 'Ground',
-    }
+    units = None
+    values_mapping = {0: 'Air', 1: 'Ground'}
 
     @classmethod
     def can_operate(cls, available, ac_type=A('Aircraft Type')):
@@ -274,11 +264,8 @@ class OneEngineInoperative(MultistateDerivedParameterNode):
 
     OEI: One Engine Inoperative
     '''
-
-    values_mapping = {
-        0: '-',
-        1: 'OEI',
-    }
+    units = None
+    values_mapping = {0: '-', 1: 'OEI'}
 
     can_operate = helicopter_only
 
@@ -296,7 +283,7 @@ class OneEngineInoperative(MultistateDerivedParameterNode):
 
 class RotorBrakeEngaged(MultistateDerivedParameterNode):
     ''' Discrete parameter describing when any rotor brake is engaged. '''
-
+    units = None
     values_mapping = {0: '-', 1: 'Engaged'}
 
     @classmethod
@@ -317,14 +304,8 @@ class RotorBrakeEngaged(MultistateDerivedParameterNode):
 
 
 class RotorsRunning(MultistateDerivedParameterNode):
-    '''
-
-    '''
-
-    values_mapping = {
-        0: 'Not Running',
-        1: 'Running',
-    }
+    units = None
+    values_mapping = {0: 'Not Running', 1: 'Running'}
 
     can_operate = helicopter_only
 

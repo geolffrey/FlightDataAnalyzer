@@ -6603,6 +6603,7 @@ class NumberOfAPChannelsEngagedAtTouchdown(KeyPointValueNode):
     If AP is disengaged on Touchdown the value will be 0.
     '''
     name = 'Number of AP Channels Engaged At Touchdown'
+    units = None
 
     @classmethod
     def can_operate(cls, available):
@@ -13780,6 +13781,7 @@ class FuelCrossFeedValveStateAtLiftoff(KeyPointValueNode):
 
     This KPV determines whether the valve was open during each liftoff.
     '''
+    units = None
 
     @classmethod
     def can_operate(cls, available):
@@ -17673,6 +17675,7 @@ class TCASRAAPDisengaged(KeyPointValueNode):
     '''
 
     name = 'TCAS RA AP Disengaged'
+    units = None
 
     @classmethod
     def can_operate(cls, available):
@@ -19257,7 +19260,7 @@ class ControlColumnDualInputOppositeDirectionForceMax(KeyPointValueNode):
 
 class PitchDisconnectDuration(KeyPointValueNode):
 
-    unit = ut.SECOND
+    units = ut.SECOND
 
     def derive(self, pitch_disconnect=M('Pitch Disconnect'),):
         self.create_kpvs_where(pitch_disconnect.array == 'Disconnect')

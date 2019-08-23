@@ -622,9 +622,10 @@ class DerivedParameterNode(Node):
     # The units which the derived parameter's array is measured in. It is in
     # lower case to be consistent with the HDFAccess Parameter class and
     # therefore written as an attribute to the HDF file.
-    node_type_abbr = 'Parameter'
+    # XXX: Commented out - require units to be defined explicitly.
+    # units = None
 
-    units = None
+    node_type_abbr = 'Parameter'
     data_type = 'Derived'
     lfl = False
 
