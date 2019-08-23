@@ -830,7 +830,7 @@ class IGBOilTempMax(KeyPointValueNode):
         return aircraft and gearbox and airborne
 
     def derive(self, igb=P('IGB Oil Temp'), airborne=S('Airborne')):
-        self.create_kpvs_within_slices(igb.array, airborne, max_value)
+        self.create_kpv_from_slices(igb.array, airborne, max_value)
 
 
 class TGBOilTempMax(KeyPointValueNode):
@@ -848,7 +848,7 @@ class TGBOilTempMax(KeyPointValueNode):
         return aircraft and gearbox and airborne
 
     def derive(self, tgb=P('TGB Oil Temp'), airborne=S('Airborne')):
-        self.create_kpvs_within_slices(tgb.array, airborne, max_value)
+        self.create_kpv_from_slices(tgb.array, airborne, max_value)
 
 
 ##############################################################################
