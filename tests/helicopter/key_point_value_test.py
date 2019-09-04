@@ -56,6 +56,7 @@ from analysis_engine.helicopter.key_point_values import (
     EngTorqueWithOneEngineInoperativeMax,
     EngTorqueAbove90KtsMax,
     EngTorqueAbove100KtsMax,
+    IGBOilTempMax,
     MGBOilTempMax,
     MGBOilPressMax,
     MGBOilPressMin,
@@ -123,6 +124,7 @@ from analysis_engine.helicopter.key_point_values import (
     SATMin,
     SATRateOfChangeMax,
     CruiseGuideIndicatorMax,
+    TGBOilTempMax,
     TrainingModeDuration,
     HoverHeightDuringOffshoreTakeoffMax,
     HoverHeightDuringOnshoreTakeoffMax
@@ -2061,6 +2063,74 @@ class TestMGBOilTempMax(unittest.TestCase):
 
         node = self.node_class()
         node.derive(None, mgb_fwd_oil_temp, mgb_aft_oil_temp, airborne)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].value, 79)
+        self.assertEqual(node[0].index, 39)
+
+
+class TestIGBOilTempMax(unittest.TestCase):
+    def setUp(self):
+        self.node_class = IGBOilTempMax
+
+    def test_attributes(self):
+        node = self.node_class()
+        self.assertEqual(node.units, ut.CELSIUS)
+        self.assertEqual(node.name, 'IGB Oil Temp Max')
+
+    def test_can_operate(self):
+        self.assertEqual(
+            self.node_class.get_operational_combinations(ac_type=aeroplane),
+            []
+        )
+        opts = self.node_class.get_operational_combinations(ac_type=helicopter)
+
+        self.assertEqual(len(opts), 1)
+        for opt in opts:
+            self.assertIn('Airborne', opt)
+            self.assertIn('IGB Oil Temp', opt)
+
+    def test_derive(self):
+        temp = [78.0]*14 + [78.5,78] + [78.5]*23 + [79.0]*5 + [79.5] + [79.0]*5
+        igb_oil_temp = P('IGB Oil Temp', temp)
+        airborne = buildsection('Airborne', 1, 43)
+
+        node = self.node_class()
+        node.derive(igb_oil_temp, airborne)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].value, 79)
+        self.assertEqual(node[0].index, 39)
+
+
+class TestTGBOilTempMax(unittest.TestCase):
+    def setUp(self):
+        self.node_class = TGBOilTempMax
+
+    def test_attributes(self):
+        node = self.node_class()
+        self.assertEqual(node.units, ut.CELSIUS)
+        self.assertEqual(node.name, 'TGB Oil Temp Max')
+
+    def test_can_operate(self):
+        self.assertEqual(
+            self.node_class.get_operational_combinations(ac_type=aeroplane),
+            []
+        )
+        opts = self.node_class.get_operational_combinations(ac_type=helicopter)
+
+        self.assertEqual(len(opts), 1)
+        for opt in opts:
+            self.assertIn('Airborne', opt)
+            self.assertIn('TGB Oil Temp', opt)
+
+    def test_derive(self):
+        temp = [78.0]*14 + [78.5,78] + [78.5]*23 + [79.0]*5 + [79.5] + [79.0]*5
+        tgb_oil_temp = P('TGB Oil Temp', temp)
+        airborne = buildsection('Airborne', 1, 43)
+
+        node = self.node_class()
+        node.derive(tgb_oil_temp, airborne)
 
         self.assertEqual(len(node), 1)
         self.assertEqual(node[0].value, 79)
