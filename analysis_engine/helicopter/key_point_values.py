@@ -815,6 +815,42 @@ class CGBOilPressMin(KeyPointValueNode):
         self.create_kpvs_within_slices(cgb.array, airborne, min_value)
 
 
+class IGBOilTempMax(KeyPointValueNode):
+    '''
+    Find the Max temperature for the intermediate gearbox oil. Helicopter only.
+    '''
+    units = ut.CELSIUS
+    name = 'IGB Oil Temp Max'
+
+    @classmethod
+    def can_operate(cls, available, ac_type=A('Aircraft Type')):
+        aircraft = ac_type == helicopter
+        gearbox = 'IGB Oil Temp'in available
+        airborne = 'Airborne' in available
+        return aircraft and gearbox and airborne
+
+    def derive(self, igb=P('IGB Oil Temp'), airborne=S('Airborne')):
+        self.create_kpvs_within_slices(igb.array, airborne, max_value)
+
+
+class TGBOilTempMax(KeyPointValueNode):
+    '''
+    Find the Max temperature for the tail gearbox oil. Helicopter only.
+    '''
+    units = ut.CELSIUS
+    name = 'TGB Oil Temp Max'
+
+    @classmethod
+    def can_operate(cls, available, ac_type=A('Aircraft Type')):
+        aircraft = ac_type == helicopter
+        gearbox = 'TGB Oil Temp'in available
+        airborne = 'Airborne' in available
+        return aircraft and gearbox and airborne
+
+    def derive(self, tgb=P('TGB Oil Temp'), airborne=S('Airborne')):
+        self.create_kpvs_within_slices(tgb.array, airborne, max_value)
+
+
 ##############################################################################
 # Heading
 
