@@ -13841,11 +13841,12 @@ class GroundspeedWithGearOnGroundMax(KeyPointValueNode):
 
     def derive(self,
                gnd_spd=P('Groundspeed Signed'),
-               gear=M('Gear On Ground')):
+               gear=M('Gear On Ground'),
+               groundeds=S('Grounded')):
 
         self.create_kpvs_within_slices(
             gnd_spd.array,
-            runs_of_ones(gear.array == 'Ground'),
+            slices_and(groundeds.get_slices(), runs_of_ones(gear.array == 'Ground')),
             max_value)
 
 

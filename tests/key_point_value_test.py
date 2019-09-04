@@ -15650,20 +15650,19 @@ class TestGroundspeedWithGearOnGroundMax(unittest.TestCase, NodeTest):
 
     def setUp(self):
         self.node_class = GroundspeedWithGearOnGroundMax
-        self.operational_combinations = [('Groundspeed Signed', 'Gear On Ground')]
+        self.operational_combinations = [('Groundspeed Signed', 'Gear On Ground', 'Grounded')]
         self.function = max_value
 
     def test_derive_basic(self):
-        spd=P('Groundspeed Signed', array = np.ma.arange(100, 0, -10))
-        gog=M('Gear On Ground',
-              array=np.ma.array([0]*5 + [1]*5),
-             values_mapping = {0: 'Air', 1: 'Ground'})
+        spd = P('Groundspeed Signed', array = np.ma.arange(100, 0, -10))
+        gog = M('Gear On Ground', array=np.ma.array([0]*5 + [1]*5), values_mapping = {0: 'Air', 1: 'Ground'})
+        groundeds = buildsection('Grounded', 6, 10)
 
         node = self.node_class()
-        node.derive(spd, gog)
+        node.derive(spd, gog, groundeds)
         self.assertEqual(len(node), 1)
         self.assertEqual(node[0], KeyPointValue(
-            index=5, value=50.0,
+            index=6, value=40.0,
             name='Groundspeed With Gear On Ground Max'))
 
 
