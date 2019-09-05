@@ -196,7 +196,7 @@ ALTITUDE_RADIO_MAX_RANGE = 5000.0 # ft
 # NB: Negative offsets are not corrected, assumed to be from oleo compression.
 ALTITUDE_RADIO_OFFSET_LIMIT = 10.0
 
-# When in the cruise, an aircraft can get short periods of radio altimeter 
+# When in the cruise, an aircraft can get short periods of radio altimeter
 # signal when overflying other aircraft. This period is suppressed to avoid
 # nuisance returns.
 ALTITUDE_RADIO_OVERFLY_SUPPRESSION = 30.0
@@ -382,7 +382,7 @@ CORE_START_SPEED = 35.0  # %
 CORE_STOP_SPEED = 35.0  # %
 
 
-# Minimum values for determining a running engine, used in segment type 
+# Minimum values for determining a running engine, used in segment type
 # detection as well as Eng Running multistates
 MIN_FAN_RUNNING = 10.0  # N1/Np %
 MIN_CORE_RUNNING = 10.0  # N2/N3/Ng %
@@ -412,8 +412,8 @@ TCAS_SCAN_TIME = 10.0 # seconds
 TCAS_THRESHOLD = 0.15 # g
 
 # Transition altitude - above use Altitude STD, below use Altitude AAL.
-# Note: This affects the generic KTIs and dependent nodes only. Some KPVs are 
-# "hard wired", e.g. 8000-10000 ft ranges. 
+# Note: This affects the generic KTIs and dependent nodes only. Some KPVs are
+# "hard wired", e.g. 8000-10000 ft ranges.
 TRANSITION_ALTITUDE = 8000  # ft
 
 # Vertical speed limits of 800 fpm and -500 fpm gives good distinction with
@@ -489,7 +489,7 @@ POLARIS Settings for helicopter flight data analysis.
 """
 
 # The minimum sensible duration for being airborne, lower than fixed wing!
-AIRBORNE_THRESHOLD_TIME_RW = 10  # secs
+AIRBORNE_THRESHOLD_TIME_RW = 20  # secs
 
 # Hover taxi co.
 
