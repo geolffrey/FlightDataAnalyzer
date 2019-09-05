@@ -1880,6 +1880,49 @@ class TestAccelerationNormalAtTouchdown(unittest.TestCase, NodeTest):
             KeyPointValue(1, 2.0, 'Acceleration Normal At Touchdown'),
         ])
 
+    def test_derive_tdwn_outside_ldg(self):
+        acc_norm = Mock()
+        touchdowns = KTI('Touchdown', items=[KeyTimeInstance(13, 'Touchdown')])
+
+        ldgs = S('Landing')
+        ldgs.create_section(slice(10, 20, None))
+        ldg_rolls = S('Landing Roll')
+        ldg_rolls.create_section(slice(21, 25, None))
+        node = AccelerationNormalAtTouchdown()
+        node.derive(acc_norm, touchdowns, ldgs, ldg_rolls, None)
+        self.assertEqual(node, [])
+
+    def test_derive_ldg_roll_outside_ldg(self):
+        acc_norm = Mock()
+        touchdowns = KTI('Touchdown', items=[KeyTimeInstance(9, 'Touchdown')])
+
+        ldgs = S('Landing')
+        ldgs.create_section(slice(10, 20, None))
+        ldg_rolls = S('Landing Roll')
+        ldg_rolls.create_section(slice(12, 16, None))
+        node = AccelerationNormalAtTouchdown()
+        node.derive(acc_norm, touchdowns, ldgs, ldg_rolls, None)
+        self.assertEqual(node, [])
+
+    @patch('analysis_engine.key_point_values.bump')
+    def test_derive_touch_and_go_no_landing(self, bump):
+        bump.side_effect = [(1, 2),]
+        acc_norm = Mock()
+        touchdowns = KTI('Touchdown', items=[KeyTimeInstance(13, 'Touchdown')])
+        touch_and_go = KTI('Touch And Go', items=[KeyTimeInstance(1, 'Touch And Go')])
+        ldgs = S('Landing')
+        ldgs.create_section(slice(10, 20, None))
+        ldg_rolls = S('Landing Roll')
+        ldg_rolls.create_section(slice(21, 25, None))
+        node = AccelerationNormalAtTouchdown()
+        node.derive(acc_norm, touchdowns, ldgs, ldg_rolls, touch_and_go)
+        bump.assert_has_calls([
+            call(acc_norm, touch_and_go[0].index),
+        ])
+        self.assertEqual(node, [
+            KeyPointValue(1, 2.0, 'Acceleration Normal At Touchdown'),
+        ])
+
 
 class TestAccelerationNormalMinusLoadFactorThresholdAtTouchdown(unittest.TestCase):
     def setUp(self):
