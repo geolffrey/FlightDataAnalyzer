@@ -1881,7 +1881,7 @@ class TestAccelerationNormalAtTouchdown(unittest.TestCase, NodeTest):
         ])
 
     def test_derive_tdwn_outside_ldg(self):
-        acc_norm = Mock()
+        acc_norm = P('Acceleration Normal', array=np.ma.arange(25))
         touchdowns = KTI('Touchdown', items=[KeyTimeInstance(13, 'Touchdown')])
 
         ldgs = S('Landing')
@@ -1890,7 +1890,9 @@ class TestAccelerationNormalAtTouchdown(unittest.TestCase, NodeTest):
         ldg_rolls.create_section(slice(21, 25, None))
         node = AccelerationNormalAtTouchdown()
         node.derive(acc_norm, touchdowns, ldgs, ldg_rolls, None)
-        self.assertEqual(node, [])
+        self.assertEqual(node, [
+            KeyPointValue(16, 16, 'Acceleration Normal At Touchdown'),
+        ])
 
     def test_derive_ldg_roll_outside_ldg(self):
         acc_norm = Mock()
@@ -1906,7 +1908,7 @@ class TestAccelerationNormalAtTouchdown(unittest.TestCase, NodeTest):
 
     @patch('analysis_engine.key_point_values.bump')
     def test_derive_touch_and_go_no_landing(self, bump):
-        bump.side_effect = [(1, 2),]
+        bump.side_effect = [(1, 2,), (3, 4)]
         acc_norm = Mock()
         touchdowns = KTI('Touchdown', items=[KeyTimeInstance(13, 'Touchdown')])
         touch_and_go = KTI('Touch And Go', items=[KeyTimeInstance(1, 'Touch And Go')])
@@ -1917,10 +1919,12 @@ class TestAccelerationNormalAtTouchdown(unittest.TestCase, NodeTest):
         node = AccelerationNormalAtTouchdown()
         node.derive(acc_norm, touchdowns, ldgs, ldg_rolls, touch_and_go)
         bump.assert_has_calls([
+            call(acc_norm, touchdowns[0].index, end=None),
             call(acc_norm, touch_and_go[0].index),
         ])
         self.assertEqual(node, [
             KeyPointValue(1, 2.0, 'Acceleration Normal At Touchdown'),
+            KeyPointValue(3, 4.0, 'Acceleration Normal At Touchdown'),
         ])
 
 
