@@ -274,7 +274,7 @@ class NoseDownAttitudeAdoption(FlightPhaseNode):
                 # Shrink window size instead of looking for insignificant
                 # spikes and scale window/pitch thresholds accordingly
                 if window_threshold >= min_window_threshold:
-                    window_size /= 2; min_window_threshold /= 2; window_threshold /= 2; window_threshold_step /= 2
+                    window_size //= 2; min_window_threshold /= 2; window_threshold /= 2; window_threshold_step /= 2
                     sig_pitch_threshold *= 2
                 else:
                     window_threshold += window_threshold_step
