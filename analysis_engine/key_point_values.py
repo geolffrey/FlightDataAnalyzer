@@ -812,16 +812,18 @@ class AccelerationNormalAtTouchdown(KeyPointValueNode):
                touch_and_gos=KTI('Touch And Go')):
 
         for ldg in ldgs:
-            try:
-                # Find the corresponding Touchdown KTI
-                tdwn = next(tdwn for tdwn in touchdowns
-                            if is_index_within_slice(tdwn.index, ldg.slice))
-                # Find the corresponding Landing Roll flight phase
-                ldg_roll = next(ldg_roll for ldg_roll in ldg_rolls
-                               if is_slice_within_slice(ldg_roll.slice, ldg.slice))
-            except StopIteration:
+            # Find the corresponding Touchdown KTI
+            tdwn = next((tdwn for tdwn in touchdowns if is_index_within_slice(tdwn.index, ldg.slice)), None)
+            if not tdwn:
                 continue
-            self.create_kpv(*bump(acc_norm, tdwn.index, end=ldg_roll.slice.stop))
+            ldg_roll_stop = None
+            if ldg_rolls:
+                # Find the corresponding Landing Roll flight phase
+                ldg_roll = next((ldg_roll for ldg_roll in ldg_rolls
+                                 if is_slice_within_slice(ldg_roll.slice, ldg.slice)), None)
+                if ldg_roll:
+                    ldg_roll_stop = ldg_roll.slice.stop
+            self.create_kpv(*bump(acc_norm, tdwn.index, end=ldg_roll_stop))
 
         if touch_and_gos:
             for touch_and_go in touch_and_gos:
