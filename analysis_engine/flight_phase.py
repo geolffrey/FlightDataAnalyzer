@@ -1,3 +1,4 @@
+from math import ceil
 import numpy as np
 
 from operator import itemgetter
@@ -1439,8 +1440,9 @@ class LandingRoll(FlightPhaseNode):
     time, i.e. as the nosewheel comes down and not as the flare starts.
     '''
     @classmethod
-    def can_operate(cls, available):
-        return 'Landing' in available and any_of(('Airspeed True', 'Groundspeed'), available)
+    def can_operate(cls, available, ac_type=A('Aircraft Type')):
+        return 'Landing' in available and any_of(('Airspeed True', 'Groundspeed'), available) \
+               and ac_type == aeroplane
 
     def derive(self, pitch=P('Pitch'), gspd=P('Groundspeed'),
                aspd=P('Airspeed True'), lands=S('Landing')):
@@ -1464,7 +1466,7 @@ class LandingRoll(FlightPhaseNode):
                 # due to masked values, use land.start in place
                 begin = land.slice.start
 
-            self.create_phase(slice(begin, end), begin=begin, end=end)
+            self.create_phase(slice(int(begin), ceil(end)), begin=int(begin), end=ceil(end))
 
 
 class TakeoffRunwayHeading(FlightPhaseNode):

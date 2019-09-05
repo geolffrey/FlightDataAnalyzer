@@ -7966,22 +7966,32 @@ class TestHeadingDuringLanding(unittest.TestCase, NodeTest):
         self.node_class = HeadingDuringLanding
 
     def test_can_operate(self):
-        combinations = self.node_class.get_operational_combinations()
-        expected_combinations = [
-            ('Heading Continuous', 'Landing Roll', 'Touchdown',
-             'Landing Turn Off Runway')
-        ]
-        self.assertEqual(combinations, expected_combinations)
+        can_op = self.node_class.can_operate
+        self.assertTrue(can_op(('Heading Continuous', 'Transition Flight To Hover', 'Aircraft Type'), ac_type=helicopter))
+        self.assertTrue(can_op(('Heading Continuous', 'Landing Roll'), ac_type=aeroplane))
 
-    def test_derive_basic(self):
-        head = P('Heading Continuous',np.ma.array([0,1,2,3,4,5,6,7,8,9,10,-1,-1,
-                                                   7,-1,-1,-1,-1,-1,-1,-1,-10]))
-        landing = buildsection('Landing',4,15)
+    def test_derive_fw(self):
+        head = P('Heading Continuous',
+                 np.ma.array([0,1,2,3,4,5,6,7,8,9,10,-1,-1,
+                              7,-1,-1,-1,-1,-1,-1,-1,-10]))
+        ac_type=A(name='Aircraft Type', value='aircraft')
+        landing = buildsection('Landing', 5, 14)
         head.array[13] = np.ma.masked
-        touchdowns = KTI(name='Touchdown', items=[KeyTimeInstance(index=5, name='Touchdown')])
-        turn_offs = KTI(name='Landing Turn Off Runway', items=[KeyTimeInstance(index=14, name='Landing Turn Off Runway')])
         kpv = self.node_class()
-        kpv.derive(head, landing, touchdowns, turn_offs)
+        kpv.derive(head, landing, ac_type, None)
+        expected = [KeyPointValue(index=10, value=6.0,
+                                  name='Heading During Landing')]
+        self.assertEqual(kpv, expected)
+
+    def test_derive_helo(self):
+        head = P('Heading Continuous',
+                 np.ma.array([0,1,2,3,4,5,6,7,8,9,10,-1,-1,
+                              7,-1,-1,-1,-1,-1,-1,-1,-10]))
+        ac_type=A(name='Aircraft Type', value='helicopter')
+        landing = buildsection('Transition Flight To Hover', 5, 14)
+        head.array[13] = np.ma.masked
+        kpv = self.node_class()
+        kpv.derive(head, None, ac_type, landing)
         expected = [KeyPointValue(index=10, value=6.0,
                                   name='Heading During Landing')]
         self.assertEqual(kpv, expected)
@@ -7996,19 +8006,33 @@ class TestHeadingTrueDuringLanding(unittest.TestCase, NodeTest):
         self.assertTrue(can_op(('Heading True Continuous', 'Transition Flight To Hover', 'Aircraft Type'), ac_type=helicopter))
         self.assertTrue(can_op(('Heading True Continuous', 'Landing Roll'), ac_type=aeroplane))
 
-    def test_derive_basic(self):
+    def test_derive_fw(self):
         # Duplicate of TestHeadingDuringLanding.test_derive_basic.
         head = P('Heading True Continuous',
                  np.ma.array([0,1,2,3,4,5,6,7,8,9,10,-1,-1,
                               7,-1,-1,-1,-1,-1,-1,-1,-10]))
+        ac_type=A(name='Aircraft Type', value='aircraft')
         landing = buildsection('Landing', 5, 14)
         head.array[13] = np.ma.masked
         kpv = self.node_class()
-        kpv.derive(head, landing)
+        kpv.derive(head, landing, ac_type, None)
         expected = [KeyPointValue(index=10, value=6.0,
                                   name='Heading True During Landing')]
         self.assertEqual(kpv, expected)
 
+    def test_derive_helo(self):
+        # Duplicate of TestHeadingDuringLanding.test_derive_basic.
+        head = P('Heading True Continuous',
+                 np.ma.array([0,1,2,3,4,5,6,7,8,9,10,-1,-1,
+                              7,-1,-1,-1,-1,-1,-1,-1,-10]))
+        ac_type=A(name='Aircraft Type', value='helicopter')
+        landing = buildsection('Transition Flight To Hover', 5, 14)
+        head.array[13] = np.ma.masked
+        kpv = self.node_class()
+        kpv.derive(head, None, ac_type, landing)
+        expected = [KeyPointValue(index=10, value=6.0,
+                                  name='Heading True During Landing')]
+        self.assertEqual(kpv, expected)
 
 class TestHeadingAtLowestAltitudeDuringApproach(unittest.TestCase, CreateKPVsAtKTIsTest):
 
