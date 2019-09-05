@@ -168,7 +168,6 @@ from analysis_engine.derived_parameters import (
     GroundspeedSigned,
     Heading,
     HeadingContinuous,
-    HeadingIncreasing,
     HeadingRate,
     HeadingTrue,
     Headwind,
@@ -4143,7 +4142,7 @@ class TestTrackDeviationFromRunway(unittest.TestCase):
         for first, second in zip(deviation.array, expected):
             self.assertAlmostEqual(first, second, places=2)
 
-
+'''
 class TestHeadingIncreasing(unittest.TestCase):
     def test_can_operate(self):
         expected = [('Heading Continuous',)]
@@ -4193,7 +4192,7 @@ class TestHeadingIncreasing(unittest.TestCase):
         # normal and arises because the data sample is short.
         expected = [0.0, 0.0, -0.00176, -0.00176, -0.00176, 0.0, 0.0]
         np.testing.assert_almost_equal(smoother.array, expected, decimal=5)
-
+'''
 
 class TestHeading(unittest.TestCase):
     def test_can_operate(self):

@@ -4608,24 +4608,6 @@ class HeadingContinuous(DerivedParameterNode):
                 self.array = repair_mask(straighten_headings(head_mag.array))
 
 
-
-class HeadingIncreasing(DerivedParameterNode):
-    '''
-    This parameter is computed to allow holding patterns to be identified. As
-    the aircraft can enter a hold turning in one direction, then do a
-    teardrop and continue with turns in the opposite direction, we are
-    interested in the total angular changes, not the sign of these changes.
-    '''
-
-    # TODO: Absorb this derived parameter into the 'Holding' flight phase.
-
-    units = ut.DEGREE
-
-    def derive(self, head=P('Heading Continuous')):
-        rot = np.ma.ediff1d(head.array, to_begin = 0.0)
-        self.array = integrate(np.ma.abs(rot), 1.0)
-
-
 class HeadingTrueContinuous(DerivedParameterNode):
     '''
     For all internal computing purposes we use this parameter which does not
