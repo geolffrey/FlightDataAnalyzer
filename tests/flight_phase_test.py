@@ -1811,14 +1811,14 @@ class TestLanding(unittest.TestCase):
 
 class TestLandingRoll(unittest.TestCase):
     def test_can_operate(self):
-        self.assertEqual(LandingRoll.get_operational_combinations(),
+        self.assertEqual(LandingRoll.get_operational_combinations(ac_type=aeroplane),
                          [('Groundspeed', 'Landing'),
                           ('Airspeed True', 'Landing'),
                           ('Pitch', 'Groundspeed', 'Landing'),
                           ('Pitch', 'Airspeed True', 'Landing'),
                           ('Groundspeed', 'Airspeed True', 'Landing'),
                           ('Pitch', 'Groundspeed', 'Airspeed True', 'Landing')])
-
+        self.assertEqual(LandingRoll.get_operational_combinations(ac_type=helicopter), [])
 
 class TestMobile(unittest.TestCase, NodeTest):
 

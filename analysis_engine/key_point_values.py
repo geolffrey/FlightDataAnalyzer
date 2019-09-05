@@ -802,8 +802,7 @@ class AccelerationNormalAtTouchdown(KeyPointValueNode):
     @classmethod
     def can_operate(cls, available):
         return all_of(('Acceleration Normal Offset Removed', 'Touchdown',
-                       'Landing', 'Landing Roll'),
-                      available)
+                       'Landing'), available)
 
     def derive(self,
                acc_norm=P('Acceleration Normal Offset Removed'),
@@ -811,16 +810,18 @@ class AccelerationNormalAtTouchdown(KeyPointValueNode):
                ldgs=S('Landing'),
                ldg_rolls=S('Landing Roll'),
                touch_and_gos=KTI('Touch And Go')):
-        touch_and_gos = touch_and_gos or []
 
         for ldg in ldgs:
             # Find the corresponding Touchdown KTI
             tdwn = next(tdwn for tdwn in touchdowns
                         if is_index_within_slice(tdwn.index, ldg.slice))
-            # Find the corresponding Landing Roll flight phase
-            ldg_roll = next(ldg_roll for ldg_roll in ldg_rolls
-                           if is_slice_within_slice(ldg_roll.slice, ldg.slice))
-            self.create_kpv(*bump(acc_norm, tdwn.index, end=ldg_roll.slice.stop))
+            if ldg_rolls:
+                # Find the corresponding Landing Roll flight phase
+                ldg_roll = next(ldg_roll for ldg_roll in ldg_rolls
+                               if is_slice_within_slice(ldg_roll.slice, ldg.slice))
+                self.create_kpv(*bump(acc_norm, tdwn.index, end=ldg_roll.slice.stop))
+            else:
+                self.create_kpv(*bump(acc_norm, tdwn.index))
 
         if touch_and_gos:
             for touch_and_go in touch_and_gos:
@@ -7505,7 +7506,7 @@ class HeadingTrueDuringTakeoff(KeyPointValueNode):
 
     def derive(self,
                hdg_true=P('Heading True Continuous'),
-               toff_aeros=S('Takeoff Roll'),
+               toff_aeros=S('Takeoff Roll Or Rejected Takeoff'),
                ac_type=A('Aircraft Type'),
                toff_helos=S('Transition Hover To Flight')):
 
@@ -7538,27 +7539,31 @@ class HeadingDuringLanding(KeyPointValueNode):
 
     units = ut.DEGREE
 
+    @classmethod
+    def can_operate(cls, available, ac_type=A('Aircraft Type')):
+        if ac_type and ac_type.value == 'helicopter':
+            return all_of(('Heading Continuous', 'Transition Flight To Hover', 'Aircraft Type'), available)
+        else:
+            return all_of(('Heading Continuous', 'Landing Roll'), available)
+
     def derive(self,
                hdg=P('Heading Continuous'),
-               landings=S('Landing Roll'),
-               touchdowns=KTI('Touchdown'),
-               ldg_turn_off=KTI('Landing Turn Off Runway')):
+               land_aeros=S('Landing Roll'),
+               ac_type=A('Aircraft Type'),
+               land_helos=S('Transition Flight To Hover')):
+
+        landings = land_helos if ac_type and ac_type.value == 'helicopter' else land_aeros
 
         for landing in landings:
             # Check the slice is robust.
-            touchdown = touchdowns.get_first(within_slice=landing.slice)
-            turn_off = ldg_turn_off.get_first(within_slice=landing.slice)
-            start = touchdown.index if touchdown else landing.slice.start
-            stop = turn_off.index + 1 if turn_off else landing.slice.stop
-            if start and stop:
-                index = (start + stop) / 2.0
-                value = np.ma.median(hdg.array[slices_int(start, stop)])
+            if landing.slice.start and landing.slice.stop:
+                index = (landing.slice.start + landing.slice.stop) / 2.0
+                value = np.ma.median(hdg.array[landing.slice])
                 # median result is rounded as
                 # -1.42108547152020037174224853515625E-14 == 360.0
                 # which is an invalid value for Heading
                 if not np.ma.is_masked(value):
                     self.create_kpv(index, np.round(float(value), 8) % 360.0)
-
 
 
 class HeadingTrueDuringLanding(KeyPointValueNode):
