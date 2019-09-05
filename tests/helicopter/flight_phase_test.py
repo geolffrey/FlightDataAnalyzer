@@ -48,12 +48,12 @@ class TestAirborne(unittest.TestCase):
 
     def test_airborne_helicopter_short(self):
         gog = M(name='Gear On Ground',
-                array=np.ma.array([0]*3+[1]*5+[0]*10+[1]*5, dtype=int),
+                array=np.ma.array([0]*3+[1]*5+[0]*20+[1]*5, dtype=int),
                 frequency=1,
                 offset=0,
                 values_mapping={1:'Ground', 0:'Air'})
         agl = P(name='Altitude AGL',
-                array=np.ma.array([2.0, 0.0, 0.0]+[0.0]*4+[20.0]*10+[0.0]*6, dtype=float))
+                array=np.ma.array([2.0, 0.0, 0.0]+[0.0]*4+[20.0]*20+[0.0]*6, dtype=float))
         rtr = buildsection('Rotors Turning', 0, 40)
         node = Airborne()
         node.derive(agl, agl, gog, rtr)
@@ -65,35 +65,35 @@ class TestAirborne(unittest.TestCase):
         not the (smoothed) AGL data.
         '''
         gog = M(name='Gear On Ground',
-                array=np.ma.array([0]*3+[1]*5+[0]*10+[1]*5, dtype=int),
+                array=np.ma.array([0]*3+[1]*5+[0]*20+[1]*5, dtype=int),
                 frequency=1,
                 offset=0,
                 values_mapping={1:'Ground', 0:'Air'})
         agl = P(name='Altitude AGL',
-                array=np.ma.array([0.0]*6+[20.0]*12+[0.0]*5, dtype=float))
+                array=np.ma.array([0.0]*6+[20.0]*22+[0.0]*5, dtype=float))
         rad = P(name='Altitude Radio',
-                array=np.ma.array([0.0]*7+[10.0]*10+[0.0]*6, dtype=float))
+                array=np.ma.array([0.0]*7+[10.0]*20+[0.0]*6, dtype=float))
         rtr = buildsection('Rotors Turning', 0, 40)
         node = Airborne()
         node.derive(rad, agl, gog, rtr)
         self.assertEqual(node[0].start_edge, 6.1)
-        self.assertEqual(node[0].stop_edge, 16.9)
+        self.assertEqual(node[0].stop_edge, 26.9)
 
     def test_airborne_helicopter_overlap(self):
         gog = M(name='Gear On Ground',
-                array=np.ma.array([1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1], dtype=int),
+                array=np.ma.array([1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1], dtype=int),
                 values_mapping={1:'Ground', 0:'Air'})
         agl = P(name='Altitude AGL',
-                array=np.ma.array([0, 0, 0, 0, 5, 5, 5, 5, 5, 5, 2, 0], dtype=float),
+                array=np.ma.array([0, 0, 0, 0, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 2, 0], dtype=float),
                 frequency=0.2)
         rtr = buildsection('Rotors Turning', 0, 40)
         node = Airborne()
         node.derive(agl, agl, gog, rtr)
         self.assertEqual(len(node), 2)
         self.assertEqual(node[0].slice.start, 3.2)
-        self.assertEqual(node[0].slice.stop, 6)
-        self.assertEqual(node[1].slice.start, 8)
-        self.assertEqual(node[1].slice.stop, 10.5)
+        self.assertEqual(node[0].slice.stop, 8)
+        self.assertEqual(node[1].slice.start, 12)
+        self.assertEqual(node[1].slice.stop, 16.5)
 
     def test_airborne_helicopter_cant_fly_without_rotor_turning(self):
         gog = M(name='Gear On Ground',
