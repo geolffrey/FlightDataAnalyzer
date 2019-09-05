@@ -9,6 +9,7 @@ from analysis_engine.library import (
     any_of,
     blend_parameters,
     blend_two_parameters,
+    np_ma_masked_zeros_like,
     repair_mask,
     straighten_longitude,
 )
@@ -109,6 +110,8 @@ class Latitude(DerivedParameterNode):
             self.frequency = 1.0
             self.array = blend_parameters(sources, offset=self.offset,
                                           frequency=self.frequency)
+        else:
+            self.array = np_ma_masked_zeros_like(src_1.array)
 
 
 class Longitude(DerivedParameterNode):
@@ -157,3 +160,6 @@ class Longitude(DerivedParameterNode):
             blended = blend_parameters(sources, offset=self.offset,
                                        frequency=self.frequency)
             self.array = blended % 360 - 180.0
+
+        else:
+            self.array = np_ma_masked_zeros_like(src_1.array)
