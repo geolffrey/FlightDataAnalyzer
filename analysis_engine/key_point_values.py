@@ -16736,7 +16736,7 @@ class TailwindDuringTakeoffMax(KeyPointValueNode):
 
     can_operate = aeroplane_only
 
-    units = ut.DEGREE
+    units = ut.KT
 
     def derive(self,
                tailwind=P('Tailwind'),
