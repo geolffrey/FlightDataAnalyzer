@@ -4184,6 +4184,20 @@ class TestGearUpInTransit(unittest.TestCase):
         np.testing.assert_array_equal(node.array, self.expected_short.array)
         self.assertEqual(node.values_mapping, self.values_mapping)
 
+    @patch('analysis_engine.multistate_parameters.at')
+    def test_derive__gear_up_AW169(self, at):
+        at.get_gear_transition_times.return_value = (10, 10)
+        gear_down = M('Gear Down', array=np.ma.array([1]*25 + [0]*20 + [1]*15),
+                    values_mapping={1: 'Down', 0: 'Up'})
+
+        node = self.node_class()
+        node.derive(gear_down, None, None, None, None, None, self.airborne, self.model, self.series, A('Family', value='AW169'))
+
+        expected = M('Gear Up In Transit', array=np.ma.array([0]*15 + [1]*10 + [0]*35),
+                     values_mapping=self.values_mapping)
+        np.testing.assert_array_equal(node.array, expected.array)
+        self.assertEqual(node.values_mapping, self.values_mapping)
+
 
 class TestGearDownInTransit(unittest.TestCase):
     # Gear Down In Transit
