@@ -1868,7 +1868,10 @@ class GearUpInTransit(MultistateDerivedParameterNode):
 
         elif gear_down and fallback:
             for start in gear_downs:
-                runs.append(slice(math.ceil(start), start+fallback+1))
+                if family and family.value == 'AW169':
+                    runs.append(slice(math.ceil(start-fallback), start+1))
+                else:
+                    runs.append(slice(math.ceil(start), start+fallback+1))
 
         elif gear_up_sel and fallback:
             for start in gear_sels:
