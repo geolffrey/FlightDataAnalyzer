@@ -1581,6 +1581,9 @@ class RejectedTakeoff(FlightPhaseNode):
 
         # We need all engines running to be a realistic attempt to get airborne
         runnings = runs_of_ones(eng_running.array=='Running')
+        if not runnings:
+            # No engine start, so can't have a rejected takeoff.
+            return
         hz = accel_lon.frequency
         # If Takeoff Acceleration Start KTI exists, include only slices
         # before this KTI and shorten the slice containing the it.

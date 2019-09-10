@@ -293,6 +293,9 @@ class ClimbAccelerationStart(KeyTimeInstanceNode):
                 self.create_kti(index + (_slice.start or 0))
                 return
 
+        if not initial_climbs.get_first():
+            return
+
         if spd and flap:
             # Base on airspeed increase after first flap retraction
             # Align to Airspeed.
