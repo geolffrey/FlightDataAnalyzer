@@ -2320,10 +2320,10 @@ class TurningInAir(FlightPhaseNode):
 
 class TurningOnGround(FlightPhaseNode):
     """
-    Turning on ground is computed during the two taxi phases. This\
-    avoids\ high speed turnoffs where the aircraft may be travelling at high\
-    speed\ at, typically, 30deg from the runway centreline. The landing\
-    phase\ turnoff angle is nominally 45 deg, so avoiding this period.
+    Turning on ground is computed during the two taxi phases. This
+    avoids high speed turnoffs where the aircraft may be travelling at high
+    speed at, typically, 30deg from the runway centreline. The landing
+    phase turnoff angle is nominally 45 deg, so avoiding this period.
 
     Rate of Turn is greater than +/- HEADING_RATE_FOR_TAXI_TURNS (%.2f) on the ground
     """ % HEADING_RATE_FOR_TAXI_TURNS
