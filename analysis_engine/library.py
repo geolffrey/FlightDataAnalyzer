@@ -7861,6 +7861,12 @@ def value_at_index(array, index, interpolate=True):
         else:
             low_value = array[low]
             high_value = array[high]
+            if low_value is None and high_value is None:
+                return None
+            elif low_value is None and high_value is not None:
+                return high_value
+            elif high_value is None and low_value is not None:
+                return low_value
         # If not interpolating and no mask or masked samples:
         if not interpolate:
             return array[int(index + 0.5)]
