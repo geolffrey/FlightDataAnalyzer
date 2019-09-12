@@ -116,7 +116,7 @@ class AltitudeADH(DerivedParameterNode):
             if len(rad[min_idx:]) > 0:
                 height_from_rig[min_idx:] = one_direction(rad[min_idx:], hdot[min_idx:], "forwards", rad_hz)
 
-            '''
+            r'''
             # And we are bound to want to know the rig height somewhere, so here's how to work that out.
             rig_height = rad[0]-height_from_rig[0]
             # I checked this and it seems pretty consistent.

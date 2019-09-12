@@ -6749,7 +6749,7 @@ def step_local_cusp(array, span):
 
 
 def including_transition(array, steps, hz=1, mode='include'):
-    '''
+    r'''
     Snaps signal to step values including transition, e.g.:
           _____
       ___|/   \|
