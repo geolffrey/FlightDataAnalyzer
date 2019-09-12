@@ -1662,7 +1662,7 @@ class TestEngTorqueExceeding100Percent(unittest.TestCase):
 
     def test_derive_exceeding_one_second_period(self):
 
-        eng_avg_torque = P(name='Eng (*) Avg Torque',
+        eng_avg_torque = P(name='Eng (*) Torque Avg',
                            array=np.ma.array([95, 96, 97, 98, 99, 100, 99, 98]))
 
         kpv = EngTorqueExceeding100Percent()
@@ -1672,7 +1672,7 @@ class TestEngTorqueExceeding100Percent(unittest.TestCase):
 
     def test_derive_exceeding_two_seconds_period(self):
 
-        eng_avg_torque = P(name='Eng (*) Avg Torque',
+        eng_avg_torque = P(name='Eng (*) Torque Avg',
                            array=np.ma.array([95, 96, 97, 98, 99, 100, 101, 99, 98]))
 
         kpv = EngTorqueExceeding100Percent()
@@ -1682,7 +1682,7 @@ class TestEngTorqueExceeding100Percent(unittest.TestCase):
 
     def test_derive_exceeding_one_longer_than_two_seconds_period(self):
 
-        eng_avg_torque = P(name='Eng (*) Avg Torque',
+        eng_avg_torque = P(name='Eng (*) Torque Avg',
                            array=np.ma.array([95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 104,
                                               103, 104, 105, 104, 103, 102, 101, 100, 99, 98]))
 
@@ -1696,7 +1696,7 @@ class TestEngTorqueExceeding100Percent(unittest.TestCase):
 
     def test_derive_exceeding_multiple_times(self):
 
-        eng_avg_torque = P(name='Eng (*) Avg Torque',
+        eng_avg_torque = P(name='Eng (*) Torque Avg',
                            array=np.ma.array([95, 96, 97, 98, 99, 100, 101, 102, 103, 104,
                                               103, 102, 101, 100, 99, 98, 99, 100, 101, 102,
                                               103, 104, 105, 104, 103, 102, 101, 100, 99, 98]))
@@ -1713,7 +1713,7 @@ class TestEngTorqueExceeding100Percent(unittest.TestCase):
 
     def test_derive_not_exceeding(self):
 
-        eng_avg_torque = P(name='Eng (*) Avg Torque',
+        eng_avg_torque = P(name='Eng (*) Torque Avg',
                            array=np.ma.array([95, 96, 97, 98, 99, 98, 97, 96]))
 
         kpv = EngTorqueExceeding100Percent()
@@ -1724,7 +1724,7 @@ class TestEngTorqueExceeding100Percent(unittest.TestCase):
 
     def test_derive_exceeding_masked_data(self):
 
-        eng_avg_torque = P(name='Eng (*) Avg Torque',
+        eng_avg_torque = P(name='Eng (*) Torque Avg',
                                array=np.ma.masked_greater_equal([95, 96, 97, 98, 99, 100, 101, 102, 103, 104,
                                                   103, 104, 105, 104, 103, 102, 101, 100, 99, 98], 100))
 
@@ -1743,7 +1743,7 @@ class TestEngTorqueExceeding110Percent(unittest.TestCase):
 
     def test_derive_exceeding_one_second_period(self):
 
-        eng_avg_torque = P(name='Eng (*) Avg Torque',
+        eng_avg_torque = P(name='Eng (*) Torque Avg',
                            array=np.ma.array([105, 106, 107, 108, 109, 110, 109, 108]))
 
         kpv = EngTorqueExceeding110Percent()
@@ -1754,7 +1754,7 @@ class TestEngTorqueExceeding110Percent(unittest.TestCase):
 
     def test_derive_exceeding_two_seconds_period(self):
 
-        eng_avg_torque = P(name='Eng (*) Avg Torque',
+        eng_avg_torque = P(name='Eng (*) Torque Avg',
                             array=np.ma.array([105, 106, 107, 108, 109, 110, 111, 109, 108]))
 
         kpv = EngTorqueExceeding110Percent()
@@ -1765,7 +1765,7 @@ class TestEngTorqueExceeding110Percent(unittest.TestCase):
 
     def test_derive_exceeding_one_longer_than_two_seconds_period(self):
 
-        eng_avg_torque = P(name='Eng (*) Avg Torque',
+        eng_avg_torque = P(name='Eng (*) Torque Avg',
                            array=np.ma.array([105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 114,
                                               113, 114, 115, 114, 113, 112, 111, 110, 109, 108]))
 
@@ -1779,7 +1779,7 @@ class TestEngTorqueExceeding110Percent(unittest.TestCase):
 
     def test_derive_exceeding_multiple_times(self):
 
-        eng_avg_torque = P(name='Eng (*) Avg Torque',
+        eng_avg_torque = P(name='Eng (*) Torque Avg',
                            array=np.ma.array([105, 106, 107, 108, 109, 110, 111, 112, 113, 114,
                                               113, 112, 111, 110, 109, 108, 109, 110, 111, 112,
                                               113, 114, 115, 114, 113, 112, 111, 110, 109, 108]))
@@ -1796,7 +1796,7 @@ class TestEngTorqueExceeding110Percent(unittest.TestCase):
 
     def test_derive_not_exceeding(self):
 
-        eng_avg_torque = P(name='Eng (*) Avg Torque',
+        eng_avg_torque = P(name='Eng (*) Torque Avg',
                            array=np.ma.array([105, 106, 107, 108, 109, 108, 107, 106]))
 
         kpv = EngTorqueExceeding110Percent()
@@ -1807,7 +1807,7 @@ class TestEngTorqueExceeding110Percent(unittest.TestCase):
 
     def test_derive_exceeding_masked_data(self):
 
-        eng_avg_torque = P(name='Eng (*) Avg Torque',
+        eng_avg_torque = P(name='Eng (*) Torque Avg',
                                array=np.ma.masked_greater_equal([105, 106, 107, 108, 109, 110, 111, 112, 113, 114,
                                                   113, 114, 115, 114, 113, 112, 111, 110, 109, 108], 110))
 

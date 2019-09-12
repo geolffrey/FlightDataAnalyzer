@@ -162,7 +162,7 @@
     (1) Speed Regulator', !!python/unicode 'Eng (1) Starter Valve', !!python/unicode 'Eng
     (1) T25 Sensor Selected', !!python/unicode 'Eng (1) T30 Selected', !!python/unicode 'Eng
     (1) TAT Inhibit Flag', !!python/unicode 'Eng (1) Throttle Lever', !!python/unicode 'Eng
-    (1) Throttle Rate Command', !!python/unicode 'Eng (1) Throttle Torque', !!python/unicode 'Eng
+    (1) Throttle Rate Command', !!python/unicode 'Eng (1) Torque', !!python/unicode 'Eng
     (1) Thrust Reverser (L) Sleeve', !!python/unicode 'Eng (1) Thrust Reverser (R)
     Sleeve', !!python/unicode 'Eng (1) Thrust Reverser Deployed', !!python/unicode 'Eng
     (1) Thrust Reverser In Transit', !!python/unicode 'Eng (1) Thrust Reverser Interlocked',
@@ -226,7 +226,7 @@
     (2) Speed Regulator', !!python/unicode 'Eng (2) Starter Valve', !!python/unicode 'Eng
     (2) T25 Sensor Selected', !!python/unicode 'Eng (2) T30 Selected', !!python/unicode 'Eng
     (2) TAT Inhibit Flag', !!python/unicode 'Eng (2) Throttle Lever', !!python/unicode 'Eng
-    (2) Throttle Rate Command', !!python/unicode 'Eng (2) Throttle Torque', !!python/unicode 'Eng
+    (2) Throttle Rate Command', !!python/unicode 'Eng (2) Torque', !!python/unicode 'Eng
     (2) Thrust Reverser (L) Sleeve', !!python/unicode 'Eng (2) Thrust Reverser (R)
     Sleeve', !!python/unicode 'Eng (2) Thrust Reverser Deployed', !!python/unicode 'Eng
     (2) Thrust Reverser In Transit', !!python/unicode 'Eng (2) Thrust Reverser Interlocked',
