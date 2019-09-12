@@ -197,13 +197,8 @@ class AltitudeAGL(DerivedParameterNode):
         # Compute the half period which we will need.
         hp = int(alt_rad.frequency*ALTITUDE_AGL_SMOOTHING) // 2
 
-        # If the bulk of the rad alt data is masked, let's substitute a zero array so that we
-        # at least show something. This may happen, for example, during ground runs.
-        if np.ma.count(alt_rad.array) > len(alt_rad.array) / 2:
-            # We force altitude AGL to be zero when the gear shows 'Ground' state
-            alt_agl = moving_average(np.maximum(alt_rad.array, 0.0) * (1 - gog.array.data), window=hp*2+1, weightings=None)
-        else:
-            alt_agl = np.ma.zeros(len(alt_rad.array))
+        # We force altitude AGL to be zero when the gear shows 'Ground' state
+        alt_agl = moving_average(np.maximum(alt_rad.array, 0.0) * (1 - gog.array.data), window=hp*2+1, weightings=None)
 
         # Refine the baro estimates
         length = len(alt_agl)-1
