@@ -792,7 +792,7 @@ class GoAround(KeyTimeInstanceNode):
             # Check for cases where a radio altimeter is not fitted or where
             # the altimeter data is out of range, hence masked, at the lowest
             # point of the go-around.
-            if alt_rad and not alt_rad.array[dlc.slice].all():
+            if alt_rad and not alt_rad.array.mask[dlc.slice].all():
                 # Worth using the radio altimeter...
                 pit = np.ma.argmin(alt_rad.array[dlc.slice])
 
@@ -1211,7 +1211,7 @@ class TakeoffAccelerationStart(KeyTimeInstanceNode):
                 '''
                 #pc = peak_curvature(speed.array[takeoff.slice])
                 p, m, c = coreg(speed.array[takeoff.slice])
-                if c is None or m is not None:
+                if c is None or m is None:
                     continue
                 start_accel = max(takeoff.slice.start - c / m, 0.0)
 
