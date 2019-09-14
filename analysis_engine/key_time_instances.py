@@ -1,7 +1,6 @@
 from __future__ import print_function
 
 import numpy as np
-import six
 
 from math import ceil, floor
 from operator import itemgetter
@@ -17,6 +16,7 @@ from analysis_engine.node import (
 from analysis_engine.library import (
     all_deps,
     all_of,
+    any_deps,
     any_of,
     coreg,
     find_edges_on_state_change,
@@ -472,7 +472,7 @@ class EngStart(KeyTimeInstanceNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng_1_n1=P('Eng (1) N1'),
@@ -882,7 +882,7 @@ class FlapLeverSet(KeyTimeInstanceNode):
 
         flap = flap_lever or flap_synth
         # TODO: Simplify when we've dealt with KTI node refactoring...
-        for _, state in sorted(six.iteritems(flap.values_mapping)):
+        for _, state in sorted(flap.values_mapping.items()):
             self.create_ktis_on_state_change(state, flap.array, name='flap',
                                              change='entering')
 

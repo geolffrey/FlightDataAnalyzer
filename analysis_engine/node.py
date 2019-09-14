@@ -10,7 +10,6 @@ import math
 import numpy as np
 import pprint
 import re
-import six
 
 from abc import ABCMeta
 from collections import namedtuple, OrderedDict
@@ -192,7 +191,7 @@ def _calculate_offset(frequency, offset):
     return offset % (1.0 / frequency)
 
 
-class Node(six.with_metaclass(ABCMeta, object)):
+class Node(metaclass=ABCMeta)):
     '''
     Note about aligning options
     ---------------------------
@@ -861,7 +860,7 @@ def multistate_string_to_integer(string_array, mapping):
 
     output_array = string_array.copy()
     # values need converting using mapping
-    for int_value, str_value in six.iteritems(mapping):
+    for int_value, str_value in mapping.items():
         output_array.data[string_array.data == str_value] = int_value
     output_array.fill_value = 999999  # NB: only 999 will be stored by dtype
     # apply fill_value to all masked values
@@ -912,7 +911,7 @@ class MultistateDerivedParameterNode(DerivedParameterNode):
         elif not hasattr(self, 'values_mapping'):
             self.values_mapping = {}
 
-        self.state = {v: k for k, v in six.iteritems(self.values_mapping)}
+        self.state = {v: k for k, v in self.values_mapping.items()}
         super(MultistateDerivedParameterNode, self).__init__(
             name, array, frequency, offset, data_type, *args,
             **kwargs)
@@ -2270,9 +2269,6 @@ class FlightAttributeNode(Node):
         # 0 is a meaningful value. Check self.value is not False as False == 0.
         return bool(self.value or (self.value == 0 and self.value is not False))
 
-    if six.PY2:
-        __nonzero__ = __bool__
-
     def set_flight_attribute(self, value):
         self.value = value
     set_flight_attr = set_flight_attribute
@@ -2634,9 +2630,6 @@ class Attribute(object):
         '''
         # 0 is a meaningful value. Check self.value is not False as False == 0.
         return bool(self.value or (self.value == 0 and self.value is not False))
-
-    if six.PY2:
-        __nonzero__ = __bool__
 
     def __eq__(self, other):
         '''

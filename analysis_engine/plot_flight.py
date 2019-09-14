@@ -7,7 +7,6 @@ import logging
 import numpy as np
 import os
 import simplekml
-import six
 
 from copy import copy
 
@@ -73,8 +72,7 @@ class TypedWriter(object):
         self.formats = fieldformats
 
     def _format(self, row):
-        return dict((k, self.formats.get(k, '%s') % v if v or v == 0.0 else v)
-                    for k, v in six.iteritems(row))
+        return dict((k, self.formats.get(k, '%s') % v if v or v == 0.0 else v) for k, v in row.items())
 
     def writerow(self, row):
         self.writer.writerow(self._format(row))

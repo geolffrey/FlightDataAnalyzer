@@ -5,7 +5,6 @@ from __future__ import print_function
 
 import logging
 import pytz
-import six
 
 import numpy as np
 
@@ -42,7 +41,6 @@ from flightdatautilities.numpy_utils import (
     slices_int,
     py2round,
 )
-from six import string_types
 
 
 # Timestamp infomation
@@ -1030,7 +1028,7 @@ def append_segment_info(segment_object, segment_type, segment_slice, part,
     :returns: Segment named tuple
     :rtype: Segment
     """
-    if isinstance(segment_object, (six.string_types, fda.FlightDataFormat)):
+    if isinstance(segment_object, (str, fda.FlightDataFormat)):
         segment_path = segment_object
     else:
         segment_path = segment_object.path
@@ -1072,7 +1070,7 @@ def append_segment_info(segment_object, segment_type, segment_slice, part,
         go_fast_index = None
         go_fast_datetime = None
         # if not go_fast, create hash from entire file
-        if isinstance(segment_path, six.string_types):
+        if isinstance(segment_path, str):
             speed_hash = sha_hash_file(segment_path)
         else:
             speed_hash = ''
@@ -1125,7 +1123,7 @@ def split_hdf_to_segments(source, aircraft_info, fallback_dt=None,
         from analysis_engine.plot_flight import plot_essential
         plot_essential(source)
 
-    if isinstance(validation_dt, six.string_types):
+    if isinstance(validation_dt, str):
         validation_dt = datetime.strptime(validation_dt, '%Y-%m-%dT%H:%M:%S.%fZ').replace(tzinfo=pytz.utc)
 
     with fda.open(source, mode='a') as fdf:

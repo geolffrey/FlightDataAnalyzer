@@ -33,6 +33,7 @@ from analysis_engine.helicopter.key_point_values import (
     AirspeedAbove500FtMinOffshoreSpecialProcedure,
     AirspeedAt200FtDuringOnshoreApproach,
     AirspeedAtAPGoAroundEngaged,
+    AirspeedAtAPUpperModesEngaged,
     AirspeedWhileAPHeadingEngagedMin,
     AirspeedWhileAPVerticalSpeedEngagedMin,
     AirspeedDuringAutorotationMax,
@@ -1005,6 +1006,81 @@ class TestAirspeedWhileAPHeadingEngagedMin(unittest.TestCase):
         node = self.node_class()
         node.derive(aspd, airs, mode)
         self.assertEqual(len(node), 0)
+
+
+class TestAirspeedAtAPUpperModesEngaged(unittest.TestCase):
+
+    def setUp(self):
+        self.node_class = AirspeedAtAPUpperModesEngaged
+
+    def test_attributes(self):
+        node = self.node_class()
+        self.assertEqual(node.name, 'Airspeed At AP Upper Modes Engaged')
+        self.assertEqual(node.units, ut.KT)
+
+    def test_can_operate(self):
+        self.assertEqual(self.node_class.get_operational_combinations(
+            ac_type=aeroplane), [])
+        self.assertEqual(self.node_class.get_operational_combinations(
+            ac_type=helicopter), [])
+        opts = self.node_class.get_operational_combinations(
+            ac_type=helicopter, family=A('Family', 'S92'))
+        self.assertEqual(len(opts), 1)
+        self.assertEqual(len(opts[0]), 10)
+        self.assertIn('Airspeed', opts[0])
+        self.assertIn('AP (1) Heading Selected Mode Engaged', opts[0])
+        self.assertIn('AP (2) Heading Selected Mode Engaged', opts[0])
+        self.assertIn('AP (1) Altitude Preselect Mode Engaged', opts[0])
+        self.assertIn('AP (2) Altitude Preselect Mode Engaged', opts[0])
+        self.assertIn('AP (1) Vertical Speed Mode Engaged', opts[0])
+        self.assertIn('AP (2) Vertical Speed Mode Engaged', opts[0])
+        self.assertIn('AP (1) Airspeed Mode Engaged', opts[0])
+        self.assertIn('AP (2) Airspeed Mode Engaged', opts[0])
+        self.assertIn('Initial Climb', opts[0])
+
+    def test_derive(self):
+        a = np.concatenate((np.linspace(5,100,13), np.linspace(100,5,17)))
+        air_spd = P('Airspeed', np.ma.concatenate((a, a)))
+        climb = buildsections('Initial Climb', [1, 10], [31, 40])
+
+        array = np.ma.concatenate((np.zeros(34), np.ones(10), np.zeros(16)))
+        ap_1_hdg = M('AP (1) Heading Selected Mode Engaged',
+                     array,
+                     values_mapping={0: '-', 1: 'Engaged'})
+        ap_1_alt = M('AP (1) Altitude Preselect Mode Engaged',
+                     array,
+                     values_mapping={0: '-', 1: 'Engaged'})
+        ap_1_vrt = M('AP (1) Vertical Speed Mode Engaged',
+                     array,
+                     values_mapping={0: '-', 1: 'Engaged'})
+        ap_1_air = M('AP (1) Airspeed Mode Engaged',
+                     array,
+                     values_mapping={0: '-', 1: 'Engaged'})
+
+        array = np.ma.concatenate((np.zeros(3), np.ones(11), np.zeros(46)))
+        ap_2_hdg = M('AP (2) Heading Selected Mode Engaged',
+                     array,
+                     values_mapping={0: '-', 1: 'Engaged'})
+        ap_2_alt = M('AP (2) Altitude Preselect Mode Engaged',
+                     array,
+                     values_mapping={0: '-', 1: 'Engaged'})
+        ap_2_vrt = M('AP (2) Vertical Speed Mode Engaged',
+                     array,
+                     values_mapping={0: '-', 1: 'Engaged'})
+        ap_2_air = M('AP (2) Airspeed Mode Engaged',
+                     array,
+                     values_mapping={0: '-', 1: 'Engaged'})
+
+        node = self.node_class()
+        node.derive(air_spd, ap_1_hdg, ap_2_hdg, ap_1_alt, ap_2_alt,
+                    ap_1_vrt, ap_2_vrt, ap_1_air, ap_2_air, climb)
+
+        self.assertEqual(len(node), 2)
+        self.assertEqual(node[0].index, 3)
+        self.assertAlmostEqual(node[0].value, 28.75, places=2)
+        self.assertEqual(node[1].index, 34)
+        self.assertAlmostEqual(node[1].value, 36.67, places=2)
+
 
 
 class TestAirspeedWhileAPVerticalSpeedEngagedMin(unittest.TestCase):

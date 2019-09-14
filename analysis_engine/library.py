@@ -16,12 +16,12 @@ from copy import copy, deepcopy
 from datetime import datetime, timedelta
 from decimal import Decimal
 from hashlib import sha256
+from itertools import zip_longest
 from math import ceil, copysign, cos, floor, log, radians, sin, sqrt
 from operator import attrgetter
 from scipy import interpolate as scipy_interpolate, optimize
 from scipy.ndimage import filters
 from scipy.signal import medfilt
-from six.moves import zip_longest
 
 import flightdataaccessor as fda
 

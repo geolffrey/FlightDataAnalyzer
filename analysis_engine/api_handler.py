@@ -13,7 +13,6 @@ Flight Data Analyzer: API Handler
 import abc
 import logging
 import numpy as np
-import six
 
 from flightdatautilities import api
 
@@ -31,7 +30,7 @@ logger = logging.getLogger(name=__name__)
 # Classes
 
 
-class MethodInterface(six.with_metaclass(abc.ABCMeta, object)):
+class MethodInterface(metaclass=abc.ABCMeta):
     '''
     Abstract base class for Flight Data Analyser API handler classes.
     '''

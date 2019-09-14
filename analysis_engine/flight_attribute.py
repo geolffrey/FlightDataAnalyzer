@@ -15,6 +15,7 @@ from analysis_engine import __version__, settings
 
 from analysis_engine.library import (
     all_of,
+    any_deps,
     any_of,
     datetime_of_index,
     min_value,
@@ -181,7 +182,7 @@ class DestinationAirport(FlightAttributeNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self, dest=P('Destination'),
                afr_dest=A('AFR Destination Airport')):
@@ -768,7 +769,7 @@ class FlightType(FlightAttributeNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self, afr_type=A('AFR Type'), fast=S('Fast'), mobile=S('Mobile'),
                liftoffs=KTI('Liftoff'), touchdowns=KTI('Touchdown'),

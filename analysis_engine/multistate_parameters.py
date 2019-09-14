@@ -5,7 +5,6 @@ from __future__ import print_function
 import logging
 import math
 import numpy as np
-import six
 
 from pprint import pformat
 
@@ -20,6 +19,7 @@ from analysis_engine.node import (
 from analysis_engine.library import (
     align,
     all_of,
+    any_deps,
     any_of,
     calculate_flap,
     calculate_slat,
@@ -88,8 +88,7 @@ class AOAAbnormalOperation(MultistateDerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
-
+        return any_deps(cls, available)
 
     def derive(self,
                  aoa_l_fail=P('AOA (L) Failure'),
@@ -143,7 +142,7 @@ class APEngaged(MultistateDerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                ap1=M('AP (1) Engaged'),
@@ -209,7 +208,7 @@ class APLateralMode(MultistateDerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                lateral_mode_selected=M('Lateral Mode Selected'),
@@ -282,7 +281,7 @@ class APVerticalMode(MultistateDerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                at_active=M('AT Active'),
@@ -390,7 +389,7 @@ class APUOn(MultistateDerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self, apu_1=M('APU (1) On'), apu_2=M('APU (2) On')):
         self.array = vstack_params_where_state(
@@ -411,7 +410,7 @@ class APURunning(MultistateDerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self, apu_n1=P('APU N1'),
                apu_voltage=P('APU Generator AC Voltage'),
@@ -443,7 +442,7 @@ class CargoSmokeOrFire(MultistateDerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                s_cargo_warn=P('Smoke Cargo Warning'),
@@ -569,7 +568,7 @@ class Configuration(MultistateDerivedParameterNode):
         array = MappedArray(np_ma_masked_zeros_like(flap.array, dtype=np.short),
                                  values_mapping=self.values_mapping)
 
-        for (state, (s, f, a)) in six.iteritems(angles):
+        for (state, (s, f, a)) in angles.items():
             condition = (flap.array == f)
             if s is not None:
                 condition &= (slat.array == s)
@@ -637,7 +636,7 @@ class ConfigurationExcludingTransition(MultistateDerivedParameterNode):
         # initialize an empty masked array the same length as flap array
         array = MappedArray(np_ma_masked_zeros_like(flap.array, dtype=np.short), values_mapping=self.values_mapping)
 
-        for (state, (s, f, a)) in six.iteritems(angles):
+        for (state, (s, f, a)) in angles.items():
             condition = (flap.array == f)
             if s is not None:
                 condition &= (slat.array == s)
@@ -860,7 +859,7 @@ class Eng_Fire(MultistateDerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=M('Eng (1) Fire'),
@@ -892,7 +891,7 @@ class Eng_Oil_Press_Warning(MultistateDerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) Oil Press Low'),
@@ -1120,7 +1119,7 @@ class ThrustModeSelected(MultistateDerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                thrust_l=P('Thrust Mode Selected (L)'),
@@ -1154,7 +1153,7 @@ class EventMarker(MultistateDerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                event_marker_1=M('Event Marker (1)'),
@@ -1347,7 +1346,7 @@ class FlapIncludingTransition(MultistateDerivedParameterNode):
             # will vary between frames
             array = MappedArray(np_ma_masked_zeros_like(flap.array),
                                 values_mapping=self.values_mapping)
-            for value, state in six.iteritems(self.values_mapping):
+            for value, state in self.values_mapping.items():
                 array[flap.array == state] = state
             self.array = array
 
@@ -1449,10 +1448,10 @@ class FlapLeverSynthetic(MultistateDerivedParameterNode):
 
         # Prepare the destination array:
         array = MappedArray(np_ma_masked_zeros_like(flap.array),
-                                 values_mapping=self.values_mapping)
+                            values_mapping=self.values_mapping)
 
         # Update the destination array according to the mappings:
-        for (state, (s, f, a)) in six.iteritems(angles):
+        for (state, (s, f, a)) in angles.items():
             condition = (flap.array == str(f))
             if s is not None:
                 condition &= (slat.array == str(s))
@@ -1540,7 +1539,7 @@ class FuelQty_Low(MultistateDerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self, fqty=M('Fuel Qty Low'),
                fqty1=M('Fuel Qty (L) Low'),
@@ -2126,7 +2125,7 @@ class ILSInnerMarker(MultistateDerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                ils_mkr_capt=M('ILS Inner Marker (Capt)'),
@@ -2149,7 +2148,7 @@ class ILSMiddleMarker(MultistateDerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                ils_mkr_capt=M('ILS Middle Marker (Capt)'),
@@ -2172,7 +2171,7 @@ class ILSOuterMarker(MultistateDerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                ils_mkr_capt=M('ILS Outer Marker (Capt)'),
@@ -2192,7 +2191,7 @@ class KeyVHFCapt(MultistateDerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self, key_vhf_1=M('Key VHF (1) (Capt)'),
                key_vhf_2=M('Key VHF (2) (Capt)'),
@@ -2212,7 +2211,7 @@ class KeyVHFFO(MultistateDerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self, key_vhf_1=M('Key VHF (1) (FO)'),
                key_vhf_2=M('Key VHF (2) (FO)'),
@@ -2233,7 +2232,7 @@ class MasterCaution(MultistateDerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                capt=M('Master Caution (Capt)'),
@@ -2259,7 +2258,7 @@ class MasterWarning(MultistateDerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                warn_capt=M('Master Warning (Capt)'),
@@ -2380,7 +2379,7 @@ class PitchAlternateLaw(MultistateDerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                alt_law_1=M('Pitch Alternate Law (1)'),
@@ -2521,7 +2520,7 @@ class SlatFullyExtended(MultistateDerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                slat_l1=P('Slat (L1) Fully Extended'),
@@ -2560,7 +2559,7 @@ class SlatPartExtended(MultistateDerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                slat_l1=P('Slat (L1) Part Extended'),
@@ -2599,7 +2598,7 @@ class SlatInTransit(MultistateDerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                slat_l1=P('Slat (L1) In Transit'),
@@ -2637,7 +2636,7 @@ class SlatRetracted(MultistateDerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                slat_l1=P('Slat (L1) Retracted'),
@@ -2673,7 +2672,7 @@ class StickPusher(MultistateDerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self, spl=M('Stick Pusher (L)'),
                spr=M('Stick Pusher (R)')):
@@ -2773,7 +2772,7 @@ class SmokeWarning(MultistateDerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                smoke_avionics=M('Smoke Avionics Warning'),
@@ -3911,7 +3910,7 @@ class TakeoffConfigurationWarning(MultistateDerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self, stabilizer=M('Takeoff Configuration Stabilizer Warning'),
                parking_brake=M('Takeoff Configuration Parking Brake Warning'),
@@ -3976,7 +3975,7 @@ class SpeedControl(MultistateDerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                sc0a=M('Speed Control Auto'),

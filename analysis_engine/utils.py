@@ -5,7 +5,6 @@ import logging
 import os
 import re
 import simplejson
-import six
 import zipfile
 
 from collections import defaultdict
@@ -105,9 +104,9 @@ def open_node_container(zip_path):
             groupdict = match.groupdict()
             flight_filenames[groupdict['flight_pk']][groupdict['node_name']] = filename
 
-        for flight_pk, node_filenames in six.iteritems(flight_filenames):
+        for flight_pk, node_filenames in flight_filenames.items():
             nodes = {}
-            for node_name, filename in six.iteritems(node_filenames):
+            for node_name, filename in node_filenames.items():
                 nodes[node_name] = loads(zip_file.read(filename))
 
             json_filename = '%s.json' % flight_pk
@@ -165,7 +164,7 @@ def get_derived_nodes(modules):
                 return True
         return issubclass(value, superclass)
 
-    if isinstance(modules, six.string_types) or ismodule(modules):
+    if isinstance(modules, str) or ismodule(modules):
         # This has been done too often!
         modules = [modules]
     nodes = {}
@@ -241,7 +240,7 @@ def _get_names(module_locations, fetch_names=True, fetch_dependencies=False,
     '''
     nodes = get_derived_nodes(module_locations)
     names = []
-    for name, node in six.iteritems(nodes):
+    for name, node in nodes.items():
         if filter_nodes and name not in filter_nodes:
             continue
         if fetch_names:

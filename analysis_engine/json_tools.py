@@ -2,7 +2,6 @@ import collections
 import dateutil.parser
 import pytz
 import simplejson as json
-import six
 
 from copy import deepcopy
 from datetime import datetime
@@ -201,9 +200,9 @@ def process_flight_to_nodes(pf_results):
 
     params = {}
 
-    for node_type, nodes in six.iteritems(pf_results):
+    for node_type, nodes in pf_results.items():
 
-        for node_name, items in six.iteritems(nodes):
+        for node_name, items in nodes.items():
             try:
                 node_cls = derived_nodes[node_name]
             except KeyError:

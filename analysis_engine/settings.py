@@ -6,7 +6,6 @@
 
 
 import os
-import six
 import sys
 
 # Note: Create an analyser_custom_settings.py module to override settings for
@@ -580,7 +579,7 @@ try:
     from analyser_custom_settings import *  # NOQA
     # add any new modules to the list of modules
     from copy import copy
-    for k, v in six.iteritems(copy(locals())):
+    for k, v in copy(locals()).items():
         if k.endswith('_MODULES') and k != 'NODE_MODULES':
             NODE_MODULES.extend(v)
     # We want to preserve the order of the modules as later we will want to

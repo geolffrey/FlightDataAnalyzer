@@ -30,7 +30,6 @@
 
 __all__ = ['recordtype', 'NO_DEFAULT']
 
-import six
 import sys as _sys
 
 from keyword import iskeyword as _iskeyword
@@ -123,7 +122,7 @@ def recordtype(typename, field_names, default=NO_DEFAULT, rename=False,
 
     _check_name(typename, is_type_name=True)
 
-    if isinstance(field_names, six.string_types):
+    if isinstance(field_names, str):
         # No per-field defaults. So it's like a namedtuple, but with
         #  a possible default value.
         field_names = field_names.replace(',', ' ').split()
@@ -142,7 +141,7 @@ def recordtype(typename, field_names, default=NO_DEFAULT, rename=False,
 
     seen_names = set()
     for idx, field_name in enumerate(field_names):
-        if isinstance(field_name, six.string_types):
+        if isinstance(field_name, str):
             field_name = _check_field_name(field_name, seen_names, rename,
                                            idx)
             fields.add_without_default(field_name)

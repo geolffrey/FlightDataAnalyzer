@@ -4,7 +4,6 @@ import os
 import sys
 import logging
 import networkx as nx # pip install networkx or /opt/epd/bin/easy_install networkx
-import six
 import copy
 
 from collections import deque, Counter
@@ -418,7 +417,7 @@ def graph_nodes(node_mgr):
 
     # build list of dependencies
     derived_deps = set()  # list of derived dependencies
-    for node_name, node_obj in six.iteritems(derived_minus_lfl):
+    for node_name, node_obj in derived_minus_lfl.items():
         derived_deps.update(node_obj.get_dependency_names())
         # Create edges between node and its dependencies
         edges = []

@@ -12,6 +12,7 @@ from analysis_engine.node import (
 from analysis_engine.library import (
     align,
     all_of,
+    any_deps,
     any_of,
     mask_inside_slices,
     merge_two_parameters,
@@ -67,8 +68,7 @@ class ASEEngaged(MultistateDerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available, ac_type=A('Aircraft Type')):
-        return ac_type and ac_type.value == 'helicopter' and \
-               any_of(cls.get_dependency_names(), available)
+        return ac_type and ac_type.value == 'helicopter' and any_deps(cls, available)
 
     def derive(self,
                ase1=M('ASE (1) Engaged'),
@@ -288,8 +288,7 @@ class RotorBrakeEngaged(MultistateDerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available, ac_type=A('Aircraft Type')):
-        return any_of(cls.get_dependency_names(), available) and \
-               ac_type == helicopter
+        return ac_type == helicopter and any_deps(cls, available)
 
     def derive(self,
                brk1=M('Rotor Brake (1) Engaged'),

@@ -5,7 +5,6 @@ import itertools
 import logging
 import os
 import simplejson as json
-import six
 import sys
 
 from datetime import datetime, timedelta
@@ -63,7 +62,7 @@ def geo_locate(hdf, items):
     lat_pos.array = repair_mask(lat_pos.array, repair_duration=None, extrapolate=True)
     lon_pos.array = repair_mask(lon_pos.array, repair_duration=None, extrapolate=True)
 
-    for item in itertools.chain.from_iterable(six.itervalues(items)):
+    for item in itertools.chain.from_iterable(items.values()):
         item.latitude = lat_pos.at(item.index) or None
         item.longitude = lon_pos.at(item.index) or None
     return items
@@ -78,7 +77,7 @@ def _timestamp(start_datetime, items):
     :param item_list: list of objects with a .index attribute
     :type item_list: list
     '''
-    for item in itertools.chain.from_iterable(six.itervalues(items)):
+    for item in itertools.chain.from_iterable(items.values()):
         item.datetime = start_datetime + timedelta(seconds=float(item.index))
     return items
 
@@ -852,8 +851,7 @@ def main():
         dependency_tree_log=dependency_tree_log,
     )
     # Flatten results.
-    res = {k: list(itertools.chain.from_iterable(six.itervalues(v)))
-           for k, v in six.iteritems(res)}
+    res = {k: list(itertools.chain.from_iterable(v.values())) for k, v in res.items()}
 
     logger.info("Derived parameters stored in hdf: %s", hdf_copy)
     # Write CSV file

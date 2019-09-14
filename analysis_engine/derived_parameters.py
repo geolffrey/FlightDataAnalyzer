@@ -4,7 +4,6 @@ from __future__ import print_function
 
 import geomag
 import numpy as np
-import six
 
 from copy import deepcopy
 from datetime import date
@@ -25,7 +24,9 @@ from analysis_engine.node import (
 from analysis_engine.library import (
     air_track,
     align,
+    all_deps,
     all_of,
+    any_deps,
     any_of,
     alt2press,
     alt2sat,
@@ -931,8 +932,8 @@ class AltitudeRadio(DerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        alt_rads = [n for n in cls.get_dependency_names() if n.startswith('Altitude Radio')]
-        return 'Fast' in available and any_of(alt_rads, available)
+        return 'Fast' in available and any_of((n for n in cls.get_dependency_names() if n.startswith('Altitude Radio')),
+                                              available)
 
     def derive(self,
                source_A=P('Altitude Radio (A)'),
@@ -1611,7 +1612,7 @@ class ControlColumnCapt(DerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                pot=P('Control Column (Capt) Potentiometer'),
@@ -1639,7 +1640,7 @@ class ControlColumnFO(DerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                pot=P('Control Column (FO) Potentiometer'),
@@ -1956,7 +1957,7 @@ class Brake_C_Temp(DerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                brake1=P('Brake (C) (1) Temp'),
@@ -1984,7 +1985,7 @@ class Brake_L_Temp(DerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                brake1=P('Brake (L) (1) Temp'),
@@ -2010,7 +2011,7 @@ class Brake_R_Temp(DerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                brake1=P('Brake (R) (1) Temp'),
@@ -2039,7 +2040,7 @@ class Brake_TempAvg(DerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                brake1=P('Brake (1) Temp'),
@@ -2079,7 +2080,7 @@ class Brake_TempMax(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                brake1=P('Brake (1) Temp'),
@@ -2119,7 +2120,7 @@ class Brake_TempMin(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                brake1=P('Brake (1) Temp'),
@@ -2160,7 +2161,7 @@ class Eng_EPRAvg(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) EPR'),
@@ -2183,7 +2184,7 @@ class Eng_EPRMax(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) EPR'),
@@ -2206,7 +2207,7 @@ class Eng_EPRMin(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) EPR'),
@@ -2270,7 +2271,7 @@ class Eng_TPRMax(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) TPR'),
@@ -2293,7 +2294,7 @@ class Eng_TPRMin(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) TPR'),
@@ -2320,7 +2321,7 @@ class Eng_FuelFlow(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) Fuel Flow'),
@@ -2349,7 +2350,7 @@ class Eng_FuelFlowMin(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) Fuel Flow'),
@@ -2376,7 +2377,7 @@ class Eng_FuelFlowMax(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) Fuel Flow'),
@@ -2462,7 +2463,7 @@ class Eng_FuelBurn(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) Fuel Burn'),
@@ -2489,7 +2490,7 @@ class Eng_GasTempAvg(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) Gas Temp'),
@@ -2512,7 +2513,7 @@ class Eng_GasTempMax(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) Gas Temp'),
@@ -2535,7 +2536,7 @@ class Eng_GasTempMin(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) Gas Temp'),
@@ -2567,7 +2568,7 @@ class Eng_N1Avg(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) N1'),
@@ -2607,7 +2608,7 @@ class Eng_N1Max(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) N1'),
@@ -2634,7 +2635,7 @@ class Eng_N1Min(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) N1'),
@@ -2654,10 +2655,6 @@ class Eng_N1Split(DerivedParameterNode):
     align_frequency = 1
     align_offset = 0
     units = ut.PERCENT
-
-    @classmethod
-    def can_operate(cls, available):
-        return all_of(cls.get_dependency_names(), available)
 
     def derive(self,
                n1max=P('Eng (*) N1 Max'),
@@ -2704,7 +2701,7 @@ class Eng_N2Avg(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) N2'),
@@ -2731,7 +2728,7 @@ class Eng_N2Max(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) N2'),
@@ -2758,7 +2755,7 @@ class Eng_N2Min(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) N2'),
@@ -2789,7 +2786,7 @@ class Eng_N3Avg(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) N3'),
@@ -2816,7 +2813,7 @@ class Eng_N3Max(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) N3'),
@@ -2843,7 +2840,7 @@ class Eng_N3Min(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) N3'),
@@ -2874,7 +2871,7 @@ class Eng_NpAvg(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) Np'),
@@ -2901,7 +2898,7 @@ class Eng_NpMax(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) Np'),
@@ -2928,7 +2925,7 @@ class Eng_NpMin(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) Np'),
@@ -2954,7 +2951,7 @@ class Eng_OilPressAvg(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) Oil Press'),
@@ -2977,7 +2974,7 @@ class Eng_OilPressMax(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) Oil Press'),
@@ -3000,7 +2997,7 @@ class Eng_OilPressMin(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) Oil Press'),
@@ -3027,7 +3024,7 @@ class Eng_OilQtyAvg(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) Oil Qty'),
@@ -3050,7 +3047,7 @@ class Eng_OilQtyMax(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) Oil Qty'),
@@ -3073,7 +3070,7 @@ class Eng_OilQtyMin(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) Oil Qty'),
@@ -3100,7 +3097,7 @@ class Eng_OilTempAvg(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) Oil Temp'),
@@ -3129,7 +3126,7 @@ class Eng_OilTempMax(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) Oil Temp'),
@@ -3158,7 +3155,7 @@ class Eng_OilTempMin(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) Oil Temp'),
@@ -3191,7 +3188,7 @@ class Eng_TorqueAvg(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) Torque'),
@@ -3214,7 +3211,7 @@ class Eng_TorqueMax(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) Torque'),
@@ -3236,7 +3233,7 @@ class Eng_TorqueMin(DerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) Torque'),
@@ -3282,7 +3279,7 @@ class Eng_VibN1Max(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) Vib N1'),
@@ -3325,7 +3322,7 @@ class Eng_VibN2Max(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) Vib N2'),
@@ -3362,7 +3359,7 @@ class Eng_VibN3Max(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) Vib N3'),
@@ -3397,7 +3394,7 @@ class Eng_VibBroadbandMax(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) Vib Broadband'),
@@ -3441,7 +3438,7 @@ class Eng_VibNpMax(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) Vib Np'),
@@ -3477,7 +3474,7 @@ class Eng_VibAMax(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) Vib (A)'),
@@ -3508,7 +3505,7 @@ class Eng_VibBMax(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) Vib (B)'),
@@ -3539,7 +3536,7 @@ class Eng_VibCMax(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                eng1=P('Eng (1) Vib (C)'),
@@ -3643,7 +3640,7 @@ class FuelQtyC(DerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self, fuel_qty_c_1=P('Fuel Qty (C) (1)'),
                fuel_qty_c_2=P('Fuel Qty (C) (2)'),
@@ -3667,7 +3664,7 @@ class FuelQtyL(DerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self, fuel_qty_l_1=P('Fuel Qty (L) (1)'),
                fuel_qty_l_2=P('Fuel Qty (L) (2)'),
@@ -3692,7 +3689,7 @@ class FuelQtyR(DerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self, fuel_qty_r_1=P('Fuel Qty (R) (1)'),
                fuel_qty_r_2=P('Fuel Qty (R) (2)'),
@@ -3718,7 +3715,7 @@ class FuelQtyAux(DerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                fuel_qty_1=P('Fuel Qty (Aux) (1)'),
@@ -4601,7 +4598,7 @@ class ILSLocalizer(DerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                src_A=P('ILS (1) Localizer'),
@@ -4694,7 +4691,7 @@ class ILSGlideslope(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
 
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                src_A=P('ILS (1) Glideslope'),
@@ -5962,7 +5959,7 @@ class RollRateForTouchdown(DerivedParameterNode):
 
         RRi = (R(i) - R(i-1))/dt
         '''
-        self.array = np.array(np.insert(np.ma.ediff1d(roll.array) * roll.hz, 0, 0, axis=0) # roll rate array too short by one - prepend a zero)
+        self.array = np.array(np.insert(np.ma.ediff1d(roll.array) * roll.hz, 0, 0, axis=0))  # roll rate array too short by one - prepend a zero)
 
 
 class RollRateAtTouchdownLimit(DerivedParameterNode):
@@ -7473,7 +7470,7 @@ class AirspeedSelected(DerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self, as_l=P('Airspeed Selected (L)'),
                as_r=P('Airspeed Selected (R)'),
@@ -8487,7 +8484,7 @@ class MinimumCleanLookup(DerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available, family=A('Family')):
-        return family and family.value in ('B757', 'B767') and all_of(cls.get_dependency_names(), available)
+        return family and family.value in ('B757', 'B767') and all_deps(cls, available)
 
     def derive(self,
                air_spd=P('Airspeed'),
@@ -8617,7 +8614,7 @@ class FlapManoeuvreSpeed(DerivedParameterNode):
                     condition = runs_of_ones(gw.array <= weight)
                     for s in slices_and(slices, condition):
                         array[s] = speed
-            elif isinstance(fms[0], six.string_types):
+            elif isinstance(fms[0], str):
                 setting, offset = fms
                 vref_recorded = locals().get('vref_%s' % setting)
                 for s in slices:

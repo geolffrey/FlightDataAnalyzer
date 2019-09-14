@@ -15,6 +15,7 @@ from analysis_engine.node import (
 from analysis_engine.library import (
     all_deps,
     all_of,
+    any_deps,
     any_of,
     any_one_of,
     bearing_and_distance,
@@ -1794,7 +1795,7 @@ class TakeoffRollOrRejectedTakeoff(FlightPhaseNode):
     '''
     @classmethod
     def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
+        return any_deps(cls, available)
 
     def derive(self,
                trolls=S('Takeoff Roll'),

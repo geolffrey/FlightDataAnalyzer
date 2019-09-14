@@ -10,6 +10,7 @@ from analysis_engine.node import (
 )
 
 from analysis_engine.library import (
+    any_deps,
     any_of,
     all_of,
     bearings_and_distances,
@@ -291,7 +292,7 @@ class CyclicForeAft(DerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available, ac_type=A('Aircraft Type')):
-        return ac_type == helicopter and any_of(cls.get_dependency_names(), available)
+        return ac_type == helicopter and any_deps(cls, available)
 
     def derive(self,
                capt=P('Cyclic Fore-Aft (1)'),
@@ -308,7 +309,7 @@ class CyclicLateral(DerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available, ac_type=A('Aircraft Type')):
-        return ac_type == helicopter and any_of(cls.get_dependency_names(), available)
+        return ac_type == helicopter and any_deps(cls, available)
 
     def derive(self,
                capt=P('Cyclic Lateral (1)'),
@@ -381,7 +382,7 @@ class Nr(DerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available, ac_type=A('Aircraft Type')):
-        return ac_type == helicopter and any_of(cls.get_dependency_names(), available)
+        return ac_type == helicopter and any_deps(cls, available)
 
     def derive(self, p1=P('Nr (1)'), p2=P('Nr (2)')):
         self.array, self.frequency, self.offset = \

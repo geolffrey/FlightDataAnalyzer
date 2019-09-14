@@ -3,7 +3,6 @@ from __future__ import print_function
 import importlib.machinery
 import os
 import networkx as nx
-import six
 import unittest
 import yaml
 import types
@@ -30,7 +29,7 @@ test_data_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
 def flatten(l):
     "Flatten an iterable of many levels of depth (generator)"
     for el in l:
-        if isinstance(el, Iterable) and not isinstance(el, six.string_types):
+        if isinstance(el, Iterable) and not isinstance(el, str):
             for sub in sorted(flatten(el)):
                 yield sub
         else:
