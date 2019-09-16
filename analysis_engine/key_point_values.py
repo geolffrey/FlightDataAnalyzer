@@ -4485,8 +4485,29 @@ class SensorDifference5SecMaxMixin(object):
     Maximum recorded Sensor difference sustained for at least 5 seconds while Airborne.
 
     This mixin can be added to any KPV measuring the greatest difference between
-    all the sensors available.
+    all available sensors.
+
+    Example on how to use this Mixin:
+
+    class MySensorDifference5SecMax(SensorDifference5SecMaxMixin, KeyPointValueNode):
+
+        def derive(self,
+                   sensor_1=P('Sensor (1)'),
+                   sensor_2=P('Sensor (2)'),
+                   sensor_3=P('Sensor (3)'),
+                   sensor_4=P('Sensor (4)'),
+                   airs=S('Airborne'),):
+            self.derive_sensors_diff([sensor_1, sensor_2, sensor_3, sensor_4], airs)
+
+    This will work for any dataframes. Any sensor can be missing. If there are
+    less than 2 sensors on the dataframe, no KPV will be created.
     '''
+
+    @classmethod
+    def can_operate(cls, available):
+        sensors = [param for param in available if param != 'Airborne']
+        return ('Airborne' in available and
+                any_of(sensors, available))
 
     def derive_sensors_diff(self, sensors, airs):
         '''
@@ -4520,7 +4541,7 @@ class SensorDifference5SecMaxMixin(object):
         self.create_kpv(idx, value)
 
 
-class AOADifference5SecMax(KeyPointValueNode, SensorDifference5SecMaxMixin):
+class AOADifference5SecMax(SensorDifference5SecMaxMixin, KeyPointValueNode):
     '''
     Maximum recorded AoA difference sustained for at least 5 seconds while Airborne.
     Left greater than Right = negative value.
@@ -4532,11 +4553,13 @@ class AOADifference5SecMax(KeyPointValueNode, SensorDifference5SecMaxMixin):
     def derive(self,
                aoa_l=P('AOA (L)'),
                aoa_r=P('AOA (R)'),
+               aoa_1=P('AOA (1)'),
+               aoa_2=P('AOA (2)'),
                airs=S('Airborne'),):
-        self.derive_sensors_diff([aoa_l, aoa_r], airs)
+        self.derive_sensors_diff([aoa_l, aoa_r, aoa_1, aoa_2], airs)
 
 
-class AirspeedDifference5SecMax(KeyPointValueNode, SensorDifference5SecMaxMixin):
+class AirspeedDifference5SecMax(SensorDifference5SecMaxMixin, KeyPointValueNode):
     '''
     Maximum recorded Airspeed difference sustained for at least 5 seconds while Airborne.
     '''
@@ -4546,9 +4569,10 @@ class AirspeedDifference5SecMax(KeyPointValueNode, SensorDifference5SecMaxMixin)
 
     def derive(self,
                ias=P('Airspeed'),
+               ias_1=P('Airspeed (1)'),
                ias_2=P('Airspeed (2)'),
                airs=S('Airborne'),):
-        self.derive_sensors_diff([ias, ias_2], airs)
+        self.derive_sensors_diff([ias, ias_1, ias_2], airs)
 
 
 ##############################################################################

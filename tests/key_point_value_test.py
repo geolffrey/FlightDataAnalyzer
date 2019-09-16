@@ -5599,14 +5599,14 @@ class TestAOADifference5SecMax(unittest.TestCase, NodeTest):
         self.operational_combinations = [('AOA (L)', 'AOA (R)', 'Airborne')]
         self.function = max_value
 
-    def test_derive(self):
+    def test_derive_2_aoa(self):
         aoa_r_arr = np.sin(np.arange(1, 20))
         aoa_l_arr = np.cos(np.arange(1, 20))
         aoa_l = P('AOA (L)', array=aoa_l_arr)
         aoa_r = P('AOA (R)', array=aoa_r_arr)
         airs = buildsection('Airborne', 3, 15)
         node = self.node_class()
-        node.derive(aoa_l, aoa_r, airs)
+        node.derive(aoa_l, aoa_r, None, None, airs)
         self.assertEqual(len(node), 1)
         self.assertAlmostEqual(node[0].value, -0.30, places=2)
         self.assertEqual(node[0].index, 3)
@@ -5709,13 +5709,13 @@ class TestAirspeedDifference5SecMax(unittest.TestCase, NodeTest):
         self.function = max_value
 
     def test_derive(self):
-        ias_1_arr = np.sin(np.arange(1,20))
+        ias_arr = np.sin(np.arange(1,20))
         ias_2_arr = np.cos(np.arange(1,20))
-        ias_1 = P('Airspeed', array=ias_1_arr)
+        ias = P('Airspeed', array=ias_arr)
         ias_2 = P('Airspeed (2)', array=ias_2_arr)
         airs = buildsection('Airborne', 3, 15)
         node = self.node_class()
-        node.derive(ias_1, ias_2, airs)
+        node.derive(ias, None, ias_2, airs)
         self.assertEqual(len(node), 1)
         self.assertAlmostEqual(node[0].value, 0.30, places=2)
         self.assertEqual(node[0].index, 3)
