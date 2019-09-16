@@ -4505,7 +4505,7 @@ class SensorDifference5SecMaxMixin(object):
 
     @classmethod
     def can_operate(cls, available):
-        sensors = [param for param in available if param != 'Airborne']
+        sensors = [param for param in cls.get_dependency_names() if param != 'Airborne']
         return ('Airborne' in available and
                 any_of(sensors, available))
 
