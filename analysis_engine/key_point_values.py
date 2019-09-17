@@ -5766,7 +5766,7 @@ class AltitudeAtClimbThrustDerateSelection(KeyPointValueNode):
         sections = slices_and(runs_of_ones(tmc.array == '-'), airborne.get_slices())
 
         for s in sections:
-            self.create_kpv(s.start, alt_aal.array[s.start])
+            self.create_kpv(s.start, alt_aal.array[int(s.start)])
 
 
 ########################################
