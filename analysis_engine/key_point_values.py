@@ -4571,8 +4571,98 @@ class AirspeedDifference5SecMax(SensorDifference5SecMaxMixin, KeyPointValueNode)
                ias=P('Airspeed'),
                ias_1=P('Airspeed (1)'),
                ias_2=P('Airspeed (2)'),
+               ias_3=P('Airspeed (3)'),
+               ias_4=P('Airspeed (4)'),
                airs=S('Airborne'),):
-        self.derive_sensors_diff([ias, ias_1, ias_2], airs)
+        self.derive_sensors_diff([ias, ias_1, ias_2, ias_3, ias_4], airs)
+
+
+class AltitudeSTDDifference5SecMax(SensorDifference5SecMaxMixin, KeyPointValueNode):
+    '''
+    Maximum recorded Altitude STD difference sustained for at least 5 seconds while Airborne.
+    '''
+
+    name = 'Altitude STD Difference 5 Sec Max'
+    units = ut.FT
+
+    def derive(self,
+               alt=P('Altitude STD'),
+               alt_1=P('Altitude STD (1)'),
+               alt_2=P('Altitude STD (2)'),
+               alt_3=P('Altitude STD (3)'),
+               alt_4=P('Altitude STD (4)'),
+               airs=S('Airborne'),):
+        self.derive_sensors_diff([alt, alt_1, alt_2, alt_3, alt_4], airs)
+
+
+class PitchDifference5SecMax(SensorDifference5SecMaxMixin, KeyPointValueNode):
+    '''
+    Maximum recorded Pitch difference sustained for at least 5 seconds while Airborne.
+    '''
+
+    name = 'Pitch Difference 5 Sec Max'
+    units = ut.DEGREE
+
+    def derive(self,
+               pitch=P('Pitch'),
+               pitch_1=P('Pitch (1)'),
+               pitch_2=P('Pitch (2)'),
+               pitch_3=P('Pitch (3)'),
+               pitch_4=P('Pitch (4)'),
+               pitch_5=P('Pitch (5)'),
+               pitch_6=P('Pitch (6)'),
+               pitch_7=P('Pitch (7)'),
+               pitch_8=P('Pitch (8)'),
+               airs=S('Airborne'),):
+        self.derive_sensors_diff(
+            [pitch, pitch_1, pitch_2, pitch_3, pitch_4,
+             pitch_5, pitch_6, pitch_7, pitch_8],
+            airs
+        )
+
+
+class RollDifference5SecMax(SensorDifference5SecMaxMixin, KeyPointValueNode):
+    '''
+    Maximum recorded Roll difference sustained for at least 5 seconds while Airborne.
+    '''
+
+    name = 'Roll Difference 5 Sec Max'
+    units = ut.DEGREE
+
+    def derive(self,
+               roll=P('Roll'),
+               roll_1=P('Roll (1)'),
+               roll_2=P('Roll (2)'),
+               roll_3=P('Roll (3)'),
+               roll_4=P('Roll (4)'),
+               roll_5=P('Roll (5)'),
+               roll_6=P('Roll (6)'),
+               roll_7=P('Roll (7)'),
+               roll_8=P('Roll (8)'),
+               roll_9=P('Roll (9)'),
+               airs=S('Airborne'),):
+        self.derive_sensors_diff(
+            [roll, roll_1, roll_2, roll_3, roll_4,
+             roll_5, roll_6, roll_7, roll_8, roll_9],
+            airs
+        )
+
+
+class HeadingDifference5SecMax(SensorDifference5SecMaxMixin, KeyPointValueNode):
+    '''
+    Maximum recorded Heading difference sustained for at least 5 seconds while Airborne.
+    '''
+
+    name = 'Heading Difference 5 Sec Max'
+    units = ut.DEGREE
+
+    def derive(self,
+               hdg=P('Heading'),
+               hdg_1=P('Heading (1)'),
+               hdg_2=P('Heading (2)'),
+               hdg_3=P('Heading (3)'),
+               airs=S('Airborne'),):
+        self.derive_sensors_diff([hdg, hdg_1, hdg_2, hdg_3], airs)
 
 
 ##############################################################################
