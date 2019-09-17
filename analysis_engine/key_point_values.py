@@ -19679,7 +19679,7 @@ class DriftAtTouchdown(KeyPointValueNode):
 
 class EngN1TakeoffDerate(KeyPointValueNode):
     '''
-    Specific to CFM56-5B engines
+    Specific to CFM56-5B and CFMI Leap engines
     '''
     units = ut.PERCENT
 
@@ -19687,7 +19687,8 @@ class EngN1TakeoffDerate(KeyPointValueNode):
 
     @classmethod
     def can_operate(cls, available, engine_series=A('Engine Series')):
-        return engine_series and engine_series.value == 'CFM56-5B' and all_deps(cls, available)
+        return engine_series and engine_series.value in ('CFM56-5B', 'CFMI Leap') \
+               and all_deps(cls, available)
 
     def derive(self, eng_n1=P('Eng (*) N1 Avg'),
                tat=P('TAT'), mach=P('Mach'),
@@ -19710,7 +19711,7 @@ class EngN1TakeoffDerate(KeyPointValueNode):
 
 class EngThrustTakeoffDerate(KeyPointValueNode):
     '''
-    Specific to CFM56-5B engines
+    Specific to CFM56-5B and CFMI Leap engines
     '''
 
     units = ut.LBF

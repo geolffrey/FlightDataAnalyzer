@@ -13628,6 +13628,8 @@ class TestEngN1TakeoffDerate(unittest.TestCase):
                                                      A('Engine Series', value='RB199')))
         self.assertTrue(self.node_class.can_operate(['Eng (*) N1 Avg', 'TAT', 'Mach', 'SAGE Takeoff', 'Engine Series'],
                                                     A('Engine Series', value='CFM56-5B')))
+        self.assertTrue(self.node_class.can_operate(['Eng (*) N1 Avg', 'TAT', 'Mach', 'SAGE Takeoff', 'Engine Series'],
+                                                    A('Engine Series', value='CFMI Leap')))
 
     def test_derive(self):
         toff =  KTI('SAGE Takeoff',
