@@ -42,6 +42,7 @@ from analysis_engine.library import (
     slices_above,
     slices_and,
     slices_and_not,
+    slice_duration,
     slices_extend_duration,
     slices_from_to,
     slices_not,
@@ -243,7 +244,7 @@ class Holding(FlightPhaseNode):
             # low. The index is reduced by one sample to avoid overruns, and
             # this is fine because we are not looking for great precision in
             # this test.
-            hold_sec = turn_band.stop - turn_band.start
+            hold_sec = slice_duration(turn_band, self.hz)
             if (hold_sec < HOLDING_MIN_TIME):
                 continue
             start = int(turn_band.start)
