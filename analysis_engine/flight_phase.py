@@ -215,7 +215,7 @@ class Holding(FlightPhaseNode):
         turn_rate = rate_of_change(head, HOLDING_MIN_TIME)
         # We scan the entire descent from highest altitude onwards.
         max_alt_to_end = [slices_int(alt_max[0].index, len(alt_aal.array))]
-        above_approach = slices_above(alt_aal.array, 3000)[1]
+        above_approach = slices_above(alt_aal.array, 2000)[1]
         to_scan = slices_and(max_alt_to_end, above_approach)
 
         for this_scan in to_scan:
@@ -251,7 +251,7 @@ class Holding(FlightPhaseNode):
             if average_speed > HOLDING_MAX_GSPD:
                 continue
             angle_of_turn = head.array[stop] - head.array[start]
-            if angle_of_turn < HOLDING_MIN_TURN:
+            if np.ma.abs(angle_of_turn) < HOLDING_MIN_TURN:
                 continue
             # So this lasted long enough, turned through a large angle and had a low
             # overall speed. Now fine tune the endpoints.
