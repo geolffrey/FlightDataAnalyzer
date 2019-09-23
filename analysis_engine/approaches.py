@@ -434,13 +434,13 @@ class ApproachInformation(ApproachNode):
                 if is_index_within_slice(touchdown.index, slice(_slice.start, _slice.stop+5*alt.frequency)):
                     if offshore and \
                        offshore.array[int(touchdown.index)] == 'Offshore' and \
-                       tkoff.start < touchdown.index:
+                       tkoff.slice.start < touchdown.index:
                         if not distance_land:
-                            if offshore.array[tkoff.start] == 'Offshore':
+                            if offshore.array[tkoff.slice.start] == 'Offshore':
                                 approach_type = 'SHUTTLING'
-                        elif offshore.array[tkoff.start] == 'Offshore' and \
-                             tkoff.start < len(distance_land.array) and \
-                             distance_land.array[int(tkoff.start)] <= 40:
+                        elif offshore.array[tkoff.slice.start] == 'Offshore' and \
+                             tkoff.slice.start < len(distance_land.array) and \
+                             distance_land.array[int(tkoff.slice.start)] <= 40:
                             approach_type = 'SHUTTLING'
                         elif height_from_rig:
                             Vy = 80.0 # Type dependent?
@@ -562,7 +562,7 @@ class ApproachInformation(ApproachNode):
                             # to properly identify ARDA/AROA approaches (the procedure starts from 10NM
                             # before touchdown)
 
-                            app_slice = slice(index_at_value(distance_land.array, 11, _slice=slice(0,touchdown.index)), touchdown.index)
+                            app_slice = slices_int(slice(index_at_value(distance_land.array, 11, _slice=slice(0,touchdown.index)), touchdown.index))
 
                             heading_repaired = repair_mask(heading.array[app_slice],
                                                            frequency=heading.frequency,

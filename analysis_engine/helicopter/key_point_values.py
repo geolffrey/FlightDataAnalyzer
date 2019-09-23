@@ -31,6 +31,7 @@ from analysis_engine.library import (
     slices_overlap,
     slices_remove_small_gaps,
     slices_remove_small_slices,
+    slices_int,
     valid_slices_within_array,
     value_at_index,
     vstack_params,
@@ -948,7 +949,7 @@ class HeadingVariation1_5NMTo1_0NMFromOffshoreTouchdownMaxSpecialProcedure(KeyPo
                         start_kti = dtts.get_previous(tdwn.index, name='1.5 NM To Touchdown')
                         stop_kti = dtts.get_previous(tdwn.index, name='1.0 NM To Touchdown')
                         if start_kti and stop_kti:
-                            phase = slice(start_kti.index, stop_kti.index+1)
+                            phase = slices_int(slice(start_kti.index, stop_kti.index+1))
                             heading_delta = np.ma.ptp(heading.array[phase])
                             self.create_kpv(phase.stop-1, heading_delta)
 
