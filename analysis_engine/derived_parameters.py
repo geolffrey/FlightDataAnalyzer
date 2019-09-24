@@ -1951,21 +1951,28 @@ class Drift(DerivedParameterNode):
     def can_operate(cls, available):
 
         return any_of(('Drift (1)', 'Drift (2)'), available) \
-            or all_of(('Heading Continuous', 'Track'), available)
+            or all_of(('Heading Continuous', 'Track'), available) \
+            or all_of(('Heading True Continuous', 'Track True'), available)
 
     def derive(self,
                drift_1=P('Drift (1)'),
                drift_2=P('Drift (2)'),
-               track=P('Track'),
-               heading=P('Heading Continuous')):
+               track_mag=P('Track'),
+               heading_mag=P('Heading Continuous'),
+               track_true=P('Track True'),
+               heading_true=P('Heading True Continuous'),):
 
         if drift_1 or drift_2:
             self.array, self.frequency, self.offset = \
                 blend_two_parameters(drift_1, drift_2)
+        elif track_mag and heading_mag:
+            self.frequency = track_mag.frequency
+            self.offset = track_mag.offset
+            self.array = (track_mag.array - align(heading_mag, track_mag) + 180) % 360 - 180
         else:
-            self.frequency = track.frequency
-            self.offset = track.offset
-            self.array = (track.array - align(heading, track) + 180) % 360 - 180
+            self.frequency = track_true.frequency
+            self.offset = track_true.offset
+            self.array = (track_true.array - align(heading_true, track_true) + 180) % 360 - 180
 
 
 ##############################################################################
