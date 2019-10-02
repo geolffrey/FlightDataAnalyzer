@@ -1300,46 +1300,46 @@ class FlapLever(MultistateDerivedParameterNode):
 
 
 
-class FlapIncludingTransition(MultistateDerivedParameterNode):
-    '''
-    Specifically designed to cater for maintenance monitoring, this assumes
-    that when moving the higher of the start and endpoints of the movement
-    apply. This increases the chance of needing a flap overspeed inspection,
-    but provides a more cautious interpretation of the maintenance
-    requirements.
-    '''
-
-    units = ut.DEGREE
-
-    @classmethod
-    def can_operate(cls, available,
-                    model=A('Model'), series=A('Series'), family=A('Family')):
-
-        if not all_of(('Flap Angle', 'Model', 'Series', 'Family'), available):
-            return all_of(('Flap', 'Model', 'Series', 'Family'), available)
-
-        try:
-            at.get_flap_map(model.value, series.value, family.value)
-        except KeyError:
-            cls.debug("No lever mapping available for '%s', '%s', '%s'.",
-                      model.value, series.value, family.value)
-            return False
-
-        return True
-
-    def derive(self, flap_angle=P('Flap Angle'), flap=M('Flap'),
-               model=A('Model'), series=A('Series'), family=A('Family')):
-        self.values_mapping = at.get_flap_map(model.value, series.value, family.value)
-        if flap_angle:
-            self.array = including_transition(flap_angle.array, self.values_mapping, hz=self.hz)
-        else:
-            # if we do not have flap angle use flap, use states as values
-            # will vary between frames
-            array = MappedArray(np_ma_masked_zeros_like(flap.array),
-                                values_mapping=self.values_mapping)
-            for value, state in six.iteritems(self.values_mapping):
-                array[flap.array == state] = state
-            self.array = array
+# class FlapIncludingTransition(MultistateDerivedParameterNode):
+#     '''
+#     Specifically designed to cater for maintenance monitoring, this assumes
+#     that when moving the higher of the start and endpoints of the movement
+#     apply. This increases the chance of needing a flap overspeed inspection,
+#     but provides a more cautious interpretation of the maintenance
+#     requirements.
+#     '''
+#
+#     units = ut.DEGREE
+#
+#     @classmethod
+#     def can_operate(cls, available,
+#                     model=A('Model'), series=A('Series'), family=A('Family')):
+#
+#         if not all_of(('Flap Angle', 'Model', 'Series', 'Family'), available):
+#             return all_of(('Flap', 'Model', 'Series', 'Family'), available)
+#
+#         try:
+#             at.get_flap_map(model.value, series.value, family.value)
+#         except KeyError:
+#             cls.debug("No lever mapping available for '%s', '%s', '%s'.",
+#                       model.value, series.value, family.value)
+#             return False
+#
+#         return True
+#
+#     def derive(self, flap_angle=P('Flap Angle'), flap=M('Flap'),
+#                model=A('Model'), series=A('Series'), family=A('Family')):
+#         self.values_mapping = at.get_flap_map(model.value, series.value, family.value)
+#         if flap_angle:
+#             self.array = including_transition(flap_angle.array, self.values_mapping, hz=self.hz)
+#         else:
+#             # if we do not have flap angle use flap, use states as values
+#             # will vary between frames
+#             array = MappedArray(np_ma_masked_zeros_like(flap.array),
+#                                 values_mapping=self.values_mapping)
+#             for value, state in six.iteritems(self.values_mapping):
+#                 array[flap.array == state] = state
+#             self.array = array
 
 
 class FlapExcludingTransition(MultistateDerivedParameterNode):
