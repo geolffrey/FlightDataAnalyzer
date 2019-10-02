@@ -217,7 +217,7 @@ class TestDateTimeFunctions(unittest.TestCase):
 
         self.assertEqual(new_dt, start_dt)
 
-
+@unittest.skip('L3Harris EBT')
 class TestSplitSegments(unittest.TestCase):
     def test_split_segments(self):
         # TODO: Test engine param splitting.
@@ -943,7 +943,7 @@ class TestSegmentTypeAndSlice(unittest.TestCase):
         speed_array = load_array('segment_type_and_slice_1_speed.npz')
         heading_array = load_array('segment_type_and_slice_1_heading.npz')
         eng_arrays = load_array('segment_type_and_slice_1_eng_arrays.npz')
-        aircraft_info = {'Aircraft Type': 'aeroplane'}
+        aircraft_info = {'Aircraft Type': 'aeroplane', 'Data Type': 'Mock'}
         thresholds = {'hash_min_samples': 64, 'speed_threshold': 80, 'min_split_duration': 100, 'min_duration': 180}
         hdf = mock.Mock()
         hdf.superframe_present = False
