@@ -42,7 +42,7 @@ from analysis_engine.key_time_instances import (
     LastEngStartBeforeLiftoff,
     FirstFlapExtensionWhileAirborne,
     FlapExtensionWhileAirborne,
-    FlapLeverSet,
+    #FlapLeverSet,
     FlapAlternateArmedSet,
     FlapLoadReliefSet,
     FlapRetractionWhileAirborne,
@@ -1550,7 +1550,7 @@ class TestSlatAlternateArmedSet(unittest.TestCase, NodeTest):
         expected = [KeyTimeInstance(index=1.5, name=self.node_class.get_name())]
         self.assertEqual(node, expected)
 
-
+@unittest.skip('L3Harris EBT')
 class TestFlapLeverSet(unittest.TestCase, NodeTest):
 
     def setUp(self):
