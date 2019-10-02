@@ -863,28 +863,28 @@ class TopOfDescent(KeyTimeInstanceNode):
 # Flap
 
 
-class FlapLeverSet(KeyTimeInstanceNode):
-    '''
-    Indicates where the flap was set.
-    '''
-
-    NAME_FORMAT = 'Flap %(flap)s Set'
-    NAME_VALUES = NAME_VALUES_LEVER
-
-    @classmethod
-    def can_operate(cls, available):
-
-        return any_of(('Flap Lever', 'Flap Lever (Synthetic)'), available)
-
-    def derive(self,
-               flap_lever=M('Flap Lever'),
-               flap_synth=M('Flap Lever (Synthetic)')):
-
-        flap = flap_lever or flap_synth
-        # TODO: Simplify when we've dealt with KTI node refactoring...
-        for _, state in sorted(six.iteritems(flap.values_mapping)):
-            self.create_ktis_on_state_change(state, flap.array, name='flap',
-                                             change='entering')
+# class FlapLeverSet(KeyTimeInstanceNode):
+#     '''
+#     Indicates where the flap was set.
+#     '''
+#
+#     NAME_FORMAT = 'Flap %(flap)s Set'
+#     NAME_VALUES = NAME_VALUES_LEVER
+#
+#     @classmethod
+#     def can_operate(cls, available):
+#
+#         return any_of(('Flap Lever', 'Flap Lever (Synthetic)'), available)
+#
+#     def derive(self,
+#                flap_lever=M('Flap Lever'),
+#                flap_synth=M('Flap Lever (Synthetic)')):
+#
+#         flap = flap_lever or flap_synth
+#         # TODO: Simplify when we've dealt with KTI node refactoring...
+#         for _, state in sorted(six.iteritems(flap.values_mapping)):
+#             self.create_ktis_on_state_change(state, flap.array, name='flap',
+#                                              change='entering')
 
 
 class FirstFlapExtensionWhileAirborne(KeyTimeInstanceNode):
