@@ -219,7 +219,7 @@ def _segment_type_and_slice(speed_array, speed_frequency,
         if eng_arrays is not None:
             heading_array = np.ma.masked_where(eng_arrays[heading_start:heading_stop] < settings.MIN_FAN_RUNNING, heading_array)
         hdiff = np.ma.abs(np.ma.diff(heading_array)).sum()
-        did_move = hdiff > settings.HEADING_CHANGE_TAXI_THRESHOLD
+        did_move = hdiff > settings.HEADING_CHANGE_TAXI_THRESHOLD if aircraft_info['Data Type'] != 'LTHSIM' else True
 
     if not did_move or (not fast_for_long and eng_arrays is None):
         # added check for not fast for long and no engine params to avoid
@@ -755,12 +755,19 @@ def _get_speed_parameter(hdf, aircraft_info):
         # Set to 30 sec as this gives two splits and two keeps in the test data set
         # TODO: add to settings
         thresholds['hash_min_samples'] = settings.AIRSPEED_HASH_MIN_SAMPLES
+    elif aircraft_info.get('Data Type', None) == 'LTHSIM':  # Training Simulation runs can be below 3 mins
+        parameter = hdf['Airspeed']
+        thresholds['speed_threshold'] = settings.AIRSPEED_THRESHOLD
+        thresholds['min_split_duration'] = 10  # settings.MINIMUM_SPLIT_DURATION
+        thresholds['hash_min_samples'] = settings.AIRSPEED_HASH_MIN_SAMPLES
+        thresholds['min_duration'] = 30  # settings.AIRSPEED_THRESHOLD_TIME
     else:
         parameter = hdf['Airspeed']
         thresholds['speed_threshold'] = settings.AIRSPEED_THRESHOLD
         thresholds['min_split_duration'] = settings.MINIMUM_SPLIT_DURATION
         thresholds['hash_min_samples'] = settings.AIRSPEED_HASH_MIN_SAMPLES
         thresholds['min_duration'] = settings.AIRSPEED_THRESHOLD_TIME
+
     vspeed = hdf.get('Vertical Speed')
     thresholds['vertical_speed_max'] = settings.VERTICAL_SPEED_FOR_CLIMB_PHASE
     thresholds['vertical_speed_min'] = settings.VERTICAL_SPEED_FOR_DESCENT_PHASE
