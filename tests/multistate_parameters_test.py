@@ -52,7 +52,7 @@ from analysis_engine.multistate_parameters import (
     EventMarker,
     Flap,
     FlapExcludingTransition,
-    FlapIncludingTransition,
+    #FlapIncludingTransition,
     FlapLever,
     FlapLeverSynthetic,
     Flaperon,
@@ -1597,7 +1597,7 @@ class TestFlapExcludingTransition(unittest.TestCase, NodeTest):
         self.assertTrue(flap1slices[2].stop == flap2slices[2].start)
         self.assertTrue(flap2slices[2].stop == flap5slices[1].start)
 
-
+@unittest.skip('L3Harris EBT')
 class TestFlapIncludingTransition(unittest.TestCase, NodeTest):
 
     def setUp(self):
