@@ -782,7 +782,7 @@ class DerivedParameterNode(Node):
             new_basic = slice(basic.start, min(basic.stop + 20, len(self.array)))  # In case the touchdown is behind the basic slice.
             for tdwn in tdwns:
                 if is_index_within_slice(tdwn.index, new_basic):
-                    result.append(slice(new_basic.start, tdwn.index))
+                    result.append(slice(new_basic.start, math.ceil(tdwn.index)))
                     break
 
         if len(result) > 1:

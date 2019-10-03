@@ -1995,7 +1995,7 @@ class TestDerivedParameterNode(unittest.TestCase):
         alt_aal = P('Altitude AAL',heights)
         tdwns = KTI(items=[KeyTimeInstance(name='Touchdown', index=9.5)])
         result = alt_aal.slices_to_kti(75, tdwns)
-        expected = [slice(2,9.5)]
+        expected = [slice(2, 10)]
         self.assertEqual(result, expected)
 
     def test_slices_to_touchdown_early(self):
@@ -2004,7 +2004,7 @@ class TestDerivedParameterNode(unittest.TestCase):
         alt_aal = P('Altitude AAL',heights)
         tdwns = KTI(items=[KeyTimeInstance(name='Touchdown', index=6.7)])
         result = alt_aal.slices_to_kti(75, tdwns)
-        expected = [slice(2,6.7)]
+        expected = [slice(2, 7)]
         self.assertEqual(result, expected)
 
     def test_slices_to_touchdown_outside_range(self):
