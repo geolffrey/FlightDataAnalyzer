@@ -762,7 +762,7 @@ class Fast(FlightPhaseNode):
             fast_slices = np.ma.clump_unmasked(fast)
             fast_slices = slices_remove_small_gaps(fast_slices, time_limit=30,
                                                    hz=self.frequency)
-            fast_slices = slices_remove_small_slices(fast_slices, time_limit=10,
+            fast_slices = slices_remove_small_slices(fast_slices, time_limit=30,
                                                      hz=self.frequency)
 
         self.create_phases(slices_remove_small_slices(fast_slices))
