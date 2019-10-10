@@ -16772,35 +16772,37 @@ class MasterWarningDuration(KeyPointValueNode):
     '''
     Duration for which the Master Warning was active.
 
-    On some types nuisance recordings arise before first engine start, hence
-    the added condition for engine running.
+    On some types nuisance recordings arise before takeoff or after langing.
+    So we only consider from beginning of Takeoff until end of Landing section.
     '''
 
     units = ut.SECOND
 
     @classmethod
-    def can_operate(cls, available):
+    def can_operate(cls, available, ac_type=A('Aircraft Type')):
+        if ac_type == helicopter:
+            sections = 'Airborne' in available
+        else:
+            sections = all_of(['Takeoff', 'Airborne', 'Landing'], available)
 
-        return 'Master Warning' in available
+        return all_of(['Master Warning', 'Aircraft Type'], available) and sections
 
     def derive(self,
                warning=M('Master Warning'),
-               any_engine=M('Eng (*) Any Running'),
-               family=A('Family'),
-               airborne=S('Airborne')):
+               ac_type=A('Aircraft Type'),
+               tkoffs=S('Takeoff'),
+               airborne=S('Airborne'),
+               landings=S('Landing'),
+               ):
 
         # min duration is a greater than or equal to operator
         single_sample = (1/warning.hz) + 1
 
-        if family and family.value in 'AW139':
+        if ac_type.value == helicopter:
             self.create_kpvs_where(warning.array == 'Warning', warning.hz, phase=airborne, min_duration=single_sample)
-
-        elif any_engine:
-            self.create_kpvs_where(np.ma.logical_and(warning.array == 'Warning',
-                                                     any_engine.array == 'Running'),
-                                   warning.hz, min_duration=single_sample)
         else:
-            self.create_kpvs_where(warning.array == 'Warning', warning.hz, min_duration=single_sample)
+            sections = slices_or(tkoffs.get_slices(), airborne.get_slices(), landings.get_slices())
+            self.create_kpvs_where(warning.array == 'Warning', warning.hz, phase=sections, min_duration=single_sample)
 
 
 class MasterWarningDuringTakeoffDuration(KeyPointValueNode):
