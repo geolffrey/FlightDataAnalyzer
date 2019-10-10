@@ -4599,8 +4599,11 @@ class TestAirspeedWithConfigurationMax(unittest.TestCase, NodeTest):
         node = self.node_class()
         node.derive(air_spd, conf, fast)
         self.assertEqual(node, KPV(name=name, items=[
+            KeyPointValue(index=2, value=2, name='Airspeed With Configuration 1 Max'),
             KeyPointValue(index=10, value=10, name='Airspeed With Configuration 1 Max'),
+            KeyPointValue(index=4, value=4, name='Airspeed With Configuration 1+F Max'),
             KeyPointValue(index=9, value=9, name='Airspeed With Configuration 1+F Max'),
+            KeyPointValue(index=5, value=5, name='Airspeed With Configuration 2 Max'),
             KeyPointValue(index=8, value=8, name='Airspeed With Configuration 2 Max'),
             KeyPointValue(index=6, value=6, name='Airspeed With Configuration 3 Max'),
         ]))
@@ -4670,8 +4673,11 @@ class TestAirspeedRelativeWithConfigurationDuringDescentMin(unittest.TestCase, N
         node = self.node_class()
         node.derive(air_spd, conf, descent)
         self.assertEqual(node, KPV(name=name, items=[
+            KeyPointValue(index=21, value=11, name='Airspeed Relative With Configuration 1 During Descent Min'),
             KeyPointValue(index=30, value=2, name='Airspeed Relative With Configuration 1 During Descent Min'),
+            KeyPointValue(index=22, value=10, name='Airspeed Relative With Configuration 1+F During Descent Min'),
             KeyPointValue(index=28, value=4, name='Airspeed Relative With Configuration 1+F During Descent Min'),
+            KeyPointValue(index=24, value=8, name='Airspeed Relative With Configuration 2 During Descent Min'),
             KeyPointValue(index=26, value=6, name='Airspeed Relative With Configuration 2 During Descent Min'),
             KeyPointValue(index=25, value=7, name='Airspeed Relative With Configuration 3 During Descent Min'),
         ]))
@@ -4698,14 +4704,14 @@ class TestAirspeedWithFlapMax(unittest.TestCase, NodeTest):
         flap_exc_trans = M('Flap Excluding Transition', array.copy(), values_mapping=mapping)
         air_spd = P('Airspeed', np.ma.arange(30))
         fast = buildsection('Fast', 0, 30)
-        flap_inc_trans.array[19] = np.ma.masked  # mask the max value
+        flap_inc_trans.array[19] = np.ma.masked  # mask the last flap 5 value
 
         name = self.node_class.get_name()
         node = self.node_class()
 
         expected = KPV(name=name, items=[
             KeyPointValue(index=29, value=29, name='Airspeed With Flap Including Transition 10 Max'),
-            KeyPointValue(index=18, value=18, name='Airspeed With Flap Including Transition 5 Max'),  # 19 was masked
+            KeyPointValue(index=19, value=19, name='Airspeed With Flap Including Transition 5 Max'),
             KeyPointValue(index=29, value=29, name='Airspeed With Flap Excluding Transition 10 Max'),
             KeyPointValue(index=19, value=19, name='Airspeed With Flap Excluding Transition 5 Max'),
         ])
@@ -4771,22 +4777,34 @@ class TestAirspeedWithFlapMax(unittest.TestCase, NodeTest):
         node = self.node_class()
         node.derive(airspeed, None, None, flap_inc_trans, None, fast)
 
-        self.assertEqual(len(node), 5)
+        self.assertEqual(len(node), 9)
         self.assertEqual(node[0].name, 'Airspeed With Flap Including Transition 1 Max')
-        self.assertEqual(node[1].name, 'Airspeed With Flap Including Transition 5 Max')
-        self.assertEqual(node[2].name, 'Airspeed With Flap Including Transition 10 Max')
-        self.assertEqual(node[3].name, 'Airspeed With Flap Including Transition 15 Max')
-        self.assertEqual(node[4].name, 'Airspeed With Flap Including Transition 20 Max')
-        self.assertEqual(node[0].index, 74)
-        self.assertEqual(node[1].index, 68)
-        self.assertEqual(node[2].index, 56)
-        self.assertEqual(node[3].index, 50)
-        self.assertEqual(node[4].index, 39)
-        self.assertEqual(node[0].value, 39)
-        self.assertEqual(node[1].value, 37)
-        self.assertEqual(node[2].value, 33)
-        self.assertEqual(node[3].value, 31)
-        self.assertEqual(node[4].value, 27)
+        self.assertEqual(node[1].name, 'Airspeed With Flap Including Transition 1 Max')
+        self.assertEqual(node[2].name, 'Airspeed With Flap Including Transition 5 Max')
+        self.assertEqual(node[3].name, 'Airspeed With Flap Including Transition 5 Max')
+        self.assertEqual(node[4].name, 'Airspeed With Flap Including Transition 10 Max')
+        self.assertEqual(node[5].name, 'Airspeed With Flap Including Transition 10 Max')
+        self.assertEqual(node[6].name, 'Airspeed With Flap Including Transition 15 Max')
+        self.assertEqual(node[7].name, 'Airspeed With Flap Including Transition 15 Max')
+        self.assertEqual(node[8].name, 'Airspeed With Flap Including Transition 20 Max')
+        self.assertEqual(node[0].index, 9)
+        self.assertEqual(node[1].index, 74)
+        self.assertEqual(node[2].index, 18)
+        self.assertEqual(node[3].index, 68)
+        self.assertEqual(node[4].index, 26)
+        self.assertEqual(node[5].index, 56)
+        self.assertEqual(node[6].index, 38)
+        self.assertEqual(node[7].index, 50)
+        self.assertEqual(node[8].index, 39)
+        self.assertEqual(node[0].value, 9)
+        self.assertEqual(node[1].value, 39)
+        self.assertEqual(node[2].value, 18)
+        self.assertEqual(node[3].value, 37)
+        self.assertEqual(node[4].value, 23)
+        self.assertEqual(node[5].value, 33)
+        self.assertEqual(node[6].value, 27)
+        self.assertEqual(node[7].value, 31)
+        self.assertEqual(node[8].value, 27)
 
     @patch.dict('analysis_engine.key_point_values.AirspeedWithFlapMax.NAME_VALUES', {'flap': (0, 1, 5, 10, 15, 20)})
     def test_derive_Boeing_flap_angle_not_available(self):
@@ -4800,22 +4818,34 @@ class TestAirspeedWithFlapMax(unittest.TestCase, NodeTest):
         node = self.node_class()
         node.derive(airspeed, None, None, flap_inc_trans, None, fast)
 
-        self.assertEqual(len(node), 5)
+        self.assertEqual(len(node), 9)
         self.assertEqual(node[0].name, 'Airspeed With Flap Including Transition 1 Max')
-        self.assertEqual(node[1].name, 'Airspeed With Flap Including Transition 5 Max')
-        self.assertEqual(node[2].name, 'Airspeed With Flap Including Transition 10 Max')
-        self.assertEqual(node[3].name, 'Airspeed With Flap Including Transition 15 Max')
-        self.assertEqual(node[4].name, 'Airspeed With Flap Including Transition 20 Max')
-        self.assertEqual(node[0].index, 74)
-        self.assertEqual(node[1].index, 68)
-        self.assertEqual(node[2].index, 56)
-        self.assertEqual(node[3].index, 50)
-        self.assertEqual(node[4].index, 39)
-        self.assertEqual(node[0].value, 39)
-        self.assertEqual(node[1].value, 37)
-        self.assertEqual(node[2].value, 33)
-        self.assertEqual(node[3].value, 31)
-        self.assertEqual(node[4].value, 27)
+        self.assertEqual(node[1].name, 'Airspeed With Flap Including Transition 1 Max')
+        self.assertEqual(node[2].name, 'Airspeed With Flap Including Transition 5 Max')
+        self.assertEqual(node[3].name, 'Airspeed With Flap Including Transition 5 Max')
+        self.assertEqual(node[4].name, 'Airspeed With Flap Including Transition 10 Max')
+        self.assertEqual(node[5].name, 'Airspeed With Flap Including Transition 10 Max')
+        self.assertEqual(node[6].name, 'Airspeed With Flap Including Transition 15 Max')
+        self.assertEqual(node[7].name, 'Airspeed With Flap Including Transition 15 Max')
+        self.assertEqual(node[8].name, 'Airspeed With Flap Including Transition 20 Max')
+        self.assertEqual(node[0].index, 9)
+        self.assertEqual(node[1].index, 74)
+        self.assertEqual(node[2].index, 18)
+        self.assertEqual(node[3].index, 68)
+        self.assertEqual(node[4].index, 26)
+        self.assertEqual(node[5].index, 56)
+        self.assertEqual(node[6].index, 38)
+        self.assertEqual(node[7].index, 50)
+        self.assertEqual(node[8].index, 39)
+        self.assertEqual(node[0].value, 9)
+        self.assertEqual(node[1].value, 39)
+        self.assertEqual(node[2].value, 18)
+        self.assertEqual(node[3].value, 37)
+        self.assertEqual(node[4].value, 23)
+        self.assertEqual(node[5].value, 33)
+        self.assertEqual(node[6].value, 27)
+        self.assertEqual(node[7].value, 31)
+        self.assertEqual(node[8].value, 27)
 
     @patch.dict('analysis_engine.key_point_values.AirspeedWithFlapMax.NAME_VALUES', {'flap': (0, 1, 5, 10, 15, 20)})
     def test_derive_Boeing_flap_including_transition_not_available(self):
@@ -4853,22 +4883,34 @@ class TestAirspeedWithFlapMax(unittest.TestCase, NodeTest):
         node = self.node_class()
         node.derive(airspeed, None, None, flap_inc_trans, None, fast)
 
-        self.assertEqual(len(node), 5)
+        self.assertEqual(len(node), 9)
         self.assertEqual(node[0].name, 'Airspeed With Flap Including Transition 1 Max')
-        self.assertEqual(node[1].name, 'Airspeed With Flap Including Transition 5 Max')
-        self.assertEqual(node[2].name, 'Airspeed With Flap Including Transition 10 Max')
-        self.assertEqual(node[3].name, 'Airspeed With Flap Including Transition 15 Max')
-        #self.assertEqual(node[4].name, 'Airspeed With Flap Including Transition 20 Max')
-        self.assertEqual(node[0].index, 74)
-        self.assertEqual(node[1].index, 68)
-        self.assertEqual(node[2].index, 56)
-        self.assertEqual(node[3].index, 50)
-        #self.assertEqual(node[4].index, 39)
-        self.assertEqual(node[0].value, 39)
-        self.assertEqual(node[1].value, 37)
-        self.assertEqual(node[2].value, 33)
-        self.assertEqual(node[3].value, 31)
-        #self.assertEqual(node[4].value, 27)
+        self.assertEqual(node[1].name, 'Airspeed With Flap Including Transition 1 Max')
+        self.assertEqual(node[2].name, 'Airspeed With Flap Including Transition 5 Max')
+        self.assertEqual(node[3].name, 'Airspeed With Flap Including Transition 5 Max')
+        self.assertEqual(node[4].name, 'Airspeed With Flap Including Transition 10 Max')
+        self.assertEqual(node[5].name, 'Airspeed With Flap Including Transition 10 Max')
+        self.assertEqual(node[6].name, 'Airspeed With Flap Including Transition 15 Max')
+        self.assertEqual(node[7].name, 'Airspeed With Flap Including Transition 15 Max')
+        self.assertEqual(node[8].name, 'Airspeed With Flap Including Transition 20 Max')
+        self.assertEqual(node[0].index, 9)
+        self.assertEqual(node[1].index, 74)
+        self.assertEqual(node[2].index, 18)
+        self.assertEqual(node[3].index, 68)
+        self.assertEqual(node[4].index, 26)
+        self.assertEqual(node[5].index, 56)
+        self.assertEqual(node[6].index, 38)
+        self.assertEqual(node[7].index, 50)
+        self.assertEqual(node[8].index, 39)
+        self.assertEqual(node[0].value, 9)
+        self.assertEqual(node[1].value, 39)
+        self.assertEqual(node[2].value, 18)
+        self.assertEqual(node[3].value, 37)
+        self.assertEqual(node[4].value, 23)
+        self.assertEqual(node[5].value, 33)
+        self.assertEqual(node[6].value, 27)
+        self.assertEqual(node[7].value, 31)
+        self.assertEqual(node[8].value, 27)
 
     @patch.dict('analysis_engine.key_point_values.AirspeedWithFlapMax.NAME_VALUES', {'flap': (0, 1, 5, 10, 15, 20)})
     def test_derive_Boeing_fast_flap_angle_rate_of_change(self):
@@ -4887,22 +4929,60 @@ class TestAirspeedWithFlapMax(unittest.TestCase, NodeTest):
         node = self.node_class()
         node.derive(airspeed, None, None, flap_inc_trans, None, fast)
 
-        self.assertEqual(len(node), 5)
+        self.assertEqual(len(node), 9)
         self.assertEqual(node[0].name, 'Airspeed With Flap Including Transition 1 Max')
-        self.assertEqual(node[1].name, 'Airspeed With Flap Including Transition 5 Max')
-        self.assertEqual(node[2].name, 'Airspeed With Flap Including Transition 10 Max')
-        self.assertEqual(node[3].name, 'Airspeed With Flap Including Transition 15 Max')
-        self.assertEqual(node[4].name, 'Airspeed With Flap Including Transition 20 Max')
-        self.assertEqual(node[0].index, 74)
-        self.assertEqual(node[1].index, 68)
-        self.assertEqual(node[2].index, 56)
-        self.assertEqual(node[3].index, 50)
-        self.assertEqual(node[4].index, 39)
-        self.assertEqual(node[0].value, 39)
-        self.assertEqual(node[1].value, 37)
-        self.assertEqual(node[2].value, 33)
-        self.assertEqual(node[3].value, 31)
-        self.assertEqual(node[4].value, 27)
+        self.assertEqual(node[1].name, 'Airspeed With Flap Including Transition 1 Max')
+        self.assertEqual(node[2].name, 'Airspeed With Flap Including Transition 5 Max')
+        self.assertEqual(node[3].name, 'Airspeed With Flap Including Transition 5 Max')
+        self.assertEqual(node[4].name, 'Airspeed With Flap Including Transition 10 Max')
+        self.assertEqual(node[5].name, 'Airspeed With Flap Including Transition 10 Max')
+        self.assertEqual(node[6].name, 'Airspeed With Flap Including Transition 15 Max')
+        self.assertEqual(node[7].name, 'Airspeed With Flap Including Transition 15 Max')
+        self.assertEqual(node[8].name, 'Airspeed With Flap Including Transition 20 Max')
+        self.assertEqual(node[0].index, 9)
+        self.assertEqual(node[1].index, 74)
+        self.assertEqual(node[2].index, 18)
+        self.assertEqual(node[3].index, 68)
+        self.assertEqual(node[4].index, 26)
+        self.assertEqual(node[5].index, 56)
+        self.assertEqual(node[6].index, 38)
+        self.assertEqual(node[7].index, 50)
+        self.assertEqual(node[8].index, 39)
+        self.assertEqual(node[0].value, 9)
+        self.assertEqual(node[1].value, 39)
+        self.assertEqual(node[2].value, 18)
+        self.assertEqual(node[3].value, 37)
+        self.assertEqual(node[4].value, 23)
+        self.assertEqual(node[5].value, 33)
+        self.assertEqual(node[6].value, 27)
+        self.assertEqual(node[7].value, 31)
+        self.assertEqual(node[8].value, 27)
+
+    def test_derive_flap_to_and_ldg_short_masked(self):
+        "Make sure we detect the max speed both on takeoff and on landing"
+        array = np.ma.repeat((10, 5, 0, 5, 10), 15)
+        mapping = {0: '0', 5: '5', 10: '10'}
+        flap_inc_trans = M('Flap Including Transition', array.copy(), values_mapping=mapping)
+        flap_exc_trans = M('Flap Excluding Transition', array.copy(), values_mapping=mapping)
+        air_spd = P('Airspeed', np.ma.arange(75))
+        fast = buildsection('Fast', 0, 75)
+        flap_inc_trans.array[50:35] = np.ma.masked  # mask some values for F5 on ldg
+
+        name = self.node_class.get_name()
+        node = self.node_class()
+        node.derive(air_spd, None, None, flap_inc_trans, flap_exc_trans, fast)
+        self.assertEqual(len(node), 8)
+        self.assertEqual(node, KPV(name=name, items=[
+            KeyPointValue(index=14, value=14, name='Airspeed With Flap Including Transition 10 Max'),
+            KeyPointValue(index=74, value=74, name='Airspeed With Flap Including Transition 10 Max'),
+            KeyPointValue(index=29, value=29, name='Airspeed With Flap Including Transition 5 Max'),
+            KeyPointValue(index=59, value=59, name='Airspeed With Flap Including Transition 5 Max'),
+
+            KeyPointValue(index=14, value=14, name='Airspeed With Flap Excluding Transition 10 Max'),
+            KeyPointValue(index=74, value=74, name='Airspeed With Flap Excluding Transition 10 Max'),
+            KeyPointValue(index=29, value=29, name='Airspeed With Flap Excluding Transition 5 Max'),
+            KeyPointValue(index=59, value=59, name='Airspeed With Flap Excluding Transition 5 Max'),
+        ]))
 
 
 class TestAirspeedWithFlapMin(unittest.TestCase, NodeTest):
@@ -4954,6 +5034,7 @@ class TestAirspeedWithFlapAndSlatExtendedMax(unittest.TestCase, NodeTest):
         self.assertEqual(node.get_ordered_by_index(), [
             KeyPointValue(index=9.0, value=500.0, name='Airspeed With Flap Excluding Transition 0 And Slat Extended Max'),
             KeyPointValue(index=11.0, value=110.0, name='Airspeed With Flap Including Transition 0 And Slat Extended Max'),
+            KeyPointValue(index=19.0, value=190.0, name='Airspeed With Flap Excluding Transition 0 And Slat Extended Max'),
         ])
 
 
@@ -5016,6 +5097,8 @@ class TestAirspeedWithFlapDuringClimbMax(unittest.TestCase, NodeTest):
         self.assertEqual(node.get_ordered_by_index(), [
             KeyPointValue(index=2.0, value=20.0, name='Airspeed With Flap Including Transition 5 During Climb Max'),
             KeyPointValue(index=2.0, value=20.0, name='Airspeed With Flap Excluding Transition 5 During Climb Max'),
+            KeyPointValue(index=3.0, value=30.0, name='Airspeed With Flap Excluding Transition 10 During Climb Max'),
+            KeyPointValue(index=4.0, value=40.0, name='Airspeed With Flap Excluding Transition 15 During Climb Max'),
             KeyPointValue(index=5.0, value=50.0, name='Airspeed With Flap Including Transition 10 During Climb Max'),
             KeyPointValue(index=6.0, value=60.0, name='Airspeed With Flap Excluding Transition 30 During Climb Max'),
             KeyPointValue(index=7.0, value=70.0, name='Airspeed With Flap Excluding Transition 15 During Climb Max'),
@@ -5067,7 +5150,9 @@ class TestAirspeedWithFlapDuringDescentMax(unittest.TestCase, NodeTest):
             KeyPointValue(index=3.0, value=70.0, name='Airspeed With Flap Excluding Transition 10 During Descent Max'),
             KeyPointValue(index=4.0, value=60.0, name='Airspeed With Flap Excluding Transition 15 During Descent Max'),
             KeyPointValue(index=5.0, value=50.0, name='Airspeed With Flap Excluding Transition 30 During Descent Max'),
-            KeyPointValue(index=6.0, value=40.0, name='Airspeed With Flap Including Transition 15 During Descent Max'),])
+            KeyPointValue(index=6.0, value=40.0, name='Airspeed With Flap Including Transition 15 During Descent Max'),
+            KeyPointValue(index=7.0, value=30.0, name='Airspeed With Flap Excluding Transition 15 During Descent Max'),
+            KeyPointValue(index=8.0, value=20.0, name='Airspeed With Flap Excluding Transition 10 During Descent Max'),])
 
 
 class TestAirspeedWithFlapDuringDescentMin(unittest.TestCase, NodeTest):
