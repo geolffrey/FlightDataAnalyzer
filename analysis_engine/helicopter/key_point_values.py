@@ -31,6 +31,7 @@ from analysis_engine.library import (
     slices_overlap,
     slices_remove_small_gaps,
     slices_remove_small_slices,
+    slices_int,
     valid_slices_within_array,
     value_at_index,
     vstack_params,
@@ -486,6 +487,46 @@ class TailRotorPedalWhileTaxiingMin(KeyPointValueNode):
                                        min_value)
 
 
+class TailRotorPedalOnGroundFor5SecMax(KeyPointValueNode):
+    '''
+    Maximum recorded value, maintained for at least 5s, of Tail Rotor Pedal with:
+     - Collective < 6%
+     - Nr > 100%
+     - In phase Grounded and Stationary
+    Uses second window to find the highest (absolute) value maintained for at
+    least 5 seconds.
+    Helicopter only.
+    '''
+    can_operate = helicopter_only
+
+    units = ut.PERCENT
+
+    def derive(self,
+               collective=P('Collective'),
+               nr=P('Nr'),
+               grounded=S('Grounded'),
+               stationary=S('Stationary'),
+               pedal=P('Tail Rotor Pedal'),):
+
+        # Collective below 6%
+        collective_slices = slices_below(collective.array, 6)
+
+        # Nr above 100%
+        nr_slices = slices_above(nr.array, 100)
+
+        # We need to be on ground and stationary - we're not interested in taxi and/or liftoff
+        on_ground = slices_and(stationary.get_slices(), grounded.get_slices())
+
+        # Combine all of the above into a list of slices, remove gaps <10s
+        sections = slices_remove_small_gaps(slices_and(on_ground, slices_and(collective_slices[1], nr_slices[1])), time_limit=1, hz=self.hz)
+
+        # Mask pedal outside slices for use in second_window
+        pedal_within_slices = mask_outside_slices(pedal.array, sections)
+        window_array = second_window(pedal_within_slices, pedal.hz, 5)
+
+        self.create_kpvs_within_slices(window_array, np.ma.clump_unmasked(window_array), max_abs_value)
+
+
 ##############################################################################
 # Cyclic
 
@@ -908,7 +949,7 @@ class HeadingVariation1_5NMTo1_0NMFromOffshoreTouchdownMaxSpecialProcedure(KeyPo
                         start_kti = dtts.get_previous(tdwn.index, name='1.5 NM To Touchdown')
                         stop_kti = dtts.get_previous(tdwn.index, name='1.0 NM To Touchdown')
                         if start_kti and stop_kti:
-                            phase = slice(start_kti.index, stop_kti.index+1)
+                            phase = slices_int(slice(start_kti.index, stop_kti.index+1))
                             heading_delta = np.ma.ptp(heading.array[phase])
                             self.create_kpv(phase.stop-1, heading_delta)
 
