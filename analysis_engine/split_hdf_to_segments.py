@@ -1047,7 +1047,7 @@ def append_segment_info(hdf_segment_path, segment_type, segment_slice, part,
         stop_datetime = start_datetime + timedelta(seconds=duration)
         hdf.start_datetime = start_datetime
 
-    if segment_type in ('START_AND_STOP', 'START_ONLY', 'STOP_ONLY'):
+    if segment_type in ('START_AND_STOP', 'START_ONLY', 'STOP_ONLY', 'MID_FLIGHT'):
         # we went fast, so get the index
         spd_above_threshold = \
             np.ma.where(speed.array > thresholds['speed_threshold'])
@@ -1059,6 +1059,10 @@ def append_segment_info(hdf_segment_path, segment_type, segment_slice, part,
             speed.array.data > thresholds['speed_threshold'])
         speed_hash = hash_array(
             speed.array.data, speed_hash_sections, thresholds['hash_min_samples'])
+        if speed_hash == hash_array([], [], thresholds['hash_min_samples']):  # empty hash
+            logger.error(f"Empty Hash generated. All Airspeed sections below minimum {thresholds['hash_min_samples']} "
+                         f"samples. Changing Segment type from {segment_type} to INVALID.")
+            segment_type = 'INVALID'
     #elif segment_type == 'GROUND_ONLY':
         ##Q: Create a groundspeed hash?
         #pass
