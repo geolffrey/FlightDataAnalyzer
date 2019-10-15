@@ -3,10 +3,9 @@
 
 
 import numpy as np
-import pytz
 import re
 
-from datetime import datetime
+from datetime import datetime, timezone
 from operator import itemgetter
 
 from flightdatautilities import api
@@ -172,7 +171,7 @@ class AnalysisDatetime(FlightAttributeNode):
         should always derive a flight attribute, 'Start Datetime' is its only
         dependency as it will always be present, though it is unused.
         '''
-        self.set_flight_attr(datetime.utcnow().replace(tzinfo=pytz.utc))
+        self.set_flight_attr(datetime.utcnow().replace(tzinfo=timezone.utc))
 
 
 class DestinationAirport(FlightAttributeNode):

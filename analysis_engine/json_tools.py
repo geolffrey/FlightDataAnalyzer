@@ -1,11 +1,10 @@
 import collections
 import dateutil.parser
-import pytz
 import simplejson as json
 import six
 
 from copy import deepcopy
-from datetime import datetime
+from datetime import datetime, timezone
 
 from analysis_engine import settings
 from analysis_engine.utils import get_derived_nodes
@@ -116,10 +115,10 @@ def jsondict_to_node(d):
         if isinstance(n, dict) and 'value' in n and 'type' in n:
             val = n['value']
             if n['type'] == 'datetime':
-                # TODO: do we need to force tzinfo to pytz?
+                # TODO: do we need to force tzinfo to timezone.utc?
                 val = dateutil.parser.parse(val)
                 if val.tzinfo is None:
-                    val.replace(tzinfo=pytz.utc)
+                    val.replace(tzinfo=timezone.utc)
             elif n['type'] == 'slice':
                 val = slice(*val)
         else:

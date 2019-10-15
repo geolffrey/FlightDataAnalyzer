@@ -8,12 +8,11 @@ import itertools
 import logging
 import math
 import numpy as np
-import pytz
 
 from builtins import zip
 from collections import OrderedDict, namedtuple
 from copy import copy, deepcopy
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from hashlib import sha256
 from math import ceil, copysign, cos, floor, log, radians, sin, sqrt
@@ -890,7 +889,7 @@ def calculate_timebase(years, months, days, hours, mins, secs):
             yr = convert_two_digit_to_four_digit_year(yr, current_year)
 
         try:
-            dt = datetime(int(yr), int(mth), int(day), int(hr), int(mn), int(sc), tzinfo=pytz.utc)
+            dt = datetime(int(yr), int(mth), int(day), int(hr), int(mn), int(sc), tzinfo=timezone.utc)
         except (ValueError, TypeError, np.ma.core.MaskError):
             # ValueError is raised if values are out of range, e.g. 0..59.
             # Q: Should we validate these parameters and switch to fallback_dt

@@ -8,7 +8,7 @@ import simplejson as json
 import six
 import sys
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from networkx.readwrite import json_graph
 
 from flightdatautilities.filesystem_tools import copy_file
@@ -555,8 +555,7 @@ def process_flight(segment_info, tail_number, aircraft_info={}, achieved_flight_
     '''
     hdf_path = segment_info['File']
     if 'Start Datetime' not in segment_info:
-        import pytz
-        segment_info['Start Datetime'] = datetime.utcnow().replace(tzinfo=pytz.utc)
+        segment_info['Start Datetime'] = datetime.utcnow().replace(tzinfo=timezone.utc)
     logger.debug("Processing: %s", hdf_path)
 
     if aircraft_info:

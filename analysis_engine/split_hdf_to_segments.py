@@ -5,10 +5,9 @@ from __future__ import print_function
 
 import os
 import logging
-import pytz
 import numpy as np
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from dateutil.relativedelta import relativedelta
 from math import floor
 
@@ -787,7 +786,7 @@ def _mask_invalid_years(array, latest_year):
 
 
 def get_dt_arrays(hdf, fallback_dt, validation_dt, valid_slices=[]):
-    now = datetime.utcnow().replace(tzinfo=pytz.utc)
+    now = datetime.utcnow().replace(tzinfo=timezone.utc)
 
     if fallback_dt:
         fallback_dts = []
@@ -886,7 +885,7 @@ def calculate_fallback_dt(hdf, fallback_dt=None, validation_dt=None,
         # The time parameters are not available/operational
         return fallback_dt
     else:
-        now = datetime.utcnow().replace(tzinfo=pytz.utc)
+        now = datetime.utcnow().replace(tzinfo=timezone.utc)
         assert timebase <= now, (
             "Fallback time '%s' in the future is not allowed. Current time "
             "is '%s'." % (fallback_dt, now))
@@ -931,11 +930,11 @@ def _calculate_start_datetime(hdf, fallback_dt, validation_dt):
     If required parameters are not available and fallback_dt is not provided,
     a TimebaseError is raised
     """
-    now = datetime.utcnow().replace(tzinfo=pytz.utc)
+    now = datetime.utcnow().replace(tzinfo=timezone.utc)
     if fallback_dt is not None:
         if (fallback_dt.tzinfo is None or fallback_dt.tzinfo.utcoffset(fallback_dt) is None):
             # Assume fallback_dt is UTC
-            fallback_dt = fallback_dt.replace(tzinfo=pytz.utc)
+            fallback_dt = fallback_dt.replace(tzinfo=timezone.utc)
 
         # Even if fallback_dt is UTC, there's a chance that the timezone was
         # wrong, so if we're still in the future, let's see if it's less than
@@ -1041,7 +1040,7 @@ def append_segment_info(hdf_segment_path, segment_type, segment_slice, part,
             # side should check the datetime and avoid processing this file
             logger.exception(
                 'Unable to calculate timebase, using 1970-01-01 00:00:00+0000!')
-            start_datetime = datetime.utcfromtimestamp(0).replace(tzinfo=pytz.utc)
+            start_datetime = datetime.utcfromtimestamp(0).replace(tzinfo=timezone.utc)
             precise_timestamp = False
             timestamp_configuration = None
         stop_datetime = start_datetime + timedelta(seconds=duration)
@@ -1119,7 +1118,7 @@ def split_hdf_to_segments(hdf_path, aircraft_info, fallback_dt=None,
         plot_essential(hdf_path)
 
     if isinstance(validation_dt, string_types):
-        validation_dt = datetime.strptime(validation_dt, '%Y-%m-%dT%H:%M:%S.%fZ').replace(tzinfo=pytz.utc)
+        validation_dt = datetime.strptime(validation_dt, '%Y-%m-%dT%H:%M:%S.%fZ').replace(tzinfo=timezone.utc)
 
     with hdf_file(hdf_path) as hdf:
 
@@ -1202,11 +1201,11 @@ def split_hdf_to_segments(hdf_path, aircraft_info, fallback_dt=None,
 def parse_cmdline():
     import argparse
 
-    now = datetime.utcnow().replace(tzinfo=pytz.utc)
+    now = datetime.utcnow().replace(tzinfo=timezone.utc)
 
     def valid_date(s):
         try:
-            return datetime.strptime(s, '%Y-%m-%d %H:%M').replace(tzinfo=pytz.utc)
+            return datetime.strptime(s, '%Y-%m-%d %H:%M').replace(tzinfo=timezone.utc)
         except ValueError:
             raise argparse.ArgumentTypeError('not a valid date and time: %s' % s)
 
