@@ -171,7 +171,7 @@ class AnalysisDatetime(FlightAttributeNode):
         should always derive a flight attribute, 'Start Datetime' is its only
         dependency as it will always be present, though it is unused.
         '''
-        self.set_flight_attr(datetime.utcnow().replace(tzinfo=timezone.utc))
+        self.set_flight_attr(datetime.now(timezone.utc))
 
 
 class DestinationAirport(FlightAttributeNode):

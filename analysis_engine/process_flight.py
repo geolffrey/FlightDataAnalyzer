@@ -555,7 +555,7 @@ def process_flight(segment_info, tail_number, aircraft_info={}, achieved_flight_
     '''
     hdf_path = segment_info['File']
     if 'Start Datetime' not in segment_info:
-        segment_info['Start Datetime'] = datetime.utcnow().replace(tzinfo=timezone.utc)
+        segment_info['Start Datetime'] = datetime.now(timezone.utc)
     logger.debug("Processing: %s", hdf_path)
 
     if aircraft_info:

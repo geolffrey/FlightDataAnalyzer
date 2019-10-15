@@ -896,7 +896,7 @@ class TestSegmentInfo(unittest.TestCase):
         as you get.
         """
         # ensure current datetime is very recent
-        dt = datetime.utcnow().replace(tzinfo=timezone.utc)
+        dt = datetime.now(timezone.utc)
         # Year is not recorded, and the data is for the very end of the
         # previous year. NB: This test could fail if ran on the very last day
         # of the month!

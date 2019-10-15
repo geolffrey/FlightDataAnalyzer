@@ -867,7 +867,7 @@ def calculate_timebase(years, months, days, hours, mins, secs):
     # Calculate current year here and pass into
     # convert_two_digit_to_four_digit_year to save calculating year for every
     # second of flight
-    current_year = str(datetime.utcnow().year)
+    current_year = str(datetime.now(timezone.utc).year)
     # OrderedDict so if all values are the same, max will consistently take the
     # first val on repeated runs
     clock_variation = OrderedDict()

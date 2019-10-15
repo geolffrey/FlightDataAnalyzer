@@ -786,7 +786,7 @@ def _mask_invalid_years(array, latest_year):
 
 
 def get_dt_arrays(hdf, fallback_dt, validation_dt, valid_slices=[]):
-    now = datetime.utcnow().replace(tzinfo=timezone.utc)
+    now = datetime.now(timezone.utc)
 
     if fallback_dt:
         fallback_dts = []
@@ -885,7 +885,7 @@ def calculate_fallback_dt(hdf, fallback_dt=None, validation_dt=None,
         # The time parameters are not available/operational
         return fallback_dt
     else:
-        now = datetime.utcnow().replace(tzinfo=timezone.utc)
+        now = datetime.now(timezone.utc)
         assert timebase <= now, (
             "Fallback time '%s' in the future is not allowed. Current time "
             "is '%s'." % (fallback_dt, now))
@@ -930,7 +930,7 @@ def _calculate_start_datetime(hdf, fallback_dt, validation_dt):
     If required parameters are not available and fallback_dt is not provided,
     a TimebaseError is raised
     """
-    now = datetime.utcnow().replace(tzinfo=timezone.utc)
+    now = datetime.now(timezone.utc)
     if fallback_dt is not None:
         if (fallback_dt.tzinfo is None or fallback_dt.tzinfo.utcoffset(fallback_dt) is None):
             # Assume fallback_dt is UTC
@@ -1012,7 +1012,7 @@ def append_segment_info(hdf_segment_path, segment_type, segment_slice, part,
     named tuple.
 
     If a valid timestamp can't be found, it creates start_dt as epoch(0)
-    i.e. datetime(1970,1,1,1,0). Go-fast dt and Stop dt are relative to this
+    i.e. datetime(1970, 1, 1). Go-fast dt and Stop dt are relative to this
     point in time.
 
     :param hdf_segment_path: path to HDF segment to analyse
@@ -1040,7 +1040,7 @@ def append_segment_info(hdf_segment_path, segment_type, segment_slice, part,
             # side should check the datetime and avoid processing this file
             logger.exception(
                 'Unable to calculate timebase, using 1970-01-01 00:00:00+0000!')
-            start_datetime = datetime.utcfromtimestamp(0).replace(tzinfo=timezone.utc)
+            start_datetime = datetime.fromtimestamp(0, timezone.utc)
             precise_timestamp = False
             timestamp_configuration = None
         stop_datetime = start_datetime + timedelta(seconds=duration)
@@ -1118,7 +1118,7 @@ def split_hdf_to_segments(hdf_path, aircraft_info, fallback_dt=None,
         plot_essential(hdf_path)
 
     if isinstance(validation_dt, string_types):
-        validation_dt = datetime.strptime(validation_dt, '%Y-%m-%dT%H:%M:%S.%fZ').replace(tzinfo=timezone.utc)
+        validation_dt = datetime.strptime(validation_dt, '%Y-%m-%dT%H:%M:%S.%f%z')
 
     with hdf_file(hdf_path) as hdf:
 
@@ -1201,7 +1201,7 @@ def split_hdf_to_segments(hdf_path, aircraft_info, fallback_dt=None,
 def parse_cmdline():
     import argparse
 
-    now = datetime.utcnow().replace(tzinfo=timezone.utc)
+    now = datetime.now(timezone.utc)
 
     def valid_date(s):
         try:
