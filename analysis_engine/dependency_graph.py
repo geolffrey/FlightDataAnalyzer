@@ -245,7 +245,8 @@ def dependencies3(di_graph, root, node_mgr, raise_cir_dep=False):
         layer = set()  # layer of current node's available dependencies
         # order the successors based on the order in the derive method; this allows the
         # class to define the best path through the dependency tree.
-        ordered_successors = [name for (name, d) in sorted(di_graph[node].items(), key=lambda a: a[1].get('order', False))]
+        ordered_successors = [
+            name for (name, d) in sorted(di_graph[node].items(), key=lambda a: (a[1].get('order', False), a[0]))]
 
         # Move troublesome nodes to the end of ordered_successors list. The first node traversed
         # can have a big impact on the processing order. In Python 2 dictionaries are unordered
