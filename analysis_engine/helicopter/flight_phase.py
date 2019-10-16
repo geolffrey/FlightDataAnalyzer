@@ -384,8 +384,10 @@ class TransitionFlightToHover(FlightPhaseNode):
             if trans_slices:
                 for trans in shift_slices(trans_slices, air.slice.start):
                     trans_end = index_at_value(ias.array, 0.0,
-                                                 _slice=slice(trans.stop, trans.stop+20*ias.frequency),
+                                                 _slice=slice(trans.stop, trans.stop+int(20*ias.frequency)),
                                                  endpoint='first_closing')
+                    if trans_end is None:
+                        trans_end = trans.stop
                     self.create_phase(slice(trans.start, trans_end+1))
 
 
