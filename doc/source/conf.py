@@ -29,12 +29,12 @@ sys.path.insert(0, os.path.abspath('../'))
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.autosummary',
-              'sphinx.ext.coverage',              
+              'sphinx.ext.coverage',
               'sphinx.ext.doctest',
-              'sphinx.ext.graphviz',              
-              'sphinx.ext.inheritance_diagram',              
+              'sphinx.ext.graphviz',
+              'sphinx.ext.inheritance_diagram',
               'sphinx.ext.intersphinx',
-              'sphinx.ext.pngmath',
+              'sphinx.ext.imgmath',
               'sphinx.ext.todo',
               'sphinx.ext.viewcode']
 
@@ -51,15 +51,15 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = pkg.__packagename__
-copyright = pkg.__author__
+project = 'Flight Data Analyzer'
+copyright = 'Flight Data Services'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
 # The short X.Y version.
-version = pkg.__version__
+version = '0.1'
 # The full version, including alpha/beta/rc tags.
 release = version
 
@@ -175,7 +175,7 @@ html_static_path = ['_static']
 #html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = pkg.__packagename__ + 'doc'
+htmlhelp_basename = 'FlightDataAnalyzer' + 'doc'
 
 
 # -- Options for LaTeX output --------------------------------------------------
@@ -194,8 +194,8 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', pkg.__packagename__ + '.tex', pkg.__packagename__ + ' Documentation',
-   pkg.__author__, 'manual'),
+  ('index', 'FlightDataAnalyzer' + '.tex', 'FlightDataAnalyzer' + ' Documentation',
+   'Flight Data Services', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -224,8 +224,8 @@ latex_logo = 'fds-icon.png'
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', pkg.__packagename__.lower(), pkg.__packagename__ + ' Documentation',
-     [pkg.__author__], 1)
+    ('index', 'FlightDataAnalyzer'.lower(), 'FlightDataAnalyzer' + ' Documentation',
+     ['Flight Data Services'], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -238,8 +238,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', pkg.__packagename__, pkg.__packagename__ + ' Documentation',
-   pkg.__author__, pkg.__packagename__, pkg.__description__,
+  ('index', 'FlightDataAnalyzer', 'FlightDataAnalyzer' + ' Documentation',
+   'Flight Data Services', 'FlightDataAnalyzer', 'Desc',
    'Miscellaneous'),
 ]
 

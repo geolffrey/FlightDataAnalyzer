@@ -1,11 +1,11 @@
 .. _Nodes:
 
-====================
-Nodes and Subclasses
-====================
+=====
+Nodes
+=====
 
 Each derived parameter and key point value etc. is a Node. Each Node forms a
-part of the dependency tree :ref:`DependencyTree`
+part of the :ref:`DependencyTree`.
 
 There are certain attributes which all nodes have in common.
 
@@ -36,14 +36,26 @@ The following Nodes are documented here:
 * :ref:`ApproachNode` - a list of approaches which can account for multiple approaches into different airports
 
 
-Node.get_name()
-~~~~~~~~~~~~~~~
+Node Names
+~~~~~~~~~~
 
-The **get_name** method returns the class defined **name** or if that hasn't
-been created it generates the name from the class name by converting the
-"ClassName" to "Class Name"
+By default the name of a node, returned by `node.get_name()`, is automatically generated from its class name by adding spaces between camel-cased words, for instance:
 
+    from analysis_engine.node import Node
 
+    class NewParameter(Node):
+        ...
+
+In the above example, `NewParameter.get_name()` would return `'New Parameter'`. Automatic naming is suitable for the majority of node names, though the simple name generation method may be insufficient for more complex names.
+
+    class AltitudeAAL(DerivedParameterNode):
+        ...
+
+In the above example, `AltitudeAAL.get_name()` would return `Altitude Aal` and lose the capitalisation of the AAL achronym. Another problem with automatic name generation is where the name should include characters which are not valid Python syntax for a class name, e.g. `Brake (*) Temp Max`. In these cases it is possible to manually set a node's name by defining the static class attribute `name`:
+
+    class Brake_TempMax(DerivedParameterNode):
+        name = 'Brake (*) Temp Max'
+        ...
 
 First Available Dependency
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -51,18 +63,18 @@ First Available Dependency
 By default we align all parameters to the first available dependency.::
 
     from analysis_engine.node import P, Node
-    
+
     class NewParameter(Node):
         ##align = True  # default
         def derive(self, a=P('A')):
             pass
-            
+
 A fresh instance of NewParameter has the default Node frequency (1.0 Hz) and offset (0 secs)::
 
     >>> new = NewParameter()
     >>> new
     NewParameter('New Parameter', 1.0, 0)
-    
+
 The **get_derived** method takes the list of dependencies and prepares them
 for use (aligning them as required) for the Node's **derive** method. Now the
 resulting new parameter has the first parameter's frequency and offset::
@@ -89,8 +101,8 @@ This next block demonstrates how all parameters are aligned to the first availab
     B frequency:2.00 offset:0.12
     C frequency:2.00 offset:0.12
     NewParameter('New Parameter', 2.0, 0.123)
-    
-    
+
+
 When '**a**' is not avialable the parameters are aligned to '**b**':
 
     >>> new.get_derived([None, b, c])
@@ -108,10 +120,10 @@ beneficial to improve the accuracy of a derived parameter.::
 
     class NewParameter(Node):
         align_frequency = 4  #  Hz
-        
+
 Another useful feature is to force the offset, which is quite handy for
 Flight Phases.::
-        
+
     class NewParameter(Node):
         align_offset = 0
 
@@ -124,13 +136,13 @@ dependencies having different frequencies and offsets.::
 
     class NewParameter(Node):
         align = False
-        
+
 The Node will default to the first available dependency's frequency and
 offset. The typical use-case for not aligning parameters is when performing
 customised merging of upsampling of the dependencies. In which case, it is
 common to see the resulting frequency and offset being set on the class
 within the derive method.::
-        
+
     class NewParameter(Node):
         align = False
         def derive(self, a=P('A'), b=P('B')):

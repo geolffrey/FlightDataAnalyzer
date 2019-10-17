@@ -12,7 +12,6 @@ Introduction
 
    Introduction
    Principles
-   ParameterNaming
    FlightTypes
 
 Processing
@@ -20,7 +19,7 @@ Processing
 
 .. toctree::
    :maxdepth: 2
-   
+
    SplitSegments
    ProcessFlight
 
@@ -29,7 +28,7 @@ Derivations
 
 .. toctree::
    :maxdepth: 2
-   
+
    Nodes
    DependencyTree
    SectionNode
@@ -45,7 +44,7 @@ Algorithms
 
 .. toctree::
    :maxdepth: 2
-   
+
    HeightAndHeightRateComputation
 
 Misc
@@ -68,7 +67,7 @@ API Docstrings
 .. toctree::
    :maxdepth: 2
 
-   API <modules>   
+   API <modules>
 
 
 Indices and tables

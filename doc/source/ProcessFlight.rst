@@ -4,12 +4,9 @@
 Process Flight
 ==============
 
-Proces Flight is the entry point into the Flight Data Analyzer. It accepts
-information about aircraft, any attributes known about the flight in advance
-and an HDF file of parameters.
+`process_flight()` is the entry point into the Flight Data Analyzer. It accepts information about aircraft, any attributes known about the flight in advance and an HDF file of parameters.
 
-The HDF file can contain LFL parameters or previously derived parameters.
-
+The flight data file contains data frame parameters output by the FlightDataConverter and may contain derived parameters from previous runs of the FlightDataAnalyzer.
 
 Order of process
 ----------------
@@ -18,7 +15,7 @@ Order of process
 
 The process is as follows:
 
-#. Take a list of available Nodes by finding Classes within modules listed in settings.NODE_MODULES 
+#. Take a list of available Nodes by finding Classes within modules listed in settings.NODE_MODULES
 #. Get the requested parameters and establish their dependency tree
 #. Establish the parameter process order
 #. Determine which parameters are used most often and therefore best to cache in memory
@@ -56,9 +53,9 @@ process_flight stores all derived parameters as new series within the HDF
 file and returns all other objects within a dictionary::
 
    {
-      'approach': [], 
-      'phases': [], 
-      'flight': [], 
-      'kti': [], 
+      'approach': [],
+      'phases': [],
+      'flight': [],
+      'kti': [],
       'kpv': [],
    }

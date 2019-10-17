@@ -33,49 +33,62 @@ executed. If a parameter is set as a dependency (optional or required) it
 will have been evaluated by the time it enters the derive method.
 
 
-What are the dependencies?
---------------------------
+What are a node's dependencies?
+-------------------------------
 
 The dependencies are defined as keyword arguments to the derive method which
 exists on every Node ::
 
-    class NewParameter(Node):
-        def derive(self, first=P('First Dependency')):
+    from analysis_engine.node import DerivedParameterNode, P, KTI
+
+    class NewParameter(DerivedParameterNode):
+        def derive(self, first=P('First Dependency'), second=KTI('Second Dependency')):
             pass
 
-We use the `wrapper` (**P()** here) to assist the programmer with IDE
-auto-completion of the **first** keyword argument, providing it with the
-attributes available on the expected data type being used.
+Each dependency is specified as an instance of a node class with only the name argument provided. By adding the
+dependency names into the **derive** method, the dependency tree can establish a link between the Node and the
+parameters it can use for derivation. Additionally, the type of node classes specifies the node type of each dependency.
 
-The name of the dependency is provided as a String within the keyword
-argument `wrapper`.
+The following short-hand class names are used when defining dependency node types for brevity:
 
-By adding the dependencies into the **derive** method, the dependency tree
-can establish a link between the Node and the parameters it can use for
-derivation.
-
+- P (DerivedParameterNode)
+- M (MultistateDerivedParameterNode)
+- S (SectionNode / FlightPhaseNode)
+- KTI (KeyTimeInstanceNode)
+- KPV (KeyPointValudeNode)
+- A (Attribute)
 
 Mach Example
 ~~~~~~~~~~~~
 
 Many aircraft record `Mach`, but for those who do not we can dynamically
-establish the Mach from the `Airspeed` and pressure altitude `Altitude STD`.
-If Mach is recorded, the Mach DerivedParameterNode will never be executed.
+establish the Mach from the `Airspeed` and pressure altitude (`Altitude STD`).
+
+    from analysis_engine.node import DerivedParameterNode, P
+
+    class Mach(DerivedParameterNode):
+        def derive(self, airspeed=P('Airspeed'), second=P('Altitude STD')):
+            ...
+
+If Mach is recorded within the data frame, Mach will already be available within the dependency tree at the start of processing and the Mach DerivedParameterNode will not be executed.
 
 :py:class:`analysis_engine.derived_parameters.Mach`
 
-If one requests a Key Point Value of **Mach Max**, the dependency tree will
-establish whether it can meet it's dependencies recursively through each
-dependency's dependency.
+For example, if one requests a Key Point Value of **Mach Max**, the dependency tree will establish whether or not it can provide all necessary dependencies.
 
-The dependency tree will establish that Mach is a requirement of say the Key
-Point Value **Mach Max** and if Mach is recorded, no further calculations are
+    from analysis_engine.node import KeyPointValueNode, P
+
+    class MachMax(KeyPointValueNode):
+        def derive(self, mach=P('Mach')):
+            ...
+
+The dependency tree will establish that Mach is a requirement of Key Point Value **Mach Max** and if Mach is recorded within the data frame, no further calculations are
 performed.
 
 .. digraph:: MachRecorded
 
    "Mach Max (KPV)" -> "Mach (Recorded)"
-   
+
 If Mach is not recorded it will establish whether the Mach dependencies are
 met (Airspeed and Altitude STD).
 
@@ -97,9 +110,9 @@ within the derive declaration) the Node can operate successfully with.::
     class NewParameter(Node):
         @classmethod
         def can_operate(cls, available):
-            # New Parameter can work if the following two are available
-            return ('Airspeed', 'Altitude AAL') in available
-            
+            # New Parameter can work if the following two dependencies are available
+            return 'Airspeed' in available and 'Altitude AAL' in available
+
         def derive(self, aspd=P('Airspeed'), gspd=P('Groundspeed'), alt=P('Altitude AAL')):
             # Check if Groundspeed is available
             if gspd:
@@ -120,8 +133,8 @@ If Groundspeed is not recorded, the following will still work:
 
    "New Parameter" -> "Airspeed";
    "New Parameter" -> "Altitude AAL";
-   
-   
+
+
 See :ref:`can-operate` for more usage examples.
 
 
@@ -142,35 +155,35 @@ upon.::
         @classmethod
         def can_operate(cls, available):
             pass  # add a breakpoint here to inspect "available"
-        
+
         def derive(self, ...):
             ...
 
-.. 
+..
     As an example, one may calculate a smoothed latitude and longitude location
     of the aircraft from the recorded Latitude and Longitude which may not have a
     very high resolution (causing a steppy track). Latitude Smoothed will depend
     on Latitude:
-    
+
         Latitude Smoothed
         requires: Latitude
-        
+
     In order to better increase the accuracy of the aircraft, some information about the Takeoff and Landing runway will help to pin-point the track onto the runway:
-    
+
         Latitude Smoothed
         requires: Latitude
         optional: Takeoff Runway, Landing Runway
-        
+
     The derived parameter will make the most out of the parameters provided - so
     if the Takeoff Runway isn't known, it will be smoothed without pinpointing
     the track to the runway.
-    
+
     Some aircraft don't record their location, so instead we can use Heading and Airspeed to derive a track and then pinpoint this onto the runways:
-    
+
         Latitude Smoothed
         requires: Latitude or (Heading and Airspeed and Latitude At Takeoff and Latitude At Landing)
-        optional: 
-    
+        optional:
+
 
 
 Graph Theory
@@ -183,8 +196,8 @@ can have dependencies upon other Nodes or LFL Parameters.
 
    "Mach Max" -> "Mach" -> "Airspeed";
    "Mach" -> "Altitude STD";
- 
- 
+
+
 Each of these objects is a Node within a directional graph (`DiGraph`). The
 edges of the graph represents the dependency of one Node upon another.
 
@@ -219,12 +232,12 @@ Extension" the following graph may be created:
 
 This is the processing order:
 
-.. digraph:: MachMaxProcessingOrder  
+.. digraph:: MachMaxProcessingOrder
 
    "7: root" -> "4: Mach Max" -> "3: Mach" -> "1: Airspeed";
    "3: Mach" -> "2: Altitude STD";
    "7: root" -> "6: Mach At Flap Extension" -> "3: Mach";
-   "6: Mach At Flap Extension" -> "5: Flap";   
+   "6: Mach At Flap Extension" -> "5: Flap";
 
 
 Spanning Tree
@@ -241,7 +254,7 @@ naming error).
 Visualising the Tree
 ~~~~~~~~~~~~~~~~~~~~
 
-The graph can be visualised in a few ways. 
+The graph can be visualised in a few ways.
 
 **print_tree()** - A simple textual. output printed to screen which uses
 `indent_tree` to structure the node hierarchy in a tree-like view. The
@@ -267,7 +280,7 @@ Colours are used to represent the different types of parameters.
 
 .. note::
 
-    Networkx was chosen over pygraph due to its more pythonic implementation. 
+    Networkx was chosen over pygraph due to its more pythonic implementation.
 
 
 .. warning::
@@ -285,7 +298,7 @@ Circular Dependencies
     "Heading True" -> "Heading"
     "Heading" -> "Heading True"
     "Heading" -> "Magnetic Variation"
-    
+
 DiGraphs support edges from A -> B and B -> A, this would normally cause
 infinite recursion when resolving the processing order using depth first
 searches. The dependency tree resolves this by keeping track of nodes it has
