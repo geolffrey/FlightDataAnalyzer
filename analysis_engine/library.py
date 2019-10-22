@@ -599,6 +599,8 @@ def bearing_and_distance(lat1, lon1, lat2, lon2):
     :returns bearing, distance: Bearing in degrees, Distance in metres.
     :rtype: Two Numpy masked arrays
     """
+    if any(np.ma.is_masked(x) for x in (lat1, lon1, lat2, lon2)):
+        return None, None
     brg, dist = bearings_and_distances(np.ma.array(lat2), np.ma.array(lon2),
                                        {'latitude':lat1, 'longitude':lon1})
     return np.asscalar(brg), np.asscalar(dist)
@@ -8525,8 +8527,8 @@ def find_rig_approach(condition_defs, phase_map, approach_map,
         lon_oil_rig = lon[-1]
 
     head_two_miles, _ = bearing_and_distance(
-        lat[int(two_miles)],
-        lon[int(two_miles)],
+        closest_unmasked_value(lat, int(two_miles)).value,
+        closest_unmasked_value(lon, int(two_miles)).value,
         lat_oil_rig,
         lon_oil_rig
     )
