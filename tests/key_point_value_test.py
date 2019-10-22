@@ -13841,9 +13841,7 @@ class TestEngTakeoffDerateDuration(unittest.TestCase):
         self.assertEqual(node[0].value, 0)
 
     def test_derive_derate_status_derate(self):
-        temp_derate_array = np.ma.array([1] * 100)
-        values_mapping = {0: '-', 1: 'Operative'}
-        temp_derate=M('Temp Derate Status', array=temp_derate_array, values_mapping=values_mapping)
+        temp_derate=M('Temp Derate Status', array=np.ma.ones(100), values_mapping={0: '-', 1: 'Derate'})
         node = self.node_class()
         node.derive(None, None, None, temp_derate, self.toff, self.airspd)
         self.assertEqual(len(node), 1)
@@ -13851,9 +13849,7 @@ class TestEngTakeoffDerateDuration(unittest.TestCase):
         self.assertEqual(node[0].value, 66)
 
     def test_derive_derate_status_rated(self):
-        temp_derate_array = np.ma.array([0] * 100)
-        values_mapping = {0: '-', 1: 'Operative'}
-        temp_derate=M('Temp Derate Status', array=temp_derate_array, values_mapping=values_mapping)
+        temp_derate=M('Temp Derate Status', array=np.ma.zeros(100), values_mapping={0: '-', 1: 'Derate'})
         node = self.node_class()
         node.derive(None, None, None, temp_derate, self.toff, self.airspd)
         self.assertEqual(len(node), 1)
