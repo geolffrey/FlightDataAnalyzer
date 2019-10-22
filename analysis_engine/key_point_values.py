@@ -19608,7 +19608,7 @@ class EngTakeoffDerateDuration(KeyPointValueNode):
     KPV to enable operators of B757s to measure the number of rated vs derated takeoffs.
     Depending on available parameters, it will create a duration KPV during the Takeoff Roll if:
       - Eng (*) EPR Max is below than 95% of the highest (1/2) EPR Limit between 95 and 105 knots, or
-      - Temp Derate Status is 'Operative' between 95 and 105 knots
+      - Temp Derate Status is 'Derate' between 95 and 105 knots
     If these conditions aren't met the KPV will be created at the beginning of the Takeoff Roll with a value of 0.
     '''
 
@@ -19644,7 +19644,7 @@ class EngTakeoffDerateDuration(KeyPointValueNode):
                     #takeoff is rated
                     self.create_kpv(roll.slice.start, 0)
             else:
-                operational_slices = runs_of_ones(temp_derate.array == 'Operative')
+                operational_slices = runs_of_ones(temp_derate.array == 'Derate')
                 derate_slices = slices_and([roll.slice], operational_slices)
                 if derate_slices:
                     self.create_kpvs_from_slice_durations(derate_slices, self.hz)
