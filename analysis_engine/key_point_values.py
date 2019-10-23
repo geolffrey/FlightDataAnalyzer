@@ -174,12 +174,13 @@ class FlapOrConfigurationMaxOrMin(object):
         if scope == []:
             return []  # can't have an event if the scope is empty.
 
+        parameter_array = np.ma.copy(parameter.array)
+
         if scope:
-            scope_array = np_ma_masked_zeros_like(parameter.array)
+            scope_array = np.ones_like(parameter.array, dtype=bool)
             for valid in scope:
-                a = int(valid.slice.start or 0)
-                b = int(valid.slice.stop or len(scope_array)) + 1
-                scope_array.mask[a:b] = False
+                scope_array[int(valid.slice.start or 0):int(valid.slice.stop or len(scope_array)) + 1] = False
+            parameter_array.mask = np.ma.mask_or(parameter_array.mask, scope_array)
 
         data = []
         # We need to repair the conflap otherwise we would create multiple
@@ -188,21 +189,13 @@ class FlapOrConfigurationMaxOrMin(object):
 
         for detent in conflap.values_mapping.values():
 
-            if np.ma.is_masked(detent):
-                continue
-            if detent in ('0', 'Lever 0') and not include_zero:
+            if np.ma.is_masked(detent) or (detent in ('0', 'Lever 0') and not include_zero):
                 continue
 
-            array = np.ma.copy(parameter.array)
-            array.mask = np.ma.mask_or(parameter.array.mask, conflap.array.mask)
-            array[conflap.array != detent] = np.ma.masked
-            if scope:
-                array.mask = np.ma.mask_or(array.mask, scope_array.mask)
-
-            for flap_section in np.ma.clump_unmasked(array):
+            for flap_section in runs_of_ones(conflap.array == detent):
                 # TODO: Check logical or is sensible for all values. (Probably fine
                 #       as airspeed will always be higher than max flap setting!)
-                index, value = function(array[flap_section])
+                index, value = function(parameter_array[flap_section])
 
                 # Check we have a result to record. Note that most flap settings
                 # will not be used in the climb, hence this is normal operation.
