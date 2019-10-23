@@ -156,14 +156,14 @@ def indent_tree(graph, node, level=0, space='  ', delim='- ', label=True,
             path.append(node)
             return ['<<Circular Depenency to: %s>>' % node]
         path.append(node)
-        if graph.node[node].get('active', True):
+        if graph.nodes[node].get('active', True):
             if recurse_active:
                 node_repr = node
             else:
                 return []
         else:
             node_repr = '[%s]' % node
-        node_type = graph.node[node].get('node_type')
+        node_type = graph.nodes[node].get('node_type')
         if node_type and label:
             node_repr = '%s (%s)' % (node_repr, node_type)
         row = '%s%s%s' % (space*level, delim, node_repr)
@@ -370,7 +370,7 @@ def graph_adjacencies(graph):
     data = []
     for n,nbrdict in graph.adjacency():
         # build the dict for this node
-        d = dict(id=n, name=graph.node[n].get('label', n), data=graph.node[n])
+        d = dict(id=n, name=graph.nodes[n].get('label', n), data=graph.node[n])
         adj = []
         for nbr, nbrd in nbrdict.items():
             adj.append(dict(nodeTo=nbr, data=nbrd))
@@ -489,8 +489,8 @@ def process_order(gr_all, node_mgr, raise_inoperable_requested=False,
     if dependency_tree_log:
         ordered_tree_to_file(tree_path, name=dependency_tree_log)
     for n, node in enumerate(process_order):
-        gr_all.node[node]['label'] = '%d: %s' % (n, node)
-        gr_all.node[node]['active'] = True
+        gr_all.nodes[node]['label'] = '%d: %s' % (n, node)
+        gr_all.nodes[node]['active'] = True
 
     inactive_nodes = set(gr_all.nodes()) - set(process_order)
     logger.debug("Inactive nodes: %s", list(sorted(inactive_nodes)))
@@ -499,8 +499,8 @@ def process_order(gr_all, node_mgr, raise_inoperable_requested=False,
 
     for node in inactive_nodes:
         # add attributes to the node to reflect it's inactivity
-        gr_all.node[node]['color'] = '#c0c0c0'  # silver
-        gr_all.node[node]['active'] = False
+        gr_all.nodes[node]['color'] = '#c0c0c0'  # silver
+        gr_all.nodes[node]['active'] = False
         inactive_edges = gr_all.in_edges(node)
         gr_all.add_edges_from(inactive_edges, color='#c0c0c0')  # silver
 
@@ -525,8 +525,6 @@ def process_order(gr_all, node_mgr, raise_inoperable_requested=False,
             "Required nodes missing: %s" % ', '.join(required_missing))
 
     return gr_all, gr_st, process_order[:-1] # exclude 'root'
-
-
 
 
 def remove_floating_nodes(graph):
