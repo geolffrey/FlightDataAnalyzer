@@ -823,7 +823,8 @@ class AccelerationNormalAtTouchdown(KeyPointValueNode):
                                  if is_slice_within_slice(ldg_roll.slice, ldg.slice)), None)
                 if ldg_roll:
                     ldg_roll_stop = ldg_roll.slice.stop
-            self.create_kpv(*bump(acc_norm, tdwn.index, end=ldg_roll_stop))
+            if tdwn.index < ldg_roll_stop:
+                self.create_kpv(*bump(acc_norm, tdwn.index, end=ldg_roll_stop))
 
         if touch_and_gos:
             for touch_and_go in touch_and_gos:
@@ -3432,21 +3433,22 @@ class AirspeedWithFlapAndSlatExtendedMax(KeyPointValueNode, FlapOrConfigurationM
 
         pairs = (flap_inc_trsn, slat_inc_trsn), (flap_exc_trsn, slat_exc_trsn)
         for flap, slat in pairs:
-            # Fast scope traps flap changes very late on the approach and
-            # raising flaps before 80 kt on the landing run.
-            #
-            # We take the intersection of the fast slices and the slices where
-            # the slat was extended.
-            array = np.ma.array(slat.array != '0', mask=slat.array.mask, dtype=int)
-            scope = slices_and(fast.get_slices(), runs_of_ones(array))
-            scope = S(items=[Section('', s, s.start, s.stop) for s in scope])
+            if None not in (flap, slat):
+                # Fast scope traps flap changes very late on the approach and
+                # raising flaps before 80 kt on the landing run.
+                #
+                # We take the intersection of the fast slices and the slices where
+                # the slat was extended.
+                array = np.ma.array(slat.array != '0', mask=slat.array.mask, dtype=int)
+                scope = slices_and(fast.get_slices(), runs_of_ones(array))
+                scope = S(items=[Section('', s, s.start, s.stop) for s in scope])
 
-            data = self.flap_or_conf_max_or_min(flap, airspeed, max_value, scope,
-                                                include_zero=True)
-            for index, value, detent in data:
-                if not detent == '0':
-                    continue  # skip as only interested when flap is retracted.
-                self.create_kpv(index, value, parameter=flap.name, flap=detent)
+                data = self.flap_or_conf_max_or_min(flap, airspeed, max_value, scope,
+                                                    include_zero=True)
+                for index, value, detent in data:
+                    if not detent == '0':
+                        continue  # skip as only interested when flap is retracted.
+                    self.create_kpv(index, value, parameter=flap.name, flap=detent)
 
 
 class AirspeedWithFlapIncludingTransition20AndSlatFullyExtendedMax(KeyPointValueNode, FlapOrConfigurationMaxOrMin):
