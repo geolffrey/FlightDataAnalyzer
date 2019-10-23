@@ -827,8 +827,7 @@ class AccelerationNormalAtTouchdown(KeyPointValueNode):
                                  if is_slice_within_slice(ldg_roll.slice, ldg.slice)), None)
                 if ldg_roll:
                     ldg_roll_stop = ldg_roll.slice.stop
-            if tdwn.index < ldg_roll_stop:
-                self.create_kpv(*bump(acc_norm, tdwn.index, end=ldg_roll_stop))
+            self.create_kpv(*bump(acc_norm, tdwn.index, end=ldg_roll_stop))
 
         if touch_and_gos:
             for touch_and_go in touch_and_gos:
