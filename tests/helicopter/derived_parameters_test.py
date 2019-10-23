@@ -98,13 +98,12 @@ class TestAltitudeAGL(unittest.TestCase):
         # Although "basic" the synthetic radio altitude tests for noise rejection, transfer from radio to pressure altimetry and use of
         # the gear on ground signals. The wide tolerance is because the noise signal varies from run to run.
         alt_rad = P(name='Altitude Radio', array=(np.minimum(6000,
-                                                             (1.0-np.cos(np.arange(100)*3.14/50))*4000 + np.random.rand(100)*300)),
-                                           frequency = 2)
+                                                             (1.0-np.cos(np.arange(100)*3.14/50))*4000)), frequency=2)
         alt_baro = P(name='Altitude STD', array=np.ma.array((1.0-np.cos(np.arange(100)*3.14/50))*4000 + 1000))
         gog = M(name='Gear On Ground', array=np.ma.array([1]*5+[0]*90+[1]*5), values_mapping={0:'Air', 1:'Ground'})
         alt_aal = AltitudeAGL()
         alt_aal.derive(alt_rad, None, alt_baro, gog)
-        self.assertLess(abs(np.max(alt_aal.array)-8000), 350)
+        self.assertAlmostEqual(abs(np.max(alt_aal.array)-8000), 173.13, places=2)
 
     def test_negative(self):
         alt_rad = P(name='Altitude Radio', array=np.ma.array([-1, 0, 0, 0, -1]))
