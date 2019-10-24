@@ -26,7 +26,6 @@ from analysis_engine.library import (
     first_valid_sample,
     heading_diff,
     index_at_value,
-    integrate,
     is_index_within_slice,
     is_index_within_slices,
     is_slice_within_slice,
@@ -67,8 +66,6 @@ from analysis_engine.settings import (
     HEADING_TURN_ONTO_RUNWAY,
     HOLDING_MAX_GSPD,
     HOLDING_MIN_TIME,
-    HOLDING_MIN_TURN,
-    HOLDING_ROT,
     HYSTERESIS_FPALT_CCD,
     ILS_CAPTURE,
     INITIAL_CLIMB_THRESHOLD,
@@ -196,83 +193,49 @@ class Holding(FlightPhaseNode):
     Holding is a process which involves multiple turns in a short period
     during the descent, normally in the same sense.
 
-    First we compute a rate of turn parameter, then we seek periods with
-    a high average rate of turn over a long period. Short turns are
-    rejected and those with too small a turn or with an overall
-    significant groundspeed. All these tests are to try to reject
-    abnormal but not holding flight patterns.
+    We compute the average rate of turn over a long period to reject
+    short turns and pass the entire holding period.
 
-    The final step is to trim the endpoints to the start and end of the
-    first and last turns.
+    Note that this is the only function that should use "Heading Increasing"
+    as we are only looking for turns, and not bothered about the sense or
+    actual heading angle.
     """
 
     can_operate = aeroplane_only
+    align_frequency = 1.0 # No need for greater accuracy
 
     def derive(self, alt_aal=P('Altitude AAL For Flight Phases'),
-               head=P('Heading Continuous'),
+               hdg=P('Heading Increasing'),
                alt_max=KPV('Altitude Max'),
+               tdwns=KTI('Touchdown'),
                lat=P('Latitude Smoothed'), lon=P('Longitude Smoothed')):
 
-        all_turn_bands = []
+        # Five minutes should include two turn segments.
+        turn_rate = rate_of_change(hdg, 5 * 60)
+
+        # We scan the entire descent, from highest altitude to the final
+        # touchdown, to give us the best chance of finding any hold periods.
+        to_scan = slice(alt_max[0].index, tdwns[-1].index)
+        # We know turn rate will be positive because Heading Increasing only
+        # increases.
+        turn_bands = np.ma.clump_unmasked(
+            np.ma.masked_less(turn_rate[slices_int(to_scan)], 0.6))
         hold_bands = []
-
-        turn_rate = rate_of_change(head, HOLDING_MIN_TIME)
-        # We scan the entire descent from highest altitude onwards.
-        max_alt_to_end = [slices_int(alt_max[0].index, len(alt_aal.array))]
-        above_approach = slices_above(alt_aal.array, 3000)[1]
-        to_scan = slices_and(max_alt_to_end, above_approach)
-
-        for this_scan in to_scan:
-            turn_right_bands = np.ma.clump_unmasked(
-                np.ma.masked_less(turn_rate[slices_int(this_scan)], HOLDING_ROT))
-            turn_bands = shift_slices(slices_remove_small_gaps(turn_right_bands,
-                                                               time_limit=HOLDING_MIN_TIME,
-                                                               hz=alt_aal.frequency),
-                                      this_scan.start)
-            all_turn_bands.extend(turn_bands)
-            turn_left_bands = np.ma.clump_unmasked(
-                np.ma.masked_greater(turn_rate[slices_int(this_scan)], -HOLDING_ROT))
-            turn_bands = shift_slices(slices_remove_small_gaps(turn_left_bands,
-                                                               time_limit=HOLDING_MIN_TIME,
-                                                               hz=alt_aal.frequency),
-                                      this_scan.start)
-            all_turn_bands.extend(turn_bands)
-
-        for turn_band in all_turn_bands:
+        for turn_band in shift_slices(turn_bands, to_scan.start):
             # Reject short periods and check that the average groundspeed was
             # low. The index is reduced by one sample to avoid overruns, and
             # this is fine because we are not looking for great precision in
             # this test.
             hold_sec = turn_band.stop - turn_band.start
-            if (hold_sec < HOLDING_MIN_TIME):
-                continue
-            start = int(turn_band.start)
-            stop = int(turn_band.stop - 1)
-            _, hold_dist = bearing_and_distance(
-                lat.array[start], lon.array[start],
-                lat.array[stop], lon.array[stop])
-            average_speed = ut.convert(hold_dist / hold_sec, ut.METER_S, ut.KT)
-            if average_speed > HOLDING_MAX_GSPD:
-                continue
-            angle_of_turn = head.array[stop] - head.array[start]
-            if angle_of_turn < HOLDING_MIN_TURN:
-                continue
-            # So this lasted long enough, turned through a large angle and had a low
-            # overall speed. Now fine tune the endpoints.
-            rot_thld = HOLDING_ROT / 2.0
-            diff = np.ma.abs(np.ma.ediff1d(head.array))
-            # Put the start where the unfiltered rate of turn first rises...
-            if diff[turn_band.start] < rot_thld:
-               trim_start = index_at_value(diff, rot_thld, _slice=turn_band)
-            else:
-                trim_start = index_at_value(diff, rot_thld, _slice=slice(turn_band.start, 0, -1))
-            # ...and the same for the endpoint.
-            if diff[turn_band.stop] < rot_thld:
-                trim_end = index_at_value(diff, rot_thld, _slice=slice(turn_band.stop, turn_band.start, -1))
-            else:
-                trim_end = index_at_value(diff, rot_thld, _slice=slice(turn_band.stop, len(diff)))
-            hold_bands.append(slices_int(trim_start, trim_end))
-
+            if (hold_sec > HOLDING_MIN_TIME):
+                start = int(turn_band.start)
+                stop = int(turn_band.stop - 1)
+                _, hold_dist = bearing_and_distance(
+                    lat.array[start], lon.array[start],
+                    lat.array[stop], lon.array[stop])
+                if ut.convert(hold_dist / hold_sec, ut.METER_S, ut.KT) < HOLDING_MAX_GSPD:
+                    hold_bands.append(turn_band)
+        hold_bands = slices_remove_small_gaps(hold_bands, time_limit=30, hz=alt_aal.frequency)
         self.create_phases(hold_bands)
 
 
