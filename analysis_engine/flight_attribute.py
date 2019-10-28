@@ -601,7 +601,7 @@ class TakeoffPilot(FlightAttributeNode, DeterminePilot):
             'Liftoff',
             # Optional: 'AP (3) Engaged'
         ), available)
-        return pilot_flying or controls or forces or autopilot
+        return 'AFR Takeoff Pilot' in available or pilot_flying or controls or forces or autopilot
 
     def derive(self,
                pilot_flying=M('Pilot Flying'),
@@ -615,7 +615,12 @@ class TakeoffPilot(FlightAttributeNode, DeterminePilot):
                ap2_eng=M('AP (2) Engaged'),
                takeoffs=S('Takeoff'),
                liftoffs=KTI('Liftoff'),
-               rejected_toffs=S('Rejected Takeoff')):
+               rejected_toffs=S('Rejected Takeoff'),
+               afr_takeoff_pilot=A('AFR Takeoff Pilot')):
+
+        if afr_takeoff_pilot and afr_takeoff_pilot.value:
+            self.set_flight_attr(afr_takeoff_pilot.value.replace('_', ' ').title())
+            return
 
         #TODO: Tidy
         phase = takeoffs or rejected_toffs or None
@@ -935,7 +940,7 @@ class LandingPilot(FlightAttributeNode, DeterminePilot):
             'Touchdown',
             # Optional: 'AP (3) Engaged'
         ), available)
-        return pilot_flying or controls or forces or autopilot
+        return 'AFR Landing Pilot' in available or pilot_flying or controls or forces or autopilot
 
     def derive(self,
                pilot_flying=M('Pilot Flying'),
@@ -948,7 +953,12 @@ class LandingPilot(FlightAttributeNode, DeterminePilot):
                ap1_eng=M('AP (1) Engaged'),
                ap2_eng=M('AP (2) Engaged'),
                landings=S('Landing'),
-               touchdowns=KTI('Touchdown')):
+               touchdowns=KTI('Touchdown'),
+               afr_landing_pilot=A('AFR Landing Pilot')):
+
+        if afr_landing_pilot and afr_landing_pilot.value:
+            self.set_flight_attr(afr_landing_pilot.value.replace('_', ' ').title())
+            return
 
         phase = landings.get_last() if landings else None
         tdwn = touchdowns.get_last() if touchdowns else None
