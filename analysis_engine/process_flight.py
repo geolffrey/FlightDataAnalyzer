@@ -343,7 +343,7 @@ def process_flight(segment_info, tail_number, aircraft_info={}, achieved_flight_
                    requested=[], required=[], include_flight_attributes=True,
                    additional_modules=[], pre_flight_kwargs={}, force=False,
                    initial={}, reprocess=False, requested_only=False,
-                   dependency_tree_log=None):
+                   dependency_tree_log=None, derived_nodes=None):
     '''
     Processes the HDF file (segment_info['File']) to derive the required_params (Nodes)
     within python modules (settings.NODE_MODULES).
@@ -377,7 +377,8 @@ def process_flight(segment_info, tail_number, aircraft_info={}, achieved_flight_
     :type reprocess: bool
     :param requested_only: Process only requested parameters, not dependencies or children.
     :type requested_only: bool
-
+    :param derived_nodes: Optionally pass in a dictionary of derived nodes to ignore NODE_MODULES. This is more efficient if calling process_flight multiple times with the same set of nodes.
+    :type derived_nodes: dict or None
     :returns: See below:
     :rtype: Dict
 
@@ -553,12 +554,13 @@ def process_flight(segment_info, tail_number, aircraft_info={}, achieved_flight_
         else:
             additional_nodes.append(additional)
 
-    node_modules = settings.NODE_MODULES
-    if aircraft_info['Aircraft Type'] == 'helicopter':
-        node_modules += settings.NODE_HELICOPTER_MODULE_PATHS
-    node_modules += additional_node_modules
     # go through modules to get derived nodes
-    derived_nodes = get_derived_nodes(node_modules)
+    if derived_nodes is None:
+        node_modules = settings.NODE_MODULES
+        if aircraft_info['Aircraft Type'] == 'helicopter':
+            node_modules += settings.NODE_HELICOPTER_MODULE_PATHS
+        node_modules += additional_node_modules
+        derived_nodes = get_derived_nodes(node_modules)
 
     derived_nodes.update({n.get_name(): n for n in additional_nodes})
 
