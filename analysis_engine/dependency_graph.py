@@ -253,7 +253,7 @@ def dependencies3(di_graph, root, node_mgr, raise_cir_dep=False):
         # is now starting with '2 Deg Pitch To 35 Ft Duration' causing a
         # node process order issue for TouchDown kti.
         if node == 'root':
-            while ordered_successors[0] in CALCULATE_NODE_LAST:
+            while ordered_successors and ordered_successors[0] in CALCULATE_NODE_LAST:
                 ordered_successors.append(ordered_successors.pop(0))
 
         for dependency in ordered_successors:

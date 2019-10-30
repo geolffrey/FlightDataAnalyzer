@@ -639,7 +639,7 @@ def process_flight(segment_info, tail_number, aircraft_info={}, achieved_flight_
                 for node in gr_st.nodes():
                     if node in node_mgr.derived_nodes:
                         # this includes KPV/KTIs but they'll be ignored by HDF
-                        qty = len(gr_st.predecessors(node))
+                        qty = len(list(gr_st.predecessors(node)))
                         if qty > settings.CACHE_PARAMETER_MIN_USAGE:
                             hdf.cache_param_list.append(node)
                 logging.info("HDF set to cache parameters: %s", hdf.cache_param_list)
