@@ -9,8 +9,6 @@ import copy
 
 from collections import deque, Counter
 
-from flightdatautilities.dict_helpers import dict_filter
-
 from analysis_engine.node import (
     ApproachNode,
     DerivedParameterNode,
@@ -391,8 +389,7 @@ def graph_nodes(node_mgr):
     # (limitation of add_node_attribute())
     gr_all.add_nodes_from(node_mgr.hdf_keys, color='#72f4eb', # turquoise
                           node_type='HDFNode')
-    derived_minus_lfl = dict_filter(node_mgr.derived_nodes,
-                                    remove=node_mgr.hdf_keys)
+    derived_minus_lfl = {k: v for k, v in node_mgr.derived_nodes.items() if k not in node_mgr.hdf_keys}
     # Group into node types to apply colour. TODO: Make colours less garish.
     colors = {
         ApproachNode: '#663399', # purple
