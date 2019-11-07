@@ -5370,7 +5370,7 @@ def offset_select(mode, param_list):
     raise ValueError ("offset_select called with unrecognised mode")
 
 
-def overflow_correction(array, ref=None, fast=None, hz=1):
+def overflow_correction(array, ref=None, fast=None, hz=1, ccd=None):
     '''
     Overflow Correction postprocessing procedure. Used only on Altitude Radio
     signals.
@@ -5418,15 +5418,31 @@ def overflow_correction(array, ref=None, fast=None, hz=1):
                                 ref,
                                 slices_int(good_slices),
                                 slices_int(fast.get_slices()),
-                                hz)
+                                hz,
+                                ccd)
 
     return array
 
-def align_altitudes(alt_rad, alt_std, good_slices, fast_slices, hz):
+def align_altitudes(alt_rad, alt_std, good_slices, fast_slices, hz, ccd):
     '''
     This corrects the offset for each section of radio altitude data,
     using a crude height above ground level estimate.
     '''
+
+    if ccd and len(ccd) > 1:
+        # Catch go arounds / flight diversions by spliting the fast section at the end of each cruise climb descent phase
+        # The last ccd is ignored. Flight with 3 ccd slices: start of fast -> end of ccd 1 -> end of ccd 2 -> end of fast
+        split_fast_slices = []
+        for fast_slice in fast_slices:
+            temp = fast_slice
+            for section in ccd[:-1]:
+                next_split = slices_split([temp], section.slice.stop)
+                if next_split:
+                    split_fast_slices.append(next_split[0])
+                    temp = next_split[1]
+            split_fast_slices.append(temp)
+        fast_slices = split_fast_slices
+
     for fast_slice in fast_slices:
         # crude altitude aal for this slice only
         baro = alt_std[fast_slice]
@@ -5447,8 +5463,7 @@ def align_altitudes(alt_rad, alt_std, good_slices, fast_slices, hz):
                 alt_rad[fgs] = np.ma.masked
                 continue
             # The average difference, with emphasized weighting is...
-            mean_diff = np.ma.average(baro[shift_slice(fgs, -fast_slice.start)] - alt_rad[fgs],
-                                      weights = weights**2)
+            mean_diff = np.ma.average(baro[shift_slice(fgs, -fast_slice.start)] - alt_rad[fgs], weights=weights**2)
             # and we only adjust by 1k blocks
             delta = 1024.0 * np.rint(mean_diff / 1024)
             if delta:
