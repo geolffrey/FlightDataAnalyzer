@@ -985,7 +985,8 @@ class AltitudeRadio(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
         alt_rads = [n for n in cls.get_dependency_names() if n.startswith('Altitude Radio')]
-        return 'Fast' in available and any_of(alt_rads, available)
+        return all_of(('Fast', 'Climb Cruise Descent'), available) and any_of(alt_rads, available)
+
 
     def derive(self,
                source_A=P('Altitude Radio (A)'),
@@ -999,7 +1000,8 @@ class AltitudeRadio(DerivedParameterNode):
                alt_std=P('Altitude STD'),
                pitch=P('Pitch'),
                fast=S('Fast'),
-               family=A('Family')):
+               family=A('Family'),
+               ccd=S('Climb Cruise Descent')):
 
         # Reminder: If you add parameters here, they need limits adding in the
         # database !!!
@@ -1017,9 +1019,11 @@ class AltitudeRadio(DerivedParameterNode):
             # correct for overflow, aligning the fast slice to each source
             aligned_fast = fast.get_aligned(source)
 
-            source.array = np.ma.masked_invalid(
-                overflow_correction(source.array, align(alt_std, source),fast=aligned_fast, hz=source.frequency)
-            )
+            source.array = overflow_correction(source.array,
+                                               align(alt_std, source),
+                                               fast=aligned_fast,
+                                               hz=source.frequency,
+                                               ccd=ccd)
 
             # Some data frames reference altimeters which are optionally
             # recorded. It is impractical to maintain the LFL patching
