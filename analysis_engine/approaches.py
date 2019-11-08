@@ -12,7 +12,6 @@ Flight Data Analyzer: Approaches
 from __future__ import print_function
 
 import numpy as np
-from operator import itemgetter
 
 from flightdatautilities import api, units as ut
 
@@ -32,6 +31,7 @@ from analysis_engine.library import (
     peak_curvature,
     shift_slices,
     latitudes_and_longitudes,
+    match_airport,
     nearest_runway,
     find_rig_approach,
     valid_between,
@@ -51,13 +51,13 @@ from flightdatautilities.numpy_utils import slices_int
 def is_heliport(ac_type, airport, landing_runway):
     '''
     helicopter and no airport
-    helicopter and runway strip length == 0
-    no runway and one strip with length == 0
+    helicopter and runway length == 0
+    no runway and one with length == 0
     '''
     if ac_type == aeroplane:
         return False # Aeroplane does not land on heliport
-    if landing_runway: # heliport entered as runway with 0 length strip
-        return landing_runway.get('strip', {}).get('length') == 0
+    if landing_runway: # heliport entered as runway with 0 length
+        return landing_runway.get('length') == 0
     else:
         # I've landed in a field or on a ship or not using a runway.
         return True
@@ -110,7 +110,7 @@ class ApproachInformation(ApproachNode):
                     seg_type=A('Segment Type')):
         if seg_type and seg_type.value == 'GROUND_ONLY':
             return False
-        required = ['Approach And Landing', 'Takeoff', 'Touchdown']
+        required = ['Approach And Landing', 'Takeoff', 'Touchdown', 'FDR Landing Datetime']
         required.append('Altitude AGL' if ac_type == helicopter else 'Altitude AAL')
         lat = 'Latitude Prepared' in available
         lon = 'Longitude Prepared' in available
@@ -153,15 +153,16 @@ class ApproachInformation(ApproachNode):
 
     def _lookup_airport_and_runway(self, _slice, precise, lowest_lat,
                                    lowest_lon, lowest_hdg, appr_ils_freq,
-                                   land_afr_apt=None, land_afr_rwy=None,
-                                   hint='approach', ac_type=aeroplane):
+                                   landing_dt, land_afr_apt=None,
+                                   land_afr_rwy=None, hint='approach',
+                                   ac_type=aeroplane):
         handler = api.get_handler(settings.API_HANDLER)
         kwargs = {}
         airport, runway, match = None, None, None
 
         # A1. If we have latitude and longitude, look for the nearest airport:
         if lowest_lat not in (None, np.ma.masked) and lowest_lon not in (None, np.ma.masked):
-            kwargs.update(latitude=lowest_lat, longitude=lowest_lon)
+            kwargs.update(latitude=lowest_lat, longitude=lowest_lon, flight_dt=landing_dt)
             try:
                 airports = handler.get_nearest_airport(**kwargs)
             except (ValueError, TypeError):
@@ -184,7 +185,7 @@ class ApproachInformation(ApproachNode):
                     # filter by runway coordinates
                     filtered = [x for x in airport_info.values() if x['min_rwy_start_dist'] is not None]
                     if filtered:
-                        match = min(filtered, key=itemgetter('min_rwy_start_dist'))
+                        match = match_airport(filtered, 'min_rwy_start_dist')
                 else:
                     # filter by runway heading
                     airport = None
@@ -202,11 +203,11 @@ class ApproachInformation(ApproachNode):
                         # filter by runway distances
                         filtered = [x for x in potential_airports if x['min_rwy_start_dist'] is not None]
                         if filtered:
-                            match = min(filtered, key=itemgetter('min_rwy_start_dist'))
+                            match = match_airport(filtered, 'min_rwy_start_dist')
                     else:
                         # filter by airport distances
                         if airports:
-                            airport = min(airports, key=itemgetter('distance'))
+                            airport = match_airport(airports, 'distance')
                 if match:
                     airport = match['airport']
                 if airport:
@@ -277,6 +278,7 @@ class ApproachInformation(ApproachNode):
                ils_freq=P('ILS Frequency'),
                land_afr_apt=A('AFR Landing Airport'),
                land_afr_rwy=A('AFR Landing Runway'),
+               landing_dt=A('FDR Landing Datetime'),
                lat_land=KPV('Latitude At Touchdown'),
                lon_land=KPV('Longitude At Touchdown'),
                precision=A('Precise Positioning'),
@@ -393,6 +395,7 @@ class ApproachInformation(ApproachNode):
                 lowest_lat=lowest_lat,
                 lowest_lon=lowest_lon,
                 lowest_hdg=lowest_hdg,
+                landing_dt=landing_dt,
                 appr_ils_freq=None,
                 ac_type=ac_type,
             )
@@ -631,6 +634,7 @@ class ApproachInformation(ApproachNode):
                     'ilsfreq': appr_ils_freq,
                     'latitude': lowest_lat,
                     'longitude': lowest_lon,
+                    'flight_dt': landing_dt,
                 }
                 if not precise:
                     runway_kwargs['hint'] = kwargs.get('hint', 'approach')

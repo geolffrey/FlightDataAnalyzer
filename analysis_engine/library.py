@@ -13,10 +13,11 @@ import pytz
 from builtins import zip
 from collections import OrderedDict, namedtuple
 from copy import copy, deepcopy
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from hashlib import sha256
 from math import ceil, copysign, cos, floor, log, radians, sin, sqrt
+from operator import itemgetter
 from scipy import interpolate as scipy_interpolate, optimize
 from scipy.ndimage import filters
 from scipy.signal import medfilt
@@ -8282,7 +8283,7 @@ def filter_runway_heading(r, h):
     q2 = h <= rh <= 360 or 0 <= rh <= h2 % 360 if h2 > 360 else h <= rh <= h2
     return q1 or q2
 
-def nearest_runway(airport, heading, ilsfreq=None, latitude=None, longitude=None, hint=None):
+def nearest_runway(airport, heading, ilsfreq=None, latitude=None, longitude=None, hint=None, flight_dt=None):
     '''
     Helper to find the nearest runway in the database.
 
@@ -8329,6 +8330,15 @@ def nearest_runway(airport, heading, ilsfreq=None, latitude=None, longitude=None
         logger.warning('No runway information available for airport #%d.', airport['id'])
         return None
 
+    # Filter out older invalid runways if a date is provided, or filter out all deprecated runways if no date provided
+    if flight_dt:
+        runways = [
+            r for r in runways if not r.get('deprecated_dt') or
+            datetime.fromisoformat(r['deprecated_dt']).replace(tzinfo=timezone.utc) >= flight_dt
+        ]
+    else:
+        runways = [r for r in runways if not r.get('deprecated_dt')]
+
     # 1. Attempt to identify the runway by magnetic heading:
     assert 0 <= heading <= 360, u'Heading must be between 0° and 360° degrees.'
     runways = [runway for runway in runways if filter_runway_heading(runway, heading)]
@@ -8354,6 +8364,8 @@ def nearest_runway(airport, heading, ilsfreq=None, latitude=None, longitude=None
                 return x[0]
             elif len(x) == 0:
                 logger.warning("ILS '%s' frequency provided, no matching runway found at '%s'.", ilsfreq, airport['id'])
+            elif any(r.get('deprecated_dt') for r in x):
+                return get_oldest_airport(x)
             else:
                 logger.warning("ILS '%s' frequency provided, multiple matching runways found at '%s'.", ilsfreq, airport['id'])
 
@@ -8376,6 +8388,7 @@ def nearest_runway(airport, heading, ilsfreq=None, latitude=None, longitude=None
         p3y, p3x = latitude, longitude
         distance = float('inf')
         runway = None
+        candidates = []
         close_runways = []
         for r in runways:
             p1x = r['start']['longitude']
@@ -8386,29 +8399,43 @@ def nearest_runway(airport, heading, ilsfreq=None, latitude=None, longitude=None
             if not any(args):
                 continue
             abs_dxt = np.average(np.abs(cross_track_distance(*args)))
-            # if we find more than one runway less than 30m away (30m is half the average runway width), that means we
-            # have landed on a runway crossing. W create a list of such runways and then pick the one which magnetic
-            # heading is closer to the aircraft heading - since we're looking at the lowest point, even with crosswind
-            # the aircraft will likely be post de-crab at this stage.
             if abs_dxt < 30:
                 close_runways.append(r)
+            if abs(abs_dxt - distance) < 1:
+                candidates.append(r)
             if abs_dxt < distance:
                 distance = abs_dxt
                 runway = r
 
-        if len(close_runways) > 1:
-            hdg_diff = float('inf')
-            for r in close_runways:
-                diff = abs(heading - r.get('magnetic_heading'))
-                if diff < hdg_diff:
-                    hdg_diff = diff
-                    runway = r
+        if len(close_runways):
+            candidates = []  # Ignore other runways found.
+            if len(close_runways) == 1:
+                runway = close_runways[0]
+            else:
+                hdg_diff = float('inf')
+                for r in close_runways:
+                    diff = abs(heading - float(r.get('magnetic_heading')))
+                    if diff <= hdg_diff:
+                        hdg_diff = diff
+                        candidates.append(r)
+
+        if candidates:
+            runway = get_oldest_airport(candidates)
 
         if runway:
             logger.info("Runway '%s' selected: Closest to provided coordinates.", runway['identifier'])
             return runway
 
     # 4. Fall back to not identifying which parallel runway:
+    if any(r.get('deprecated_dt') for r in runways):
+        # Groupby runway ident. Select oldest for each ident.
+        idents = {r['identifier'] for r in runways}
+        oldest_runways = []
+        for ident in idents:
+            filtered = [r for r in runways if r['identifier'] == ident]
+            oldest_runways.append(get_oldest_airport(filtered))
+        runways = oldest_runways
+
     idents = map(lambda runway: runway['identifier'], runways)
 
     # Check that the runway identifiers don't conflict, otherwise guess:
@@ -8762,3 +8789,38 @@ def max_maintained_value(arrays, seconds, frequency, phase):
         return index, value
     else:
         return None, None
+
+
+def get_oldest_airport(item, getter=None):
+    '''
+    Helper method to reduce list of airports by deprecated datetime if it exists, otherwise assume airport is up to date
+    :param item: List of dictionaries.
+    :type item: List
+    :param getter: optional function to access nested dictionaries
+    :type getter: Function
+    '''
+    if not getter:
+        getter = lambda x, v: x.get(v)
+    return min(
+        item, key=lambda i: datetime.fromisoformat(getter(i, 'deprecated_dt')).replace(tzinfo=timezone.utc)
+        if getter(i, 'deprecated_dt') else datetime.now(timezone.utc)
+    )
+
+
+def match_airport(filtered, key):
+    '''
+    Helper method to find an airport by smallest key value (e.g. distance), then find airports with matching idents and
+    return oldest airport. This assumes the filtered list has already filtered out airport older than the flight date.
+    :param filtered: List of airport dictionaries.
+    :param key: Key used to match lowest value.
+    '''
+    match = min(filtered, key=itemgetter(key))
+    if 'airport' in match.keys():
+        getter = lambda x, v: x.get('airport', {}).get(v)
+    else:
+        getter = lambda x, v: x.get(v)
+
+    if any(getter(a, 'deprecated_dt') for a in filtered):
+        matches = [x for x in filtered if any(getter(x, 'code').get(k) == v for k, v in getter(match, 'code').items())]
+        match = get_oldest_airport(matches, getter)
+    return match

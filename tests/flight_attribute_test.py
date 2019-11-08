@@ -3,7 +3,7 @@ import os
 import unittest
 import yaml
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from mock import Mock, call, patch
 
 from analysis_engine import __version__, settings
@@ -355,9 +355,11 @@ class TestDeterminePilot(unittest.TestCase):
 class TestDestinationAirport(unittest.TestCase):
     def test_can_operate(self):
         self.assertEqual(DestinationAirport.get_operational_combinations(),
-                         [('Destination',),
-                          ('AFR Destination Airport',),
-                          ('Destination', 'AFR Destination Airport')])
+                         [('AFR Destination Airport',),
+                          ('Destination', 'AFR Destination Airport',),
+                          ('Destination', 'FDR Landing Datetime',),
+                          ('AFR Destination Airport', 'FDR Landing Datetime',),
+                          ('Destination', 'AFR Destination Airport', 'FDR Landing Datetime',)])
 
     def setUp(self):
         dest_array = np.ma.array(
@@ -365,23 +367,24 @@ class TestDestinationAirport(unittest.TestCase):
             mask=[True, False, False, False, False, True])
         self.dest = P('Destination', array=dest_array)
         self.afr_dest = A('AFR Destination Airport', value={'id': 2000})
+        self.landing_dt = A('FDR Landing Datetime', value=datetime.now(timezone.utc))
         self.node = DestinationAirport()
 
     @patch('analysis_engine.api_handler.FileHandler.get_airport')
     def test_derive_dest(self, get_airport):
-        self.node.derive(self.dest, None)
+        self.node.derive(self.dest, None, self.landing_dt)
         self.assertEqual(self.node.value, get_airport.return_value)
-        get_airport.assert_called_once_with('FDSL')
+        get_airport.assert_called_once_with('FDSL', flight_dt=self.landing_dt.value)
 
     def test_derive_afr_dest(self):
-        self.node.derive(None, self.afr_dest)
+        self.node.derive(None, self.afr_dest, None)
         self.assertEqual(self.node.value, self.afr_dest.value)
 
     @patch('analysis_engine.api_handler.FileHandler.get_airport')
     def test_derive_both(self, get_airport):
-        self.node.derive(self.dest, self.afr_dest)
+        self.node.derive(self.dest, self.afr_dest, self.landing_dt)
         self.assertEqual(self.node.value, get_airport.return_value)
-        get_airport.assert_called_once_with('FDSL')
+        get_airport.assert_called_once_with('FDSL', flight_dt=self.landing_dt.value)
 
     def test_derive_invalid(self):
         dest_array = np.ma.array(
@@ -495,9 +498,9 @@ class TestLandingAirport(unittest.TestCase, NodeTest):
     def setUp(self):
         self.node_class = LandingAirport
         self.operational_combinations = [
-            ('Approach Information',),
-            ('AFR Landing Airport',),
-            ('Approach Information', 'AFR Landing Airport'),
+            ('Approach Information', 'FDR Landing Datetime', ),
+            ('AFR Landing Airport', 'FDR Landing Datetime', ),
+            ('Approach Information', 'AFR Landing Airport', 'FDR Landing Datetime'),
         ]
 
     def test_derive_afr_fallback(self):
@@ -719,11 +722,12 @@ class TestTakeoffAirport(unittest.TestCase, NodeTest):
         self.node_class = TakeoffAirport
         self.check_operational_combination_length_only = True
         self.operational_combination_length = 23
+        self.takeoff_dt = A('FDR Takeoff Datetime', value=datetime.utcnow())
 
     def test_can_operate(self):
-        self.assertTrue(self.node_class.can_operate(('Latitude At Liftoff', 'Longitude At Liftoff')))
+        self.assertTrue(self.node_class.can_operate(('Latitude At Liftoff', 'Longitude At Liftoff', 'FDR Takeoff Datetime')))
         self.assertTrue(self.node_class.can_operate(('AFR Takeoff Airport',)))
-        self.assertTrue(self.node_class.can_operate(('Latitude Off Blocks', 'Longitude Off Blocks')))
+        self.assertTrue(self.node_class.can_operate(('Latitude Off Blocks', 'Longitude Off Blocks', 'FDR Takeoff Datetime')))
         self.assertFalse(self.node_class.can_operate(('Latitude At Liftoff', 'Longitude Off Blocks')))
 
     @patch('analysis_engine.api_handler.FileHandler.get_nearest_airport')
@@ -744,16 +748,16 @@ class TestTakeoffAirport(unittest.TestCase, NodeTest):
         apt = self.node_class()
         apt.set_flight_attr = Mock()
         # Check that no attribute is created if not found via API:
-        apt.derive(lat, lon, None)
+        apt.derive(lat, lon, None, takeoff_dt=self.takeoff_dt)
         apt.set_flight_attr.assert_called_once_with(None)
         apt.set_flight_attr.reset_mock()
-        get_nearest_airport.assert_called_once_with(4.0, 3.0)
+        get_nearest_airport.assert_called_once_with(4.0, 3.0, flight_dt=self.takeoff_dt.value)
         get_nearest_airport.reset_mock()
         # Check that the AFR airport was used if not found via API:
-        apt.derive(lat, lon, afr_apt)
+        apt.derive(lat, lon, afr_apt, takeoff_dt=self.takeoff_dt)
         apt.set_flight_attr.assert_called_once_with(afr_apt.value)
         apt.set_flight_attr.reset_mock()
-        get_nearest_airport.assert_called_once_with(4.0, 3.0)
+        get_nearest_airport.assert_called_once_with(4.0, 3.0, flight_dt=self.takeoff_dt.value)
         get_nearest_airport.reset_mock()
 
     @patch('analysis_engine.api_handler.FileHandler.get_nearest_airport')
@@ -775,16 +779,16 @@ class TestTakeoffAirport(unittest.TestCase, NodeTest):
         apt = self.node_class()
         apt.set_flight_attr = Mock()
         # Check that the airport returned via API is used for the attribute:
-        apt.derive(lat, lon, afr_apt)
+        apt.derive(lat, lon, afr_apt, takeoff_dt=self.takeoff_dt)
         apt.set_flight_attr.assert_called_once_with(info)
         apt.set_flight_attr.reset_mock()
-        get_nearest_airport.assert_called_once_with(4.0, 3.0)
+        get_nearest_airport.assert_called_once_with(4.0, 3.0, flight_dt=self.takeoff_dt.value)
         get_nearest_airport.reset_mock()
         # Check that the airport returned via API is used for the attribute:
-        apt.derive(None, None, None, lat, lon)
+        apt.derive(None, None, None, lat, lon, takeoff_dt=self.takeoff_dt)
         apt.set_flight_attr.assert_called_once_with(info)
         apt.set_flight_attr.reset_mock()
-        get_nearest_airport.assert_called_once_with(4.0, 3.0)
+        get_nearest_airport.assert_called_once_with(4.0, 3.0, flight_dt=self.takeoff_dt.value)
         get_nearest_airport.reset_mock()
 
     @patch('analysis_engine.api_handler.FileHandler.get_nearest_airport')
@@ -959,7 +963,7 @@ class TestTakeoffPilot(unittest.TestCase):
 class TestTakeoffRunway(unittest.TestCase, NodeTest):
     def setUp(self):
         self.node_class = TakeoffRunway
-        self.operational_combination_length = 160
+        self.operational_combination_length = 320
         self.check_operational_combination_length_only = True
 
     @patch('analysis_engine.flight_attribute.nearest_runway')
@@ -981,6 +985,7 @@ class TestTakeoffRunway(unittest.TestCase, NodeTest):
             KeyPointValue(index=2, value=60.0),
         ])
         precise = A(name='Precise Positioning')
+        takeoff_dt = A('FDR Takeoff Datetime', value=datetime.now(timezone.utc))
         rwy = self.node_class()
         rwy.set_flight_attr = Mock()
         # Test with bare minimum information:
@@ -991,10 +996,10 @@ class TestTakeoffRunway(unittest.TestCase, NodeTest):
         nearest_runway.reset_mock()
         # Test for aircraft where positioning is not precise:
         precise.value = True
-        rwy.derive(fdr_apt, afr_apt, hdg, lat, lon, None, None, precise)
+        rwy.derive(fdr_apt, afr_apt, hdg, lat, lon, None, None, precise, takeoff_dt=takeoff_dt)
         rwy.set_flight_attr.assert_called_once_with(info)
         rwy.set_flight_attr.reset_mock()
-        nearest_runway.assert_called_once_with(fdr_apt.value, 20.0, latitude=np.array([4.0]), longitude=np.array([3.0]))
+        nearest_runway.assert_called_once_with(fdr_apt.value, 20.0, latitude=np.array([4.0]), longitude=np.array([3.0]), flight_dt=takeoff_dt.value)
         nearest_runway.reset_mock()
         # Test for aircraft where positioning is not precise:
         # NOTE: Latitude and longitude are still used for determining the
