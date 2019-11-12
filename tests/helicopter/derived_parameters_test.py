@@ -123,6 +123,15 @@ class TestAltitudeAGL(unittest.TestCase):
         expected = [0]*20
         assert_array_equal(alt_aal.array, expected)
 
+    def test_rad_alt_masked(self):
+        alt_rad = P(name='Altitude Radio', array=np.ma.array([0]*20, mask=[1]*20))
+        alt_baro = P(name='Altitude STD', array=np.ma.array([0]*20))
+        gog = M(name='Gear On Ground', array=np.ma.array([1]*20), values_mapping={0:'Air', 1:'Ground'})
+        alt_aal = P(name='Altitude AAL', array=np.ma.array([10]*20))
+        alt_agl = AltitudeAGL()
+        alt_agl.derive(alt_rad, alt_aal, alt_baro, gog)
+        assert_array_equal(alt_agl.array, alt_aal.array)
+
 
 class TestAltitudeDensity(unittest.TestCase):
 
