@@ -1902,6 +1902,18 @@ class TestAltitudeRadio(unittest.TestCase):
                    fast=fast, family=A('Family', 'A330'))
         self.assertEqual(len(rad.array), 40)
 
+    def test_rad_alt_sources_contain_nan(self):
+        fast = buildsection('Fast', 0, 10)
+        array = np.ma.array(data=[np.nan] + [1]*8 + [np.nan], mask=[0]*10)
+        radio_L = P('Altitude Radio (L)', array, 1.0, 0.0)
+        radio_R = P('Altitude Radio (R)', array, 1.0, 0.0)
+        alt_baro = P('Altitude STD', array, frequency = 1.0)
+        rad = AltitudeRadio()
+        rad.derive(radio_L, radio_R, None, None, None, None, None, None,
+                   alt_baro, None,
+                   fast=fast, family=A('Family', 'A330'))
+        self.assertEqual(len(rad.array), 40)
+
 
 class TestAltitudeRadioOffsetRemoved(unittest.TestCase):
     def setUp(self):

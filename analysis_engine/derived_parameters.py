@@ -1017,10 +1017,9 @@ class AltitudeRadio(DerivedParameterNode):
             # correct for overflow, aligning the fast slice to each source
             aligned_fast = fast.get_aligned(source)
 
-            source.array = overflow_correction(source.array,
-                                               align(alt_std, source),
-                                               fast=aligned_fast,
-                                               hz=source.frequency)
+            source.array = np.ma.masked_invalid(
+                overflow_correction(source.array, align(alt_std, source),fast=aligned_fast, hz=source.frequency)
+            )
 
             # Some data frames reference altimeters which are optionally
             # recorded. It is impractical to maintain the LFL patching
