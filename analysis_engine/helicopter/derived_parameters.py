@@ -181,7 +181,7 @@ class AltitudeAGL(DerivedParameterNode):
                gog=M('Gear On Ground')):
 
         # If we have no Altitude Radio we will have to fall back to Altitude AAL
-        if not alt_rad or np.ma.is_masked(alt_rad.array):
+        if not alt_rad or not alt_rad.array.count():
             self.array = alt_aal.array
             return
 

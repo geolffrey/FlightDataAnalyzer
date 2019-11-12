@@ -2190,7 +2190,7 @@ class AltitudeRadioMinBeforeNoseDownAttitudeAdoptionOffshore(KeyPointValueNode):
 
             for idx, liftoff in enumerate(liftoffs_in_clump):
                 try:
-                    rad_alt_slices.append(slice(liftoffs_in_clump[idx], nose_downs_in_clump[idx]))
+                    rad_alt_slices.append(slice(int(liftoffs_in_clump[idx]), int(nose_downs_in_clump[idx])))
                 except IndexError:
                     continue
 
