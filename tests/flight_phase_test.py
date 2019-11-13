@@ -1849,7 +1849,11 @@ class TestMobile(unittest.TestCase, NodeTest):
             ('Heading Rate',),
             ('Heading Rate', 'Groundspeed'),
             ('Heading Rate', 'Airborne'),
-            ('Heading Rate', 'Groundspeed', 'Airborne')
+            ('Heading Rate', 'Fast'),
+            ('Heading Rate', 'Groundspeed', 'Airborne'),
+            ('Heading Rate', 'Groundspeed', 'Fast'),
+            ('Heading Rate', 'Airborne', 'Fast'),
+            ('Heading Rate', 'Groundspeed', 'Airborne', 'Fast'),
         ]
 
     def test_gspd(self):
@@ -1857,7 +1861,7 @@ class TestMobile(unittest.TestCase, NodeTest):
         gspd = np.ma.array([1, 2, 3, 5, 5, 2, 1])
         airs = buildsection('Airborne',3,5)
         move = Mobile()
-        move.derive(P('Heading Rate', rot), P('Groundspeed', gspd), airs)
+        move.derive(P('Heading Rate', rot), P('Groundspeed', gspd), airs, None)
         expected = buildsection('Mobile', 1, 6)
         self.assertEqual(move.get_slices(), expected.get_slices())
 
@@ -1866,7 +1870,7 @@ class TestMobile(unittest.TestCase, NodeTest):
         gspd = np.ma.array([0, 0, 0, 0, 0, 0, 0])
         airs = buildsection('Airborne',3,5)
         move = Mobile()
-        move.derive(P('Heading Rate', rot), P('Groundspeed', gspd), airs)
+        move.derive(P('Heading Rate', rot), P('Groundspeed', gspd), airs, None)
         expected = buildsection('Mobile', 1, 6)
         self.assertEqual(move.get_slices(), expected.get_slices())
 
@@ -1875,7 +1879,7 @@ class TestMobile(unittest.TestCase, NodeTest):
         gspd = np.ma.array([0, 0, 0, 0, 0, 0, 0])
         airs = buildsection('Airborne',3,5)
         move = Mobile()
-        move.derive(P('Heading Rate', rot), P('Groundspeed', gspd), airs)
+        move.derive(P('Heading Rate', rot), P('Groundspeed', gspd), airs, None)
         expected = buildsection('Mobile', 3, 6)
         self.assertEqual(move.get_slices(), expected.get_slices())
 
@@ -1884,8 +1888,17 @@ class TestMobile(unittest.TestCase, NodeTest):
         gspd = np.ma.array([2, 2, 3, 5, 2, 0, 0])
         airs = buildsection('Airborne',2,4)
         move = Mobile()
-        move.derive(P('Heading Rate', rot), P('Groundspeed', gspd), airs)
+        move.derive(P('Heading Rate', rot), P('Groundspeed', gspd), airs, None)
         expected = buildsection('Mobile', 0, 5)
+        self.assertEqual(move.get_slices(), expected.get_slices())
+
+    def test_no_gs(self):
+        rot = np.ma.array([0, 0, 0, 0, 0, 0, 0, 0, 0])
+        airs = buildsection('Airborne', 2, 4)
+        fast = buildsection('Fast', 1, 6)
+        move = Mobile()
+        move.derive(P('Heading Rate', rot), None, airs, fast)
+        expected = buildsection('Mobile', 1, 7)
         self.assertEqual(move.get_slices(), expected.get_slices())
 
 

@@ -1322,6 +1322,7 @@ class Mobile(FlightPhaseNode):
                rot=P('Heading Rate'),
                gspd=P('Groundspeed'),
                airs=S('Airborne'),
+               fast=S('Fast'),
                #power=P('Eng (*) Any Running'),
                ):
 
@@ -1335,6 +1336,11 @@ class Mobile(FlightPhaseNode):
             if mobile is not None:
                 start = min(start, mobile[0]) if start else mobile[0]
                 stop = max(stop, mobile[1]) if stop else mobile[1]
+        elif fast:
+            fast_start = fast.get_first().slice.start
+            fast_stop = fast.get_last().slice.stop
+            start = min(start, fast_start) if start else fast_start
+            stop = max(stop, fast_stop) if stop else fast_stop
 
         if airs and airs is not None:
             start = min(start, airs[0].slice.start) if start is not None else airs[0].slice.start
