@@ -20740,6 +20740,15 @@ class TestTCASFailureRatio(unittest.TestCase, NodeTest):
         self.assertEqual(node[0].index, 0)
         self.assertAlmostEqual(node[0].value, 0)
 
+    def test_only_measure_tcas_within_airbourne(self):
+        tcas = buildsection('TCAS Operational', 1, 12)
+        airs = buildsection('Airborne', 5, 14)
+        node = self.node_class()
+        node.derive(tcas, airs)
+        self.assertEqual(node[0].name, 'TCAS Failure Ratio')
+        self.assertEqual(node[0].index, 0)
+        self.assertAlmostEqual(node[0].value, 20)
+
 
 ##############################################################################
 # Warnings: Takeoff Configuration

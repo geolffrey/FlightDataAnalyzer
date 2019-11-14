@@ -17918,8 +17918,8 @@ class TCASFailureRatio(KeyPointValueNode):
         total_operating = 0
         for air in airs:
             total_air += slice_duration(air.slice, airs.frequency)
-        for op in tcas_ops:
-            total_operating += slice_duration(op.slice, tcas_ops.frequency)
+        for op in slices_and(airs.get_slices(edges=False), tcas_ops.get_slices(edges=False)):
+            total_operating += slice_duration(op, tcas_ops.frequency)
 
         if total_air:
             ratio = (total_air - total_operating) * 100.0 / total_air
