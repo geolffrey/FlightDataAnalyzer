@@ -1512,9 +1512,18 @@ class Flaperon(MultistateDerivedParameterNode):
         #)
         flaperon_angle = (al.array - ar.array) / 2
         self.values_mapping = at.get_aileron_map(model.value, series.value, family.value)
-        self.array = step_values(flaperon_angle,
-                                 self.values_mapping.keys(),
-                                 al.hz, step_at='move_start')
+        snapped = step_values(flaperon_angle, self.values_mapping.keys(), al.hz, step_at='move_start')
+        # Reduce noise. Always allows single inc/dec, allows for up to 4 inc/dec in window if they dont return to same value.
+        window = int(30 * al.hz)
+        chunks = [snapped[i:i+window] for i in range(len(snapped)) if i + window < len(snapped)]
+        for i, c in enumerate(chunks):
+            if not np.ma.is_masked(c):
+                diff = np.ediff1d(c)
+                count = np.count_nonzero(diff)
+                if count > 4 or (4 >= count > 1 and np.sum(diff) == 0):
+                    snap_slice = snapped[i:i+window]
+                    snapped[i:i+window] = np.argmax(np.bincount(snap_slice.astype(int)))
+        self.array = snapped
 
 
 class FuelQty_Low(MultistateDerivedParameterNode):

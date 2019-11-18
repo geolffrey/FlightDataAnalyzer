@@ -2132,26 +2132,44 @@ class TestFlaperon(unittest.TestCase):
         self.assertTrue(
             flaperon.array.raw.tolist() ==
             [None] * 53 +
-            [10] * 11 +
-            [5] * 244 +
-            [10] * 130 +
-            [0, 0, 0, 5, 0, 5, 5] +
-            [10] * 32 +
-            [0, 0, 5, 5, 5, 5] +
-            [10] * 390 +
-            [5, 5, 5] +
-            [10] * 16 +
-            [5] * 21 +
-            [0] * 21775 +
-            [5] * 11 +
-            [10] * 18 +
-            [5, 5] +
-            [10] * 290 +
-            [5, 5, 5] +
-            [0] * 275 +
-            [5] +
-            [10] * 260 +
+            [10.0] * 11 +
+            [5.0] * 244 +
+            [10.0] * 584 +
+            [5.0] * 21 +
+            [0.0] * 21775 +
+            [5.0] * 11 +
+            [10.0] * 310 +
+            [5.0] * 3 +
+            [0.0] * 275 +
+            [5.0] +
+            [10.0] * 260 +
             [None] * 4
+        )
+    
+    def test_derive_with_rapid_aileron_cycling(self):
+        al = load(os.path.join(test_data_path, 'A330_Rapid_Aileron_L_Cycle.nod'))
+        ar = load(os.path.join(test_data_path, 'A330_Rapid_Aileron_R_Cycle.nod'))
+        al.frequency = 1
+        ar.frequency = 1
+        model = A('Model', 'A330-222')
+        series = A('Series', 'A330-200')
+        family = A('Family', 'A330')
+        flaperon = Flaperon()
+        flaperon.derive(al, ar, model, series, family)
+        self.assertTrue(
+            flaperon.array.raw.tolist() ==
+            [None] * 9 +
+            [10] * 2 +
+            [5] +
+            [0] * 500 +
+            [5] * 687 +
+            [0] * 18340 +
+            [5] * 10 +
+            [10] * 364 +
+            [5] * 6 +
+            [0] * 372 +
+            [10] * 241 +
+            [None] * 12
         )
 
 
