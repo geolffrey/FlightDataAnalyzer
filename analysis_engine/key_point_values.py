@@ -6264,20 +6264,23 @@ class QNHDifferenceDuringApproach(KeyPointValueNode):
     units = ut.MILLIBAR
 
     def derive(self, alt_qnh=P('Altitude QNH'),
-               alt_viz=P('Altitude Visualization With Ground Offset'),
                alt_aal=P('Altitude AAL'),
                apps=App('Approach Information')):
 
         qnh_ref = alt2press(0)
         for app in apps:
+            if app.approach_runway is None:
+                continue
             index = index_at_value(alt_aal.array, 100,
                                    slice(app.slice.stop, app.slice.start, -1),
                                    endpoint='closing')
             if index is None:
                 continue
+            final_alt = alt_aal.array[int(index)]
+            rwy_elevation = app.approach_runway['start']['elevation']
+            ref = rwy_elevation + final_alt
             alt_qnh_lo = alt_qnh.array[int(index)]
-            alt_viz_lo = alt_viz.array[int(index)]
-            diff = alt_qnh_lo - alt_viz_lo
+            diff = alt_qnh_lo - ref
             qnh_error = qnh_ref - alt2press(diff)
             self.create_kpv(index, qnh_error)
 

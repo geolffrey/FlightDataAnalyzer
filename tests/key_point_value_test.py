@@ -7921,6 +7921,93 @@ class TestHeightSelectedOnApproachMin(unittest.TestCase):
 class TestQNHDifferenceDuringApproach(unittest.TestCase):
     def setUp(self):
         self.node_class = QNHDifferenceDuringApproach
+        self.airport = {
+            "id": 2299,
+            "name": "Stuttgart",
+            "code": {"icao": "EDDS", "iata": "STR"},
+            "location": {"city": "Stuttgart", "country": "Germany"},
+            "latitude": 48.6899,
+            "longitude": 9.22196,
+            "elevation": 1273,
+            "magnetic_variation": "E001003 0106",
+            "runways": [
+                {
+                    "id": 5189,
+                    "identifier": "07",
+                    "magnetic_heading": 72.0,
+                    "start": {
+                        "latitude": 48.68654187302413,
+                        "longitude": 9.204062800623312,
+                        "elevation": 1276,
+                    },
+                    "end": {
+                        "latitude": 48.694013459053984,
+                        "longitude": 9.24376544907334,
+                        "elevation": 1181,
+                    },
+                    "glideslope": {
+                        "angle": 3.0,
+                        "latitude": 48.686336,
+                        "longitude": 9.209206,
+                        "elevation": 1273,
+                        "threshold_distance": 1185,
+                    },
+                    "localizer": {
+                        "beam_width": 4.5,
+                        "frequency": 10950.00,
+                        "heading": 72,
+                        "latitude": 48.694722,
+                        "longitude": 9.24753600000001,
+                        "elevation": 1273,
+                        "is_offset": False,
+                    },
+                    "strip": {
+                        "id": 2595,
+                        "length": 10974,
+                        "surface": "CON",
+                        "width": 147,
+                    },
+                },
+                {
+                    "id": 5190,
+                    "identifier": "25",
+                    "magnetic_heading": 252.0,
+                    "start": {
+                        "latitude": 48.69400283621483,
+                        "longitude": 9.2437627668629,
+                        "elevation": 1181,
+                    },
+                    "end": {
+                        "latitude": 48.68572290111085,
+                        "longitude": 9.200185667491251,
+                        "elevation": 1276,
+                    },
+                    "glideslope": {
+                        "angle": 3.0,
+                        "latitude": 48.692255999999965,
+                        "longitude": 9.240442,
+                        "elevation": 1181,
+                        "threshold_distance": 957,
+                    },
+                    "localizer": {
+                        "beam_width": 4.5,
+                        "frequency": 109900.00,
+                        "heading": 252,
+                        "latitude": 48.683484249391725,
+                        "longitude": 9.188423269835914,
+                        "elevation": 1276,
+                        "is_offset": False,
+                    },
+                    "strip": {
+                        "id": 2595,
+                        "length": 10974,
+                        "surface": "CON",
+                        "width": 147,
+                    },
+                },
+            ],
+        }
+        self.runway = self.airport["runways"][0]
 
     def test_attributes(self):
         node = self.node_class()
@@ -7930,16 +8017,15 @@ class TestQNHDifferenceDuringApproach(unittest.TestCase):
 
     def test_derive_single_app(self):
         alt_qnh = P(name='Altitude QNH',
-                    array=np.ma.array([210, 180, 160, 140, 120, 100]))
-        alt_viz = P('Altitude Visualization with Ground Offset',
-                    array=np.ma.array([270, 240, 220, 200, 180, 160]))
+                    array=np.ma.array([1326, 1296, 1276, 1256, 1236, 1216]))
         alt_all = P('Altitude AAL',
                     array=np.ma.array([110, 80, 60, 40, 20, 0]))
         apps = App('Approach Information',
-                   items=[ApproachItem('LANDING', slice(0, 6))])
+                   items=[ApproachItem('LANDING', slice(0, 6), airport=self.airport,
+                                       landing_runway=self.runway, approach_runway=self.runway)])
 
         node = self.node_class()
-        node.derive(alt_qnh, alt_viz, alt_all, apps)
+        node.derive(alt_qnh, alt_all, apps)
         # 60 ft below is roughly 2 mBar difference
         self.assertAlmostEqual(node[0].value, -2, delta=0.2)
         self.assertAlmostEqual(node[0].index, 1/3., delta=0.01)
@@ -7947,22 +8033,20 @@ class TestQNHDifferenceDuringApproach(unittest.TestCase):
     def test_derive_multiple_app(self):
         alt_qnh = P(name='Altitude QNH',
                     array=np.ma.array([
-                        400, 380, 350, 320, 330, 350,    # Go around
-                        275, 245, 225, 205, 185, 165]))  #  Landing
-        alt_viz = P('Altitude Visualization with Ground Offset',
-                    array=np.ma.array([
-                        460, 440, 410, 380, 390, 410,    # Go around
-                        270, 240, 220, 200, 180, 160]))  # Landing
+                        1516, 1496, 1466, 1436, 1446, 1466,    # Go around
+                        1391, 1361, 1341, 1321, 1301, 1281]))  #  Landing
         alt_aal = P('Altitude AAL',
                     array=np.ma.array([
                         300, 280, 250, 220, 230, 250,  # Go around
                         110, 80, 60, 40, 20, 0]))      # Landing
         apps = App('Approach Information',
-                   items=[ApproachItem('GO-AROUND', slice(0, 5)),
-                          ApproachItem('LANDING', slice(6, 12))])
+                   items=[ApproachItem('GO-AROUND', slice(0, 5), airport=self.airport,
+                                       landing_runway=None, approach_runway=self.runway),
+                          ApproachItem('LANDING', slice(6, 12), airport=self.airport,
+                                       landing_runway=self.runway, approach_runway=self.runway)])
 
         node = self.node_class()
-        node.derive(alt_qnh, alt_viz, alt_aal, apps)
+        node.derive(alt_qnh, alt_aal, apps)
         self.assertEqual(len(node), 2)
         # 60 ft below is roughly 2 mBar difference
         self.assertAlmostEqual(node[0].value, -2, delta=0.2)
