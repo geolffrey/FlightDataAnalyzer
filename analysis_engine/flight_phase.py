@@ -42,6 +42,7 @@ from analysis_engine.library import (
     slices_above,
     slices_and,
     slices_and_not,
+    slice_duration,
     slices_extend_duration,
     slices_from_to,
     slices_not,
@@ -216,34 +217,37 @@ class Holding(FlightPhaseNode):
         all_turn_bands = []
         hold_bands = []
 
-        turn_rate = rate_of_change(head, HOLDING_MIN_TIME)
+        turn_rate = rate_of_change(head, 150)
         # We scan the entire descent from highest altitude onwards.
         max_alt_to_end = [slices_int(alt_max[0].index, len(alt_aal.array))]
-        above_approach = slices_above(alt_aal.array, 3000)[1]
+        above_approach = slices_above(alt_aal.array, 2000)[1]
         to_scan = slices_and(max_alt_to_end, above_approach)
+        frequency = alt_aal.frequency
 
         for this_scan in to_scan:
-            turn_right_bands = np.ma.clump_unmasked(
-                np.ma.masked_less(turn_rate[slices_int(this_scan)], HOLDING_ROT))
-            turn_bands = shift_slices(slices_remove_small_gaps(turn_right_bands,
-                                                               time_limit=HOLDING_MIN_TIME,
-                                                               hz=alt_aal.frequency),
-                                      this_scan.start)
-            all_turn_bands.extend(turn_bands)
-            turn_left_bands = np.ma.clump_unmasked(
-                np.ma.masked_greater(turn_rate[slices_int(this_scan)], -HOLDING_ROT))
-            turn_bands = shift_slices(slices_remove_small_gaps(turn_left_bands,
-                                                               time_limit=HOLDING_MIN_TIME,
-                                                               hz=alt_aal.frequency),
-                                      this_scan.start)
-            all_turn_bands.extend(turn_bands)
+            turn_right_bands = slices_extend_duration(
+                np.ma.clump_unmasked(np.ma.masked_less(turn_rate[slices_int(this_scan)], HOLDING_ROT)),
+                frequency, 5,
+            )
+            all_turn_bands.extend(shift_slices(
+                slices_remove_small_gaps(turn_right_bands, time_limit=HOLDING_MIN_TIME, hz=frequency),
+                this_scan.start,
+            ))
+            turn_left_bands = slices_extend_duration(
+                np.ma.clump_unmasked(np.ma.masked_greater(turn_rate[slices_int(this_scan)], -HOLDING_ROT)),
+                frequency, 5,
+            )
+            all_turn_bands.extend(shift_slices(
+                slices_remove_small_gaps(turn_left_bands, time_limit=HOLDING_MIN_TIME, hz=frequency),
+                this_scan.start,
+            ))
 
         for turn_band in all_turn_bands:
             # Reject short periods and check that the average groundspeed was
             # low. The index is reduced by one sample to avoid overruns, and
             # this is fine because we are not looking for great precision in
             # this test.
-            hold_sec = turn_band.stop - turn_band.start
+            hold_sec = slice_duration(turn_band, self.hz)
             if (hold_sec < HOLDING_MIN_TIME):
                 continue
             start = int(turn_band.start)
@@ -255,22 +259,22 @@ class Holding(FlightPhaseNode):
             if average_speed > HOLDING_MAX_GSPD:
                 continue
             angle_of_turn = head.array[stop] - head.array[start]
-            if angle_of_turn < HOLDING_MIN_TURN:
+            if np.ma.abs(angle_of_turn) < HOLDING_MIN_TURN:
                 continue
             # So this lasted long enough, turned through a large angle and had a low
             # overall speed. Now fine tune the endpoints.
             rot_thld = HOLDING_ROT / 2.0
             diff = np.ma.abs(np.ma.ediff1d(head.array))
             # Put the start where the unfiltered rate of turn first rises...
-            if diff[turn_band.start] < rot_thld:
-               trim_start = index_at_value(diff, rot_thld, _slice=turn_band)
+            if diff[start] < rot_thld:
+                trim_start = index_at_value(diff, rot_thld, _slice=turn_band)
             else:
-                trim_start = index_at_value(diff, rot_thld, _slice=slice(turn_band.start, 0, -1))
+                trim_start = index_at_value(diff, rot_thld, _slice=slice(start, 0, -1))
             # ...and the same for the endpoint.
-            if diff[turn_band.stop] < rot_thld:
-                trim_end = index_at_value(diff, rot_thld, _slice=slice(turn_band.stop, turn_band.start, -1))
+            if diff[stop + 1] < rot_thld:
+                trim_end = index_at_value(diff, rot_thld, _slice=slice(stop + 1, start, -1))
             else:
-                trim_end = index_at_value(diff, rot_thld, _slice=slice(turn_band.stop, len(diff)))
+                trim_end = index_at_value(diff, rot_thld, _slice=slice(stop + 1, len(diff)))
             hold_bands.append(slices_int(trim_start, trim_end))
 
         self.create_phases(hold_bands)

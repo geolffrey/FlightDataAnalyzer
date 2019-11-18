@@ -295,9 +295,9 @@ HOLDING_MIN_TIME = 5*60  #sec
 # Rate of turn on average over this period
 HOLDING_ROT = 0.6 # deg/sec
 # Maximum groundspeed over the period in the hold.
-HOLDING_MAX_GSPD = 90.0  # kts
-# The hold must be at least one complete turn
-HOLDING_MIN_TURN = 360.0 # deg
+HOLDING_MAX_GSPD = 110.0  # kts
+# The hold must be at least one complete turn (+/- 5 degrees)
+HOLDING_MIN_TURN = 355.0 # deg
 
 # Threshold for flight phase altitude hysteresis.
 HYSTERESIS_FPALT = 200  # ft
