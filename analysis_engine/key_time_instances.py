@@ -15,6 +15,7 @@ from analysis_engine.node import (
 )
 
 from analysis_engine.library import (
+    align,
     all_deps,
     all_of,
     any_of,
@@ -1456,11 +1457,20 @@ class TouchAndGo(KeyTimeInstanceNode):
     """
     In POLARIS we define a Touch and Go as a Go-Around that contacted the ground.
     """
-    def derive(self, alt_aal=P('Altitude AAL'), go_around_and_climbouts=S('Go Around And Climbout')):
+    @classmethod
+    def can_operate(cls, available):
+        return all_of(('Altitude AAL', 'Go Around And Climbout'), available)
+
+    def derive(self, alt_aal=P('Altitude AAL'), go_around_and_climbouts=S('Go Around And Climbout'),
+               gog=P('Gear On Ground')):
+        if gog:
+            aligned_gog = align(gog, alt_aal)
+        else:
+            aligned_gog = np.ma.array([0]*len(alt_aal.array), mask=[1]*len(alt_aal.array))
         for ga in go_around_and_climbouts:
             ga_index = int(ga.start_edge or ga.slice.start)
             while ga_index < ga.stop_edge:
-                if alt_aal.array[ga_index] == 0.0:
+                if alt_aal.array[ga_index] == 0.0 or aligned_gog[ga_index] == 'Ground':
                     self.create_kti(ga_index)
                     break
                 ga_index += 1

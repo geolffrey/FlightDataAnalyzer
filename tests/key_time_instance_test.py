@@ -2337,7 +2337,10 @@ class TestTouchAndGo(unittest.TestCase, NodeTest):
 
     def setUp(self):
         self.node_class = TouchAndGo
-        self.operational_combinations = [('Altitude AAL', 'Go Around And Climbout')]
+        self.operational_combinations = [
+            ('Altitude AAL', 'Go Around And Climbout'),
+            ('Altitude AAL', 'Go Around And Climbout', 'Gear On Ground'),
+        ]
 
     def test_derive_one_go_around_and_climbout(self):
         alt_aal = P(name='Altitude AAL', array=np.ma.array([
@@ -2348,7 +2351,7 @@ class TestTouchAndGo(unittest.TestCase, NodeTest):
         go_around_and_climbout = buildsection('Go Around And Climbout', 7, 13)
 
         node = self.node_class()
-        node.derive(alt_aal, go_around_and_climbout)
+        node.derive(alt_aal, go_around_and_climbout, None)
 
         expected = [KeyTimeInstance(index=10, name='Touch And Go')]
         self.assertEqual(node, expected)
@@ -2363,9 +2366,24 @@ class TestTouchAndGo(unittest.TestCase, NodeTest):
         go_around_and_climbout = buildsections('Go Around And Climbout', (7, 13), (25, 30))
 
         node = self.node_class()
-        node.derive(alt_aal, go_around_and_climbout)
+        node.derive(alt_aal, go_around_and_climbout, None)
 
         expected = [KeyTimeInstance(index=10, name='Touch And Go'), KeyTimeInstance(index=28, name='Touch And Go')]
+        self.assertEqual(node, expected)
+
+    def test_derive_with_gear_on_ground(self):
+        alt_aal = P(name='Altitude AAL', array=np.ma.array([
+            5, 5, 4, 4, 3, 3, 2, 2, 1, 1,
+            2, 2, 2, 3, 4, 5, 6, 7, 8, 9,
+        ]))
+
+        go_around_and_climbout = buildsection('Go Around And Climbout', 7, 13)
+        gog = P(name='Gear On Ground', array=np.ma.array(['Air'] * 10 + ['Ground'] + ['Air'] * 9))
+
+        node = self.node_class()
+        node.derive(alt_aal, go_around_and_climbout, gog)
+
+        expected = [KeyTimeInstance(index=10, name='Touch And Go')]
         self.assertEqual(node, expected)
 
 
