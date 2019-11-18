@@ -2741,25 +2741,102 @@ class TestAirspeedDuringCruiseMax(unittest.TestCase, CreateKPVsWithinSlicesTest)
 
     def setUp(self):
         self.node_class = AirspeedDuringCruiseMax
-        self.operational_combinations = [('Airspeed', 'Cruise')]
+        self.operational_combinations = [
+            ('Airspeed', 'Cruise', 'Flap Lever'),
+            ('Airspeed', 'Cruise', 'Flap Lever (Synthetic)'),
+        ]
         self.function = max_value
 
-    @unittest.skip('Test Not Implemented')
     def test_derive(self):
-        self.assertTrue(False, msg='Test Not Implemented')
+        spd = P('Airspeed', array=np.ma.arange(100, 150))
+        mapping = {f: str(f) for f in (0, 1, 2, 5, 10, 15, 25, 30, 40)}
+        flap_lever = M('Flap Lever', np.ma.repeat(0, 50), values_mapping=mapping)
+        cruises = buildsection('Cruise', 0, 50)
+
+        node = self.node_class()
+        node.derive(spd, cruises, None, flap_lever)
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 49)
+        self.assertEqual(node[0].value, 149)
+
+    def test_derive_flaps_down(self):
+        spd = P('Airspeed', array=np.ma.arange(100, 150))
+        mapping = {f: str(f) for f in (0, 1, 2, 5, 10, 15, 25, 30, 40)}
+        array = np.ma.concatenate((np.ma.repeat(0, 30), np.ma.repeat(15, 20)))
+        flap_lever = M('Flap Lever', array, values_mapping=mapping)
+        cruises = buildsection('Cruise', 0, 50)
+
+        node = self.node_class()
+        node.derive(spd, cruises, None, flap_lever)
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 29)
+        self.assertEqual(node[0].value, 129)
+
+    def test_derive_multiple_crz(self):
+        spd = P('Airspeed', array=np.ma.arange(100, 150))
+        mapping = {f: str(f) for f in (0, 1, 2, 5, 10, 15, 25, 30, 40)}
+        array = np.ma.concatenate((np.ma.repeat(0, 30), np.ma.repeat(15, 20)))
+        flap_lever = M('Flap Lever', array, values_mapping=mapping)
+        cruises = buildsections('Cruise', (0, 20), (25, 45))
+
+        node = self.node_class()
+        node.derive(spd, cruises, None, flap_lever)
+        self.assertEqual(len(node), 2)
+        self.assertEqual(node[0].index, 19)
+        self.assertEqual(node[0].value, 119)
+        self.assertEqual(node[1].index, 29)
+        self.assertEqual(node[1].value, 129)
 
 
 class TestAirspeedDuringCruiseMin(unittest.TestCase, CreateKPVsWithinSlicesTest):
 
     def setUp(self):
         self.node_class = AirspeedDuringCruiseMin
-        self.operational_combinations = [('Airspeed', 'Cruise')]
+        self.operational_combinations = [
+            ('Airspeed', 'Cruise', 'Flap Lever'),
+            ('Airspeed', 'Cruise', 'Flap Lever (Synthetic)'),
+        ]
         self.function = min_value
 
-    @unittest.skip('Test Not Implemented')
     def test_derive(self):
-        self.assertTrue(False, msg='Test Not Implemented')
+        spd = P('Airspeed', array=np.ma.arange(150, 100, -1))
+        mapping = {f: str(f) for f in (0, 1, 2, 5, 10, 15, 25, 30, 40)}
+        flap_lever = M('Flap Lever', np.ma.repeat(0, 50), values_mapping=mapping)
+        cruises = buildsection('Cruise', 0, 50)
 
+        node = self.node_class()
+        node.derive(spd, cruises, None, flap_lever)
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 49)
+        self.assertEqual(node[0].value, 101)
+
+    def test_derive_flaps_down(self):
+        spd = P('Airspeed', array=np.ma.arange(150, 100, -1))
+        mapping = {f: str(f) for f in (0, 1, 2, 5, 10, 15, 25, 30, 40)}
+        array = np.ma.concatenate((np.ma.repeat(0, 30), np.ma.repeat(15, 20)))
+        flap_lever = M('Flap Lever', array, values_mapping=mapping)
+        cruises = buildsection('Cruise', 0, 50)
+
+        node = self.node_class()
+        node.derive(spd, cruises, None, flap_lever)
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 29)
+        self.assertEqual(node[0].value, 150-29)
+
+    def test_derive_multiple_crz(self):
+        spd = P('Airspeed', array=np.ma.arange(150, 100, -1))
+        mapping = {f: str(f) for f in (0, 1, 2, 5, 10, 15, 25, 30, 40)}
+        array = np.ma.concatenate((np.ma.repeat(0, 30), np.ma.repeat(15, 20)))
+        flap_lever = M('Flap Lever', array, values_mapping=mapping)
+        cruises = buildsections('Cruise', (0, 20), (25, 45))
+
+        node = self.node_class()
+        node.derive(spd, cruises, None, flap_lever)
+        self.assertEqual(len(node), 2)
+        self.assertEqual(node[0].index, 19)
+        self.assertEqual(node[0].value, 150 - 19)
+        self.assertEqual(node[1].index, 29)
+        self.assertEqual(node[1].value, 150 - 29)
 
 class TestAirspeedGustsDuringFinalApproach(unittest.TestCase, NodeTest):
 

@@ -1238,29 +1238,75 @@ class AirspeedAt8000FtDescending(KeyPointValueNode):
 class AirspeedDuringCruiseMax(KeyPointValueNode):
     '''
     Maximum recorded airspeed during cruise.
+
+    We ignore sections where the flaps are down.
     '''
 
     units = ut.KT
 
+    @classmethod
+    def can_operate(cls, available):
+        return any_of(('Flap Lever (Synthetic)', 'Flap Lever'), available) and \
+               all_of(('Airspeed', 'Cruise'), available)
+
     def derive(self,
                air_spd=P('Airspeed'),
-               cruises=S('Cruise')):
+               cruises=S('Cruise'),
+               flap_synth=M('Flap Lever (Synthetic)'),
+               flap_lever=M('Flap Lever')):
 
-        self.create_kpvs_within_slices(air_spd.array, cruises, max_value)
+        flap = flap_lever or flap_synth
+
+        if 'Lever 0' in flap.array.state:
+            retracted = flap.array == 'Lever 0'
+        elif '0' in flap.array.state:
+            retracted = flap.array == '0'
+        else:
+            self.warning('AirspeedDuringCruiseMax: Flap Lever state does not '
+                         'include "Lever 0" or "0".')
+            self.create_kpvs_within_slices(air_spd.array, cruises, max_value)
+            return
+
+        flaps_up = runs_of_ones(retracted)
+        slices = slices_and(cruises.get_slices(), flaps_up)
+        self.create_kpvs_within_slices(air_spd.array, slices, max_value)
 
 
 class AirspeedDuringCruiseMin(KeyPointValueNode):
     '''
     Minimum recorded airspeed during cruise.
+
+    We ignore sections where the flaps are down.
     '''
 
     units = ut.KT
 
+    @classmethod
+    def can_operate(cls, available):
+        return any_of(('Flap Lever (Synthetic)', 'Flap Lever'), available) and \
+               all_of(('Airspeed', 'Cruise'), available)
+
     def derive(self,
                air_spd=P('Airspeed'),
-               cruises=S('Cruise')):
+               cruises=S('Cruise'),
+               flap_synth=M('Flap Lever (Synthetic)'),
+               flap_lever=M('Flap Lever')):
 
-        self.create_kpvs_within_slices(air_spd.array, cruises, min_value)
+            flap = flap_lever or flap_synth
+
+            if 'Lever 0' in flap.array.state:
+                retracted = flap.array == 'Lever 0'
+            elif '0' in flap.array.state:
+                retracted = flap.array == '0'
+            else:
+                self.warning('AirspeedDuringCruiseMin: Flap Lever state does not '
+                             'include "Lever 0" or "0".')
+                self.create_kpvs_within_slices(air_spd.array, cruises, min_value)
+                return
+
+            flaps_up = runs_of_ones(retracted)
+            slices = slices_and(cruises.get_slices(), flaps_up)
+            self.create_kpvs_within_slices(air_spd.array, slices, min_value)
 
 
 class AirspeedGustsDuringFinalApproach(KeyPointValueNode):
