@@ -1209,21 +1209,24 @@ class AltitudeQNH(DerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        baro = any_of(('Baro Correction (Capt)', 'Baro Correction (FO)',
-                       'Baro Correction'), available)
-        return baro and 'Altitude STD' in available
+        return all_of(('Baro Correction', 'Altitude STD'), available)
 
     def derive(self,
                alt_std=P('Altitude STD'),
-               baro_capt=P('Baro Correction (Capt)'),
-               baro_fo=P('Baro Correction (FO)'),
-               baro=P('Baro Correction')):
+               baro=P('Baro Correction'),
+               baro_sel=M('Baro Setting Selection'),
+               baro_sel_cpt=M('Baro Setting Selection (Capt)'),
+               baro_sel_fo=M('Baro Setting Selection (FO)'),
+               baro_cor_isis=P('Baro Correction (ISIS)')):
 
-        baro_param = [p for p in [baro, baro_capt, baro_fo] if p and np.ma.count(p.array)]
-
-        if baro_param and len(baro_param) > 0:
-            baro_correction = baro_param[0]
-            baro_fixed = nearest_neighbour_mask_repair(baro_correction.array)
+        if np.ma.count(baro.array):
+            baro_fixed = nearest_neighbour_mask_repair(baro.array)
+            if baro_sel:
+                baro_fixed[baro_sel.array == 'ALT STD'] = 1013.25
+            elif baro_sel_cpt and baro_sel_fo:
+                baro_fixed[(baro_sel_cpt.array == 'STD') | (baro_sel_fo.array == 'STD')] = 1013.25
+            elif baro_cor_isis:
+                baro_fixed[np.isclose(baro_cor_isis.array, 1013)] = 1013.25
 
             alt_qnh = np_ma_masked_zeros_like(alt_std.array)
 
@@ -1234,8 +1237,7 @@ class AltitudeQNH(DerivedParameterNode):
 
             self.array = np.ma.array(data=alt_qnh, mask=alt_std.array.mask)
         else:
-            baro_correction = baro or baro_capt or baro_fo
-            self.array = np.ma.array(data=baro_correction.array.data, mask=True)
+            self.array = np.ma.array(data=baro.array.data, mask=True)
 
 
 # TODO: Account for 'Touch & Go' - need to adjust QNH for additional airfields!
