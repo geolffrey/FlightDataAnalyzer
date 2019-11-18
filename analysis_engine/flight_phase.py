@@ -1553,6 +1553,9 @@ class RejectedTakeoff(FlightPhaseNode):
     exceeding the TAKEOFF_ACCELERATION_THRESHOLD and not being followed by
     a liftoff.
 
+    If the aircraft has the TOGA parameter, the TAKEOFF_ACCELERATION_THRESHOLD is
+    ignored, and the time that TOGA is recored as active is used instead.
+
     Note: We cannot use Liftoff, Taxi Out or Airborne in this computation in
     case the rejected takeoff was followed by a taxi back to stand.
 
@@ -1587,7 +1590,8 @@ class RejectedTakeoff(FlightPhaseNode):
                eng_n1=P('Eng (*) N1 Max'),
                toff_acc=KTI('Takeoff Acceleration Start'),
                toff_rwy_hdg=S('Takeoff Runway Heading'),
-               seg_type=A('Segment Type')):
+               seg_type=A('Segment Type'),
+               toga=M('Takeoff And Go Around')):
 
         # We need all engines running to be a realistic attempt to get airborne
         runnings = runs_of_ones(eng_running.array=='Running')
@@ -1620,18 +1624,28 @@ class RejectedTakeoff(FlightPhaseNode):
             running_on_grounds = slices_and(running_on_grounds, rwy_hdgs)
 
         if eng_n1 is not None:
-            accel_above_thres = runs_of_ones(
-                repair_mask(accel_lon.array, frequency=hz, repair_duration=None) >=
-                TAKEOFF_ACCELERATION_THRESHOLD
-            )
             n1_max_above_50 = runs_of_ones(
                 repair_mask(eng_n1.array, frequency=hz, repair_duration=None) >
                 50
             )
-            # list of potential RTO's which may include the takeoff as well.
-            potential_rtos = slices_and(accel_above_thres, n1_max_above_50)
-            potential_rtos = slices_remove_small_gaps(potential_rtos, hz=hz)
             rto_list=[]
+            accel_above_thres = runs_of_ones(
+                repair_mask(accel_lon.array, frequency=hz, repair_duration=None) >=
+                TAKEOFF_ACCELERATION_THRESHOLD
+            )
+            if toga is not None:
+                rto_list=[]
+                potential_rtos = slices_remove_small_gaps(runs_of_ones(toga.array))
+                potential_rtos = slices_and(potential_rtos, n1_max_above_50)
+                # for rto in potential_rtos:
+                #     # If there is any decelleration during toga, find the first section of deceleration.
+                #     accel_lon_rto = accel_lon.array[rto]
+                #     if len(accel_lon_rto[accel_lon_rto < 0]):
+                #         rto_list.append(rto)
+            else:
+                # list of potential RTO's which may include the takeoff as well.
+                potential_rtos = slices_and(accel_above_thres, n1_max_above_50)
+                potential_rtos = slices_remove_small_gaps(potential_rtos, hz=hz)
             for rto in potential_rtos:
                 for running_on_ground in running_on_grounds:
                     # The RTO slice can only be within the 'Grounded' phase.
@@ -1640,7 +1654,7 @@ class RejectedTakeoff(FlightPhaseNode):
                     # should be the part of the takeoff.
                     if slices_and([rto], [running_on_ground]) == [rto]:
                         if len(rto_list) > 0 and\
-                           (rto.start - rto_list[-1].stop)/hz < 60.0:
+                        (rto.start - rto_list[-1].stop)/hz < 60.0:
                             continue
                         rto_list.append(rto)
             if rto_list:
