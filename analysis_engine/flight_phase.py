@@ -2394,13 +2394,37 @@ class BaroDifference(FlightPhaseNode):
     Minimum 10 sec duration.
     """
 
+    @classmethod
+    def can_operate(cls, available, manufacturer=A('Manufacturer')):
+        baro_setting_sel = True
+        if manufacturer and manufacturer.value == 'Airbus':
+            # Airbus Baro Correction does not show 1013 when selecting QNH STD.
+            # Can only be used in the presence of other parameters telling us when STD is selected.
+            baro_setting_sel = any((
+                any_of(('Baro Setting Selection', 'Baro Correction (ISIS)'), available),
+                all_of(('Baro Setting Selection (Capt)', 'Baro Setting Selection (FO)'), available)
+            ))
+        two_baro =  all_of(('Baro Correction (Capt)', 'Baro Correction (FO)'), available)
+        return two_baro and baro_setting_sel
+
     def derive(self, baro_cpt=P('Baro Correction (Capt)'),
                baro_fo=P('Baro Correction (FO)'),
+               baro_sel=M('Baro Setting Selection'),
+               baro_sel_cpt=M('Baro Setting Selection (Capt)'),
+               baro_sel_fo=M('Baro Setting Selection (FO)'),
+               baro_cor_isis=P('Baro Correction (ISIS)'),
                fasts=S('Fast')):
 
         diff = abs(baro_cpt.array - baro_fo.array)
         if not np.ma.count(diff):
             return
+        if baro_sel:
+            diff[baro_sel.array == 'ALT STD'] = 0
+        elif baro_sel_cpt and baro_sel_fo:
+            diff[(baro_sel_cpt.array == 'STD') | (baro_sel_fo.array == 'STD')] = 0
+        elif baro_cor_isis:
+            diff[np.isclose(baro_cor_isis.array, 1013)] = 0
+
         _, diff_slices = slices_above(diff, 1.0)
         diff_slices = slices_and(diff_slices, fasts.get_slices())
         diff_slices = filter_slices_duration(diff_slices, 10, frequency=self.hz)
