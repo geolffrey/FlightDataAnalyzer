@@ -1310,7 +1310,10 @@ class TestAccelerationLateralOffset(unittest.TestCase, NodeTest):
 
     def setUp(self):
         self.node_class = AccelerationLateralOffset
-        self.operational_combinations = [('Acceleration Lateral', 'Taxiing', 'Turning On Ground')]
+        self.operational_combinations=[
+            ('Acceleration Lateral', 'Taxiing', 'Turning On Ground'),
+            ('Acceleration Lateral', 'Altitude AAL', 'Heading Rate')
+        ]
         self.acc_lat_array=np.ma.array([0] * 17 + [0.02, 0.05, 0.02, 0, -0.017,] + [0] * 7 +
                                        [0.02, 0.04, 0.01] + [0.011] * 4 + [0] * 6 + [-0.02] +
                                            [0] * 5 + [0.02, 0.08, 0.08, 0.08, 0.08] + [0] * 10 +
@@ -1320,13 +1323,13 @@ class TestAccelerationLateralOffset(unittest.TestCase, NodeTest):
         self.turns = S(items=[Section('Turning On Ground', slice(17, 20), 17, 20),
                               Section('Turning On Ground', slice(29, 32), 29, 32),
                              Section('Turning On Ground', slice(71, 74), 71, 74)])
-        #[slice(20, 29, None), slice(32, 40, None), slice(60, 71, None)]
+
 
     def test_derive_normal_scenario(self):
         acc_lat = P(name='Acceleration Lateral', array=self.acc_lat_array)
 
         acc_lat_offset_kpv = AccelerationLateralOffset()
-        acc_lat_offset_kpv.derive(acc_lat, self.taxiing, self.turns)
+        acc_lat_offset_kpv.derive(acc_lat, None, None, self.taxiing, self.turns)
 
         self.assertEqual(len(acc_lat_offset_kpv), 1)
         self.assertAlmostEqual(acc_lat_offset_kpv[0].value, 0.00755357142857, delta=0.00000000000001)
@@ -1335,7 +1338,7 @@ class TestAccelerationLateralOffset(unittest.TestCase, NodeTest):
         acc_lat = P(name='Acceleration Lateral', array=-self.acc_lat_array)
 
         acc_lat_offset_kpv = AccelerationLateralOffset()
-        acc_lat_offset_kpv.derive(acc_lat, self.taxiing, self.turns)
+        acc_lat_offset_kpv.derive(acc_lat, None, None, self.taxiing, self.turns)
 
         self.assertEqual(len(acc_lat_offset_kpv), 1)
         self.assertAlmostEqual(acc_lat_offset_kpv[0].value, -0.00755357142857, delta=0.00000000000001)
@@ -1344,7 +1347,7 @@ class TestAccelerationLateralOffset(unittest.TestCase, NodeTest):
         acc_lat = P(name='Acceleration Lateral', array=np.zeros_like(self.acc_lat_array))
 
         acc_lat_offset_kpv = AccelerationLateralOffset()
-        acc_lat_offset_kpv.derive(acc_lat, self.taxiing, self.turns)
+        acc_lat_offset_kpv.derive(acc_lat, None, None, self.taxiing, self.turns)
 
         self.assertEqual(len(acc_lat_offset_kpv), 1)
         self.assertAlmostEqual(acc_lat_offset_kpv[0].value, 0.0)
@@ -1354,7 +1357,7 @@ class TestAccelerationLateralOffset(unittest.TestCase, NodeTest):
         acc_lat.array[10:40] = acc_lat.array[60:75] = 0.0
 
         acc_lat_offset_kpv = AccelerationLateralOffset()
-        acc_lat_offset_kpv.derive(acc_lat, self.taxiing, self.turns)
+        acc_lat_offset_kpv.derive(acc_lat, None, None, self.taxiing, self.turns)
 
         self.assertEqual(len(acc_lat_offset_kpv), 1)
         self.assertAlmostEqual(acc_lat_offset_kpv[0].value, 0.0)
@@ -1364,7 +1367,7 @@ class TestAccelerationLateralOffset(unittest.TestCase, NodeTest):
         acc_lat.array[10:40] = 0.0
 
         acc_lat_offset_kpv = AccelerationLateralOffset()
-        acc_lat_offset_kpv.derive(acc_lat, self.taxiing, self.turns)
+        acc_lat_offset_kpv.derive(acc_lat, None, None, self.taxiing, self.turns)
 
         self.assertEqual(len(acc_lat_offset_kpv), 1)
         self.assertAlmostEqual(acc_lat_offset_kpv[0].value, 0.00610714285714, delta=0.00000000000001)
@@ -1376,7 +1379,7 @@ class TestAccelerationLateralOffset(unittest.TestCase, NodeTest):
         acc_lat = P(name='Acceleration Lateral', array=self.acc_lat_array)
 
         acc_lat_offset_kpv = AccelerationLateralOffset()
-        acc_lat_offset_kpv.derive(acc_lat, self.taxiing, turns)
+        acc_lat_offset_kpv.derive(acc_lat, None, None, self.taxiing, turns)
 
         self.assertEqual(len(acc_lat_offset_kpv), 0)
 
@@ -1384,7 +1387,7 @@ class TestAccelerationLateralOffset(unittest.TestCase, NodeTest):
         acc_lat = P(name='Acceleration Lateral', array=self.acc_lat_array+1.5)
 
         acc_lat_offset_kpv = AccelerationLateralOffset()
-        acc_lat_offset_kpv.derive(acc_lat, self.taxiing, self.turns)
+        acc_lat_offset_kpv.derive(acc_lat, None, None, self.taxiing, self.turns)
 
         self.assertEqual(len(acc_lat_offset_kpv), 1)
         self.assertAlmostEqual(acc_lat_offset_kpv[0].value, 1.50755357143, delta=0.00000000001)
@@ -1394,9 +1397,20 @@ class TestAccelerationLateralOffset(unittest.TestCase, NodeTest):
         acc_lat.array[15:75] = np.ma.masked
 
         acc_lat_offset_kpv = AccelerationLateralOffset()
-        acc_lat_offset_kpv.derive(acc_lat, self.taxiing, self.turns)
+        acc_lat_offset_kpv.derive(acc_lat, None, None, self.taxiing, self.turns)
 
         self.assertEqual(len(acc_lat_offset_kpv), 0)
+
+    def test_derive_from_alt_and_hdg(self):
+        acc_lat = P(name='Acceleration Lateral', array=self.acc_lat_array)
+        alt_aal = P(name='Altitude AAL', array=np.array([0]*60 + [5000]*20))
+        hdg_rate = P(name='Heading Rate', array=np.array([0]*30 + [2]*10 + [0]*40))
+
+        node = AccelerationLateralOffset()
+        node.derive(acc_lat, alt_aal, hdg_rate, None, None)
+
+        self.assertEqual(len(node), 1)
+        self.assertAlmostEqual(node[0].value, 0.00972972972972973, delta=0.00000000001)
 
 
 class TestAccelerationLateralFor5SecMax(unittest.TestCase):
