@@ -1628,7 +1628,7 @@ class AOA(DerivedParameterNode):
         return any_of(('AOA (L)', 'AOA (R)'), available)
 
     def derive(self, aoa_l=P('AOA (L)'), aoa_r=P('AOA (R)'),
-               family=A('Family')):
+               model=A('Model')):
 
         if aoa_l and aoa_r:
             # Average angle of attack to compensate for sideslip.
@@ -1638,7 +1638,7 @@ class AOA(DerivedParameterNode):
             aoa = aoa_l or aoa_r
             self.array = aoa.array
 
-        if family and family.value == 'CL-600':
+        if model and 'CL-600-2B19' in model.value:
             # The Angle of Attack recorded in the FDR is "filtered" Body AoA
             # and is not compensated for sideslip, it must be converted back to
             # Vane before it can be used. See Bombardier AOM-1281 document.
