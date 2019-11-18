@@ -1762,85 +1762,172 @@ class TestAltitudeVisualizationWithGroundOffset(unittest.TestCase, NodeTest):
         self.operational_combinations = [
             ('Altitude AAL', ),
             ('Altitude AAL', 'Altitude STD Smoothed'),
-            ('Altitude AAL', 'Altitude STD Smoothed', 'FDR Landing Airport'),
-            ('Altitude AAL', 'Altitude STD Smoothed', 'FDR Takeoff Airport'),
-            ('Altitude AAL', 'Altitude STD Smoothed', 'FDR Landing Airport', 'FDR Takeoff Airport'),
-            ('Altitude AAL', 'Altitude STD Smoothed', 'FDR Landing Airport', 'FDR Takeoff Airport', 'Climb', 'Descent'),
+            ('Altitude AAL', 'Altitude STD Smoothed', 'FDR Landing Runway'),
+            ('Altitude AAL', 'Altitude STD Smoothed', 'FDR Takeoff Runway'),
+            ('Altitude AAL', 'Altitude STD Smoothed', 'FDR Landing Runway',
+             'FDR Takeoff Runway'),
+            ('Altitude AAL', 'Altitude STD Smoothed', 'FDR Landing Runway',
+             'FDR Takeoff Runway', 'Climb', 'Descent'),
+            ('Altitude AAL', 'Altitude STD Smoothed', 'FDR Landing Runway',
+             'FDR Takeoff Runway', 'Climb', 'Descent', 'Approach Information')
         ]
-        data = [np.ma.arange(0, 1000, step=30)]
-        data.append(data[0][::-1] + 50)
-        self.alt_aal_1 = P(name='Altitude AAL', array=np.ma.concatenate(data))
-        self.alt_aal_2 = P(name='Altitude AAL', array=np.ma.concatenate([np.zeros(5), np.arange(0, 15000, 1000), np.ones(4) * 10000, np.arange(10000, -1000, -1000), np.zeros(5)]))
-        self.alt_std = P(name='Altitude STD Smoothed', array=np.ma.concatenate([np.ones(5) * 1000, np.arange(1000, 16000, 1000), np.ones(4) * 15000, np.arange(15000, 4000, -1000), np.ones(5) * 4000]))
-        self.l_apt = A(name='FDR Landing Airport', value={'id': 10, 'elevation': 100})
-        self.t_apt = A(name='FDR Takeoff Airport', value={'id': 20, 'elevation': 50})
 
-        self.expected = []
+        array = np.ma.concatenate((
+            np.ones(5) * 1000,
+            np.arange(1000, 16000, 1000),
+            np.ones(4) * 15000,
+            np.arange(15000, 4000, -1000),
+            np.ones(5) * 4000
+        ))
+        self.alt_std = P(name='Altitude STD Smoothed', array=array)
 
-        # 1. Data same as Altitude AAL, no mask applied:
-        data = np.ma.copy(self.alt_aal_1.array)
-        self.expected.append(data)
-        # 2. None masked, data Altitude AAL, +50 ft t/o, +100 ft ldg:
-        data = np.ma.array([50, 80, 110, 140, 170, 200, 230, 260, 290, 320,
-            350, 351, 352, 354, 355, 357, 358, 360, 361, 363, 364, 366, 367,
-            368, 370, 371, 373, 374, 376, 377, 379, 380, 382, 383, 385, 386,
-            387, 389, 390, 392, 393, 395, 396, 398, 399, 401, 402, 403, 405,
-            406, 408, 409, 411, 412, 414, 415, 417, 418, 420, 390, 360, 330,
-            300, 270, 240, 210, 180, 150])
-        data.mask = False
-        self.expected.append(data)
-        # 3. Data Altitude AAL, +50 ft t/o; ldg assumes t/o elevation:
-        data = np.ma.copy(self.alt_aal_1.array)
-        data += 50
-        self.expected.append(data)
-        # 4. Data Altitude AAL, +100 ft ldg; t/o assumes ldg elevation:
-        data = np.ma.copy(self.alt_aal_1.array)
-        data += 100
-        self.expected.append(data)
+        array = np.ma.concatenate((
+            np.zeros(5),
+            np.arange(0, 15000, 1000),
+            np.ones(4) * 10000,
+            np.arange(10000, -1000, -1000),
+            np.zeros(5)
+        ))
+        self.alt_aal = P(name='Altitude AAL', array=array)
+        self.t_apt = A(name='FDR Takeoff Runway', value={'end': {'elevation': 1050}})
+        self.l_apt = A(name='FDR Landing Runway', value={'start': {'elevation': 4100}})
 
-    # FIXME: These tests were intended to show that things still worked if we
-    #        were missing one or the other of the takeoff or landing airports
-    #        or elevations. The new implementation broke these when forcing the
-    #        cruise to be Altitude STD Smoothed because the entire array is
-    #        replaced when there are no climbs or descents provided.
-    @unittest.skip('New implementation broke these tests!')
-    def test_derive__output(self):
+        self.climbs = buildsection('Climb', 7, 19)
+        self.descents = buildsection('Descent', 24, 35)
+
+        self.apps = App(items=[
+            ApproachItem(
+                'LANDING', slice(27, 33),
+                airport={},
+                approach_runway={'start': {'elevation': 4100.0}})
+        ])
+        self.logger = 'analysis_engine.derived_parameters.AltitudeVisualizationWithGroundOffset'
+
+    def test_no_rwy_info(self):
+        # Check no runway information results in a fully masked copy of Altitude AAL
         alt_qnh = self.node_class()
-        # Check no airport/runway information results in a fully masked copy of Altitude AAL:
-        alt_qnh.derive(self.alt_aal_1)
-        ma_test.assert_masked_array_approx_equal(alt_qnh.array, self.expected[0])
-        self.assertEqual(alt_qnh.offset, self.alt_aal_1.offset)
-        self.assertEqual(alt_qnh.frequency, self.alt_aal_1.frequency)
-        # Check everything works calling with airport details:
-        alt_qnh.derive(self.alt_aal_1, self.alt_std, self.l_apt, self.t_apt)
-        ma_test.assert_masked_array_approx_equal(alt_qnh.array, self.expected[1])
-        self.assertEqual(alt_qnh.offset, self.alt_aal_1.offset)
-        self.assertEqual(alt_qnh.frequency, self.alt_aal_1.frequency)
-        # Check second half masked when no elevation at landing:
-        alt_qnh.derive(self.alt_aal_1, self.alt_std, None, self.t_apt)
-        ma_test.assert_masked_array_approx_equal(alt_qnh.array, self.expected[2])
-        self.assertEqual(alt_qnh.offset, self.alt_aal_1.offset)
-        self.assertEqual(alt_qnh.frequency, self.alt_aal_1.frequency)
-        # Check first half masked when no elevation at takeoff:
-        alt_qnh.derive(self.alt_aal_1, self.alt_std, self.l_apt, None)
-        ma_test.assert_masked_array_approx_equal(alt_qnh.array, self.expected[3])
-        self.assertEqual(alt_qnh.offset, self.alt_aal_1.offset)
-        self.assertEqual(alt_qnh.frequency, self.alt_aal_1.frequency)
+        with self.assertLogs(self.logger, level='WARNING') as cm:
+            alt_qnh.derive(self.alt_aal)
+            self.assertEqual(
+                cm.output,
+                [f'WARNING:{self.logger}:No takeoff or landing elevation, using Altitude AAL.']
+            )
+
+        ma_test.assert_masked_array_approx_equal(alt_qnh.array, self.alt_aal.array)
+        self.assertEqual(alt_qnh.offset, self.alt_aal.offset)
+        self.assertEqual(alt_qnh.frequency, self.alt_aal.frequency)
 
     def test_alt_std_adjustment(self):
-        climbs = buildsection('Climb', 7, 19)
-        descents = buildsection('Descent', 24, 34)
         alt_qnh = self.node_class()
-        alt_qnh.derive(self.alt_aal_2, self.alt_std, self.l_apt, self.t_apt, climbs, descents)
-        self.assertEqual(alt_qnh.array[2], 50.0)  # Takeoff elevation
-        self.assertEqual(alt_qnh.array[36], 100.0)  # Landing elevation
+        alt_qnh.derive(self.alt_aal, self.alt_std, self.l_apt, self.t_apt,
+                       self.climbs, self.descents, None, self.apps)
+        self.assertEqual(alt_qnh.array[2], 1050.0)  # Takeoff elevation
+        self.assertEqual(alt_qnh.array[36], 4100.0)  # Landing elevation
+        self.assertEqual(alt_qnh.array[22], 15000.0)  # Cruise at STD
+
+    def test_no_landing_rwy_info(self):
+        apps = App(items=[
+                    ApproachItem(
+                        'LANDING', slice(27, 33),
+                        airport={},
+                        approach_runway=None)
+                ])
+        l_apt = A(name='FDR Landing Runway', value=None)
+        alt_qnh = self.node_class()
+
+        with self.assertLogs(self.logger, level='WARNING') as cm:
+            alt_qnh.derive(self.alt_aal, self.alt_std, l_apt, self.t_apt,
+                           self.climbs, self.descents, None, apps)
+            self.assertEqual(
+                cm.output,
+                [f'WARNING:{self.logger}:No landing elevation, using 1050 ft from takeoff airport.']
+            )
+
+        self.assertEqual(alt_qnh.array[2], 1050.0)  # Takeoff elevation
+        self.assertEqual(alt_qnh.array[35], 1050.0)  # Landing elevation
+        self.assertEqual(alt_qnh.array[22], 15000.0)  # Cruise at STD
+
+    def test_no_takeoff_rwy_info(self):
+        t_apt = A(name='FDR Takeoff Runway', value=None)
+        alt_qnh = self.node_class()
+
+        with self.assertLogs(self.logger, level='WARNING') as cm:
+            alt_qnh.derive(self.alt_aal, self.alt_std, self.l_apt, t_apt,
+                           self.climbs, self.descents, None, self.apps)
+            self.assertEqual(
+                cm.output,
+                [f'WARNING:{self.logger}:No takeoff elevation, using 4100 ft from landing airport.']
+            )
+
+        self.assertEqual(alt_qnh.array[2], 4100.0)  # Takeoff elevation
+        self.assertEqual(alt_qnh.array[35], 4100.0)  # Landing elevation
         self.assertEqual(alt_qnh.array[22], 15000.0)  # Cruise at STD
 
     def test_trap_alt_difference(self):
+        apps = App(items=[
+            ApproachItem(
+                    'LANDING', slice(27, 33),
+                    airport={},
+                    approach_runway={'start': {'elevation': 100.0}})
+        ])
         climbs = buildsection('Climb', 7, 19)
         descents = buildsection('Descent', 24, 32)
         alt_qnh = self.node_class()
-        self.assertRaises(ValueError, alt_qnh.derive, self.alt_aal_2, self.alt_std, self.l_apt, self.t_apt, climbs, descents)
+        self.assertRaises(ValueError, alt_qnh.derive,
+            self.alt_aal, self.alt_std, self.l_apt,
+            self.t_apt, climbs, descents, None, apps
+        )
+
+    def test_2_approaches(self):
+        array = np.ma.concatenate((
+            np.ones(5) * 1000,
+            np.arange(1000, 16000, 1000),
+            np.ones(4) * 15000,
+            np.arange(15000, 4000, -1000),
+            np.ones(2) * 4000,  # Touch and go
+            np.arange(4000, 8000, 1000),
+            np.ones(4) * 7000,
+            np.arange(7000, -1000, -1000),
+            np.zeros(4)  # Landing
+        ))
+        alt_std = P(name='Altitude STD Smoothed', array=array)
+        array = np.ma.concatenate((
+            np.zeros(5),
+            np.arange(0, 15000, 1000),
+            np.ones(4) * 10000,
+            np.arange(10000, -1000, -1000),
+            np.zeros(2),  # Touch and go
+            np.arange(0, 4000, 1000),
+            np.ones(4) * 7000,
+            np.arange(7000, -1000, -1000),
+            np.zeros(4)  # Landing
+        ))
+        alt_aal = P(name='Altitude AAL', array=array)
+        t_apt = A(name='FDR Takeoff Runway', value={'end': {'elevation': 1050}})
+        l_apt = A(name='FDR Landing Runway', value={'start': {'elevation': 4100}})
+        climbs = buildsection('Climb', 7, 19)
+        descents = buildsections('Descent', [24, 35], [45, 53])
+        tocs = KTI('Top Of Climb', items=[
+            KeyTimeInstance(19), KeyTimeInstance(40)
+        ])
+        apps = App(items=[
+            ApproachItem(
+                    'TOUCH_AND_GO', slice(27, 35),
+                    airport={},
+                    approach_runway={'start': {'elevation': 4100.0}}),
+            ApproachItem(
+                    'LANDING', slice(47, 52),
+                    airport={},
+                    approach_runway={'start': {'elevation': 0.0}}),
+        ])
+        alt_qnh = self.node_class()
+        alt_qnh.derive(alt_aal, alt_std, l_apt, t_apt,
+                       climbs, descents, tocs, apps)
+        self.assertEqual(alt_qnh.array[2], 1050.0)  # Takeoff elevation
+        self.assertEqual(alt_qnh.array[36], 4100.0)  # Touch and go elevation
+        self.assertEqual(alt_qnh.array[52], 0.0)  # Landing elevation
+        self.assertEqual(alt_qnh.array[20], 15000.0)  # Alt STD in cruise
+
 
 class TestAltitudeVisualizationWithoutGroundOffset(unittest.TestCase, NodeTest):
 

@@ -1369,29 +1369,33 @@ class AltitudeVisualizationWithGroundOffset(DerivedParameterNode):
     def derive(self,
                alt_aal=P('Altitude AAL'),
                alt_std=P('Altitude STD Smoothed'),
-               l_apt=A('FDR Landing Airport'),
-               t_apt=A('FDR Takeoff Airport'),
+               l_apt=A('FDR Landing Runway'),
+               t_apt=A('FDR Takeoff Runway'),
                climbs=S('Climb'),
-               descends=S('Descent')):
+               descents=S('Descent'),
+               tocs=KTI('Top Of Climb'),
+               apps=App('Approach Information')):
 
         # Attempt to determine elevations at takeoff and landing:
-        t_elev = t_apt.value.get('elevation') if t_apt else None
-        l_elev = l_apt.value.get('elevation') if l_apt else None
+        t_elev = t_apt.value.get('end')['elevation'] if t_apt else None
+        l_elev = l_apt.value.get('start')['elevation'] if l_apt else None
 
-        if t_elev is None or l_elev is None:
+        if apps is None:
+            self.warning('No Approach information, using Altitude AAL.')
+            self.array = np.ma.copy(alt_aal.array)
+            return
+        if t_elev is None and l_elev is None:
             self.warning('No takeoff or landing elevation, using Altitude AAL.')
             self.array = np.ma.copy(alt_aal.array)
             return
-        elif t_elev is None and l_elev is not None:
+        if t_elev is None and l_elev is not None:
             self.warning('No takeoff elevation, using %d ft from landing airport.', l_elev)
             t_elev = l_elev
         elif l_elev is None and t_elev is not None:
-            self.warning("No landing elevation, using %d ft from takeoff airport.", t_elev)
+            self.warning('No landing elevation, using %d ft from takeoff airport.', t_elev)
             l_elev = t_elev
-        else:
-            pass
 
-        # We adjust the height during the climb and descent so that the cruise is at pressure altitudes.
+        # We adjust the height during the climbs and descents so that the cruise is at pressure altitudes.
 
         # TODO: Improvement would be to adjust to half the difference if the cruise is below 10,000ft
 
@@ -1399,8 +1403,7 @@ class AltitudeVisualizationWithGroundOffset(DerivedParameterNode):
 
         if climbs:
             # Climb phase adjustment
-            t_elev = t_elev or 0
-            first_climb = slice(climbs[0].slice.start, climbs[0].slice.stop + 1)
+            first_climb = slice(climbs[0].slice.start, climbs[0].slice.stop)
             adjust_up = self._qnh_adjust(alt_aal.array[first_climb],
                                          alt_std.array[first_climb],
                                          t_elev, 'climb')
@@ -1410,25 +1413,54 @@ class AltitudeVisualizationWithGroundOffset(DerivedParameterNode):
             # First climb adjusted
             alt_qnh[first_climb] = alt_aal.array[first_climb] + adjust_up
 
-        if descends:
-            # Descent phase adjustment
-            l_elev = l_elev or 0
-            last_descent = slice(descends[-1].slice.stop + 1, descends[-1].slice.start, -1)
-            adjust_down = self._qnh_adjust(alt_aal.array[last_descent],
-                                           alt_std.array[last_descent],
-                                           l_elev, 'descent')
-            # Last descent adjusted
-            alt_qnh[last_descent] = alt_aal.array[last_descent] + adjust_down
+        for app in apps:
+            descent = descents.get_previous(app.slice.start, use='start')
+            if descent is None:
+                self.warning('AltitudeVisualizationWithGroundOffset: '
+                             'No Descent section found for this Approach')
+                continue
 
-            # After last descent
-            alt_qnh[last_descent.start:] = alt_aal.array[last_descent.start:] + l_elev
+            if app.approach_runway is not None:
+                l_elev = app.approach_runway['start']['elevation']
+
+            descent = slice(descent.slice.stop - 1, descent.slice.start - 1, -1)
+            adjust_down = self._qnh_adjust(alt_aal.array[descent],
+                                           alt_std.array[descent],
+                                           l_elev, 'descent')
+            # Descent adjusted
+            alt_qnh[descent] = alt_aal.array[descent] + adjust_down
+
+            end_of_descent = descent.start  # Because we made the slice backward
+            if app.type == 'LANDING':
+                # After last descent
+                alt_qnh[end_of_descent:] = alt_aal.array[end_of_descent:] + l_elev
+            else:
+                # Go-around, touch and go, ...
+                toc = tocs.get_next(end_of_descent)
+                if toc is None:
+                    self.warning('AltitudeVisualizationWithGroundOffset: '
+                                 'No Top Of Climb found after this Approach.')
+                    continue
+
+                toc_idx = int(toc.index)
+                # Find first positive Altitude AAL after this approach
+                in_the_air = (alt_aal.array[end_of_descent:toc_idx] > 0).argmax() + end_of_descent
+                on_ground = slice(end_of_descent, in_the_air)
+                # On the ground, maintain runway elevation
+                alt_qnh[on_ground] = alt_aal.array[on_ground] + l_elev
+                climb = slice(in_the_air, toc_idx + 1)
+                adjust_up = self._qnh_adjust(alt_aal.array[climb],
+                                             alt_std.array[climb],
+                                             l_elev, 'climb')
+                # Climb adjusted
+                alt_qnh[climb] = alt_aal.array[climb] + adjust_up
 
         # Use pressure altitude in the cruise
-        cruise_start = first_climb.stop if climbs else 0
-        cruise_stop = last_descent.stop + 1 if descends else len(alt_std.array)
-        alt_qnh[cruise_start:cruise_stop] = alt_std.array[cruise_start:cruise_stop]
+        # ie. wherever we haven't written data yet
+        alt_qnh[alt_qnh.mask] = alt_std.array[alt_qnh.mask]
+        mask = alt_aal.array.mask | alt_std.array.mask
+        self.array = np.ma.array(data=alt_qnh, mask=mask)
 
-        self.array = np.ma.array(data=alt_qnh, mask=alt_aal.array.mask)
 
 
 class AltitudeVisualizationWithoutGroundOffset(DerivedParameterNode):
