@@ -1240,6 +1240,88 @@ class AltitudeQNH(DerivedParameterNode):
             self.array = np.ma.array(data=baro.array.data, mask=True)
 
 
+class AltitudeQNHCapt(DerivedParameterNode):
+    '''
+    This computes the Captain displayed pressure altitude for aircraft where the
+    datum pressure setting ("Baro Correction (Capt)") has been recorded.
+    '''
+
+    name = 'Altitude QNH (Capt)'
+    units = ut.FT
+
+    @classmethod
+    def can_operate(cls, available):
+        return all_of(('Baro Correction (Capt)', 'Altitude STD'), available)
+
+    def derive(self,
+               alt_std=P('Altitude STD'),
+               baro=P('Baro Correction (Capt)'),
+               baro_sel_capt=M('Baro Setting Selection (Capt)'),
+               baro_sel=M('Baro Setting Selection'),
+               baro_cor_isis=P('Baro Correction (ISIS)')):
+
+        if np.ma.count(baro.array):
+            baro_fixed = nearest_neighbour_mask_repair(baro.array)
+            if baro_sel_capt:
+                baro_fixed[baro_sel_capt.array == 'STD'] = 1013.25
+            elif baro_sel:
+                baro_fixed[baro_sel.array == 'ALT STD'] = 1013.25
+            elif baro_cor_isis:
+                baro_fixed[np.isclose(baro_cor_isis.array, 1013)] = 1013.25
+
+            alt_qnh = np_ma_masked_zeros_like(alt_std.array)
+
+            for value_mb, slices in slices_of_runs(baro_fixed):
+                value_ft = mb2ft(value_mb)
+                for s in slices:
+                    alt_qnh[s] = alt_std.array[s] - value_ft
+
+            self.array = np.ma.array(data=alt_qnh, mask=alt_std.array.mask)
+        else:
+            self.array = np.ma.array(data=baro.array.data, mask=True)
+
+
+class AltitudeQNHFO(DerivedParameterNode):
+    '''
+    This computes the FO displayed pressure altitude for aircraft where the
+    datum pressure setting ("Baro Correction (FO)") has been recorded.
+    '''
+
+    name = 'Altitude QNH (FO)'
+    units = ut.FT
+
+    @classmethod
+    def can_operate(cls, available):
+        return all_of(('Baro Correction (FO)', 'Altitude STD'), available)
+
+    def derive(self,
+               alt_std=P('Altitude STD'),
+               baro=P('Baro Correction (FO)'),
+               baro_sel_fo=M('Baro Setting Selection (FO)'),
+               baro_sel=M('Baro Setting Selection'),
+               baro_cor_isis=P('Baro Correction (ISIS)')):
+
+        if np.ma.count(baro.array):
+            baro_fixed = nearest_neighbour_mask_repair(baro.array)
+            if baro_sel_fo:
+                baro_fixed[baro_sel_fo.array == 'STD'] = 1013.25
+            elif baro_sel:
+                baro_fixed[baro_sel.array == 'ALT STD'] = 1013.25
+            elif baro_cor_isis:
+                baro_fixed[np.isclose(baro_cor_isis.array, 1013)] = 1013.25
+
+            alt_qnh = np_ma_masked_zeros_like(alt_std.array)
+
+            for value_mb, slices in slices_of_runs(baro_fixed):
+                value_ft = mb2ft(value_mb)
+                for s in slices:
+                    alt_qnh[s] = alt_std.array[s] - value_ft
+
+            self.array = np.ma.array(data=alt_qnh, mask=alt_std.array.mask)
+        else:
+            self.array = np.ma.array(data=baro.array.data, mask=True)
+
+
 # TODO: Account for 'Touch & Go' - need to adjust QNH for additional airfields!
 class AltitudeVisualizationWithGroundOffset(DerivedParameterNode):
     '''
@@ -1347,6 +1429,7 @@ class AltitudeVisualizationWithGroundOffset(DerivedParameterNode):
         alt_qnh[cruise_start:cruise_stop] = alt_std.array[cruise_start:cruise_stop]
 
         self.array = np.ma.array(data=alt_qnh, mask=alt_aal.array.mask)
+
 
 class AltitudeVisualizationWithoutGroundOffset(DerivedParameterNode):
     '''
