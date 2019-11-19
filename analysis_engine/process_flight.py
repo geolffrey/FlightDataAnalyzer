@@ -7,6 +7,7 @@ import os
 import simplejson as json
 import six
 import sys
+from math import ceil
 
 from datetime import datetime, timedelta
 from networkx.readwrite import json_graph
@@ -275,7 +276,7 @@ def derive_parameters(hdf, node_mgr, process_order, params=None, force=False):
                 # then there will be an array length of  1411 at 0.5Hz and 706
                 # at 0.25Hz (rounded upwards). If we combine two 0.25Hz
                 # parameters then we will have an array length of 1412.
-                expected_length = duration * node.frequency
+                expected_length = ceil(duration * node.frequency)
                 if node.array is None or (force and len(node.array) == 0):
                     logger.warning("No array set; creating a fully masked "
                                    "array for %s", param_name)

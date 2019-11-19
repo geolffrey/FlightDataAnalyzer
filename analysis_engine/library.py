@@ -4770,6 +4770,9 @@ def blend_parameters(params, offset=0.0, frequency=1.0, small_slice_duration=4, 
     # Now we can work through each period of valid data.
     for this_valid in any_valid:
         result_slice = slice_multiply(this_valid, frequency/min_ip_freq)
+        if result_slice.stop - result_slice.start < 1:
+            # Less than 1 sample of valid data.
+            continue
         result[result_slice] = blend_parameters_cubic(
             frequency, offset, params, result_slice, tolerance=tolerance)
         # The endpoints of a cubic spline are generally unreliable, so trim

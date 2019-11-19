@@ -4578,6 +4578,21 @@ class TestBlendParameters(unittest.TestCase):
         result = blend_parameters((p1, p2), tolerance=9, frequency=1.0, mode='cubic')
         ma_test.assert_masked_array_almost_equal(result, np.ma.array(data=np.arange(10), mask=[1]+[0]*4+[1]*5) * 4 / 3.0)
 
+    def test_blend_cubic_short_valid_samples(self):
+        # When the blended result has a lower frequency than the input parameters,
+        # very short isolated valid data should be disregarded if not able to produce
+        # one complete sample for the lower frequency.
+        p1 = P(array=np.repeat(np.ma.array([0, 1, 2, 3, 4, 5]), 10),
+               frequency=2, offset=0.1, name='First')
+        p2 = P(array=np.repeat(np.ma.array([0, 1, 2, 3, 4, 5]), 10),
+               frequency=2, offset=0.3, name='Second')
+        # Make short valid samples for both param 1 and 2
+        p1.array[:15] = np.ma.masked
+        p1.array[32:47] = np.ma.masked
+        p2.array[16:31] = np.ma.masked
+        result = blend_parameters((p1, p2), mode='cubic', validity='all')
+        self.assertTrue(np.all(result.mask[:25]))
+
 
 class TestBlendParametersWeighting(unittest.TestCase):
     def test_weighting(self):
