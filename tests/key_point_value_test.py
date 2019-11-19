@@ -13855,7 +13855,7 @@ class TestEngVibBroadbandMax(unittest.TestCase, NodeTest):
 
     def setUp(self):
         self.node_class = EngVibBroadbandMax
-        self.operational_combinations = [('Eng (*) Vib Broadband Max',)]
+        self.operational_combinations = [('Eng (*) Vib Broadband Max', 'Eng (*) Any Running', )]
         self.function = max_value
 
     @unittest.skip('Test Not Implemented')
