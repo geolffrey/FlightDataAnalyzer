@@ -472,7 +472,7 @@ class AccelerationLateralOffset(KeyPointValueNode):
             sections = runs_of_ones((np.ma.abs(np.ma.ediff1d(acc_lat.array)) < 0.005))
             sections = slices_and(sections, runs_of_ones((alt.array == 0) & (hdg_rate.array < 0.1)))
 
-        unmasked_data = np.concatenate([np.ma.compressed(acc_lat.array[s]) for s in sections])
+        unmasked_data = np.concatenate([np.ma.compressed(acc_lat.array[slices_int(s)]) for s in sections])
 
         if len(unmasked_data) > 20:
             delta = np.sum(unmasked_data) / float(len(unmasked_data))
