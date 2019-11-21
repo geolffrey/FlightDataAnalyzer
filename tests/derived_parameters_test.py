@@ -50,7 +50,6 @@ from analysis_engine.derived_parameters import (
     AccelerationLateralOffsetRemoved,
     AccelerationLateralSmoothed,
     AccelerationLongitudinalOffsetRemoved,
-    AccelerationNormalLimitForLandingWeight,
     AccelerationNormalLowLimitForLandingWeight,
     AccelerationNormalHighLimitForLandingWeight,
     AccelerationNormalHighLimitWithFlapsDown,
@@ -616,18 +615,6 @@ class TestAccelerationAlongTrack(unittest.TestCase):
             np.ma.array(np.ones(8) * 0.13321041, mask=np.concatenate((np.zeros(5), np.ones(3)))),
         )
 
-
-class TestAccelerationNormalLimitForLandingWeight(unittest.TestCase):
-    def test_derive(self):
-        gross_weight = P('Gross Weight Smoothed',
-                         np.ma.array([99999, 35000, 35000, 34000 ,33400,
-                                      33300, 31000, 30000, 27000, 26000,
-                                      25000, 24500, 23500, 23000, 0.000,]))
-
-        acc_n_lim = AccelerationNormalLimitForLandingWeight()
-        acc_n_lim.derive(gross_weight)
-        expected = np.ma.concatenate((np.ones(5) * 1.75, np.ones(5) * 2, np.ones(5) * 2.1))
-        ma_test.assert_array_equal(acc_n_lim.array, expected)
 
 class TestAccelerationNormalLowLimitForLandingWeight(unittest.TestCase):
     def test_derive(self):
