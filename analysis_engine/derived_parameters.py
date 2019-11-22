@@ -8362,7 +8362,7 @@ class VrefLookup(DerivedParameterNode):
             # Select the maximum flap detent during the phase:
             index, detent = max_value(parameter.array, phase)
             # Allow no gross weight for aircraft which use a fixed vspeed:
-            weight = repaired_gw[int(index)] if gw is not None else None
+            weight = repaired_gw[int(index)] if index and gw is not None else None
 
             if touchdowns.get(within_slice=phase) or detent in table.vref_detents:
                 # We either touched down, so use the touchdown flap lever

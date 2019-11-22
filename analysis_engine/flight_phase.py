@@ -241,43 +241,43 @@ class Holding(FlightPhaseNode):
                 slices_remove_small_gaps(turn_left_bands, time_limit=HOLDING_MIN_TIME, hz=frequency),
                 this_scan.start,
             ))
+        if len(all_turn_bands) > 1: # must have more than one turn
+            for turn_band in all_turn_bands:
+                # Reject short periods and check that the average groundspeed was
+                # low. The index is reduced by one sample to avoid overruns, and
+                # this is fine because we are not looking for great precision in
+                # this test.
+                hold_sec = slice_duration(turn_band, self.hz)
+                if (hold_sec < HOLDING_MIN_TIME):
+                    continue
+                start = int(turn_band.start)
+                stop = int(turn_band.stop - 1)
+                _, hold_dist = bearing_and_distance(
+                    lat.array[start], lon.array[start],
+                    lat.array[stop], lon.array[stop])
+                average_speed = ut.convert(hold_dist / hold_sec, ut.METER_S, ut.KT)
+                if average_speed > HOLDING_MAX_GSPD:
+                    continue
+                angle_of_turn = head.array[stop] - head.array[start]
+                if np.ma.abs(angle_of_turn) < HOLDING_MIN_TURN:
+                    continue
+                # So this lasted long enough, turned through a large angle and had a low
+                # overall speed. Now fine tune the endpoints.
+                rot_thld = HOLDING_ROT / 2.0
+                diff = np.ma.abs(np.ma.ediff1d(head.array))
+                # Put the start where the unfiltered rate of turn first rises...
+                if diff[start] < rot_thld:
+                    trim_start = index_at_value(diff, rot_thld, _slice=turn_band)
+                else:
+                    trim_start = index_at_value(diff, rot_thld, _slice=slice(start, 0, -1))
+                # ...and the same for the endpoint.
+                if diff[stop + 1] < rot_thld:
+                    trim_end = index_at_value(diff, rot_thld, _slice=slice(stop + 1, start, -1))
+                else:
+                    trim_end = index_at_value(diff, rot_thld, _slice=slice(stop + 1, len(diff)))
+                hold_bands.append(slices_int(trim_start, trim_end))
 
-        for turn_band in all_turn_bands:
-            # Reject short periods and check that the average groundspeed was
-            # low. The index is reduced by one sample to avoid overruns, and
-            # this is fine because we are not looking for great precision in
-            # this test.
-            hold_sec = slice_duration(turn_band, self.hz)
-            if (hold_sec < HOLDING_MIN_TIME):
-                continue
-            start = int(turn_band.start)
-            stop = int(turn_band.stop - 1)
-            _, hold_dist = bearing_and_distance(
-                lat.array[start], lon.array[start],
-                lat.array[stop], lon.array[stop])
-            average_speed = ut.convert(hold_dist / hold_sec, ut.METER_S, ut.KT)
-            if average_speed > HOLDING_MAX_GSPD:
-                continue
-            angle_of_turn = head.array[stop] - head.array[start]
-            if np.ma.abs(angle_of_turn) < HOLDING_MIN_TURN:
-                continue
-            # So this lasted long enough, turned through a large angle and had a low
-            # overall speed. Now fine tune the endpoints.
-            rot_thld = HOLDING_ROT / 2.0
-            diff = np.ma.abs(np.ma.ediff1d(head.array))
-            # Put the start where the unfiltered rate of turn first rises...
-            if diff[start] < rot_thld:
-                trim_start = index_at_value(diff, rot_thld, _slice=turn_band)
-            else:
-                trim_start = index_at_value(diff, rot_thld, _slice=slice(start, 0, -1))
-            # ...and the same for the endpoint.
-            if diff[stop + 1] < rot_thld:
-                trim_end = index_at_value(diff, rot_thld, _slice=slice(stop + 1, start, -1))
-            else:
-                trim_end = index_at_value(diff, rot_thld, _slice=slice(stop + 1, len(diff)))
-            hold_bands.append(slices_int(trim_start, trim_end))
-
-        self.create_phases(hold_bands)
+            self.create_phases(hold_bands)
 
 
 class EngHotelMode(FlightPhaseNode):

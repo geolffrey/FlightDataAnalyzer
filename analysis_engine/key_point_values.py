@@ -824,7 +824,7 @@ class AccelerationNormalAtTouchdown(KeyPointValueNode):
                 # Find the corresponding Landing Roll flight phase
                 ldg_roll = next((ldg_roll for ldg_roll in ldg_rolls
                                  if is_slice_within_slice(ldg_roll.slice, ldg.slice)), None)
-                if ldg_roll:
+                if ldg_roll and ldg_roll.slice.stop > int(tdwn.index):
                     ldg_roll_stop = ldg_roll.slice.stop
             self.create_kpv(*bump(acc_norm, tdwn.index, end=ldg_roll_stop))
 
@@ -1086,10 +1086,10 @@ class AccelerationNormalMinusLoadFactorThresholdAtTouchdown(KeyPointValueNode):
     def derive(self,
                land_vert_acc=KPV('Acceleration Normal At Touchdown'),
                load_factors=KPV('Load Factor Threshold At Touchdown')):
-
-        for idx, load_factor in enumerate(load_factors):
-            delta = land_vert_acc[idx].value - load_factor.value
-            self.create_kpv(load_factor.index, delta)
+        if land_vert_acc and load_factors:
+            for idx, load_factor in enumerate(load_factors):
+                delta = land_vert_acc[idx].value - load_factor.value
+                self.create_kpv(load_factor.index, delta)
 
 
 class AccelerationNormalLiftoffTo35FtMax(KeyPointValueNode):
@@ -6304,6 +6304,8 @@ class BaroCorrectionMinus1013Above20000FtDuringLevelFlightMax(KeyPointValueNode)
             significant_diffs = []
             for high_level in slices_int(above_20000ft_level):
                 avg_alt = np.ma.average(alt_std.array[high_level])
+                if not avg_alt:
+                    continue
                 nearest_1000ft = round(avg_alt, -3)
                 diff = abs(avg_alt - nearest_1000ft)
                 if diff > 100:
