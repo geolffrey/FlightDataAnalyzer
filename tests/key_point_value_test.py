@@ -1315,8 +1315,8 @@ class TestAccelerationLateralOffset(unittest.TestCase, NodeTest):
         ]
         self.acc_lat_array=np.ma.array([0] * 17 + [0.02, 0.05, 0.02, 0, -0.017,] + [0] * 7 +
                                        [0.02, 0.04, 0.01] + [0.011] * 4 + [0] * 6 + [-0.02] +
-                                           [0] * 5 + [0.02, 0.08, 0.08, 0.08, 0.08] + [0] * 10 +
-                                           [0.02, 0.04, 0.01] + [0.011] * 4 + [0] * 10)*1.5
+                                       [0] * 5 + [0.02, 0.08, 0.08, 0.08, 0.08] + [0] * 10 +
+                                       [0.02, 0.04, 0.01] + [0.011] * 4 + [0] * 10)*1.5
         self.taxiing = S(items=[Section('Taxiing', slice(10, 40), 10, 40),
                                 Section('Taxiing', slice(60, 75), 60, 75)])
         self.turns = S(items=[Section('Turning On Ground', slice(17, 20), 17, 20),
@@ -1379,6 +1379,16 @@ class TestAccelerationLateralOffset(unittest.TestCase, NodeTest):
 
         acc_lat_offset_kpv = AccelerationLateralOffset()
         acc_lat_offset_kpv.derive(acc_lat, None, None, self.taxiing, turns)
+
+        self.assertEqual(len(acc_lat_offset_kpv), 0)
+
+    def test_derive_empty_taxiing(self):
+        taxiing = S(name='Taxiing')
+        turns = S(name='Turning On Ground')
+        acc_lat = P(name='Acceleration Lateral', array=self.acc_lat_array)
+
+        acc_lat_offset_kpv = AccelerationLateralOffset()
+        acc_lat_offset_kpv.derive(acc_lat, None, None, taxiing, turns)
 
         self.assertEqual(len(acc_lat_offset_kpv), 0)
 
