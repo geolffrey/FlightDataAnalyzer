@@ -465,21 +465,20 @@ class AccelerationLateralOffset(KeyPointValueNode):
         AccelerationNormalOffset. The more complex slicing statement ensures we
         only accumulate error estimates when taxiing in a straight line.
         '''
-        if taxiing and turns:
+        if taxiing is not None and turns is not None:
             sections = slices_and(taxiing.get_slices(), slices_not(turns.get_slices()))
-
-        elif alt and hdg_rate:
-            sections = runs_of_ones((np.ma.abs(np.ma.ediff1d(acc_lat.array)) < 0.005))
-            sections = slices_and(sections, runs_of_ones((alt.array == 0) & (hdg_rate.array < 0.1)))
-
-        unmasked_data = np.concatenate([np.ma.compressed(acc_lat.array[slices_int(s)]) for s in sections])
+            if not sections:
+                return
+            unmasked_data = np.concatenate([np.ma.compressed(acc_lat.array[slices_int(s)]) for s in sections])
+        else:
+            unmasked_data = np.ma.compressed(acc_lat.array[(np.ma.abs(np.ma.ediff1d(acc_lat.array, to_end=0)) < 0.005) &
+                                                           ((alt.array == 0) & (hdg_rate.array < 0.1))])
 
         if len(unmasked_data) > 20:
-            delta = np.sum(unmasked_data) / float(len(unmasked_data))
+            delta = np.sum(unmasked_data) / len(unmasked_data)
             self.create_kpv(0, delta)
             if abs(delta) > ACCEL_LAT_OFFSET_LIMIT:
-                self.warning("Acceleration Lateral offset '%s' greater than limit '%s'",
-                             delta, ACCEL_LAT_OFFSET_LIMIT)
+                self.warning("Acceleration Lateral offset '%s' greater than limit '%s'", delta, ACCEL_LAT_OFFSET_LIMIT)
 
 
 class AccelerationLateralFor5SecMax(KeyPointValueNode):
