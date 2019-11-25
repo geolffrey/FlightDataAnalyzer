@@ -6160,9 +6160,9 @@ class TestSlicesExtend(unittest.TestCase):
     def test_slices_extend(self):
         slices = [slice(None, 10), slice(30, 40), slice(70, None)]
         self.assertEqual(slices_extend(slices, 0), slices)
-        expected = [slice(None, 15), slice(25, 45), slice(65, None)]
+        expected = [slice(0, 15), slice(25, 45), slice(65, None)]
         self.assertEqual(slices_extend(slices, 5), expected)
-        expected = [slice(None, 52), slice(58, None)]
+        expected = [slice(0, 52), slice(58, None)]
         self.assertEqual(slices_extend(slices, 12), expected)
         # Step is retained.
         slices = [slice(10, 20, 3)]
@@ -6173,7 +6173,7 @@ class TestSlicesExtend(unittest.TestCase):
         self.assertRaises(NotImplementedError, slices_extend, slices, 5)
         # Does not extend slices beyond 0 otherwise slicing behaviour changes.
         slices = [slice(0, 10)]
-        expected = [slice(None, 15)]
+        expected = [slice(0, 15)]
         self.assertEqual(slices_extend(slices, 5), expected)
 
 

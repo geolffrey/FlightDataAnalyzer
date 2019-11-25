@@ -248,7 +248,7 @@ class Holding(FlightPhaseNode):
                 # this is fine because we are not looking for great precision in
                 # this test.
                 hold_sec = slice_duration(turn_band, self.hz)
-                if (hold_sec < HOLDING_MIN_TIME):
+                if hold_sec < HOLDING_MIN_TIME:
                     continue
                 start = int(turn_band.start or 0)
                 stop = len(lat.array) - 1 if turn_band.stop is None else int(turn_band.stop - 1)

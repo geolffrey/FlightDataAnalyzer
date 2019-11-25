@@ -6190,7 +6190,7 @@ def slices_extend(slices, length):
             raise NotImplementedError('Negative step is not supported.')
 
         extended_slices.append(slice(
-            max(s.start - length, 0) if s.start else None,
+            max(s.start - length, 0) if s.start else 0,
             s.stop + length if s.stop else None,
             s.step,
         ))
