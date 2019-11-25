@@ -17,7 +17,6 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from hashlib import sha256
 from math import ceil, copysign, cos, floor, log, radians, sin, sqrt
-from operator import attrgetter
 from scipy import interpolate as scipy_interpolate, optimize
 from scipy.ndimage import filters
 from scipy.signal import medfilt
@@ -3934,7 +3933,7 @@ def slices_remove_small_gaps(slice_list, time_limit=10, hz=1, count=None):
         return [slice(None, None, slice_list[0].step)]
 
     sample_limit = count if count is not None else time_limit * hz
-    slice_list = sorted(slice_list, key=attrgetter('start'))
+    slice_list = sorted(slice_list, key=lambda s: s.start or 0)
     new_list = [slice_list[0]]
     for each_slice in slice_list[1:]:
         if each_slice.start and new_list[-1].stop  and \
