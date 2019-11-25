@@ -6180,7 +6180,7 @@ class TestSlicesExtend(unittest.TestCase):
 class TestSlicesExtendDuration(unittest.TestCase):
     def test_slices_extend_duration(self):
         slices = [slice(None, 10), slice(30, 40), slice(70, None)]
-        expected = [slice(None, 16), slice(24, 46), slice(64, None)]
+        expected = [slice(0, 16), slice(24, 46), slice(64, None)]
         self.assertEqual(slices_extend_duration(slices, 1/2.0, 3), expected)
 
 
