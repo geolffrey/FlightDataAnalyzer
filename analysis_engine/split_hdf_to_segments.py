@@ -518,6 +518,11 @@ def split_segments(hdf, aircraft_info):
             heading.frequency, 0, hdf.duration, eng_arrays,
             aircraft_info, thresholds, hdf, vspeed)]
 
+    return [_segment_type_and_slice(
+        speed.array, speed.frequency, heading.array,
+        heading.frequency, 0, hdf.duration, eng_arrays,
+        aircraft_info, thresholds, hdf, vspeed)]
+
     speed_secs = len(speed_array) / speed.frequency
 
     # if Segment Split parameter is in hdf file someone has already done the hard work for us
