@@ -663,7 +663,7 @@ class AltitudeAAL(DerivedParameterNode):
         min_value = alt_std.array[min_idx] + 100
         if alt_std.array[:min_idx].max() > min_value and alt_std.array[min_idx+1:].max() > min_value:
             self.array = alt_std.array
-            return (edited)
+            return
 
         # alt_aal will be zero on the airfield, so initialise to zero.
         alt_aal = np_ma_zeros_like(alt_std.array)
