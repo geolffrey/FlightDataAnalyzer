@@ -659,6 +659,12 @@ class AltitudeAAL(DerivedParameterNode):
         # ground clearance passing peaks is accurately reflected. Alt AAL
         # forced to 2htz
 
+        min_idx = np.ma.argmin(alt_std.array)
+        min_value = alt_std.array[min_idx] + 100
+        if alt_std.array[:min_idx].max() > min_value and alt_std.array[min_idx+1:].max() > min_value:
+            self.array = alt_std.array
+            return (edited)
+
         # alt_aal will be zero on the airfield, so initialise to zero.
         alt_aal = np_ma_zeros_like(alt_std.array)
 

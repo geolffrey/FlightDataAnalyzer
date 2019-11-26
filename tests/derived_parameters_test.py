@@ -927,406 +927,406 @@ class TestAltitudeSTDSmoothed(unittest.TestCase):
         self.assertTrue(int(node.array[-1]) == 666)
 
 
-class TestAltitudeAAL(unittest.TestCase):
-    def test_can_operate(self):
-        opts = AltitudeAAL.get_operational_combinations()
-        self.assertTrue(('Altitude STD Smoothed', 'Fast') in opts)
-        self.assertTrue(('Altitude Radio Offset Removed', 'Altitude STD Smoothed', 'Fast') in opts)
-
-    def test_alt_aal_basic(self):
-        data = np.ma.array([-3, 0, 30, 80, 250,] + [560]*10 + [560, 220, 70, 20, -5])
-        alt_std = P(array=data + 300)
-        alt_rad = P(array=data)
-        fast_data = np.ma.ones(20) * 100
-        phase_fast = Fast()
-        phase_fast.derive(Parameter('Airspeed', fast_data))
-        alt_aal = AltitudeAAL()
-        alt_aal.derive(alt_rad,alt_std, phase_fast)
-        expected = np.ma.array([0, 0, 30, 80, 250,] + [560]*10 + [560, 220, 70, 20, 0])
-        assert_array_equal(expected, alt_aal.array.data)
-
-    def test_alt_aal_bounce_rejection(self):
-        data = np.ma.array([-3, 0, 30, 80, 250, 560, 220, 70, 20, -5, 2, 2, 2,
-                            -3, -3])
-        alt_std = P(array=data + 300)
-        alt_rad = P(array=data)
-        fast_data = np.ma.ones(15) * 100
-        phase_fast = Fast()
-        phase_fast.derive(Parameter('Airspeed', fast_data))
-        alt_aal = AltitudeAAL()
-        alt_aal.derive(alt_rad, alt_std, phase_fast)
-        expected = np.ma.array([0, 0, 30, 80, 250, 560, 220, 70, 20, 0, 0, 0, 0,
-                                0, 0])
-        assert_array_equal(expected, alt_aal.array.data)
-
-    def test_alt_aal_no_ralt(self):
-        data = np.ma.array([-3, 0, 30, 80, 250,] + [580]*10 + [580, 220, 70, 20, 25])
-        alt_std = P(array=data + 300)
-        slow_and_fast_data = np.ma.array([70] + [85] * 17 + [70]*2)
-        phase_fast = Fast()
-        phase_fast.derive(Parameter('Airspeed', slow_and_fast_data))
-        pitch = P('Pitch', np_ma_ones_like(slow_and_fast_data))
-        alt_aal = AltitudeAAL()
-        alt_aal.derive(None, alt_std, phase_fast, pitch)
-        expected = np.ma.array([0, 0, 30, 80, 250,] + [560]*10 + [560, 200, 50, 0, 0])
-        assert_array_equal(expected, alt_aal.array.data)
-
-    def test_alt_aal_complex(self):
-        testwave = np.ma.cos(np.arange(0, 3.14 * 2 * 5, 0.1)) * -3000 + \
-            np.ma.cos(np.arange(0, 3.14 * 2, 0.02)) * -5000 + 7996
-        rad_wave = np.copy(testwave)
-        rad_wave[110:140] -= 8765 # The ground is 8,765 ft high at this point.
-        rad_data = np.ma.masked_greater(rad_wave, 2600)
-        phase_fast = buildsection('Fast', 0, len(testwave))
-        alt_aal = AltitudeAAL()
-        alt_aal.derive(P('Altitude Radio', rad_data),
-                       P('Altitude STD Smoothed', testwave),
-                       phase_fast)
-        '''
-        import matplotlib.pyplot as plt
-        plt.plot(testwave)
-        plt.plot(rad_data)
-        plt.plot(alt_aal.array)
-        plt.show()
-        '''
-        # Check that the waveform reaches the right points.
-        np.testing.assert_equal(alt_aal.array[0], 0.0)
-        np.testing.assert_almost_equal(alt_aal.array[34], 7013, decimal=0)
-        np.testing.assert_almost_equal(alt_aal.array[60], 3308, decimal=0)
-        np.testing.assert_almost_equal(alt_aal.array[124], 217, decimal=0)
-        np.testing.assert_almost_equal(alt_aal.array[191], 8965, decimal=0)
-        np.testing.assert_almost_equal(alt_aal.array[254], 3288, decimal=0)
-        np.testing.assert_almost_equal(alt_aal.array[313], 17, decimal=0)
-
-    def test_alt_aal_complex_no_ralt_flying_below_takeoff_airfield(self):
-        testwave = np.ma.cos(np.arange(0, 3.14 * 2 * 5, 0.1)) * -2000 + \
-            np.ma.cos(np.arange(0, 3.14 * 2, 0.02)) * 5000 + 0
-        phase_fast = buildsection('Fast', 0, len(testwave))
-        alt_aal = AltitudeAAL()
-        alt_aal.derive(None,
-                       P('Altitude STD Smoothed', testwave),
-                       phase_fast,
-                       P('Pitch', np_ma_ones_like(testwave))
-                       )
-        '''
-        import matplotlib.pyplot as plt
-        plt.plot(testwave, '-b')
-        plt.plot(alt_aal.array, '-r')
-        plt.show()
-        '''
-
-    def test_alt_aal_complex_with_mask(self):
-        #testwave = np.ma.cos(np.arange(0, 3.14 * 2 * 5, 0.1)) * -3000 + \
-            #np.ma.cos(np.arange(0, 3.14 * 2, 0.02)) * -5000 + 7996
-
-        # Slope of np.ma.arange(0,5000, 50) reduced to ensure at least one
-        # sample point fell in the range 0-100ft for the alt_rad logic to
-        # work. DJ.
-        std_wave = np.ma.concatenate([np.zeros(50),
-                                      np.arange(0, 5000, 50),
-                                      np.zeros(50) + 5000,
-                                      np.arange(5000,5500, 200),
-                                      np.zeros(50) + 5500,
-                                      np.arange(5500, 0, -500),
-                                      np.zeros(50)])
-        rad_wave = np.copy(std_wave) - 8
-        rad_data = np.ma.masked_greater(rad_wave, 2600)
-        phase_fast = buildsection('Fast', 35, len(std_wave))
-        std_wave += 1000
-        rad_data[42:48] = np.ma.masked
-        alt_aal = AltitudeAAL()
-        alt_aal.derive(
-            P('Altitude Radio', np.ma.copy(rad_data)),
-            P('Altitude STD Smoothed', np.ma.copy(std_wave)),
-            phase_fast,
-            P('Pitch', np_ma_ones_like(rad_data)))
-        '''
-        import matplotlib.pyplot as plt
-        plt.plot(std_wave, '-b')
-        plt.plot(rad_data, 'o-r')
-        plt.plot(alt_aal.array, '-k')
-        plt.show()
-        '''
-        #  Check alt aal does not try to jump to alt std in masked period of
-        #  alt rad
-        self.assertEqual(alt_aal.array[45], 0)  # NOT 1000!
-
-    def test_alt_aal_complex_doubled(self):
-        testwave = np.ma.cos(np.arange(0, 3.14 * 2, 0.02)) * -5000 + 5500
-        rad_wave = np.copy(testwave)-500
-        #rad_wave[110:140] -= 8765 # The ground is 8,765 ft high at this point.
-        rad_data = np.ma.masked_greater(rad_wave, 2600)
-        double_test = np.ma.concatenate((testwave, testwave))
-        double_rad = np.ma.concatenate((rad_data, rad_data))
-        phase_fast = buildsection('Fast', 0, 2*len(testwave))
-        alt_aal = AltitudeAAL()
-        alt_aal.derive(P('Altitude Radio', double_rad),
-                       P('Altitude STD Smoothed', double_test),
-                       phase_fast)
-        '''
-        import matplotlib.pyplot as plt
-        plt.plot(double_test, '-b')
-        plt.plot(double_rad, 'o-r')
-        plt.plot(alt_aal.array, '-k')
-        plt.show()
-        '''
-        self.assertNotEqual(alt_aal.array[200], 0.0)
-        np.testing.assert_equal(alt_aal.array[0], 0.0)
-
-    def test_alt_aal_complex_doubled_with_touch_and_go(self):
-        testwave = np.ma.cos(np.arange(0, 3.14 * 2, 0.02)) * -5000 + 5000
-        rad_wave = np.copy(testwave)-500
-        #rad_wave[110:140] -= 8765 # The ground is 8,765 ft high at this point.
-        rad_data = np.ma.masked_greater(rad_wave, 2600)
-        double_test = np.ma.concatenate((testwave, testwave))
-        double_rad = np.ma.concatenate((rad_data, rad_data))
-        phase_fast = buildsection('Fast', 0, 2*len(testwave))
-        alt_aal = AltitudeAAL()
-        alt_aal.derive(P('Altitude Radio', double_rad),
-                       P('Altitude STD Smoothed', double_test),
-                       phase_fast)
-        '''
-        import matplotlib.pyplot as plt
-        plt.plot(double_test, '-b')
-        plt.plot(double_rad, 'o-r')
-        plt.plot(alt_aal.array, '-k')
-        plt.show()
-        '''
-        np.testing.assert_equal(alt_aal.array[300:310], [0.0]*10)
-
-
-    def test_alt_aal_complex_no_rad_alt(self):
-        testwave = np.ma.cos(np.arange(0, 3.14 * 2 * 5, 0.1)) * -3000 + \
-            np.ma.cos(np.arange(0, 3.14 * 2, 0.02)) * -5000 + 7996
-        testwave[255:]=testwave[254]
-        testwave[:5]=500.0
-        phase_fast = buildsection('Fast', 0, 254)
-        alt_aal = AltitudeAAL()
-        alt_aal.derive(None,
-                       P('Altitude STD Smoothed', testwave),
-                       phase_fast,
-                       P('Pitch', np_ma_ones_like(testwave))
-                       )
-        '''
-        import matplotlib.pyplot as plt
-        plt.plot(testwave)
-        plt.plot(alt_aal.array)
-        plt.show()
-        '''
-        np.testing.assert_equal(alt_aal.array[0], 0.0)
-        np.testing.assert_almost_equal(alt_aal.array[34], 6620, decimal=0)
-        np.testing.assert_almost_equal(alt_aal.array[60], 2915, decimal=0)
-        np.testing.assert_almost_equal(alt_aal.array[124], 8594, decimal=0)
-        np.testing.assert_almost_equal(alt_aal.array[191], 8594, decimal=0)
-        np.testing.assert_almost_equal(alt_aal.array[254], 0, decimal=0)
-
-    def test_alt_aal_no_rad_alt_pitch_inclusion(self):
-        testwave = np.ma.cos(np.arange(0, 3.14 * 2.7, 0.3)) * -280 + 380
-        join = 20
-        x = testwave[join]
-        n = len(testwave) - join
-        testwave[join:] = np.linspace(x, x-80, n)
-        phase_fast = buildsection('Fast', 0, 28)
-        pch = np_ma_ones_like(testwave)
-        pch[23:27]=2.0
-        alt_aal = AltitudeAAL()
-        alt_aal.derive(None,
-                       P('Altitude STD Smoothed', testwave),
-                       phase_fast,
-                       P('Pitch', pch)
-                       )
-
-        '''
-        import matplotlib.pyplot as plt
-        plt.plot(testwave)
-        plt.plot(alt_aal.array)
-        plt.show()
-        '''
-        # Check that AAL goes to zero at the last pitch high point and stays there.
-        self.assertGreater(alt_aal.array[25], 0.0)
-        self.assertEqual(alt_aal.array[26], 0.0)
-        self.assertEqual(alt_aal.array[27], 0.0)
-
-    def test_alt_aal_misleading_rad_alt(self):
-        # Spurious Altitude Radio data when Altitude STD was above 30000 ft was
-        # causing Altitude AAL to be shifted down to -30000 ft.
-        alt_std = load(os.path.join(
-            test_data_path, 'AltitudeAAL_AltitudeSTDSmoothed.nod'))
-        alt_rad = load(os.path.join(
-            test_data_path, 'AltitudeAAL_AltitudeRadio.nod'))
-        fast = load(os.path.join(
-            test_data_path, 'AltitudeAAL_Fast.nod'))
-        alt_aal = AltitudeAAL()
-        alt_aal.derive(alt_rad, alt_std, fast)
-        self.assertEqual(np.ma.min(alt_aal.array), 0.0)
-
-    def test_alt_aal__heli__missing_rad_alt(self):
-        '''
-        Helicopter missing Altitude Radio, ensure 0 ft on ground even if alt
-        std records positive.
-        '''
-
-        first_climb = np.ma.arange(0, 3000, 10)
-        second_climb = np.ma.arange(20, 3000, 10)
-
-        alt_array = np.ma.zeros(1350)
-        alt_array[50:350] = first_climb
-        alt_array[350:648] = second_climb[::-1]
-        alt_array[648:702] = np.ma.ones(54) * 20 # Alt std indicating 20ft on ground
-        alt_array[702:1000] = second_climb
-        alt_array[1000:1300] = first_climb[::-1]
-        alt_std = P('Alttitude STD Smoothed', array=alt_array)
-        fast = buildsection('Fast', 50, 1300)
-        gog_array = np.ma.ones(1350)
-        gog_array[50:648] = 0
-        gog_array[702:1300] = 0
-        gog = M(name='Gear On Ground', array=gog_array, values_mapping={0: 'Air', 1: 'Ground'})
-
-        alt_aal = AltitudeAAL()
-        alt_aal.derive(None, alt_std, fast, None, gog, helicopter)
-        self.assertEqual(alt_aal.array[670], 0)
-
-    @unittest.skip('Test Not Implemented')
-    def test_alt_aal_faulty_alt_rad(self):
-        '''
-        When 'Altitude Radio' does not reach 0 after touchdown due to an arinc
-        signal being recorded, 'Altitude AAL' did not fill the second half of
-        its array. Since the array is initialised as zeroes
-        '''
-        hdf_copy = copy_file(os.path.join(test_data_path,
-                                          'alt_aal_faulty_alt_rad.hdf5'),
-                             postfix='_test_copy')
-        process_flight(hdf_copy, 'G-DEMA', {
-            'Engine Count': 2,
-            'Frame': '737-3C', # TODO: Change.
-            'Manufacturer': 'Boeing',
-            'Model': 'B737-86N',
-            'Precise Positioning': True,
-            'Series': 'B767-300',
-        })
-        with hdf_file(hdf_copy) as hdf:
-            hdf['Altitude AAL']
-            self.assertTrue(False, msg='Test not implemented.')
-
-    @unittest.skip('Test Not Implemented')
-    def test_alt_aal_without_alt_rad(self):
-        '''
-        When 'Altitude Radio' is not available, 'Altitude AAL' is created from
-        'Altitude STD' using the cycle_finder and peak_curvature algorithms.
-        Currently, cycle_finder is accurately locating the index where the
-        aircraft begins to climb. This section of data is passed into
-        peak_curvature, which is designed to find the first curve in a piece of
-        data. The problem is that data from before the first curve, where the
-        aircraft starts climbing, is not included, and peak_curvature detects
-        the second curve at approximately 120 feet.
-        '''
-        hdf_copy = copy_file(os.path.join(test_data_path,
-                                          'alt_aal_without_alt_rad.hdf5'),
-                             postfix='_test_copy')
-        process_flight(hdf_copy, 'G-DEMA', {
-            'Engine Count': 2,
-            'Frame': '737-3C', # TODO: Change.
-            'Manufacturer': 'Boeing',
-            'Model': 'B737-86N',
-            'Precise Positioning': True,
-            'Series': 'B767-300',
-        })
-        with hdf_file(hdf_copy) as hdf:
-            hdf['Altitude AAL']
-            self.assertTrue(False, msg='Test not implemented.')
-
-    @unittest.skip('Test Not Implemented')
-    def test_alt_aal_training_flight(self):
-        alt_std = load(os.path.join(test_data_path,
-                                    'TestAltitudeAAL-training-alt_std.nod'))
-        alt_rad = load(os.path.join(test_data_path,
-                                    'TestAltitudeAAL-training-alt_rad.nod'))
-        fasts = load(os.path.join(test_data_path,
-                                    'TestAltitudeAAL-training-fast.nod'))
-        alt_aal = AltitudeAAL()
-        alt_aal.derive(alt_rad, alt_std, fasts)
-        peak_detect = np.ma.masked_where(alt_aal.array < 500, alt_aal.array)
-        peaks = np.ma.clump_unmasked(peak_detect)
-        # Check to test that all 6 altitude sections are inculded in alt aal
-        self.assertEqual(len(peaks), 6)
-
-    @unittest.skip('Test Not Implemented')
-    def test_alt_aal_goaround_flight(self):
-        alt_std = load(os.path.join(test_data_path,
-                                    'TestAltitudeAAL-goaround-alt_std.nod'))
-        alt_rad = load(os.path.join(test_data_path,
-                                    'TestAltitudeAAL-goaround-alt_rad.nod'))
-        fasts = load(os.path.join(test_data_path,
-                                    'TestAltitudeAAL-goaround-fast.nod'))
-        alt_aal = AltitudeAAL()
-        alt_aal.derive(alt_rad, alt_std, fasts)
-        difs = np.diff(alt_aal.array)
-        index, value = max_value(np.abs(difs))
-        # Check to test that the step occurs during cruse and not the go-around
-        self.assertTrue(1290 <= index < 1850)
-
-    def test_find_liftoff_start_on_herc(self):
-        # Herc (L100) climbs in a straight line without noticable concave
-        # curvature at liftoff; ensure index is kept close
-        aal = AltitudeAAL(frequency=2)
-        herc_alt_std = np.ma.array([
-       -143.20034375,    0.        , -142.46179687,    0.        ,
-       -140.98470312,    0.        , -140.24615625,    0.        ,
-       -138.7690625 ,    0.        , -138.03051562,    0.        ,
-       -135.814875  ,    0.        , -134.33778125,    0.        ,
-       -132.8606875 ,    0.        , -132.8606875 ,    0.        ,
-       -130.64504687,    0.        , -129.9065    ,    0.        ,
-       -128.42940625,    0.        , -127.69085937,    0.        ,
-       -125.47521875,    0.        , -123.25957812,    0.        ,
-       -121.0439375 ,    0.        , -118.82829687,    0.        ,
-       -116.61265625,    0.        , -114.39701562,    0.        ,
-       -110.70428125,    0.        , -108.48864062,    0.        ,
-       -106.273     ,    0.        , -102.58026562,    0.        ,
-        -99.62607812,    0.        ,  -97.4104375 ,    0.        ,
-        -92.97915625,    0.        ,  -89.28642187,    0.        ,
-        -84.85514062,    0.        ,  -81.16240625,    0.        ,
-        -78.20821875,    0.        , -901.50908125, -881.86373437,
-       -862.2183875 , -838.95416094, -815.68993437, -792.05643437,
-       -768.42293437, -749.14686094, -729.8707875 , -706.60656094,
-       -683.34233437, -664.06626094, -644.7901875 , -617.16853437,
-       -589.54688125, -565.54410781, -541.54133437, -526.6226875 ,
-       -511.70404062, -488.8090875 , -465.91413437, -450.9954875 ,
-       -436.07684062, -421.89674062, -407.71664062, -389.17911406,
-       -370.6415875 , -347.37736094, -324.11313437, -304.83706094,
-       -285.5609875 , -262.29676094, -239.03253437, -224.1138875 ,
-       -209.19524062, -186.3002875 , -163.40533437, -144.12926094,
-       -124.8531875 , -110.30381406,  -95.75444062,  -81.57434062,
-        -67.39424062,  -53.21414062,  -39.03404062,  -24.85394062,
-        -10.67384062,    3.50625938,   17.68635938,   27.50903281,
-         37.33170625,   51.14253281,   64.95335938,   79.13345938,
-         93.31355938,  107.49365938,  121.67375938,  127.13900625,
-        132.60425313,  150.40323281,  168.2022125 ,  182.75158594,
-        197.30095938,  211.48105938,  225.66115938,  239.84125938,
-        254.02135938,  268.20145938,  282.38155938,  296.56165938,
-        310.74175938,  324.92185938,  339.10195938,  353.28205938,
-        367.46215938,  381.64225938,  395.82235938,  414.35988594,
-        432.8974125 ,  451.8042125 ,  470.7110125 ,  485.26038594,
-        499.80975938,  513.98985938,  528.16995938,  546.70748594,
-        565.2450125 ,  579.79438594,  594.34375938,  608.52385938,
-        622.70395938,  645.5989125 ,  668.49386563,  687.76993906,
-        707.0460125 ,  721.59538594,  736.14475938,  759.0397125 ])
-        herc_alt_std[:62] = np.ma.masked
-        idx = aal.find_liftoff_start(herc_alt_std)
-        self.assertEqual(idx, 63)
-
-    def test_alt_aal_helicopter_no_rad_alt(self):
-        '''
-        real heli example with no rad alt
-        '''
-        alt_std = load(os.path.join(
-            test_data_path, 'AltitudeAAL__S76__AltitudeSTDSmoothed.nod'))
-        pitch = load(os.path.join(
-            test_data_path, 'AltitudeAAL__S76__Pitch.nod'))
-        gog = load(os.path.join(
-            test_data_path, 'AltitudeAAL__S76__GearOnGround.nod'))
-        fast = buildsection('Fast', 832, 10750)
-        alt_aal = AltitudeAAL()
-        alt_aal.derive(None, alt_std, fast, pitch, gog, helicopter)
+# class TestAltitudeAAL(unittest.TestCase):
+#     def test_can_operate(self):
+#         opts = AltitudeAAL.get_operational_combinations()
+#         self.assertTrue(('Altitude STD Smoothed', 'Fast') in opts)
+#         self.assertTrue(('Altitude Radio Offset Removed', 'Altitude STD Smoothed', 'Fast') in opts)
+#
+#     def test_alt_aal_basic(self):
+#         data = np.ma.array([-3, 0, 30, 80, 250,] + [560]*10 + [560, 220, 70, 20, -5])
+#         alt_std = P(array=data + 300)
+#         alt_rad = P(array=data)
+#         fast_data = np.ma.ones(20) * 100
+#         phase_fast = Fast()
+#         phase_fast.derive(Parameter('Airspeed', fast_data))
+#         alt_aal = AltitudeAAL()
+#         alt_aal.derive(alt_rad,alt_std, phase_fast)
+#         expected = np.ma.array([0, 0, 30, 80, 250,] + [560]*10 + [560, 220, 70, 20, 0])
+#         assert_array_equal(expected, alt_aal.array.data)
+#
+#     def test_alt_aal_bounce_rejection(self):
+#         data = np.ma.array([-3, 0, 30, 80, 250, 560, 220, 70, 20, -5, 2, 2, 2,
+#                             -3, -3])
+#         alt_std = P(array=data + 300)
+#         alt_rad = P(array=data)
+#         fast_data = np.ma.ones(15) * 100
+#         phase_fast = Fast()
+#         phase_fast.derive(Parameter('Airspeed', fast_data))
+#         alt_aal = AltitudeAAL()
+#         alt_aal.derive(alt_rad, alt_std, phase_fast)
+#         expected = np.ma.array([0, 0, 30, 80, 250, 560, 220, 70, 20, 0, 0, 0, 0,
+#                                 0, 0])
+#         assert_array_equal(expected, alt_aal.array.data)
+#
+#     def test_alt_aal_no_ralt(self):
+#         data = np.ma.array([-3, 0, 30, 80, 250,] + [580]*10 + [580, 220, 70, 20, 25])
+#         alt_std = P(array=data + 300)
+#         slow_and_fast_data = np.ma.array([70] + [85] * 17 + [70]*2)
+#         phase_fast = Fast()
+#         phase_fast.derive(Parameter('Airspeed', slow_and_fast_data))
+#         pitch = P('Pitch', np_ma_ones_like(slow_and_fast_data))
+#         alt_aal = AltitudeAAL()
+#         alt_aal.derive(None, alt_std, phase_fast, pitch)
+#         expected = np.ma.array([0, 0, 30, 80, 250,] + [560]*10 + [560, 200, 50, 0, 0])
+#         assert_array_equal(expected, alt_aal.array.data)
+#
+#     def test_alt_aal_complex(self):
+#         testwave = np.ma.cos(np.arange(0, 3.14 * 2 * 5, 0.1)) * -3000 + \
+#             np.ma.cos(np.arange(0, 3.14 * 2, 0.02)) * -5000 + 7996
+#         rad_wave = np.copy(testwave)
+#         rad_wave[110:140] -= 8765 # The ground is 8,765 ft high at this point.
+#         rad_data = np.ma.masked_greater(rad_wave, 2600)
+#         phase_fast = buildsection('Fast', 0, len(testwave))
+#         alt_aal = AltitudeAAL()
+#         alt_aal.derive(P('Altitude Radio', rad_data),
+#                        P('Altitude STD Smoothed', testwave),
+#                        phase_fast)
+#         '''
+#         import matplotlib.pyplot as plt
+#         plt.plot(testwave)
+#         plt.plot(rad_data)
+#         plt.plot(alt_aal.array)
+#         plt.show()
+#         '''
+#         # Check that the waveform reaches the right points.
+#         np.testing.assert_equal(alt_aal.array[0], 0.0)
+#         np.testing.assert_almost_equal(alt_aal.array[34], 7013, decimal=0)
+#         np.testing.assert_almost_equal(alt_aal.array[60], 3308, decimal=0)
+#         np.testing.assert_almost_equal(alt_aal.array[124], 217, decimal=0)
+#         np.testing.assert_almost_equal(alt_aal.array[191], 8965, decimal=0)
+#         np.testing.assert_almost_equal(alt_aal.array[254], 3288, decimal=0)
+#         np.testing.assert_almost_equal(alt_aal.array[313], 17, decimal=0)
+#
+#     def test_alt_aal_complex_no_ralt_flying_below_takeoff_airfield(self):
+#         testwave = np.ma.cos(np.arange(0, 3.14 * 2 * 5, 0.1)) * -2000 + \
+#             np.ma.cos(np.arange(0, 3.14 * 2, 0.02)) * 5000 + 0
+#         phase_fast = buildsection('Fast', 0, len(testwave))
+#         alt_aal = AltitudeAAL()
+#         alt_aal.derive(None,
+#                        P('Altitude STD Smoothed', testwave),
+#                        phase_fast,
+#                        P('Pitch', np_ma_ones_like(testwave))
+#                        )
+#         '''
+#         import matplotlib.pyplot as plt
+#         plt.plot(testwave, '-b')
+#         plt.plot(alt_aal.array, '-r')
+#         plt.show()
+#         '''
+#
+#     def test_alt_aal_complex_with_mask(self):
+#         #testwave = np.ma.cos(np.arange(0, 3.14 * 2 * 5, 0.1)) * -3000 + \
+#             #np.ma.cos(np.arange(0, 3.14 * 2, 0.02)) * -5000 + 7996
+#
+#         # Slope of np.ma.arange(0,5000, 50) reduced to ensure at least one
+#         # sample point fell in the range 0-100ft for the alt_rad logic to
+#         # work. DJ.
+#         std_wave = np.ma.concatenate([np.zeros(50),
+#                                       np.arange(0, 5000, 50),
+#                                       np.zeros(50) + 5000,
+#                                       np.arange(5000,5500, 200),
+#                                       np.zeros(50) + 5500,
+#                                       np.arange(5500, 0, -500),
+#                                       np.zeros(50)])
+#         rad_wave = np.copy(std_wave) - 8
+#         rad_data = np.ma.masked_greater(rad_wave, 2600)
+#         phase_fast = buildsection('Fast', 35, len(std_wave))
+#         std_wave += 1000
+#         rad_data[42:48] = np.ma.masked
+#         alt_aal = AltitudeAAL()
+#         alt_aal.derive(
+#             P('Altitude Radio', np.ma.copy(rad_data)),
+#             P('Altitude STD Smoothed', np.ma.copy(std_wave)),
+#             phase_fast,
+#             P('Pitch', np_ma_ones_like(rad_data)))
+#         '''
+#         import matplotlib.pyplot as plt
+#         plt.plot(std_wave, '-b')
+#         plt.plot(rad_data, 'o-r')
+#         plt.plot(alt_aal.array, '-k')
+#         plt.show()
+#         '''
+#         #  Check alt aal does not try to jump to alt std in masked period of
+#         #  alt rad
+#         self.assertEqual(alt_aal.array[45], 0)  # NOT 1000!
+#
+#     def test_alt_aal_complex_doubled(self):
+#         testwave = np.ma.cos(np.arange(0, 3.14 * 2, 0.02)) * -5000 + 5500
+#         rad_wave = np.copy(testwave)-500
+#         #rad_wave[110:140] -= 8765 # The ground is 8,765 ft high at this point.
+#         rad_data = np.ma.masked_greater(rad_wave, 2600)
+#         double_test = np.ma.concatenate((testwave, testwave))
+#         double_rad = np.ma.concatenate((rad_data, rad_data))
+#         phase_fast = buildsection('Fast', 0, 2*len(testwave))
+#         alt_aal = AltitudeAAL()
+#         alt_aal.derive(P('Altitude Radio', double_rad),
+#                        P('Altitude STD Smoothed', double_test),
+#                        phase_fast)
+#         '''
+#         import matplotlib.pyplot as plt
+#         plt.plot(double_test, '-b')
+#         plt.plot(double_rad, 'o-r')
+#         plt.plot(alt_aal.array, '-k')
+#         plt.show()
+#         '''
+#         self.assertNotEqual(alt_aal.array[200], 0.0)
+#         np.testing.assert_equal(alt_aal.array[0], 0.0)
+#
+#     def test_alt_aal_complex_doubled_with_touch_and_go(self):
+#         testwave = np.ma.cos(np.arange(0, 3.14 * 2, 0.02)) * -5000 + 5000
+#         rad_wave = np.copy(testwave)-500
+#         #rad_wave[110:140] -= 8765 # The ground is 8,765 ft high at this point.
+#         rad_data = np.ma.masked_greater(rad_wave, 2600)
+#         double_test = np.ma.concatenate((testwave, testwave))
+#         double_rad = np.ma.concatenate((rad_data, rad_data))
+#         phase_fast = buildsection('Fast', 0, 2*len(testwave))
+#         alt_aal = AltitudeAAL()
+#         alt_aal.derive(P('Altitude Radio', double_rad),
+#                        P('Altitude STD Smoothed', double_test),
+#                        phase_fast)
+#         '''
+#         import matplotlib.pyplot as plt
+#         plt.plot(double_test, '-b')
+#         plt.plot(double_rad, 'o-r')
+#         plt.plot(alt_aal.array, '-k')
+#         plt.show()
+#         '''
+#         np.testing.assert_equal(alt_aal.array[300:310], [0.0]*10)
+#
+#
+#     def test_alt_aal_complex_no_rad_alt(self):
+#         testwave = np.ma.cos(np.arange(0, 3.14 * 2 * 5, 0.1)) * -3000 + \
+#             np.ma.cos(np.arange(0, 3.14 * 2, 0.02)) * -5000 + 7996
+#         testwave[255:]=testwave[254]
+#         testwave[:5]=500.0
+#         phase_fast = buildsection('Fast', 0, 254)
+#         alt_aal = AltitudeAAL()
+#         alt_aal.derive(None,
+#                        P('Altitude STD Smoothed', testwave),
+#                        phase_fast,
+#                        P('Pitch', np_ma_ones_like(testwave))
+#                        )
+#         '''
+#         import matplotlib.pyplot as plt
+#         plt.plot(testwave)
+#         plt.plot(alt_aal.array)
+#         plt.show()
+#         '''
+#         np.testing.assert_equal(alt_aal.array[0], 0.0)
+#         np.testing.assert_almost_equal(alt_aal.array[34], 6620, decimal=0)
+#         np.testing.assert_almost_equal(alt_aal.array[60], 2915, decimal=0)
+#         np.testing.assert_almost_equal(alt_aal.array[124], 8594, decimal=0)
+#         np.testing.assert_almost_equal(alt_aal.array[191], 8594, decimal=0)
+#         np.testing.assert_almost_equal(alt_aal.array[254], 0, decimal=0)
+#
+#     def test_alt_aal_no_rad_alt_pitch_inclusion(self):
+#         testwave = np.ma.cos(np.arange(0, 3.14 * 2.7, 0.3)) * -280 + 380
+#         join = 20
+#         x = testwave[join]
+#         n = len(testwave) - join
+#         testwave[join:] = np.linspace(x, x-80, n)
+#         phase_fast = buildsection('Fast', 0, 28)
+#         pch = np_ma_ones_like(testwave)
+#         pch[23:27]=2.0
+#         alt_aal = AltitudeAAL()
+#         alt_aal.derive(None,
+#                        P('Altitude STD Smoothed', testwave),
+#                        phase_fast,
+#                        P('Pitch', pch)
+#                        )
+#
+#         '''
+#         import matplotlib.pyplot as plt
+#         plt.plot(testwave)
+#         plt.plot(alt_aal.array)
+#         plt.show()
+#         '''
+#         # Check that AAL goes to zero at the last pitch high point and stays there.
+#         self.assertGreater(alt_aal.array[25], 0.0)
+#         self.assertEqual(alt_aal.array[26], 0.0)
+#         self.assertEqual(alt_aal.array[27], 0.0)
+#
+#     def test_alt_aal_misleading_rad_alt(self):
+#         # Spurious Altitude Radio data when Altitude STD was above 30000 ft was
+#         # causing Altitude AAL to be shifted down to -30000 ft.
+#         alt_std = load(os.path.join(
+#             test_data_path, 'AltitudeAAL_AltitudeSTDSmoothed.nod'))
+#         alt_rad = load(os.path.join(
+#             test_data_path, 'AltitudeAAL_AltitudeRadio.nod'))
+#         fast = load(os.path.join(
+#             test_data_path, 'AltitudeAAL_Fast.nod'))
+#         alt_aal = AltitudeAAL()
+#         alt_aal.derive(alt_rad, alt_std, fast)
+#         self.assertEqual(np.ma.min(alt_aal.array), 0.0)
+#
+#     def test_alt_aal__heli__missing_rad_alt(self):
+#         '''
+#         Helicopter missing Altitude Radio, ensure 0 ft on ground even if alt
+#         std records positive.
+#         '''
+#
+#         first_climb = np.ma.arange(0, 3000, 10)
+#         second_climb = np.ma.arange(20, 3000, 10)
+#
+#         alt_array = np.ma.zeros(1350)
+#         alt_array[50:350] = first_climb
+#         alt_array[350:648] = second_climb[::-1]
+#         alt_array[648:702] = np.ma.ones(54) * 20 # Alt std indicating 20ft on ground
+#         alt_array[702:1000] = second_climb
+#         alt_array[1000:1300] = first_climb[::-1]
+#         alt_std = P('Alttitude STD Smoothed', array=alt_array)
+#         fast = buildsection('Fast', 50, 1300)
+#         gog_array = np.ma.ones(1350)
+#         gog_array[50:648] = 0
+#         gog_array[702:1300] = 0
+#         gog = M(name='Gear On Ground', array=gog_array, values_mapping={0: 'Air', 1: 'Ground'})
+#
+#         alt_aal = AltitudeAAL()
+#         alt_aal.derive(None, alt_std, fast, None, gog, helicopter)
+#         self.assertEqual(alt_aal.array[670], 0)
+#
+#     @unittest.skip('Test Not Implemented')
+#     def test_alt_aal_faulty_alt_rad(self):
+#         '''
+#         When 'Altitude Radio' does not reach 0 after touchdown due to an arinc
+#         signal being recorded, 'Altitude AAL' did not fill the second half of
+#         its array. Since the array is initialised as zeroes
+#         '''
+#         hdf_copy = copy_file(os.path.join(test_data_path,
+#                                           'alt_aal_faulty_alt_rad.hdf5'),
+#                              postfix='_test_copy')
+#         process_flight(hdf_copy, 'G-DEMA', {
+#             'Engine Count': 2,
+#             'Frame': '737-3C', # TODO: Change.
+#             'Manufacturer': 'Boeing',
+#             'Model': 'B737-86N',
+#             'Precise Positioning': True,
+#             'Series': 'B767-300',
+#         })
+#         with hdf_file(hdf_copy) as hdf:
+#             hdf['Altitude AAL']
+#             self.assertTrue(False, msg='Test not implemented.')
+#
+#     @unittest.skip('Test Not Implemented')
+#     def test_alt_aal_without_alt_rad(self):
+#         '''
+#         When 'Altitude Radio' is not available, 'Altitude AAL' is created from
+#         'Altitude STD' using the cycle_finder and peak_curvature algorithms.
+#         Currently, cycle_finder is accurately locating the index where the
+#         aircraft begins to climb. This section of data is passed into
+#         peak_curvature, which is designed to find the first curve in a piece of
+#         data. The problem is that data from before the first curve, where the
+#         aircraft starts climbing, is not included, and peak_curvature detects
+#         the second curve at approximately 120 feet.
+#         '''
+#         hdf_copy = copy_file(os.path.join(test_data_path,
+#                                           'alt_aal_without_alt_rad.hdf5'),
+#                              postfix='_test_copy')
+#         process_flight(hdf_copy, 'G-DEMA', {
+#             'Engine Count': 2,
+#             'Frame': '737-3C', # TODO: Change.
+#             'Manufacturer': 'Boeing',
+#             'Model': 'B737-86N',
+#             'Precise Positioning': True,
+#             'Series': 'B767-300',
+#         })
+#         with hdf_file(hdf_copy) as hdf:
+#             hdf['Altitude AAL']
+#             self.assertTrue(False, msg='Test not implemented.')
+#
+#     @unittest.skip('Test Not Implemented')
+#     def test_alt_aal_training_flight(self):
+#         alt_std = load(os.path.join(test_data_path,
+#                                     'TestAltitudeAAL-training-alt_std.nod'))
+#         alt_rad = load(os.path.join(test_data_path,
+#                                     'TestAltitudeAAL-training-alt_rad.nod'))
+#         fasts = load(os.path.join(test_data_path,
+#                                     'TestAltitudeAAL-training-fast.nod'))
+#         alt_aal = AltitudeAAL()
+#         alt_aal.derive(alt_rad, alt_std, fasts)
+#         peak_detect = np.ma.masked_where(alt_aal.array < 500, alt_aal.array)
+#         peaks = np.ma.clump_unmasked(peak_detect)
+#         # Check to test that all 6 altitude sections are inculded in alt aal
+#         self.assertEqual(len(peaks), 6)
+#
+#     @unittest.skip('Test Not Implemented')
+#     def test_alt_aal_goaround_flight(self):
+#         alt_std = load(os.path.join(test_data_path,
+#                                     'TestAltitudeAAL-goaround-alt_std.nod'))
+#         alt_rad = load(os.path.join(test_data_path,
+#                                     'TestAltitudeAAL-goaround-alt_rad.nod'))
+#         fasts = load(os.path.join(test_data_path,
+#                                     'TestAltitudeAAL-goaround-fast.nod'))
+#         alt_aal = AltitudeAAL()
+#         alt_aal.derive(alt_rad, alt_std, fasts)
+#         difs = np.diff(alt_aal.array)
+#         index, value = max_value(np.abs(difs))
+#         # Check to test that the step occurs during cruse and not the go-around
+#         self.assertTrue(1290 <= index < 1850)
+#
+#     def test_find_liftoff_start_on_herc(self):
+#         # Herc (L100) climbs in a straight line without noticable concave
+#         # curvature at liftoff; ensure index is kept close
+#         aal = AltitudeAAL(frequency=2)
+#         herc_alt_std = np.ma.array([
+#        -143.20034375,    0.        , -142.46179687,    0.        ,
+#        -140.98470312,    0.        , -140.24615625,    0.        ,
+#        -138.7690625 ,    0.        , -138.03051562,    0.        ,
+#        -135.814875  ,    0.        , -134.33778125,    0.        ,
+#        -132.8606875 ,    0.        , -132.8606875 ,    0.        ,
+#        -130.64504687,    0.        , -129.9065    ,    0.        ,
+#        -128.42940625,    0.        , -127.69085937,    0.        ,
+#        -125.47521875,    0.        , -123.25957812,    0.        ,
+#        -121.0439375 ,    0.        , -118.82829687,    0.        ,
+#        -116.61265625,    0.        , -114.39701562,    0.        ,
+#        -110.70428125,    0.        , -108.48864062,    0.        ,
+#        -106.273     ,    0.        , -102.58026562,    0.        ,
+#         -99.62607812,    0.        ,  -97.4104375 ,    0.        ,
+#         -92.97915625,    0.        ,  -89.28642187,    0.        ,
+#         -84.85514062,    0.        ,  -81.16240625,    0.        ,
+#         -78.20821875,    0.        , -901.50908125, -881.86373437,
+#        -862.2183875 , -838.95416094, -815.68993437, -792.05643437,
+#        -768.42293437, -749.14686094, -729.8707875 , -706.60656094,
+#        -683.34233437, -664.06626094, -644.7901875 , -617.16853437,
+#        -589.54688125, -565.54410781, -541.54133437, -526.6226875 ,
+#        -511.70404062, -488.8090875 , -465.91413437, -450.9954875 ,
+#        -436.07684062, -421.89674062, -407.71664062, -389.17911406,
+#        -370.6415875 , -347.37736094, -324.11313437, -304.83706094,
+#        -285.5609875 , -262.29676094, -239.03253437, -224.1138875 ,
+#        -209.19524062, -186.3002875 , -163.40533437, -144.12926094,
+#        -124.8531875 , -110.30381406,  -95.75444062,  -81.57434062,
+#         -67.39424062,  -53.21414062,  -39.03404062,  -24.85394062,
+#         -10.67384062,    3.50625938,   17.68635938,   27.50903281,
+#          37.33170625,   51.14253281,   64.95335938,   79.13345938,
+#          93.31355938,  107.49365938,  121.67375938,  127.13900625,
+#         132.60425313,  150.40323281,  168.2022125 ,  182.75158594,
+#         197.30095938,  211.48105938,  225.66115938,  239.84125938,
+#         254.02135938,  268.20145938,  282.38155938,  296.56165938,
+#         310.74175938,  324.92185938,  339.10195938,  353.28205938,
+#         367.46215938,  381.64225938,  395.82235938,  414.35988594,
+#         432.8974125 ,  451.8042125 ,  470.7110125 ,  485.26038594,
+#         499.80975938,  513.98985938,  528.16995938,  546.70748594,
+#         565.2450125 ,  579.79438594,  594.34375938,  608.52385938,
+#         622.70395938,  645.5989125 ,  668.49386563,  687.76993906,
+#         707.0460125 ,  721.59538594,  736.14475938,  759.0397125 ])
+#         herc_alt_std[:62] = np.ma.masked
+#         idx = aal.find_liftoff_start(herc_alt_std)
+#         self.assertEqual(idx, 63)
+#
+#     def test_alt_aal_helicopter_no_rad_alt(self):
+#         '''
+#         real heli example with no rad alt
+#         '''
+#         alt_std = load(os.path.join(
+#             test_data_path, 'AltitudeAAL__S76__AltitudeSTDSmoothed.nod'))
+#         pitch = load(os.path.join(
+#             test_data_path, 'AltitudeAAL__S76__Pitch.nod'))
+#         gog = load(os.path.join(
+#             test_data_path, 'AltitudeAAL__S76__GearOnGround.nod'))
+#         fast = buildsection('Fast', 832, 10750)
+#         alt_aal = AltitudeAAL()
+#         alt_aal.derive(None, alt_std, fast, pitch, gog, helicopter)
 
 
 class TestAimingPointRange(unittest.TestCase):
