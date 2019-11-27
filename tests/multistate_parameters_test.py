@@ -9,7 +9,6 @@ from numpy.ma.testutils import assert_array_equal
 
 from hdfaccess.parameter import MappedArray
 from flightdatautilities import aircrafttables as at, units as ut
-from flightdatautilities.aircrafttables.constants import AVAILABLE_CONF_STATES
 from flightdatautilities import masked_array_testutils as ma_test
 from analysis_engine.test_utils import buildsection, buildsections
 
@@ -762,6 +761,31 @@ class TestCargoSmokeOrFire(unittest.TestCase, NodeTest):
 
 
 class TestConfiguration(unittest.TestCase, NodeTest):
+    AVAILABLE_CONF_STATES = {
+        'Airbus': {
+            0: '0',
+            10: '1',
+            12: '1(T/O)',
+            13: '1+F',
+            16: '1*',
+            20: '2',
+            26: '2*',
+            30: '3',
+            33: '3+S',
+            40: '4',
+            50: '5',
+            90: 'Full',
+        },
+        'Embraer': {
+            1:  '0',
+            2:  '1',
+            4:  '2',
+            8:  '3',
+            16: '4',
+            32: '5',
+            64: 'Full',
+        }
+    }
 
     def setUp(self):
         self.node_class = Configuration
@@ -770,49 +794,49 @@ class TestConfiguration(unittest.TestCase, NodeTest):
     def test_can_operate(self, at):
         at.get_conf_angles.side_effect = ({}, {}, KeyError, {}, KeyError, {}, {})
         self.assertTrue(self.node_class.can_operate(
-            ('Flap Including Transition', 'Slat Including Transition', 'Model', 'Series', 'Family'),
+            ('Flap Including Transition', 'Slat Including Transition', 'Manufacturer', 'Model', 'Series', 'Family'),
             manufacturer=A('Manufacturer', 'Airbus'),
             model=A('Model', 'A320-201'),
             series=A('Series', 'A320-200'),
             family=A('Family', 'A320'),
         ))
         self.assertTrue(self.node_class.can_operate(
-            ('Flap Including Transition', 'Slat Including Transition', 'Model', 'Series', 'Family'),
+            ('Flap Including Transition', 'Slat Including Transition', 'Manufacturer', 'Model', 'Series', 'Family'),
             manufacturer=A('Manufacturer', 'Airbus'),
             model=A('Model', 'A330-301'),
             series=A('Series', 'A330-300'),
             family=A('Family', 'A330'),
         ))
         self.assertFalse(self.node_class.can_operate(
-            ('Flap Including Transition', 'Slat Including Transition', 'Model', 'Series', 'Family'),
+            ('Flap Including Transition', 'Slat Including Transition', 'Manufacturer', 'Model', 'Series', 'Family'),
             manufacturer=A('Manufacturer', 'Airbus'),
             model=A('Model', None),
             series=A('Series', None),
             family=A('Family', None),
         ))
         self.assertFalse(self.node_class.can_operate(
-            ('Flap Including Transition', 'Slat Including Transition', 'Model', 'Series', 'Family'),
+            ('Flap Including Transition', 'Slat Including Transition', 'Manufacturer', 'Model', 'Series', 'Family'),
             manufacturer=A('Manufacturer', 'Airbus'),
             model=A('Model', 'A310-101'),
             series=A('Series', 'A310-100'),
             family=A('Family', 'A310'),
         ))
         self.assertFalse(self.node_class.can_operate(
-            ('Flap Including Transition', 'Slat Including Transition', 'Model', 'Series', 'Family'),
+            ('Flap Including Transition', 'Slat Including Transition', 'Manufacturer', 'Model', 'Series', 'Family'),
             manufacturer=A('Manufacturer', 'Boeing'),
             model=A('Model', None),
             series=A('Series', None),
             family=A('Family', None),
         ))
         self.assertTrue(self.node_class.can_operate(
-            ('Flap Including Transition', 'Slat Including Transition', 'Model', 'Series', 'Family'),
+            ('Flap Including Transition', 'Slat Including Transition', 'Manufacturer', 'Model', 'Series', 'Family'),
             manufacturer=A('Manufacturer', 'Airbus'),
             model=A('Model', None),
             series=A('Series', None),
             family=A('Family', 'A330'),
         ))
         self.assertFalse(self.node_class.can_operate(
-            ('Flap Including Transition', 'Slat Including Transition', 'Model', 'Series', 'Family'),
+            ('Flap Including Transition', 'Slat Including Transition', 'Manufacturer', 'Model', 'Series', 'Family'),
             manufacturer=A('Manufacturer', 'Airbus'),
             model=A('Model', None),
             series=A('Series', 'A340-500'),
@@ -831,10 +855,12 @@ class TestConfiguration(unittest.TestCase, NodeTest):
             '3':    (23, 22, 15),
             'Full': (23, 32, 10),
         }
+        at.constants.AVAILABLE_CONF_STATES = self.AVAILABLE_CONF_STATES
         _am = A('Model', 'A330-301')
         _as = A('Series', 'A330-300')
         _af = A('Family', 'A330')
-        attributes = (_am, _as, _af)
+        manufacturer = A('Manufacturer', 'Airbus')
+        attributes = (_am, _as, _af, manufacturer)
         # Note: The last state is invalid...
         s = [0] * 4 + [16] * 4 + [16] * 4 + [20] * 1 + [20] * 4 + [23] * 1 + [23] * 4 + [23] * 4
         f = [0] * 4 + [0]  * 4 + [8]  * 4 + [8]  * 1 + [14] * 4 + [14] * 1 + [22] * 4 + [32] * 4
@@ -845,11 +871,45 @@ class TestConfiguration(unittest.TestCase, NodeTest):
         node.derive(flap, slat, *attributes)
         attributes = (a.value for a in attributes)
         at.get_conf_angles.assert_called_once_with(*attributes)
-        self.assertEqual(node.values_mapping, AVAILABLE_CONF_STATES)
+        self.assertEqual(node.values_mapping, self.AVAILABLE_CONF_STATES['Airbus'])
         self.assertEqual(node.units, None)
         self.assertIsInstance(node.array, MappedArray)
         values = unique_values(node.array)
         self.assertEqual(values, {'Full': 4, '1+F': 4, '1': 4, '0': 4, '3': 4, '2': 4, '1*': 1, '2*': 1})
+
+    @patch('analysis_engine.multistate_parameters.at')
+    def test_derive_embraer(self, at):
+        at.get_conf_angles.return_value = {
+            '0':    (0, 0, None),
+            '1':    (15, 5, None),
+            '2':    (15, 10, None),
+            '3':    (15, 20, None),
+            '4':    (25, 20, None),
+            '5':    (25, 20, None),
+            'Full': (25, 35, None),
+        }
+        at.constants.AVAILABLE_CONF_STATES = self.AVAILABLE_CONF_STATES
+        _am = A('Model', None)
+        _as = A('Series', None)
+        _af = A('Family', 'ERJ-170/175')
+        approach_landing = buildsections('Approach And Landing', (13, 27))
+        taxi_in = buildsections('Taxi In', (27, 32))
+        manufacturer = A('Manufacturer', 'Embraer')
+        attributes = (_am, _as, _af, manufacturer)
+        s = [0] * 4 + [25] * 4 + [0] * 4 + [15] * 4 + [15] * 4 + [15] * 1 + [25] * 1 + [25] * 4 + [25] * 4
+        f = [0] * 4 + [20] * 4 + [0] * 4 + [5]  * 4 + [10] * 4 + [20] * 1 + [20] * 1 + [35] * 4 + [20] * 4
+        z = lambda i: {x: str(x) for x in np.ma.unique(i)}
+        slat = M('Slat', np.ma.array(s), values_mapping=z(s))
+        flap = M('Flap', np.ma.array(f), values_mapping=z(f))
+        node = self.node_class()
+        node.derive(flap, slat, *attributes, approach_landing, taxi_in)
+        attributes = (a.value for a in attributes)
+        at.get_conf_angles.assert_called_once_with(*attributes)
+        self.assertEqual(node.values_mapping, self.AVAILABLE_CONF_STATES['Embraer'])
+        self.assertEqual(node.units, None)
+        self.assertIsInstance(node.array, MappedArray)
+        values = unique_values(node.array)
+        self.assertEqual(values, {'Full': 4, '0': 8, '1': 4, '2': 4, '3': 1, '4': 4, '5': 5})
 
 
 class TestDaylight(unittest.TestCase):
@@ -1861,35 +1921,40 @@ class TestFlapLeverSynthetic(unittest.TestCase, NodeTest):
             at.get_lever_angles.return_value = {}
             # Test we can operate for something in the lever mapping.
             self.assertTrue(self.node_class.can_operate(
-                ('Flap', 'Slat', 'Model', 'Series', 'Family'),
+                ('Flap', 'Slat', 'Manufacturer', 'Model', 'Series', 'Family'),
+                manufacturer=A('Manufacturer', 'Bombardier'),
                 model=A('Model', 'CRJ900 (CL-600-2D24)'),
                 series=A('Series', 'CRJ900'),
                 family=A('Family', 'CL-600'),
             ))
             # Test we can operate for the above even though slat missing.
             self.assertTrue(self.node_class.can_operate(
-                ('Flap', 'Model', 'Series', 'Family'),
+                ('Flap', 'Manufacturer', 'Model', 'Series', 'Family'),
+                manufacturer=A('Manufacturer', 'Bombardier'),
                 model=A('Model', 'CRJ900 (CL-600-2D24)'),
                 series=A('Series', 'CRJ900'),
                 family=A('Family', 'CL-600'),
             ))
         # Test we can operate for something not in the lever mapping.
         self.assertTrue(self.node_class.can_operate(
-            ('Flap', 'Model', 'Series', 'Family'),
+            ('Flap', 'Manufacturer',  'Model', 'Series', 'Family'),
+            manufacturer=A('Manufacturer', 'Boeing'),
             model=A('Model', 'B737-333'),
             series=A('Series', 'B737-300'),
             family=A('Family', 'B737 Classic'),
         ))
         # Test we can operate even though the above *has* a slat.
         self.assertTrue(self.node_class.can_operate(
-            ('Flap', 'Slat', 'Model', 'Series', 'Family'),
+            ('Flap', 'Slat', 'Manufacturer', 'Model', 'Series', 'Family'),
+            manufacturer=A('Manufacturer', 'Boeing'),
             model=A('Model', 'B737-333'),
             series=A('Series', 'B737-300'),
             family=A('Family', 'B737 Classic'),
         ))
         # Test we can operate with Flaperons
         self.assertTrue(self.node_class.can_operate(
-            ('Flap', 'Slat', 'Flaperon', 'Model', 'Series', 'Family'),
+            ('Flap', 'Slat', 'Flaperon', 'Manufacturer', 'Model', 'Series', 'Family'),
+            manufacturer=A('Manufacturer', 'Airbus'),
             model=A('Model', None),
             series=A('Series', None),
             family=A('Family', 'A330'),
@@ -1905,13 +1970,15 @@ class TestFlapLeverSynthetic(unittest.TestCase, NodeTest):
                 'Lever 3': (20, 40, None),
             }
             self.assertFalse(self.node_class.can_operate(
-                ('Flap', 'Model', 'Series', 'Family'),
+                ('Flap', 'Manufacturer', 'Model', 'Series', 'Family'),
+                manufacturer=A('Manufacturer', 'Bombardier'),
                 model=A('Model', 'CRJ900 (CL-600-2D24)'),
                 series=A('Series', 'CRJ900'),
                 family=A('Family', 'CL-600'),
             ))
             self.assertTrue(self.node_class.can_operate(
-                ('Flap', 'Slat', 'Model', 'Series', 'Family'),
+                ('Flap', 'Slat', 'Manufacturer', 'Model', 'Series', 'Family'),
+                manufacturer=A('Manufacturer', 'Bombardier'),
                 model=A('Model', 'CRJ900 (CL-600-2D24)'),
                 series=A('Series', 'CRJ900'),
                 family=A('Family', 'CL-600'),
@@ -1924,13 +1991,15 @@ class TestFlapLeverSynthetic(unittest.TestCase, NodeTest):
                 'Lever 3': (None, 40, 4),
             }
             self.assertFalse(self.node_class.can_operate(
-                ('Flap', 'Model', 'Series', 'Family'),
+                ('Flap', 'Manufacturer', 'Model', 'Series', 'Family'),
+                manufacturer=A('Manufacturer', 'Bombardier'),
                 model=A('Model', 'CRJ900 (CL-600-2D24)'),
                 series=A('Series', 'CRJ900'),
                 family=A('Family', 'CL-600'),
             ))
             self.assertTrue(self.node_class.can_operate(
-                ('Flap', 'Flaperon', 'Model', 'Series', 'Family'),
+                ('Flap', 'Flaperon', 'Manufacturer', 'Model', 'Series', 'Family'),
+                manufacturer=A('Manufacturer', 'Bombardier'),
                 model=A('Model', 'CRJ900 (CL-600-2D24)'),
                 series=A('Series', 'CRJ900'),
                 family=A('Family', 'CL-600'),
@@ -1943,25 +2012,29 @@ class TestFlapLeverSynthetic(unittest.TestCase, NodeTest):
                 'Lever 3': (20, 40, 4),
             }
             self.assertFalse(self.node_class.can_operate(
-                ('Flap', 'Model', 'Series', 'Family'),
+                ('Flap', 'Manufacturer', 'Model', 'Series', 'Family'),
+                manufacturer=A('Manufacturer', 'Bombardier'),
                 model=A('Model', 'CRJ900 (CL-600-2D24)'),
                 series=A('Series', 'CRJ900'),
                 family=A('Family', 'CL-600'),
             ))
             self.assertFalse(self.node_class.can_operate(
-                ('Flap', 'Slat', 'Model', 'Series', 'Family'),
+                ('Flap', 'Slat', 'Manufacturer', 'Model', 'Series', 'Family'),
+                manufacturer=A('Manufacturer', 'Bombardier'),
                 model=A('Model', 'CRJ900 (CL-600-2D24)'),
                 series=A('Series', 'CRJ900'),
                 family=A('Family', 'CL-600'),
             ))
             self.assertFalse(self.node_class.can_operate(
-                ('Flap', 'Flaperon', 'Model', 'Series', 'Family'),
+                ('Flap', 'Flaperon', 'Manufacturer', 'Model', 'Series', 'Family'),
+                manufacturer=A('Manufacturer', 'Bombardier'),
                 model=A('Model', 'CRJ900 (CL-600-2D24)'),
                 series=A('Series', 'CRJ900'),
                 family=A('Family', 'CL-600'),
             ))
             self.assertTrue(self.node_class.can_operate(
-                ('Flap', 'Slat', 'Flaperon', 'Model', 'Series', 'Family'),
+                ('Flap', 'Slat', 'Flaperon', 'Manufacturer', 'Model', 'Series', 'Family'),
+                manufacturer=A('Manufacturer', 'Bombardier'),
                 model=A('Model', 'CRJ900 (CL-600-2D24)'),
                 series=A('Series', 'CRJ900'),
                 family=A('Family', 'CL-600'),
@@ -1998,8 +2071,9 @@ class TestFlapLeverSynthetic(unittest.TestCase, NodeTest):
         model = A('Model', 'CRJ900 (CL-600-2D24)')
         series = A('Series', 'CRJ900')
         family = A('Family', 'CL-600')
+        manufacturer = A('Manufacturer', 'Bombardier')
         node = self.node_class()
-        node.derive(flap, slat, flaperon, model, series, family)
+        node.derive(flap, slat, flaperon, manufacturer, model, series, family)
 
         # Check against an expected array of lever detents:
         expected = [0, 0, 8, 8, 1, 0, 0, 8, 20, 30, 45, 8, 1, 0, 0]
@@ -2023,8 +2097,9 @@ class TestFlapLeverSynthetic(unittest.TestCase, NodeTest):
         model = A('Model', 'B737-333')
         series = A('Series', 'B737-300')
         family = A('Family', 'B737 Classic')
+        manufacturer = A('Manufacturer', 'Boeing')
         node = self.node_class()
-        node.derive(flap, slat, flaperon, model, series, family)
+        node.derive(flap, slat, flaperon, manufacturer, model, series, family)
 
         # Check against an expected array of lever detents:
         expected = [0, 0, 5, 2, 1, 0, 0, 10, 15, 25, 30, 40, 0, 0, 0]
@@ -2057,8 +2132,9 @@ class TestFlapLeverSynthetic(unittest.TestCase, NodeTest):
         model = A('Model', None)
         series = A('Series', None)
         family = A('Family', 'A330')
+        manufacturer = A('Manufacturer', 'Airbus')
         node = self.node_class()
-        node.derive(flap, slat, flaperon, model, series, family)
+        node.derive(flap, slat, flaperon, manufacturer, model, series, family)
 
         self.assertEqual(list(node.array), list(np.repeat(expected, repeat)))
 
@@ -2103,11 +2179,12 @@ class TestFlapLeverSynthetic(unittest.TestCase, NodeTest):
         model = A('Model', None)
         series = A('Series', None)
         family = A('Family', 'ERJ-170/175')
+        manufacturer = A('Manufacturer', 'Embraer')
         frame = A('Frame', 'E170_EBD_047')
 
         approach = buildsections('Approach And Landing', (7,10))
         node = self.node_class()
-        node.derive(flap, slat, None, model, series, family, approach, frame)
+        node.derive(flap, slat, None, manufacturer, model, series, family, approach, frame)
         self.assertEqual(list(node.array), list(np.repeat(expected, repeat)))
 
 

@@ -46,6 +46,7 @@ from analysis_engine.library import (
     slices_extend,
     slices_from_to,
     slices_overlap,
+    slices_overlap_merge,
     slices_remove_small_gaps,
     slices_remove_small_slices,
     smooth_signal,
@@ -532,25 +533,30 @@ class Configuration(MultistateDerivedParameterNode):
     actual configuration state of the aircraft rather than the intended state
     represented by the selected lever position.
     ''' % pformat(at.constants.AVAILABLE_CONF_STATES)
-    values_mapping = at.constants.AVAILABLE_CONF_STATES
     align_frequency = 2
     units = None
 
     @classmethod
-    def can_operate(cls, available, manufacturer=A('Manufacturer'),
-                    model=A('Model'), series=A('Series'), family=A('Family'),):
+    def can_operate(cls, available, model=A('Model'), series=A('Series'), family=A('Family'),
+                    manufacturer=A('Manufacturer'),):
 
-        if manufacturer and not manufacturer.value == 'Airbus':
+        if manufacturer and manufacturer.value not in ('Airbus', 'Embraer'):
             return False
 
         if family and family.value in ('A300', 'A310',):
             return False
 
-        if not all_of(('Slat Including Transition', 'Flap Including Transition', 'Model', 'Series', 'Family'), available):
+        if not all_of(
+            ('Slat Including Transition', 'Flap Including Transition', 'Manufacturer', 'Model', 'Series', 'Family'),
+            available,
+        ):
+            return False
+        
+        if manufacturer and manufacturer.value == 'Embraer' and not all_of(('Approach And Landing', 'Taxi In'), available):
             return False
 
         try:
-            at.get_conf_angles(model.value, series.value, family.value)
+            at.get_conf_angles(model.value, series.value, family.value, manufacturer.value)
         except KeyError:
             cls.warning("No conf angles available for '%s', '%s', '%s'.",
                         model.value, series.value, family.value)
@@ -559,20 +565,29 @@ class Configuration(MultistateDerivedParameterNode):
         return True
 
     def derive(self, flap=M('Flap Including Transition'), slat=M('Slat Including Transition'),
-               model=A('Model'), series=A('Series'), family=A('Family'),):
+               model=A('Model'), series=A('Series'), family=A('Family'), manufacturer=A('Manufacturer'),
+               approach_landing=S('Approach And Landing'), taxi_in=S('Taxi In')):
 
-        angles = at.get_conf_angles(model.value, series.value, family.value)
+        angles = at.get_conf_angles(model.value, series.value, family.value, manufacturer.value)
+        values_mapping = at.constants.AVAILABLE_CONF_STATES[manufacturer.value]
 
         # initialize an empty masked array the same length as flap array
         self.array = MappedArray(np_ma_masked_zeros_like(flap.array, dtype=np.short),
-                                 values_mapping=self.values_mapping)
+                                 values_mapping=values_mapping)
 
         for (state, (s, f, a)) in six.iteritems(angles):
             condition = (flap.array == f)
             if s is not None:
                 condition &= (slat.array == s)
-
-            self.array[condition] = state
+            if manufacturer.value == 'Embraer' and state == '5':
+                # Flap 4 and 5 are identical. 5 used for approach/landing. 4 used for takeoff/go-around.
+                # Taxi-in included for retraction after landing. Extended to remove any gap between slices.
+                taxi_in = slices_extend([x.slice for x in taxi_in], 5)
+                approach_landing = [x.slice for x in approach_landing]
+                for section in slices_overlap_merge(approach_landing, taxi_in):
+                    self.array[section][condition[section]] = state
+            else:
+                self.array[condition] = state
 
         nearest_neighbour_mask_repair(self.array, copy=False,
                                       repair_gap_size=(30 * self.hz),
@@ -596,13 +611,12 @@ class ConfigurationExcludingTransition(MultistateDerivedParameterNode):
     actual configuration state of the aircraft rather than the intended state
     represented by the selected lever position.
     ''' % pformat(at.constants.AVAILABLE_CONF_STATES)
-    values_mapping = at.constants.AVAILABLE_CONF_STATES
     align_frequency = 2
     units = None
 
     @classmethod
-    def can_operate(cls, available, manufacturer=A('Manufacturer'),
-                    model=A('Model'), series=A('Series'), family=A('Family'),):
+    def can_operate(cls, available, model=A('Model'), series=A('Series'), family=A('Family'),
+                    manufacturer=A('Manufacturer'),):
 
         if manufacturer and not manufacturer.value == 'Airbus':
             return False
@@ -610,7 +624,9 @@ class ConfigurationExcludingTransition(MultistateDerivedParameterNode):
         if family and family.value in ('A300', 'A310',):
             return False
 
-        if not all_of(('Slat Excluding Transition', 'Flap Excluding Transition', 'Model', 'Series', 'Family'), available):
+        if not all_of((
+            'Slat Excluding Transition', 'Flap Excluding Transition', 'Manufacturer', 'Model', 'Series', 'Family'
+        ), available):
             return False
 
         try:
@@ -623,16 +639,17 @@ class ConfigurationExcludingTransition(MultistateDerivedParameterNode):
         return True
 
     def derive(self, flap=M('Flap Excluding Transition'), slat=M('Slat Excluding Transition'),
-               model=A('Model'), series=A('Series'), family=A('Family'),
+               model=A('Model'), series=A('Series'), family=A('Family'), manufacturer=A('Manufacturer'),
 
 
                conf=M('Configuration')):
 
         angles = at.get_conf_angles(model.value, series.value, family.value)
+        values_mapping = at.constants.AVAILABLE_CONF_STATES[manufacturer.value]
 
         # initialize an empty masked array the same length as flap array
         self.array = MappedArray(np_ma_masked_zeros_like(flap.array, dtype=np.short),
-                                 values_mapping=self.values_mapping)
+                                 values_mapping=values_mapping)
 
         for (state, (s, f, a)) in six.iteritems(angles):
             condition = (flap.array == f)
@@ -1391,10 +1408,10 @@ class FlapLeverSynthetic(MultistateDerivedParameterNode):
     align_frequency = 2  # force higher than most Flap frequencies
 
     @classmethod
-    def can_operate(cls, available,
+    def can_operate(cls, available, manufacturer=A('Manufacturer'),
                     model=A('Model'), series=A('Series'), family=A('Family')):
 
-        if not all_of(('Flap', 'Model', 'Series', 'Family'), available):
+        if not all_of(('Flap', 'Model', 'Series', 'Family', 'Manufacturer'), available):
             return False
 
         try:
@@ -1422,10 +1439,12 @@ class FlapLeverSynthetic(MultistateDerivedParameterNode):
 
         return can_operate
 
-    def derive(self, flap=M('Flap'), slat=M('Slat'), flaperon=M('Flaperon'),
+    def derive(self, flap=M('Flap'), slat=M('Slat'), flaperon=M('Flaperon'), manufacturer=A('Manufacturer'),
                model=A('Model'), series=A('Series'), family=A('Family'),
                approach=S('Approach And Landing'), frame=A('Frame'),):
         try:
+            if manufacturer.value != 'Airbus':
+                raise KeyError
             angles = at.get_conf_angles(model.value, series.value, family.value)
             use_conf = True
         except KeyError:
