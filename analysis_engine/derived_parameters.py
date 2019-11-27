@@ -5103,11 +5103,13 @@ class CoordinatesSmoothed(object):
                     toff_rwy.value, toff_start_lat,
                     toff_start_lon)
                 start_locn_default = toff_rwy.value['start']
-                _,distance = bearing_and_distance(start_locn_recorded['latitude'],
-                                                  start_locn_recorded['longitude'],
-                                                  start_locn_default['latitude'],
-                                                  start_locn_default['longitude'])
-
+                if None in start_locn_recorded.values():
+                    masked_toff = True
+                else:
+                    _,distance = bearing_and_distance(start_locn_recorded['latitude'],
+                                                      start_locn_recorded['longitude'],
+                                                      start_locn_default['latitude'],
+                                                      start_locn_default['longitude'])
                 if distance < 50 and not masked_toff:
                     # We may have a reasonable start location, so let's use that
                     start_locn = start_locn_recorded
@@ -5988,6 +5990,14 @@ class LongitudePrepared(DerivedParameterNode, CoordinatesStraighten):
         hdg = hdg_true if hdg_true else hdg_mag
         speed = gspd if gspd else tas
 
+        coords = [
+            lat_lift.get_first(), lon_lift.get_first(),
+            lat_land.get_last(), lon_land.get_last()
+        ]
+        if any(coord is None for coord in coords):
+            self.array = np_ma_masked_zeros_like(alt_aal.array)
+            return
+
         _, lon_array = air_track(
             lat_lift.get_first().value, lon_lift.get_first().value,
             lat_land.get_last().value, lon_land.get_last().value,
@@ -6067,6 +6077,14 @@ class LatitudePrepared(DerivedParameterNode, CoordinatesStraighten):
                lon_land=KPV('Longitude At Touchdown')):
         hdg = hdg_true if hdg_true else hdg_mag
         speed = gspd if gspd else tas
+
+        coords = [
+            lat_lift.get_first(), lon_lift.get_first(),
+            lat_land.get_last(), lon_land.get_last()
+        ]
+        if any(coord is None for coord in coords):
+            self.array = np_ma_masked_zeros_like(alt_aal.array)
+            return
 
         lat_array, _ = air_track(
             lat_lift.get_first().value, lon_lift.get_first().value,

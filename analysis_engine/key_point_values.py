@@ -6305,7 +6305,7 @@ class BaroCorrectionMinus1013Above20000FtDuringLevelFlightMax(KeyPointValueNode)
                 avg_alt = np.ma.average(alt_std.array[high_level])
                 if not avg_alt:
                     continue
-                nearest_1000ft = round(avg_alt, -3)
+                nearest_1000ft = np.ma.around(avg_alt, decimals=-3)
                 diff = abs(avg_alt - nearest_1000ft)
                 if diff > 100:
                     significant_diffs.append((diff, high_level))
