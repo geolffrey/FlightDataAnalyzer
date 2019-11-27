@@ -8,7 +8,7 @@ import tempfile
 import unittest
 import csv
 
-from mock import Mock, patch
+from unittest.mock import Mock, patch
 
 from numpy.ma.testutils import assert_array_almost_equal, assert_array_equal, assert_almost_equal, assert_equal
 
@@ -5974,9 +5974,58 @@ class TestLatitudePrepared(unittest.TestCase):
         ]
         self.assertEqual(combinations, expected_combinations)
 
-    @unittest.skip('Test Not Implemented')
-    def test_derive(self):
-        self.assertTrue(False, msg='Test not implemented.')
+@patch("analysis_engine.derived_parameters.air_track", return_value=(None, None))
+    def test_derive(self, air_track):
+        hdg_mag = P("Heading")
+        gspd = P("Groundspeed")
+        tas = P("Airspeed True", frequency=2)
+        alt_aal = P("Altitude AAL")
+        lat_lift = KPV(
+            "Latitude At Liftoff",
+            items=[KeyPointValue(name="Latitude At Liftoff", index=10, value=20)],
+        )
+        lon_lift = KPV(
+            "Longitude At Liftoff",
+            items=[KeyPointValue(name="Longitude At Liftoff", index=10, value=120)],
+        )
+        lat_land = KPV(
+            "Latitude At Touchdown",
+            items=[KeyPointValue(name="Latitude At Touchdown", index=200, value=50)],
+        )
+        lon_land = KPV(
+            "Longitude At Touchdown",
+            items=[KeyPointValue(name="Longitude At Touchdown", index=200, value=70)],
+        )
+        node = LongitudePrepared()
+        node.derive(
+            hdg_mag, None, tas, gspd, alt_aal, lat_lift, lon_lift, lat_land, lon_land
+        )
+        air_track.assert_called_with(
+            20, 120, 50, 70, gspd.array, hdg_mag.array, alt_aal.array, 2
+        )
+
+    @patch("analysis_engine.derived_parameters.air_track", return_value=(None, None))
+    def test_derive_empty_liftoff_coords(self, air_track):    
+        hdg_mag = P("Heading")
+        gspd = P("Groundspeed")
+        tas = P("Airspeed True", frequency=2)
+        alt_aal = P("Altitude AAL")
+        lat_lift = KPV("Latitude At Liftoff")
+        lon_lift = KPV("Longitude At Liftoff")
+        lat_land = KPV(
+            "Latitude At Touchdown",
+            items=[KeyPointValue(name="Latitude At Touchdown", index=200, value=50)],
+        )
+        lon_land = KPV(
+            "Longitude At Touchdown",
+            items=[KeyPointValue(name="Longitude At Touchdown", index=200, value=70)],
+        )
+        node = LongitudePrepared()
+        node.derive(
+            hdg_mag, None, tas, gspd, alt_aal, lat_lift, lon_lift, lat_land, lon_land
+        )
+        air_track.assert_not_called()
+        self.assertFalse(node.array)
 
 
 class TestLatitudeSmoothed(unittest.TestCase):
@@ -6020,9 +6069,58 @@ class TestLongitudePrepared(unittest.TestCase):
         ]
         self.assertEqual(combinations, expected_combinations)
 
-    @unittest.skip('Test Not Implemented')
-    def test_derive(self):
-        self.assertTrue(False, msg='Test not implemented')
+    @patch("analysis_engine.derived_parameters.air_track", return_value=(None, None))
+    def test_derive(self, air_track):
+        hdg_mag = P("Heading")
+        gspd = P("Groundspeed")
+        tas = P("Airspeed True", frequency=2)
+        alt_aal = P("Altitude AAL")
+        lat_lift = KPV(
+            "Latitude At Liftoff",
+            items=[KeyPointValue(name="Latitude At Liftoff", index=10, value=20)],
+        )
+        lon_lift = KPV(
+            "Longitude At Liftoff",
+            items=[KeyPointValue(name="Longitude At Liftoff", index=10, value=120)],
+        )
+        lat_land = KPV(
+            "Latitude At Touchdown",
+            items=[KeyPointValue(name="Latitude At Touchdown", index=200, value=50)],
+        )
+        lon_land = KPV(
+            "Longitude At Touchdown",
+            items=[KeyPointValue(name="Longitude At Touchdown", index=200, value=70)],
+        )
+        node = LongitudePrepared()
+        node.derive(
+            hdg_mag, None, tas, gspd, alt_aal, lat_lift, lon_lift, lat_land, lon_land
+        )
+        air_track.assert_called_with(
+            20, 120, 50, 70, gspd.array, hdg_mag.array, alt_aal.array, 2
+        )
+
+    @patch("analysis_engine.derived_parameters.air_track", return_value=(None, None))
+    def test_derive_empty_liftoff_coords(self, air_track):    
+        hdg_mag = P("Heading")
+        gspd = P("Groundspeed")
+        tas = P("Airspeed True", frequency=2)
+        alt_aal = P("Altitude AAL")
+        lat_lift = KPV("Latitude At Liftoff")
+        lon_lift = KPV("Longitude At Liftoff")
+        lat_land = KPV(
+            "Latitude At Touchdown",
+            items=[KeyPointValue(name="Latitude At Touchdown", index=200, value=50)],
+        )
+        lon_land = KPV(
+            "Longitude At Touchdown",
+            items=[KeyPointValue(name="Longitude At Touchdown", index=200, value=70)],
+        )
+        node = LongitudePrepared()
+        node.derive(
+            hdg_mag, None, tas, gspd, alt_aal, lat_lift, lon_lift, lat_land, lon_land
+        )
+        air_track.assert_not_called()
+        self.assertFalse(node.array)
 
 
 class TestLongitudeSmoothed(unittest.TestCase):
