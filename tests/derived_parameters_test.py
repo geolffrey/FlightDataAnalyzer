@@ -5974,7 +5974,7 @@ class TestLatitudePrepared(unittest.TestCase):
         ]
         self.assertEqual(combinations, expected_combinations)
 
-@patch("analysis_engine.derived_parameters.air_track", return_value=(None, None))
+    @patch("analysis_engine.derived_parameters.air_track", return_value=(None, None))
     def test_derive(self, air_track):
         hdg_mag = P("Heading")
         gspd = P("Groundspeed")
@@ -6005,7 +6005,7 @@ class TestLatitudePrepared(unittest.TestCase):
         )
 
     @patch("analysis_engine.derived_parameters.air_track", return_value=(None, None))
-    def test_derive_empty_liftoff_coords(self, air_track):    
+    def test_derive_empty_liftoff_coords(self, air_track):
         hdg_mag = P("Heading")
         gspd = P("Groundspeed")
         tas = P("Airspeed True", frequency=2)
@@ -6100,7 +6100,7 @@ class TestLongitudePrepared(unittest.TestCase):
         )
 
     @patch("analysis_engine.derived_parameters.air_track", return_value=(None, None))
-    def test_derive_empty_liftoff_coords(self, air_track):    
+    def test_derive_empty_liftoff_coords(self, air_track):
         hdg_mag = P("Heading")
         gspd = P("Groundspeed")
         tas = P("Airspeed True", frequency=2)
