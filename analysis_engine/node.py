@@ -1237,7 +1237,7 @@ class SectionNode(Node, list):
             index = index * (self.frequency / frequency)
         ordered = self.get_ordered_by_index(**kwargs)
         for elem in reversed(ordered):
-            if getattr(elem.slice, use) < index:
+            if getattr(elem.slice, use) <= index:
                 return elem
         return None
 
