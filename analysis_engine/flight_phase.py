@@ -1759,9 +1759,8 @@ class Takeoff(FlightPhaseNode):
             # If it takes more than 5 minutes, he's certainly not doing a normal
             # takeoff !
             last = takeoff_run + (300 * alt_aal.frequency)
-            # Limit last to be the earliest of 5 mins or maximum altitude
-            # during fast slice to account for short flights
-            last = min(last, max_value(alt_aal.array, _slice=slice(takeoff_run, speedy.slice.stop)).index)
+            # Limit last to be the maximum altitude within 5 minutes
+            last = max_value(alt_aal.array, _slice=slice(takeoff_run, last)).index
             takeoff_end = index_at_value(alt_aal.array, INITIAL_CLIMB_THRESHOLD,
                                          slice(last, takeoff_run, -1))
 
