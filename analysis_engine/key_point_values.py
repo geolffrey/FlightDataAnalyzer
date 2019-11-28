@@ -3912,6 +3912,25 @@ class MainGearOnGroundToNoseGearOnGroundDuration(KeyPointValueNode):
                                 (gogn_index - gog_index) / self.frequency)
 
 
+class GearRetractionDuration(KeyPointValueNode):
+    '''
+    Duration of landing gear retraction.
+    '''
+    units = ut.SECOND
+    def derive(self, git=P('Gear Up In Transit'),):
+        sections = runs_of_ones(git.array == 'Retracting')
+        self.create_kpvs_from_slice_durations(slices_int(sections), self.hz)
+
+
+class GearExtensionDuration(KeyPointValueNode):
+    '''
+    Duration of landing gear retraction.
+    '''
+    units = ut.SECOND
+    def derive(self, git=P('Gear Down In Transit'),):
+        sections = runs_of_ones(git.array == 'Extending')
+        self.create_kpvs_from_slice_durations(slices_int(sections), self.hz)
+
 ########################################
 # Airspeed: Conf
 

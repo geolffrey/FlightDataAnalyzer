@@ -435,6 +435,8 @@ from analysis_engine.key_point_values import (
     FuelQtyWingDifference787Max,
     GearboxChipDetectorWarningDuration,
     GearDownToLandingFlapConfigurationDuration,
+    GearExtensionDuration,
+    GearRetractionDuration,
     GreatCircleDistance,
     GrossWeightAtLiftoff,
     GrossWeightAtTouchdown,
@@ -6311,6 +6313,46 @@ class TestMainGearOnGroundToNoseGearOnGroundDuration(unittest.TestCase,
         ])
 
 
+class TestGearRetractionDuration(unittest.TestCase):
+    def setUp(self):
+        self.node_class = GearRetractionDuration
+
+    def test_derive(self):
+        git_mapping = {
+            0: '-',
+            1: 'Retracting'
+        }
+        array = np.ma.array([0]*10 + [1]*15 + [0]*10 + [1]*10 + [0]*15)
+        git = M('Gear Up In Transition', array=array, values_mapping=git_mapping)
+        node = self.node_class()
+        node.derive(git)
+        self.assertEqual(len(node), 2)
+        self.assertEqual(node[0].index, 10)
+        self.assertEqual(node[0].value, 15)
+        self.assertEqual(node[1].index, 35)
+        self.assertEqual(node[1].value, 10)
+
+
+class TestGearExtensionDuration(unittest.TestCase):
+    def setUp(self):
+        self.node_class = GearExtensionDuration
+
+    def test_derive(self):
+        git_mapping = {
+            0: '-',
+            1: 'Extending'
+        }
+        array = np.ma.array([0] * 10 + [1] * 15 + [0] * 10 + [1] * 10 + [0] * 15)
+        git = M('Gear Up In Transition', array=array, values_mapping=git_mapping)
+        node = self.node_class()
+        node.derive(git)
+        self.assertEqual(len(node), 2)
+        self.assertEqual(node[0].index, 10)
+        self.assertEqual(node[0].value, 15)
+        self.assertEqual(node[1].index, 35)
+        self.assertEqual(node[1].value, 10)
+
+        
 ##################################
 # Braking
 
