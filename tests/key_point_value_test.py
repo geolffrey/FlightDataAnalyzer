@@ -6324,13 +6324,12 @@ class TestGearRetractionDuration(unittest.TestCase):
         }
         array = np.ma.array([0]*10 + [1]*15 + [0]*10 + [1]*10 + [0]*15)
         git = M('Gear Up In Transition', array=array, values_mapping=git_mapping)
+        airs = buildsection('Airborne', 25, 60)
         node = self.node_class()
-        node.derive(git)
-        self.assertEqual(len(node), 2)
-        self.assertEqual(node[0].index, 10)
-        self.assertEqual(node[0].value, 15)
-        self.assertEqual(node[1].index, 35)
-        self.assertEqual(node[1].value, 10)
+        node.derive(git, airs)
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 35)
+        self.assertEqual(node[0].value, 10)
 
 
 class TestGearExtensionDuration(unittest.TestCase):
@@ -6344,13 +6343,12 @@ class TestGearExtensionDuration(unittest.TestCase):
         }
         array = np.ma.array([0] * 10 + [1] * 15 + [0] * 10 + [1] * 10 + [0] * 15)
         git = M('Gear Up In Transition', array=array, values_mapping=git_mapping)
+        airs = buildsection('Airborne', 25, 60)
         node = self.node_class()
-        node.derive(git)
-        self.assertEqual(len(node), 2)
-        self.assertEqual(node[0].index, 10)
-        self.assertEqual(node[0].value, 15)
-        self.assertEqual(node[1].index, 35)
-        self.assertEqual(node[1].value, 10)
+        node.derive(git, airs)
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 35)
+        self.assertEqual(node[0].value, 10)
 
         
 ##################################

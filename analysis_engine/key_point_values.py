@@ -3917,8 +3917,10 @@ class GearRetractionDuration(KeyPointValueNode):
     Duration of landing gear retraction.
     '''
     units = ut.SECOND
-    def derive(self, git=P('Gear Up In Transit'),):
+    def derive(self, git=P('Gear Up In Transit'),
+                     airborne=S('Airborne'),):
         sections = runs_of_ones(git.array == 'Retracting')
+        sections = slices_and(sections, airborne.get_slices())
         self.create_kpvs_from_slice_durations(slices_int(sections), self.hz)
 
 
@@ -3927,8 +3929,10 @@ class GearExtensionDuration(KeyPointValueNode):
     Duration of landing gear retraction.
     '''
     units = ut.SECOND
-    def derive(self, git=P('Gear Down In Transit'),):
+    def derive(self, git=P('Gear Down In Transit'),
+                     airborne=S('Airborne'),):
         sections = runs_of_ones(git.array == 'Extending')
+        sections = slices_and(sections, airborne.get_slices())
         self.create_kpvs_from_slice_durations(slices_int(sections), self.hz)
 
 ########################################
