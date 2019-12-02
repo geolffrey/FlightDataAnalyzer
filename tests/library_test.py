@@ -4753,6 +4753,19 @@ class TestBlendTwoParameters(unittest.TestCase):
         p2 = P(array=[1.5, 1.4], frequency=0.5, offset = 1.5)
         self.assertRaises(ValueError, blend_two_parameters, p1, p2, mode='glodeslipe')
 
+    def test_blend_two_parameters_interp_1hz(self):
+        # run the _interp function on on first parameter and ensure the result is 2Hz but does not have an offset
+        # of 0.5
+        p1 = P(array=[-0.66028192, -0.66028192, -0.66028192, -0.66028192, -0.66028192,
+                      -0.66028192, -0.66028192, -0.66028192, -0.66028192, -0.66028192], frequency=1, offset=0.5)
+        p2 = P(array=[-0.693044, -0.693044, -0.693044, -0.693044, -0.693044,
+                      -0.693044, -0.693044, -0.693044, -0.693044, -0.693044], frequency=1, offset=0.078125)
+        array, frequency, offset = blend_two_parameters(p1, p2)
+        self.assertEqual(len(array), 20)
+        self.assertEqual(frequency, 2.0)
+        self.assertEqual(offset, 0.0)
+
+
 class TestModulo(unittest.TestCase):
     def test_modulo(self):
         self.assertEqual(modulo(10, 2), 0)
