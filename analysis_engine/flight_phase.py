@@ -1636,6 +1636,10 @@ class RejectedTakeoff(FlightPhaseNode):
             if toga is not None:
                 rto_list=[]
                 potential_rtos = slices_remove_small_gaps(runs_of_ones(toga.array))
+                # on some frames, TOGA is registered as a button press lasting 1 sample, so we remove anything that's
+                # less than 2 seconds, this can still break on frames that have TOGA recorded at 0.5Hz, but currently
+                # we have no such frames
+                potential_rtos = slices_remove_small_slices(potential_rtos, 2, hz=self.hz)
                 potential_rtos = slices_and(potential_rtos, n1_max_above_50)
                 # for rto in potential_rtos:
                 #     # If there is any decelleration during toga, find the first section of deceleration.
