@@ -4631,7 +4631,8 @@ class ApproachFlightPathAngle(DerivedParameterNode):
                 alt_aal.array[shift_slice(alt_band, app.slice.start)],
                 indep_var=dist.array[shift_slice(alt_band, app.slice.start)]
             )
-
+            if not offset or not slope:
+                continue
             dist_adj = -offset/slope
             slope_to_ldg = alt_cropped / ut.convert(
                 dist.array[app.slice]-dist_adj, ut.NM, ut.FT
@@ -5110,7 +5111,7 @@ class CoordinatesSmoothed(object):
                                                       start_locn_recorded['longitude'],
                                                       start_locn_default['latitude'],
                                                       start_locn_default['longitude'])
-                if distance < 50 and not masked_toff:
+                if not masked_toff and distance and distance < 50:
                     # We may have a reasonable start location, so let's use that
                     start_locn = start_locn_recorded
                     initial_displacement = 0.0

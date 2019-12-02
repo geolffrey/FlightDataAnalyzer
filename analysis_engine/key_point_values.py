@@ -1019,6 +1019,9 @@ class LoadFactorThresholdAtTouchdown(KeyPointValueNode):
             else:
                 weight = gw_value[0]
 
+            if weight is None:
+                continue
+
             overweight = weight > weight_threshold
 
             if ac_type in ['B757', 'B767']:

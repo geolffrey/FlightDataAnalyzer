@@ -241,6 +241,9 @@ class Holding(FlightPhaseNode):
                 slices_remove_small_gaps(turn_left_bands, time_limit=HOLDING_MIN_TIME, hz=frequency),
                 this_scan.start,
             ))
+
+        # Filter out slices where start or stop is None
+        all_turn_bands = [turn for turn in all_turn_bands if turn.start and turn.stop]
         if len(all_turn_bands) > 1: # must have more than one turn
             for turn_band in all_turn_bands:
                 # Reject short periods and check that the average groundspeed was

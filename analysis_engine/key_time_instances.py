@@ -1990,7 +1990,7 @@ class MinsToTouchdown(KeyTimeInstanceNode):
             for t in self.NAME_VALUES['time']:
                 index = touchdown.index - (t * 60 * self.frequency)
                 # Make sure the aircraft was airborne at that time.
-                if index > liftoffs.get_previous(touchdown.index).index:
+                if index and index > liftoffs.get_previous(touchdown.index).index:
                     self.create_kti(index, time=t)
 
 
@@ -2005,7 +2005,7 @@ class SecsToTouchdown(KeyTimeInstanceNode):
             for t in self.NAME_VALUES['time']:
                 index = touchdown.index - (t * self.frequency)
                 # Make sure the aircraft was airborne at that time.
-                if index > liftoffs.get_previous(touchdown.index).index:
+                if index and index > liftoffs.get_previous(touchdown.index).index:
                     self.create_kti(index, time=t)
 
 

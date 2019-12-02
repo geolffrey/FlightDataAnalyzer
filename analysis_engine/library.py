@@ -4554,7 +4554,7 @@ def blend_two_parameters(param_one, param_two, mode=None):
         rates.
         '''
         b = np.ma.empty(2 * a.size,)
-        if off > 0.5/freq:
+        if off >= 0.5/freq:
             b[1::2] = a
             b[2::2] = (a[:-1]+a[1:]) / 2.0
             b[0] = b[1]
@@ -4664,7 +4664,7 @@ def blend_two_parameters(param_one, param_two, mode=None):
         offset = (param_one.offset + param_two.offset)/2.0
         padding = 'Follow'
 
-        if offset > 1.0/frequency:
+        if offset >= 1.0/frequency:
             offset = offset - 1.0/frequency
             padding = 'Precede'
 
