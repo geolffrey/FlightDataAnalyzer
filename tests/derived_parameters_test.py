@@ -1933,6 +1933,23 @@ class TestAltitudeRadio(unittest.TestCase):
         self.assertEqual(alt_rad.offset, 0.0)
         self.assertEqual(alt_rad.frequency, 4.0)
 
+    def test_altitude_radio_b737_no_overflow(self):
+        source_A = load(os.path.join(test_data_path, 'radio_737_test_source_A.nod'))
+        source_B = load(os.path.join(test_data_path, 'radio_737_test_source_B.nod'))
+        source_C = load(os.path.join(test_data_path, 'radio_737_test_source_C.nod'))
+        alt_std = load(os.path.join(test_data_path, 'radio_737_test_alt_std.nod'))
+        pitch = load(os.path.join(test_data_path, 'radio_737_test_pitch.nod'))
+        fast = load(os.path.join(test_data_path, 'radio_737_test_fast.nod'))
+        ccd = load(os.path.join(test_data_path, 'radio_737_test_ccd.nod'))
+        rad = AltitudeRadio()
+        rad.derive(source_A, source_B, source_C, None, None, None, None, None,
+                   alt_std, pitch,
+                   fast, family=A('Family', 'B737'), ccd=ccd)
+
+        sects = np.ma.clump_unmasked(rad.array)
+        self.assertEqual(len(sects), 2)
+        self.assertGreater(np.ma.min(rad.array), -4.92)
+
 
 class TestAltitudeRadioOffsetRemoved(unittest.TestCase):
     def setUp(self):
