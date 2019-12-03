@@ -210,7 +210,7 @@ class HTTPHandler(MethodInterface, api.HTTPHandler):
         #       See https://gis.stackexchange.com/a/8674 for details.
         params = {'ll': '%.3f,%.3f' % (latitude, longitude), 'all': 1}
         if flight_dt:
-            params['flight_dt'] = flight_dt.value.isoformat()
+            params['flight_dt'] = flight_dt.isoformat()
         return self.request(url, params=params)
 
 

@@ -438,7 +438,7 @@ class TakeoffAirport(FlightAttributeNode):
         if lat and lon:
             handler = api.get_handler(settings.API_HANDLER)
             try:
-                airports = handler.get_nearest_airport(lat.value, lon.value, flight_dt=takeoff_dt)
+                airports = handler.get_nearest_airport(lat.value, lon.value, flight_dt=takeoff_dt.value)
             except api.NotFoundError:
                 msg = 'No takeoff airport found near coordinates (%f, %f).'
                 self.warning(msg, lat.value, lon.value)
@@ -467,7 +467,7 @@ class TakeoffAirport(FlightAttributeNode):
         '''
         # 1. If we have latitude and longitude, look for the nearest airport:
         if toff_lat and toff_lon and takeoff_dt:
-            success = self.lookup_airport(toff_lat, toff_lon, takeoff_dt.value)
+            success = self.lookup_airport(toff_lat, toff_lon, takeoff_dt)
             if success:
                 return
 
@@ -480,7 +480,7 @@ class TakeoffAirport(FlightAttributeNode):
 
         # 3. If we have coordinates of Aircraft moving off Blocks look for the nearest airport:
         if off_block_lat and off_block_lon and takeoff_dt:
-            success = self.lookup_airport(off_block_lat, off_block_lon, takeoff_dt.value)
+            success = self.lookup_airport(off_block_lat, off_block_lon, takeoff_dt)
             if success:
                 return
 
