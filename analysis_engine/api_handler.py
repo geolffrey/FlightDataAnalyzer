@@ -82,6 +82,8 @@ class MethodInterface(six.with_metaclass(abc.ABCMeta, object)):
 
         :param code: airport id, ICAO code or IATA code.
         :type code: int or str
+        :param flight_dt: date and time of the flight (UTC).
+        :type flight_dt: datetime.datetime
         :returns: airport info dictionary
         :rtype: dict
         :raises: api.NotFoundError -- if the aircraft cannot be found.
@@ -97,6 +99,8 @@ class MethodInterface(six.with_metaclass(abc.ABCMeta, object)):
         :type latitude: float
         :param longitude: longitude in decimal degrees.
         :type longitude: float
+        :param flight_dt: date and time of the flight (UTC).
+        :type flight_dt: datetime.datetime
         :returns: airport info dictionary
         :rtype: dict
         :raises: api.NotFoundError -- if the aircraft cannot be found.
@@ -163,6 +167,8 @@ class HTTPHandler(MethodInterface, api.HTTPHandler):
 
         :param code: airport id, ICAO code or IATA code.
         :type code: int or str
+        :param flight_dt: date and time of the flight (UTC).
+        :type flight_dt: datetime.datetime
         :returns: airport info dictionary
         :rtype: dict
         :raises: api.NotFoundError -- if the aircraft cannot be found.
@@ -182,6 +188,8 @@ class HTTPHandler(MethodInterface, api.HTTPHandler):
         :type latitude: float
         :param longitude: longitude in decimal degrees.
         :type longitude: float
+        :param flight_dt: date and time of the flight (UTC).
+        :type flight_dt: datetime.datetime
         :returns: airport info dictionary
         :rtype: dict
         :raises: api.NotFoundError -- if the aircraft cannot be found.
@@ -202,7 +210,7 @@ class HTTPHandler(MethodInterface, api.HTTPHandler):
         #       See https://gis.stackexchange.com/a/8674 for details.
         params = {'ll': '%.3f,%.3f' % (latitude, longitude), 'all': 1}
         if flight_dt:
-            params.update(flight_dt=flight_dt.value.isoformat())
+            params['flight_dt'] = flight_dt.value.isoformat()
         return self.request(url, params=params)
 
 
@@ -256,12 +264,14 @@ class FileHandler(MethodInterface, api.FileHandler):
         except (KeyError, TypeError):
             raise api.NotFoundError('Aircraft not found using Local File API: %s' % aircraft)
 
-    def get_airport(self, code):
+    def get_airport(self, code, flight_dt=None):
         '''
         Returns details of an airport matching the provided code.
 
         :param code: airport id, ICAO code or IATA code.
         :type code: int or str
+        :param flight_dt: date and time of the flight (UTC).
+        :type flight_dt: datetime.datetime
         :returns: airport info dictionary
         :rtype: dict
         :raises: api.NotFoundError -- if the aircraft cannot be found.
@@ -272,7 +282,7 @@ class FileHandler(MethodInterface, api.FileHandler):
                 return airport
         raise api.NotFoundError('Airport not found using Local File API: %s' % code)
 
-    def get_nearest_airport(self, latitude, longitude):
+    def get_nearest_airport(self, latitude, longitude, flight_dt=None):
         '''
         Returns the nearest airports to the provided latitude and longitude.
 
@@ -280,6 +290,8 @@ class FileHandler(MethodInterface, api.FileHandler):
         :type latitude: float
         :param longitude: longitude in decimal degrees.
         :type longitude: float
+        :param flight_dt: date and time of the flight (UTC).
+        :type flight_dt: datetime.datetime
         :returns: airport info dictionary
         :rtype: dict
         :raises: api.NotFoundError -- if the aircraft cannot be found.
