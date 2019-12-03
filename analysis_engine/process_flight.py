@@ -475,11 +475,10 @@ def process_flight(segment_info, tail_number, aircraft_info={}, achieved_flight_
             'id': 1,
             'identifier': '21L',
             'magnetic_heading': 212.6,
-            'strip': {
-                'id': 1,
-                'length': 13123,
-                'surface': 'ASP',
-                'width': 147},
+            'id': 1,
+            'length': 13123,
+            'surface': 'ASP',
+            'width': 147,
             'start': {
                 'elevation': 308,
                 'latitude': 37.952425,
@@ -506,11 +505,10 @@ def process_flight(segment_info, tail_number, aircraft_info={}, achieved_flight_
             'id': 1,
             'identifier': '21L',
             'magnetic_heading': 212.6,
-            'strip': {
-                'id': 1,
-                'length': 13123,
-                'surface': 'ASP',
-                'width': 147},
+            'id': 1,
+            'length': 13123,
+            'surface': 'ASP',
+            'width': 147,
             'start': {
                 'elevation': 308,
                 'latitude': 37.952425,

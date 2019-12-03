@@ -301,7 +301,7 @@ class LandingAirport(FlightAttributeNode):
     def derive(self,
                approaches=KPV('Approach Information'),
                land_afr_apt=App('AFR Landing Airport'),
-               landing_dt=A('FDR Landing Datetime'),):
+               landing_dt=A('FDR Landing Datetime')):
         '''
         '''
         # 1. If we have Approach Information use this as hardwork already done.
@@ -445,7 +445,6 @@ class TakeoffAirport(FlightAttributeNode):
                 # No airport was found, so fall through and try AFR.
             else:
                 if airports:
-                    # If we have flight date, filter airports: deprecated_dt > flight date, or where dep_dt is none
                     airport = match_airport(airports, 'distance')
                     codes = airport.get('code', {})
                     code = codes.get('icao') or codes.get('iata')or codes.get('faa') or 'Unknown'
@@ -462,7 +461,7 @@ class TakeoffAirport(FlightAttributeNode):
                toff_afr_apt=A('AFR Takeoff Airport'),
                off_block_lat=KPV('Latitude Off Blocks'),
                off_block_lon=KPV('Longitude Off Blocks'),
-               takeoff_dt=A('FDR Takeoff Datetime'),):
+               takeoff_dt=A('FDR Takeoff Datetime')):
         '''
         '''
         # 1. If we have latitude and longitude, look for the nearest airport:

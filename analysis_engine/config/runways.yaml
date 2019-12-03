@@ -22,11 +22,9 @@
       elevation: 26
       longitude: 8.075406
     magnetic_heading: 33.9
-    strip: 
-      width: 147
-      length: 6660
-      id: 4064
-      surface: "ASP"
+    width: 147
+    length: 6660
+    surface: "ASP"
     identifier: "04"
     id: 8127
   - 
@@ -52,11 +50,9 @@
       elevation: 650
       longitude: 11.073491
     magnetic_heading: 13.7
-    strip: 
-      width: 147
-      length: 11811
-      id: 4076
-      surface: "ASP"
+    width: 147
+    length: 11811
+    surface: "ASP"
     identifier: "01L"
     id: 8151
   - 
@@ -69,10 +65,8 @@
       elevation: 103
       longitude: 44.388960932540336
     magnetic_heading: 96.6
-    strip: 
-      width: 150
-      length: 9800
-      id: 12085
-      surface: "Asphalt"
+    width: 150
+    length: 9800
+    surface: "Asphalt"
     identifier: "10"
     id: 19435

@@ -2,7 +2,7 @@ import numpy as np
 import os
 import unittest
 import yaml
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from mock import call, Mock, patch
 
@@ -36,7 +36,7 @@ class TestApproachInformation(unittest.TestCase):
     def setUp(self):
         self.node_class = ApproachInformation
         self.gatwick = [airports['gatwick']]
-        self.landing_dt = A('FDR Landing Datetime', value=datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'))
+        self.landing_dt = A('FDR Landing Datetime', value=datetime.now(timezone.utc).isoformat())
 
     def test_can_operate(self):
         self.assertFalse(ApproachInformation.can_operate(
@@ -616,35 +616,37 @@ class TestApproachInformation(unittest.TestCase):
         gatwick = self.gatwick[0]
         gatwick.update(deprecated_dt=None)
         deprecated_airport = gatwick.copy()
-        deprecated_airport.update(deprecated_dt=datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'), id=1)
-        landing_dt = A('FDR Landing Datetime', value=datetime.utcnow() - timedelta(days=1))
+        deprecated_airport.update(deprecated_dt=datetime.now(timezone.utc).isoformat(), id=1)
+        landing_dt = A('FDR Landing Datetime', value=datetime.now(timezone.utc) - timedelta(days=1))
 
         get_handler = Mock()
         get_handler.get_nearest_airport.return_value = [gatwick, deprecated_airport]
         api.get_handler.return_value = get_handler
 
         approaches = ApproachInformation()
-        approaches.derive(P('Altitude AAL For Flight Phases', np.ma.arange(1000, 0, -10)),
-                          None,
-                          A('Aircraft Type', 'aeroplane'),
-                          S(items=[Section('Approach', slice(0, 100), 0, 100)]),
-                          P('Heading Continuous', np.ma.ones(100)*260),
-                          None,
-                          None,
-                          P('ILS Localizer', np.ma.concatenate((np.arange(-2.5, 0, 0.05), np.ones(50) * -0.15))),
-                          P('ILS Glideslope', np.ma.zeros(100)),
-                          P('ILS Frequency', np.ma.ones(100) * 110.90),
-                          None,
-                          None,
-                          landing_dt,
-                          KPV('Latitude At Touchdown', items=[KeyPointValue(index=19, value=51.145, name='Latitude At Touchdown')]),
-                          KPV('Longitude At Touchdown', items=[KeyPointValue(index=19, value=-0.19, name='Longitude At Touchdown')]),
-                          A('Precise Positioning', True),
-                          S(items=[Section('Fast', slice(10,90), 10, 90)]),
-                          None, None, None, None, None, None, None,
-                          KTI('Touchdown', items=[KeyTimeInstance(index=19)]),
-                          None,
-                          S(items=[Section('Takeoff', slice(1,10), 1, 10)]))
+        approaches.derive(
+            P('Altitude AAL For Flight Phases', np.ma.arange(1000, 0, -10)),
+            None,
+            A('Aircraft Type', 'aeroplane'),
+            S(items=[Section('Approach', slice(0, 100), 0, 100)]),
+            P('Heading Continuous', np.ma.ones(100)*260),
+            None,
+            None,
+            P('ILS Localizer', np.ma.concatenate((np.arange(-2.5, 0, 0.05), np.ones(50) * -0.15))),
+            P('ILS Glideslope', np.ma.zeros(100)),
+            P('ILS Frequency', np.ma.ones(100) * 110.90),
+            None,
+            None,
+            landing_dt,
+            KPV('Latitude At Touchdown', items=[KeyPointValue(index=19, value=51.145, name='Latitude At Touchdown')]),
+            KPV('Longitude At Touchdown', items=[KeyPointValue(index=19, value=-0.19, name='Longitude At Touchdown')]),
+            A('Precise Positioning', True),
+            S(items=[Section('Fast', slice(10,90), 10, 90)]),
+            None, None, None, None, None, None, None,
+            KTI('Touchdown', items=[KeyTimeInstance(index=19)]),
+            None,
+            S(items=[Section('Takeoff', slice(1,10), 1, 10)]),
+        )
         get_handler.get_nearest_airport.assert_called_with(flight_dt=landing_dt, latitude=51.145, longitude=-0.19)
         self.assertEqual(approaches[0].airport['id'], 1)
 
@@ -654,35 +656,37 @@ class TestApproachInformation(unittest.TestCase):
         gatwick = self.gatwick[0]
         gatwick.update(deprecated_dt=None)
         deprecated_airport = gatwick.copy()
-        deprecated_airport.update(deprecated_dt=datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'), id=1)
-        landing_dt = A('FDR Landing Datetime', value=datetime.utcnow() - timedelta(days=1))
+        deprecated_airport.update(deprecated_dt=datetime.now(timezone.utc).isoformat(), id=1)
+        landing_dt = A('FDR Landing Datetime', value=datetime.now(timezone.utc) - timedelta(days=1))
 
         get_handler = Mock()
         get_handler.get_nearest_airport.return_value = [gatwick, deprecated_airport]
         api.get_handler.return_value = get_handler
 
         approaches = ApproachInformation()
-        approaches.derive(P('Altitude AAL For Flight Phases', np.ma.arange(1000, 0, -10)),
-                          None,
-                          A('Aircraft Type', 'aeroplane'),
-                          S(items=[Section('Approach', slice(0, 100), 0, 100)]),
-                          P('Heading Continuous', np.ma.ones(100)*260),
-                          None,
-                          None,
-                          P('ILS Localizer', np.ma.concatenate((np.arange(-2.5, 0, 0.05), np.ones(50) * -0.15))),
-                          P('ILS Glideslope', np.ma.zeros(100)),
-                          P('ILS Frequency', np.ma.ones(100) * 110.90),
-                          None,
-                          None,
-                          landing_dt,
-                          KPV('Latitude At Touchdown', items=[KeyPointValue(index=19, value=51.145, name='Latitude At Touchdown')]),
-                          KPV('Longitude At Touchdown', items=[KeyPointValue(index=19, value=-0.19, name='Longitude At Touchdown')]),
-                          None,
-                          S(items=[Section('Fast', slice(10,90), 10, 90)]),
-                          None, None, None, None, None, None, None,
-                          KTI('Touchdown', items=[KeyTimeInstance(index=19)]),
-                          None,
-                          S(items=[Section('Takeoff', slice(1,10), 1, 10)]))
+        approaches.derive(
+            P('Altitude AAL For Flight Phases', np.ma.arange(1000, 0, -10)),
+            None,
+            A('Aircraft Type', 'aeroplane'),
+            S(items=[Section('Approach', slice(0, 100), 0, 100)]),
+            P('Heading Continuous', np.ma.ones(100)*260),
+            None,
+            None,
+            P('ILS Localizer', np.ma.concatenate((np.arange(-2.5, 0, 0.05), np.ones(50) * -0.15))),
+            P('ILS Glideslope', np.ma.zeros(100)),
+            P('ILS Frequency', np.ma.ones(100) * 110.90),
+            None,
+            None,
+            landing_dt,
+            KPV('Latitude At Touchdown', items=[KeyPointValue(index=19, value=51.145, name='Latitude At Touchdown')]),
+            KPV('Longitude At Touchdown', items=[KeyPointValue(index=19, value=-0.19, name='Longitude At Touchdown')]),
+            None,
+            S(items=[Section('Fast', slice(10,90), 10, 90)]),
+            None, None, None, None, None, None, None,
+            KTI('Touchdown', items=[KeyTimeInstance(index=19)]),
+            None,
+            S(items=[Section('Takeoff', slice(1,10), 1, 10)]),
+        )
         get_handler.get_nearest_airport.assert_called_with(flight_dt=landing_dt, latitude=51.145, longitude=-0.19)
         self.assertEqual(approaches[0].airport['id'], 1)
 
@@ -709,7 +713,7 @@ class TestCloseAirports(unittest.TestCase):
                           P('ILS Frequency', np.ma.ones(90) * 109.9),
                           None,
                           None,
-                          A('FDR Landing Datetime', value=datetime.utcnow()),
+                          A('FDR Landing Datetime', value=datetime.now(timezone.utc)),
                           KPV('Latitude At Touchdown', items=[KeyPointValue(index=50, value=30.08465, name='Latitude At Touchdown')]),
                           KPV('Longitude At Touchdown', items=[KeyPointValue(index=50, value=31.3969768, name='Longitude At Touchdown')]),
                           A('Precise Positioning', False))
@@ -741,7 +745,7 @@ class TestCloseAirports(unittest.TestCase):
                           None,
                           None,
                           None,
-                          A('FDR Landing Datetime', value=datetime.utcnow()),
+                          A('FDR Landing Datetime', value=datetime.now(timezone.utc)),
                           KPV('Latitude At Touchdown', items=[KeyPointValue(index=50, value=30.08465, name='Latitude At Touchdown')]),
                           KPV('Longitude At Touchdown', items=[KeyPointValue(index=50, value=31.3969768, name='Longitude At Touchdown')]),
                           A('Precise Positioning', False))
@@ -773,7 +777,7 @@ class TestCloseAirports(unittest.TestCase):
                           None,
                           A(name='AFR Landing Airport', value={'id':4461}),
                           None,
-                          A('FDR Landing Datetime', value=datetime.utcnow()),
+                          A('FDR Landing Datetime', value=datetime.now(timezone.utc)),
                           KPV('Latitude At Touchdown', items=[KeyPointValue(index=50, value=30.08465, name='Latitude At Touchdown')]),
                           KPV('Longitude At Touchdown', items=[KeyPointValue(index=50, value=31.3969768, name='Longitude At Touchdown')]),
                           A('Precise Positioning', False))
@@ -806,7 +810,7 @@ class TestCloseAirports(unittest.TestCase):
                               None,
                               A(name='AFR Landing Airport', value={'id':1234, 'code': {'iata': 'xxx'}}),
                               None,
-                              A('FDR Landing Datetime', value=datetime.utcnow()),
+                              A('FDR Landing Datetime', value=datetime.now(timezone.utc)),
                               KPV('Latitude At Touchdown', items=[KeyPointValue(index=50, value=30.08465, name='Latitude At Touchdown')]),
                               KPV('Longitude At Touchdown', items=[KeyPointValue(index=50, value=31.3969768, name='Longitude At Touchdown')]),
                               A('Precise Positioning', True))
@@ -848,7 +852,7 @@ class TestAlicante(unittest.TestCase):
                           fetch('ILS Frequency'),
                           A(name='AFR Landing Airport', value=None),
                           A(name='AFR Landing Runway', value=None),
-                          A('FDR Landing Datetime', value=datetime.utcnow()),
+                          A('FDR Landing Datetime', value=datetime.now(timezone.utc)),
                           KPV('Latitude At Touchdown', items=[]),
                           KPV('Longitude At Touchdown', items=[]),
                           A('Precise Positioning', True))
@@ -893,7 +897,7 @@ class TestBardufoss(unittest.TestCase):
                           fetch('ILS Frequency'),
                           A(name='AFR Landing Airport', value=None),
                           A(name='AFR Landing Runway', value=None),
-                          A('FDR Landing Datetime', value=datetime.utcnow()),
+                          A('FDR Landing Datetime', value=datetime.now(timezone.utc)),
                           KPV('Latitude At Touchdown', items=[]),
                           KPV('Longitude At Touchdown', items=[]),
                           A('Precise Positioning', True))
@@ -942,7 +946,7 @@ class TestBodo(unittest.TestCase):
                           fetch('ILS Frequency'),
                           A(name='AFR Landing Airport', value=None),
                           A(name='AFR Landing Runway', value=None),
-                          A('FDR Landing Datetime', value=datetime.utcnow()),
+                          A('FDR Landing Datetime', value=datetime.now(timezone.utc)),
                           KPV('Latitude At Touchdown', items=[]),
                           KPV('Longitude At Touchdown', items=[]),
                           A('Precise Positioning', True))
@@ -992,7 +996,7 @@ class TestChania(unittest.TestCase):
                           fetch('ILS Frequency'),
                           A(name='AFR Landing Airport', value=None),
                           A(name='AFR Landing Runway', value=None),
-                          A('FDR Landing Datetime', value=datetime.utcnow()),
+                          A('FDR Landing Datetime', value=datetime.now(timezone.utc)),
                           KPV('Latitude At Touchdown', items=[]),
                           KPV('Longitude At Touchdown', items=[]),
                           A('Precise Positioning', True))
@@ -1087,7 +1091,7 @@ class TestDallasFortWorth(unittest.TestCase):
                           fetch('ILS Frequency'),
                           A(name='AFR Landing Airport', value=None),
                           A(name='AFR Landing Runway', value=None),
-                          A('FDR Landing Datetime', value=datetime.utcnow()),
+                          A('FDR Landing Datetime', value=datetime.now(timezone.utc)),
                           KPV('Latitude At Touchdown', items=[]),
                           KPV('Longitude At Touchdown', items=[]),
                           A('Precise Positioning', True))
@@ -1141,7 +1145,7 @@ class TestFortWorth(unittest.TestCase):
                           fetch('ILS Frequency'),
                           A(name='AFR Landing Airport', value=None),
                           A(name='AFR Landing Runway', value=None),
-                          A('FDR Landing Datetime', value=datetime.utcnow()),
+                          A('FDR Landing Datetime', value=datetime.now(timezone.utc)),
                           KPV('Latitude At Touchdown', items=[]),
                           KPV('Longitude At Touchdown', items=[]),
                           A('Precise Positioning', True))
@@ -1240,7 +1244,7 @@ class TestHerat(unittest.TestCase):
                           fetch('ILS Frequency'),
                           A(name='AFR Landing Airport', value={'id': 3275}),
                           A(name='AFR Landing Runway', value=None),
-                          A('FDR Landing Datetime', value=datetime.utcnow()),
+                          A('FDR Landing Datetime', value=datetime.now(timezone.utc)),
                           KPV('Latitude At Touchdown',  items=[]),
                           KPV('Longitude At Touchdown', items=[]),
                           A('Precise Positioning', True))
@@ -1287,7 +1291,7 @@ class TestKirkenes(unittest.TestCase):
                           fetch('ILS Frequency'),
                           A(name='AFR Landing Airport', value=None),
                           A(name='AFR Landing Runway', value=None),
-                          A('FDR Landing Datetime', value=datetime.utcnow()),
+                          A('FDR Landing Datetime', value=datetime.now(timezone.utc)),
                           KPV('Latitude At Touchdown', items=[]),
                           KPV('Longitude At Touchdown', items=[]),
                           A('Precise Positioning', True))
@@ -1335,7 +1339,7 @@ class TestScatsta(unittest.TestCase):
                           fetch('ILS Frequency'),
                           A(name='AFR Landing Airport', value=None),
                           A(name='AFR Landing Runway', value=None),
-                          A('FDR Landing Datetime', value=datetime.utcnow()),
+                          A('FDR Landing Datetime', value=datetime.now(timezone.utc)),
                           KPV('Latitude At Touchdown', items=[KeyPointValue(index=7060, value=60.433, name='Latitude At Touchdown')]),
                           KPV('Longitude At Touchdown', items=[KeyPointValue(index=7060, value=-1.292, name='Longitude At Touchdown')]),
                           A('Precise Positioning', False))
@@ -1384,7 +1388,7 @@ class TestSirSeretseKhama(unittest.TestCase):
                           fetch('ILS Frequency'),
                           A(name='AFR Landing Airport', value=None),
                           A(name='AFR Landing Runway', value=None),
-                          A('FDR Landing Datetime', value=datetime.utcnow()),
+                          A('FDR Landing Datetime', value=datetime.now(timezone.utc)),
                           KPV('Latitude At Touchdown', items=[]),
                           KPV('Longitude At Touchdown', items=[]),
                           A('Precise Positioning', True),
@@ -1438,7 +1442,7 @@ class TestSplit(unittest.TestCase):
                           fetch('ILS Frequency'),
                           A(name='AFR Landing Airport', value=None),
                           A(name='AFR Landing Runway', value=None),
-                          A('FDR Landing Datetime', value=datetime.utcnow()),
+                          A('FDR Landing Datetime', value=datetime.now(timezone.utc)),
                           KPV('Latitude At Touchdown', items=[]),
                           KPV('Longitude At Touchdown', items=[]),
                           A('Precise Positioning', False))
@@ -1484,7 +1488,7 @@ class TestWashingtonNational(unittest.TestCase):
                           fetch('ILS Frequency'),
                           A(name='AFR Landing Airport', value=None),
                           A(name='AFR Landing Runway', value=None),
-                          A('FDR Landing Datetime', value=datetime.utcnow()),
+                          A('FDR Landing Datetime', value=datetime.now(timezone.utc)),
                           KPV('Latitude At Touchdown', items=[]),
                           KPV('Longitude At Touchdown', items=[]),
                           A('Precise Positioning', True),
@@ -1536,7 +1540,7 @@ class TestZaventem(unittest.TestCase):
                           fetch('ILS Frequency'),
                           A(name='AFR Landing Airport', value=None),
                           A(name='AFR Landing Runway', value=None),
-                          A('FDR Landing Datetime', value=datetime.utcnow()),
+                          A('FDR Landing Datetime', value=datetime.now(timezone.utc)),
                           KPV('Latitude At Touchdown', items=[]),
                           KPV('Longitude At Touchdown', items=[]),
                           A('Precise Positioning', False),
@@ -1594,7 +1598,7 @@ class TestBarcelona(unittest.TestCase):
                           fetch('ILS Frequency'),
                           A(name='AFR Landing Airport', value=None),
                           A(name='AFR Landing Runway', value=None),
-                          A('FDR Landing Datetime', value=datetime.utcnow()),
+                          A('FDR Landing Datetime', value=datetime.now(timezone.utc)),
                           KPV('Latitude At Touchdown', items=[]),
                           KPV('Longitude At Touchdown', items=[]),
                           A('Precise Positioning', False),
@@ -1660,7 +1664,7 @@ class TestNice(unittest.TestCase):
                           fetch('ILS Frequency'),
                           A(name='AFR Landing Airport', value=None),
                           A(name='AFR Landing Runway', value=None),
-                          A('FDR Landing Datetime', value=datetime.utcnow()),
+                          A('FDR Landing Datetime', value=datetime.now(timezone.utc)),
                           KPV('Latitude At Touchdown', items=[]),
                           KPV('Longitude At Touchdown', items=[]),
                           A('Precise Positioning', False),
@@ -1715,7 +1719,7 @@ class TestGranCanaria(unittest.TestCase):
                           fetch('ILS Frequency'),
                           A(name='AFR Landing Airport', value=None),
                           A(name='AFR Landing Runway', value=None),
-                          A('FDR Landing Datetime', value=datetime.utcnow()),
+                          A('FDR Landing Datetime', value=datetime.now(timezone.utc)),
                           KPV('Latitude At Touchdown', items=[]),
                           KPV('Longitude At Touchdown', items=[]),
                           A('Precise Positioning', False),
@@ -1770,7 +1774,7 @@ class TestMunich(unittest.TestCase):
                           fetch('ILS Frequency'),
                           A(name='AFR Landing Airport', value=None),
                           A(name='AFR Landing Runway', value=None),
-                          A('FDR Landing Datetime', value=datetime.utcnow()),
+                          A('FDR Landing Datetime', value=datetime.now(timezone.utc)),
                           KPV('Latitude At Touchdown', items=[]),
                           KPV('Longitude At Touchdown', items=[]),
                           A('Precise Positioning', False),
@@ -1831,7 +1835,7 @@ class TestNewDelhi(unittest.TestCase):
                           fetch('ILS Frequency'),
                           A(name='AFR Landing Airport', value=None),
                           A(name='AFR Landing Runway', value=None),
-                          A('FDR Landing Datetime', value=datetime.utcnow()),
+                          A('FDR Landing Datetime', value=datetime.now(timezone.utc)),
                           KPV('Latitude At Touchdown', items=[]),
                           KPV('Longitude At Touchdown', items=[]),
                           A('Precise Positioning', False),
@@ -1884,7 +1888,7 @@ class TestPalmaDeMallorca(unittest.TestCase):
                           fetch('ILS Frequency'),
                           A(name='AFR Landing Airport', value=None),
                           A(name='AFR Landing Runway', value=None),
-                          A('FDR Landing Datetime', value=datetime.utcnow()),
+                          A('FDR Landing Datetime', value=datetime.now(timezone.utc)),
                           KPV('Latitude At Touchdown', items=[]),
                           KPV('Longitude At Touchdown', items=[]),
                           A('Precise Positioning', True),

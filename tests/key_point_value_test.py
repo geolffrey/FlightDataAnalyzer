@@ -7840,6 +7840,9 @@ class TestQNHDifferenceDuringApproach(unittest.TestCase):
                     "id": 5189,
                     "identifier": "07",
                     "magnetic_heading": 72.0,
+                    "length": 10974,
+                    "surface": "CON",
+                    "width": 147,
                     "start": {
                         "latitude": 48.68654187302413,
                         "longitude": 9.204062800623312,
@@ -7866,17 +7869,14 @@ class TestQNHDifferenceDuringApproach(unittest.TestCase):
                         "elevation": 1273,
                         "is_offset": False,
                     },
-                    "strip": {
-                        "id": 2595,
-                        "length": 10974,
-                        "surface": "CON",
-                        "width": 147,
-                    },
                 },
                 {
                     "id": 5190,
                     "identifier": "25",
                     "magnetic_heading": 252.0,
+                    "length": 10974,
+                    "surface": "CON",
+                    "width": 147,
                     "start": {
                         "latitude": 48.69400283621483,
                         "longitude": 9.2437627668629,
@@ -7902,12 +7902,6 @@ class TestQNHDifferenceDuringApproach(unittest.TestCase):
                         "longitude": 9.188423269835914,
                         "elevation": 1276,
                         "is_offset": False,
-                    },
-                    "strip": {
-                        "id": 2595,
-                        "length": 10974,
-                        "surface": "CON",
-                        "width": 147,
                     },
                 },
             ],
