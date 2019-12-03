@@ -5469,7 +5469,9 @@ def align_altitudes(alt_rad, alt_std, good_slices, fast_slices, hz, ccd):
             # and we only adjust by 1k blocks
             delta = 1024.0 * np.rint(mean_diff / 1024)
             if delta:
-                alt_rad[fgs] += delta
+                # if the lowest point is less than -20, we can safely assume something went wrong, and we don't apply it
+                if np.ma.min(alt_rad[fgs] + delta) >= -20 or np.isnan(delta):
+                    alt_rad[fgs] += delta
 
     return alt_rad
 
