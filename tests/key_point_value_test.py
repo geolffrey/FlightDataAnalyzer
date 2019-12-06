@@ -10991,7 +10991,7 @@ class TestEngBleedValvesAtLiftoff(unittest.TestCase, NodeTest):
         values_mapping = {0: 'Closed', 1: 'Open'}
         bleed = M('Eng Bleed Open', array=np.ma.masked_array([0, 1, 1, 1, 0]), values_mapping=values_mapping)
         node = EngBleedValvesAtLiftoff()
-        node.derive(liftoff, bleed)
+        node.derive(bleed, liftoff)
         self.assertEqual(node, KPV('Eng Bleed Valves At Liftoff', items=[
             KeyPointValue(name='Eng Bleed Valves At Liftoff', index=3, value=1),
         ]))
