@@ -6651,9 +6651,9 @@ class NumberOfAPChannelsEngagedAtTouchdown(KeyPointValueNode):
         return ap and 'Touchdown' in available
 
     def derive(self,
-               tdwn=KTI('Touchdown'),
                ap_engaged=P('AP Engaged'),
-               ap_ch_count=P('AP Channels Engaged'),):
+               ap_ch_count=P('AP Channels Engaged'),
+               tdwn=KTI('Touchdown')):
 
         if not tdwn:
             return

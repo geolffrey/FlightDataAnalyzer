@@ -5969,7 +5969,7 @@ class TestATDisengagedAPEngagedDuration(unittest.TestCase, NodeTest):
 class TestNumberOfAPChannelsEngagedAtTouchdown(unittest.TestCase, NodeTest):
     def setUp(self):
         self.node_class = NumberOfAPChannelsEngagedAtTouchdown
-        self.operational_combinations = [('Touchdown', 'AP Engaged', 'AP Channels Engaged'), ('Touchdown', 'AP Engaged'), ('Touchdown', 'AP Channels Engaged')]
+        self.operational_combinations = [('AP Engaged', 'AP Channels Engaged', 'Touchdown'), ('AP Engaged', 'Touchdown'), ('AP Channels Engaged', 'Touchdown')]
         self.tdwn = KTI('Touchdown', items=[KeyTimeInstance(3, 'Touchdown')])
 
     def test_can_operate(self):
@@ -5981,7 +5981,7 @@ class TestNumberOfAPChannelsEngagedAtTouchdown(unittest.TestCase, NodeTest):
     def test_derive_ap_engaged(self):
         ap_engaged = M('AP Engaged', np.ma.array([1,1,1,1,1,1]), values_mapping={0: '-', 1: 'Engaged'})
         node = self.node_class()
-        node.derive(self.tdwn, ap_engaged, None)
+        node.derive(ap_engaged, None, self.tdwn)
         self.assertEqual(node[0].index, 3)
         self.assertEqual(node[0].value, 1)
 
@@ -5992,7 +5992,7 @@ class TestNumberOfAPChannelsEngagedAtTouchdown(unittest.TestCase, NodeTest):
                    3: 'Triple',}
         ap_ch_count = M('AP Channels Engaged', np.ma.array([3,3,3,3,3]), values_mapping=mapping)
         node = self.node_class()
-        node.derive(self.tdwn, None, ap_ch_count)
+        node.derive(None, ap_ch_count, self.tdwn)
         self.assertEqual(node[0].index, 3)
         self.assertEqual(node[0].value, 3)
 
