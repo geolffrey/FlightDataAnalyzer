@@ -9717,8 +9717,8 @@ class EngBleedValvesAtLiftoff(KeyPointValueNode):
         ), available)
 
     def derive(self,
-               liftoffs=KTI('Liftoff'),
-               bleed=M('Eng Bleed Open')):
+               bleed=M('Eng Bleed Open'),
+               liftoffs=KTI('Liftoff')):
 
         self.create_kpvs_at_ktis(bleed.array == 'Open', liftoffs)
 
