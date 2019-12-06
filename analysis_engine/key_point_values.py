@@ -6768,8 +6768,7 @@ class ElevatorPreflightCheck(KeyPointValueNode):
     @classmethod
     def can_operate(cls, available, model=A('Model'), series=A('Series'), family=A('Family')):
 
-        if not (any_of(('Elevator', 'Elevator (L)', 'Elevator (R)'), available) and
-                all_of(('Takeoff Acceleration Start', 'Model', 'Series', 'Family'), available) and
+        if not (all_of(('Elevator', 'Takeoff Acceleration Start', 'Model', 'Series', 'Family'), available) and
                 any_of(('First Eng Start Before Liftoff', 'Last APU Start Before Liftoff'), available)):
             return False
 
@@ -6781,19 +6780,15 @@ class ElevatorPreflightCheck(KeyPointValueNode):
 
         return True
 
-    def derive(self, elev=P('Elevator'),
-               elev_l=P('Elevator (L)'),
-               elev_r=P('Elevator (R)'),
+    def derive(self, disp=P('Elevator'),
                eng_firsts=KTI('First Eng Start Before Liftoff'),
                apu_lasts=KTI('Last APU Start Before Liftoff'),
                accels=KTI('Takeoff Acceleration Start'),
                model=A('Model'), series=A('Series'), family=A('Family')):
 
-        disps = [e for e in (elev_l, elev_r) if e] if elev_l or elev_r else [elev]
         disp_range = at.get_elevator_range(model.value, series.value, family.value)
         full_disp = disp_range * 2 if isinstance(disp_range, (float, int)) else disp_range[1] - disp_range[0]
-
-        preflight_check(self, apu_lasts, eng_firsts, accels, disps, full_disp)
+        preflight_check(self, apu_lasts, eng_firsts, accels, [disp], full_disp)
 
 
 class AileronPreflightCheck(KeyPointValueNode):
@@ -6805,8 +6800,7 @@ class AileronPreflightCheck(KeyPointValueNode):
     @classmethod
     def can_operate(cls, available, model=A('Model'), series=A('Series'), family=A('Family')):
 
-        if not (any_of(('Aileron', 'Aileron (L)', 'Aileron (R)'), available) and
-                all_of(('Takeoff Acceleration Start', 'Model', 'Series', 'Family'), available) and
+        if not (all_of(('Aileron', 'Takeoff Acceleration Start', 'Model', 'Series', 'Family'), available) and
                 any_of(('First Eng Start Before Liftoff', 'Last APU Start Before Liftoff'), available)):
             return False
 
@@ -6818,19 +6812,15 @@ class AileronPreflightCheck(KeyPointValueNode):
 
         return True
 
-    def derive(self, ail=P('Aileron'),
-               ail_l=P('Aileron (L)'),
-               ail_r=P('Aileron (R)'),
+    def derive(self, disp=P('Aileron'),
                eng_firsts=KTI('First Eng Start Before Liftoff'),
                apu_lasts=KTI('Last APU Start Before Liftoff'),
                accels=KTI('Takeoff Acceleration Start'),
                model=A('Model'), series=A('Series'), family=A('Family')):
 
-        disps = [a for a in (ail_l, ail_r) if a] if ail_l or ail_r else [ail]
         disp_range = at.get_aileron_range(model.value, series.value, family.value)
         full_disp = disp_range * 2 if isinstance(disp_range, (float, int)) else disp_range[1] - disp_range[0]
-
-        preflight_check(self, apu_lasts, eng_firsts, accels, disps, full_disp)
+        preflight_check(self, apu_lasts, eng_firsts, accels, [disp], full_disp)
 
 
 class RudderPreflightCheck(KeyPointValueNode):

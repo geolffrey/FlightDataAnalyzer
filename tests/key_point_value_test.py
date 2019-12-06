@@ -22127,7 +22127,7 @@ class TestAileronPreflightCheck(unittest.TestCase):
     @patch('analysis_engine.key_point_values.at')
     def test_can_operate(self, at):
         at.get_aileron_range.return_value = self.return_value
-        aileron_deps = ['Aileron', 'Aileron (L)', 'Aileron (R)']
+        aileron_deps = ['Aileron']
         start_deps = ['First Eng Start Before Liftoff', 'Last APU Start Before Liftoff']
         required_deps = ['Takeoff Acceleration Start', 'Model', 'Series', 'Family']
 
@@ -22159,7 +22159,7 @@ class TestAileronPreflightCheck(unittest.TestCase):
         # Assume that lookup tables are found correctly...
         at.get_aileron_range.return_value = self.return_value
 
-        for args in itertools.product(*[(None, aileron)] * 3):
+        for args in itertools.product(*[(None, aileron)]):
             if not any(args):
                 continue
             node = self.node_class()
@@ -22180,7 +22180,7 @@ class TestAileronPreflightCheck(unittest.TestCase):
         # Assume that lookup tables are found correctly...
         at.get_aileron_range.return_value = self.return_value
 
-        for args in itertools.product(*[(None, aileron)] * 3):
+        for args in itertools.product(*[(None, aileron)]):
             if not any(args):
                 continue
             node = self.node_class()
@@ -22201,8 +22201,8 @@ class TestElevatorPreflightCheck(unittest.TestCase):
 
     @patch('analysis_engine.key_point_values.at')
     def test_can_operate(self, at):
-        at.get_aileron_range.return_value = self.return_value
-        elevator_deps = ['Elevator', 'Elevator (L)', 'Elevator (R)']
+        at.get_elevator_range.return_value = self.return_value
+        elevator_deps = ['Elevator']
         start_deps = ['First Eng Start Before Liftoff', 'Last APU Start Before Liftoff']
         required_deps = ['Takeoff Acceleration Start', 'Model', 'Series', 'Family']
 
@@ -22234,7 +22234,7 @@ class TestElevatorPreflightCheck(unittest.TestCase):
         # Assume that lookup tables are found correctly...
         at.get_elevator_range.return_value = self.return_value
 
-        for args in itertools.product(*[(None, elevator)] * 3):
+        for args in itertools.product(*[(None, elevator)]):
             if not any(args):
                 continue
             node = self.node_class()
@@ -22255,7 +22255,7 @@ class TestElevatorPreflightCheck(unittest.TestCase):
         # Assume that lookup tables are found correctly...
         at.get_elevator_range.return_value = self.return_value
 
-        for args in itertools.product(*[(None, elevator)] * 3):
+        for args in itertools.product(*[(None, elevator)]):
             if not any(args):
                 continue
             node = self.node_class()
@@ -22266,8 +22266,7 @@ class TestElevatorPreflightCheck(unittest.TestCase):
 
     @patch('analysis_engine.key_point_values.at')
     def test_derive_eng_before_apu(self, at):
-        elev_l = P(name='Elevator (L)', array=load_compressed(os.path.join(test_data_path, 'ElevatorPreflightCheck_elev_l.npz')))
-        elev_r = P(name='Elevator (R)', array=load_compressed(os.path.join(test_data_path, 'ElevatorPreflightCheck_elev_r.npz')))
+        elev = P(name='Elevator', array=load_compressed(os.path.join(test_data_path, 'ElevatorPreflightCheck_elev_l.npz')))
         eng_firsts = KTI('First Eng Start Before Liftoff',
                          items=[KeyTimeInstance(index=8525.3671875, name='First Eng Start Before Liftoff')])
         apu_lasts = KTI('Last APU Start Before Liftoff',
@@ -22277,11 +22276,11 @@ class TestElevatorPreflightCheck(unittest.TestCase):
         at.get_elevator_range.return_value = (-30, 15)
 
         node = self.node_class()
-        node.derive(None, elev_l, elev_r, eng_firsts, apu_lasts, accels, A('Model', 'A340-313X'), A('Series', 'A340-300'),
+        node.derive(elev, eng_firsts, apu_lasts, accels, A('Model', 'A340-313X'), A('Series', 'A340-300'),
                     A('Family', 'A340'))
         self.assertEqual(len(node), 1)
-        self.assertAlmostEqual(node[0].index, 8992, places=0)
-        self.assertAlmostEqual(node[0].value, 98, places=0)
+        self.assertAlmostEqual(node[0].index, 8990, places=0)
+        self.assertAlmostEqual(node[0].value, 96, places=0)
 
 
 class TestRudderPreflightCheck(unittest.TestCase):
