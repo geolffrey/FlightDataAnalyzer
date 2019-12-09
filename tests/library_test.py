@@ -2268,6 +2268,8 @@ class TestPositiveValue(unittest.TestCase):
         self.assertEqual(positive_index(array, 0), 0)
         self.assertEqual(positive_index(array, 5), 5)
         self.assertEqual(positive_index(array, -3), 7)
+        self.assertEqual(positive_index(array, -0.3), 0)
+        self.assertEqual(positive_index(array, 10), 9)
 
 
 class TestPowerFloor(unittest.TestCase):
@@ -2325,7 +2327,7 @@ class TestClosestUnmaskedValue(unittest.TestCase):
         self.assertEqual(closest_unmasked_value(array, 5), Value(5, 5))
         # Floors index
         self.assertEqual(closest_unmasked_value(array, 5.5), Value(5, 5))
-        self.assertEqual(closest_unmasked_value(array, -3), Value(7, 7))
+        self.assertEqual(closest_unmasked_value(array, -0.3), Value(0, 0))
         array[5:8] = np.ma.masked
         self.assertEqual(closest_unmasked_value(array, 5), Value(4, 4))
         array[5:8] = np.ma.masked
@@ -2348,7 +2350,7 @@ class TestClosestUnmaskedValue(unittest.TestCase):
         ]
         array = np.ma.array(values, mask=[True] * 2 + [False] * 68 + [True])
         self.assertEqual(closest_unmasked_value(array, -25), Value(46, 3093))
-        self.assertEqual(closest_unmasked_value(array, -0.45), Value(69, 2708))
+        self.assertEqual(closest_unmasked_value(array, -0.45), Value(2, 5012))
 
     def test_closest_unmasked_index_relative_to_start(self):
         array = np.ma.arange(10)

@@ -1364,9 +1364,8 @@ def delay(array, period, hz=1.0):
 
 def positive_index(container, index):
     '''
-    Always return a positive index.
-    e.g. 7 if len(container) == 10 and index == -3.
-
+    Always return a positive index but without going to the other
+    end of the array for indexes greater than -1 which arise from alignment.
     :param container: Container with a length.
     :param index: Positive or negative index within the array.
     :type index: int or float
@@ -1376,8 +1375,10 @@ def positive_index(container, index):
     if index is None:
         return index
 
-    if index < 0:
+    if index <= -1:
         index += len(container)
+    elif -1 < index < 0:
+        index = 0
     elif index >= len(container):
         index = len(container) - 1
 
