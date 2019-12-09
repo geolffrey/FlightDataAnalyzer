@@ -7406,8 +7406,8 @@ def straighten_overflows(array, min_val, max_val, threshold=4):
     lower = min_val + partition
 
     last_value = None
-    overflow = 0
     for unmasked_slice in np.ma.clump_unmasked(array):
+        overflow = 0
         first_value = array[unmasked_slice.start]
         if last_value is not None:
             # Check if overflow occurred within masked region.
@@ -7415,11 +7415,12 @@ def straighten_overflows(array, min_val, max_val, threshold=4):
                 overflow -= 1
             elif last_value > upper and first_value < lower:
                 overflow += 1
+            # correct the rest of the array
+            straight[unmasked_slice.start:] += overflow * total_range
 
         # locate overflows and shift the arrays
         diff = np.ediff1d(array[unmasked_slice])
         abs_diff = np.abs(diff)
-        straight[unmasked_slice] += overflow * total_range
 
         for idx in np.where(abs_diff > total_range - partition)[0]:
             if (idx + 1 < len(abs_diff) and

@@ -7347,6 +7347,14 @@ class TestStraightenLongitude(unittest.TestCase):
         data = load_compressed(os.path.join(test_data_path, 'straighten_longitude_4.npz'))
         np.testing.assert_array_almost_equal(straighten_longitude(data), data)
 
+    def test_straighten_longitude_single_overflow_followed_by_masked_data(self):
+        data = np.ma.array([175.5,179.5,179.1,179.9,-179.9,-178.2,-176.5,-175.2,-174.1,-172.4])
+        data[6] = np.ma.masked
+        expected = np.ma.array(
+            [175.5,179.5,179.1,179.9,180.1,181.8,183.5,184.8,185.9,187.6])
+        expected[6] = np.ma.masked
+        np.testing.assert_array_almost_equal(straighten_longitude(data), expected)
+
 
 class TestStraightenHeadings(unittest.TestCase):
     def test_straighten_headings(self):
