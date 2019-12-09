@@ -5599,9 +5599,13 @@ class AltitudeAtFirstFlapChangeAfterLiftoff(KeyPointValueNode):
                 self.create_kpv(index, value_at_index(alt_aal.array, index))
 
 
-class AltitudeAtLastFlapChangeBeforeTouchdown(KeyPointValueNode):
+class AltitudeAtLastFlapChangeBeforeBottomOfDescent(KeyPointValueNode):
     '''
-    Altitude AAL at last flap change before touchdown.
+    Altitude AAL at last flap change before the bottom of descent.
+
+    This will capture the last flap change before touchdown or go around.
+    Bottom Of Descent outside of the Approach And Landing flight phase will
+    be disregarded.
     '''
     # TODO: Review this in comparison to AltitudeAtLastFlapRetraction
 
@@ -5611,30 +5615,38 @@ class AltitudeAtLastFlapChangeBeforeTouchdown(KeyPointValueNode):
     def can_operate(cls, available):
 
         return any_of(('Flap Lever', 'Flap Lever (Synthetic)'), available) \
-            and all_of(('Altitude AAL', 'Touchdown'), available)
+            and all_of(
+                ('Altitude AAL', 'Bottom Of Descent','Approach And Landing'),
+                available)
 
     def derive(self,
                alt_aal=P('Altitude AAL'),
                flap_lever=M('Flap Lever'),
                flap_synth=M('Flap Lever (Synthetic)'),
-               touchdowns=KTI('Touchdown'),
+               bottoms=KTI('Bottom Of Descent'),
+               apps=S('Approach And Landing'),
                far=P('Flap Automatic Retraction')):
 
         flap = flap_lever or flap_synth
 
-        for touchdown in touchdowns:
-            endpoint = touchdown.index
+        bottoms_in_app = [
+            b for b in bottoms if is_index_within_slices(b.index, apps.get_slices())
+        ]
+
+        for bottom in bottoms_in_app:
+            endpoint = bottom.index
             if far:
                 # This is an aircraft with automatic flap retraction. If the
                 # auto retraction happened within three seconds of the
-                # touchdown, set the endpoint to three seconds before touchdown.
+                # bottom of descent, set the endpoint to three seconds before the
+                # bottom of descent.
                 delta = int(3 * flap.hz)
                 if far.array.raw[int(endpoint - delta)] == 0 and \
                         far.array.raw[int(endpoint + delta)] == 1:
                     endpoint = endpoint - delta
 
-            land_flap = flap.array.raw[int(endpoint)]
-            flap_move = abs(flap.array.raw - land_flap)
+            final_flap = flap.array.raw[int(endpoint)]
+            flap_move = abs(flap.array.raw - final_flap)
             rough_index = index_at_value(flap_move, 0.5, slice(endpoint, 0, -1))
             # index_at_value tries to be precise, but in this case we really
             # just want the index at the new flap setting.

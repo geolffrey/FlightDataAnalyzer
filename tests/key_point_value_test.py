@@ -210,7 +210,7 @@ from analysis_engine.key_point_values import (
     AltitudeAtFirstGearUpSelection,
     AltitudeAtGearUpSelectionDuringGoAround,
     AltitudeAtLastAPDisengagedDuringApproach,
-    AltitudeAtLastFlapChangeBeforeTouchdown,
+    AltitudeAtLastFlapChangeBeforeBottomOfDescent,
     AltitudeAtLastFlapSelectionBeforeTouchdown,
     AltitudeAtLastFlapRetraction,
     AltitudeAtMachMax,
@@ -6975,14 +6975,14 @@ class TestAltitudeAALCleanConfigurationMin(unittest.TestCase, NodeTest):
         ]))
 
 
-class TestAltitudeAtLastFlapChangeBeforeTouchdown(unittest.TestCase, NodeTest):
+class TestAltitudeAtLastFlapChangeBeforeBottomOfDescent(unittest.TestCase, NodeTest):
 
     def setUp(self):
-        self.node_class = AltitudeAtLastFlapChangeBeforeTouchdown
+        self.node_class = AltitudeAtLastFlapChangeBeforeBottomOfDescent
         self.operational_combinations = [
-            ('Flap Lever', 'Altitude AAL', 'Touchdown'),
-            ('Flap Lever (Synthetic)', 'Altitude AAL', 'Touchdown'),
-            ('Flap Lever', 'Flap Lever (Synthetic)', 'Altitude AAL', 'Touchdown'),
+            ('Flap Lever', 'Altitude AAL', 'Bottom Of Descent', 'Approach And Landing'),
+            ('Flap Lever (Synthetic)', 'Altitude AAL', 'Bottom Of Descent', 'Approach And Landing'),
+            ('Flap Lever', 'Flap Lever (Synthetic)', 'Altitude AAL', 'Bottom Of Descent', 'Approach And Landing'),
         ]
 
     def test_derive(self):
@@ -6991,10 +6991,11 @@ class TestAltitudeAtLastFlapChangeBeforeTouchdown(unittest.TestCase, NodeTest):
         flap_lever = M(name='Flap Lever', array=array, values_mapping=mapping)
         array = np.ma.concatenate((np.arange(1000, 0, -100), np.zeros(5)))
         alt_aal = P(name='Altitude AAL', array=array)
-        touchdowns = KTI('Touchdown', items=[KeyTimeInstance(10)])
+        bottoms = KTI('Bottom Of Descent', items=[KeyTimeInstance(10)])
+        apps = buildsection('Approach And Landing', 0, 15)
         name = self.node_class.get_name()
         node = self.node_class()
-        node.derive(alt_aal, flap_lever, None, touchdowns, None)
+        node.derive(alt_aal, flap_lever, None, bottoms, apps, None)
         self.assertEqual(node, KPV(name=name, items=[
             KeyPointValue(index=8.0, value=200.0, name=name),
         ]))
@@ -7005,10 +7006,11 @@ class TestAltitudeAtLastFlapChangeBeforeTouchdown(unittest.TestCase, NodeTest):
         flap_lever = M(name='Flap Lever', array=array, values_mapping=mapping)
         array = np.ma.concatenate((np.arange(1000, 0, -100), np.zeros(5)))
         alt_aal = P(name='Altitude AAL', array=array)
-        touchdowns = KTI('Touchdown', items=[KeyTimeInstance(10)])
+        bottoms = KTI('Bottom Of Descent', items=[KeyTimeInstance(10)])
+        apps = buildsection('Approach And Landing', 0, 15)
         name = self.node_class.get_name()
         node = self.node_class()
-        node.derive(alt_aal, flap_lever, None, touchdowns, None)
+        node.derive(alt_aal, flap_lever, None, bottoms, apps, None)
         self.assertEqual(node, KPV(name=name, items=[
             KeyPointValue(index=8.0, value=200.0, name=name),
         ]))
@@ -7022,10 +7024,11 @@ class TestAltitudeAtLastFlapChangeBeforeTouchdown(unittest.TestCase, NodeTest):
         far = M('Flap Automatic Retraction',
                 array=np.ma.array([0]*10+[1]*5),
                 values_mapping={0:'-', 1:'Retract'})
-        touchdowns = KTI('Touchdown', items=[KeyTimeInstance(10)])
+        bottoms = KTI('Bottom Of Descent', items=[KeyTimeInstance(10)])
+        apps = buildsection('Approach And Landing', 0, 15)
         name = self.node_class.get_name()
         node = self.node_class()
-        node.derive(alt_aal, flap_lever, None, touchdowns, far)
+        node.derive(alt_aal, flap_lever, None, bottoms, apps, far)
         self.assertEqual(node, KPV(name=name, items=[
             KeyPointValue(index=6.0, value=400.0, name=name),
         ]))
@@ -7039,12 +7042,30 @@ class TestAltitudeAtLastFlapChangeBeforeTouchdown(unittest.TestCase, NodeTest):
         far = M('Flap Automatic Retraction',
                 array=np.ma.concatenate((np.zeros(9), np.ones(6))),
                 values_mapping={0:'-', 1:'Retract'})
-        touchdowns = KTI('Touchdown', items=[KeyTimeInstance(10)])
+        bottoms = KTI('Bottom Of Descent', items=[KeyTimeInstance(10)])
+        apps = buildsection('Approach And Landing', 0, 15)
         name = self.node_class.get_name()
         node = self.node_class()
-        node.derive(alt_aal, flap_lever, None, touchdowns, far)
+        node.derive(alt_aal, flap_lever, None, bottoms, apps, far)
         self.assertEqual(node, KPV(name=name, items=[
             KeyPointValue(index=6.0, value=400.0, name=name),
+        ]))
+
+    def test_bottom_of_descent_outside_approach(self):
+        array = np.ma.concatenate((np.ones(8) * 10, np.ones(7) * 15))
+        mapping = {0: '0', 10: '10', 15: '15'}
+        flap_lever = M(name='Flap Lever', array=array, values_mapping=mapping)
+        array = np.ma.concatenate((np.arange(1000, 0, -100), np.zeros(5)))
+        alt_aal = P(name='Altitude AAL', array=array)
+        bottoms = KTI('Bottom Of Descent', items=[
+            KeyTimeInstance(2), KeyTimeInstance(10)
+        ])
+        apps = buildsection('Approach And Landing', 3, 15)
+        name = self.node_class.get_name()
+        node = self.node_class()
+        node.derive(alt_aal, flap_lever, None, bottoms, apps, None)
+        self.assertEqual(node, KPV(name=name, items=[
+            KeyPointValue(index=8.0, value=200.0, name=name),
         ]))
 
 
