@@ -6284,7 +6284,8 @@ class BaroCorrectionMinus1013Above20000FtDuringLevelFlightMax(KeyPointValueNode)
     '''
     Maximum difference between Baro Correction and 1013 hPa (absolute value) for
     altitudes above 20,000 ft STD during level flight. This should assure we are
-    above any transition altitudes. Only consider differences of minimum 1 hPa.
+    above any transition altitudes. Only consider differences of minimum 1 hPa
+    for a minimum duration of 8 seconds.
 
     We only consider level flight sections as local QNH could be set above
     20,000 ft during descend when cleared to an altitude.
@@ -6302,13 +6303,34 @@ class BaroCorrectionMinus1013Above20000FtDuringLevelFlightMax(KeyPointValueNode)
 
     def derive(self, baro=P('Baro Correction'),
                alt_std=P('Altitude STD'),
-               level=S('Level Flight')):
+               level=S('Level Flight'),
+               baro_sel=M('Baro Setting Selection'),
+               baro_sel_cpt=M('Baro Setting Selection (Capt)'),
+               baro_sel_fo=M('Baro Setting Selection (FO)'),
+               baro_cor_isis=P('Baro Correction (ISIS)'),
+               manufacturer=A('Manufacturer')):
+
+        use_baro = baro is not None
+        if use_baro and manufacturer and manufacturer.value == 'Airbus':
+            # On Airbus we can only use Baro Correction if we have a parameter telling us
+            # when the pilots selected STD.
+            baro_sel_available = baro_sel or (baro_sel_cpt and baro_sel_fo) or baro_cor_isis
+            use_baro = use_baro and baro_sel_available
 
         _, above_20000ft = slices_above(alt_std.array, 20000)
         above_20000ft_level = slices_and(above_20000ft, level.get_slices())
 
-        if baro:
+        if use_baro:
             baro_dev = abs(baro.array - 1013)
+            if baro_sel:
+                baro_dev[baro_sel.array == 'ALT STD'] = 0
+            elif baro_sel_cpt and baro_sel_fo:
+                baro_dev[(baro_sel_cpt.array == 'STD') | (baro_sel_fo.array == 'STD')] = 0
+            elif baro_cor_isis:
+                baro_dev[np.isclose(baro_cor_isis.array, 1013)] = 0
+
+            baro_dev = second_window(baro_dev, baro.frequency, 8, extend_window=True)
+
             _, significant_diffs = slices_above(baro_dev, 1)
             above_20000ft_level = slices_and(above_20000ft_level, significant_diffs)
             above_20000ft_level = slices_int(above_20000ft_level)
