@@ -7265,6 +7265,10 @@ class TestCompressIterRepr(unittest.TestCase):
         # interesting side effect - int(5.4) == int('5')
         self.assertEqual(compress_iter_repr([4.0, 5.4, '5'], int),
                          "[4]+[5]*2")
+        test_array = np.ma.array(data=[1,1,1,2,2,2,3,3,3],
+                                 mask=[1,1,0,0,0,1,1,1,0])
+        self.assertEqual(compress_iter_repr(test_array),
+                         "[masked]*2+[1]+[2]*2+[masked]*3+[3]")
 
 
 class TestStraightenAltitudes(unittest.TestCase):

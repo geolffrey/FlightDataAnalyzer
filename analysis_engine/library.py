@@ -1630,11 +1630,16 @@ def compress_iter_repr(iterable, cast=None, join='+'):
     '''
     prev_v = None
     res = []
+    count = 0
     for v in iterable:
         if cast:
             v = cast(v)
-        if v != prev_v:
-            if prev_v != None:
+        if v != prev_v or \
+           not np.ma.is_masked(v) and np.ma.is_masked(prev_v) or \
+           np.ma.is_masked(v) and not np.ma.is_masked(prev_v):
+            if np.ma.is_masked(prev_v):
+                res.append((prev_v, count))
+            elif prev_v != None:
                 # FIXME: NameError for count
                 res.append((prev_v, count))
             count = 1
