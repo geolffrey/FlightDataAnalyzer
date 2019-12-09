@@ -6225,27 +6225,29 @@ class RollSmoothed(DerivedParameterNode):
     align = False
     units = ut.DEGREE
 
-    @classmethod
-    def can_operate(cls, available):
-        return 'Roll' in available
-
     def derive(self,
                source_A=P('Roll'),
                source_B=P('Roll (1)'),
                source_C=P('Roll (2)'),
                ):
 
-        sources = [source_A, source_B, source_C]
-        max_freq = max([s.frequency for s in sources if s])
+        if source_A.frequency >= 4.0:
+            # Modern aircraft with higher sample rates don't need smoothing
+            self.array = source_A.array
+            self.offset = source_A.offset
+            self.frequency = source_A.frequency
 
-        self.offset = 0.0
-        self.frequency = max([4.0, max_freq])
-
-        self.array = blend_parameters(sources,
-                                      offset=self.offset,
-                                      frequency=self.frequency,
-                                      small_slice_duration=10,
-                                      mode='cubic')
+        else:
+            # Older aircraft are best smoothed using two separate sources
+            # and cubic interpolation.
+            self.offset = 0.0
+            self.frequency = 4.0
+            sources = [source_B, source_C]
+            self.array = blend_parameters(sources,
+                                          offset=self.offset,
+                                          frequency=self.frequency,
+                                          small_slice_duration=10,
+                                          mode='cubic')
 
 
 class PitchSmoothed(DerivedParameterNode):
@@ -6253,27 +6255,29 @@ class PitchSmoothed(DerivedParameterNode):
     align = False
     units = ut.DEGREE
 
-    @classmethod
-    def can_operate(cls, available):
-        return 'Pitch' in available
-
     def derive(self,
                source_A=P('Pitch'),
                source_B=P('Pitch (1)'),
                source_C=P('Pitch (2)'),
                ):
 
-        sources = [source_A, source_B, source_C]
-        max_freq = max([s.frequency for s in sources if s])
+        if source_A.frequency >= 4.0:
+            # Modern aircraft with higher sample rates don't need smoothing
+            self.array = source_A.array
+            self.offset = source_A.offset
+            self.frequency = source_A.frequency
 
-        self.offset = 0.0
-        self.frequency = max([4.0, max_freq])
-
-        self.array = blend_parameters(sources,
-                                      offset=self.offset,
-                                      frequency=self.frequency,
-                                      small_slice_duration=10,
-                                      mode='cubic')
+        else:
+            # Older aircraft are best smoothed using two separate sources
+            # and cubic interpolation.
+            self.offset = 0.0
+            self.frequency = 4.0
+            sources = [source_B, source_C]
+            self.array = blend_parameters(sources,
+                                          offset=self.offset,
+                                          frequency=self.frequency,
+                                          small_slice_duration=10,
+                                          mode='cubic')
 
 
 class RollRate(DerivedParameterNode):
