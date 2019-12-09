@@ -10,6 +10,7 @@ import six
 from copy import deepcopy
 from math import ceil, copysign
 from operator import itemgetter
+import itertools
 
 from hdfaccess.parameter import NO_MAPPING
 from flightdatautilities import aircrafttables as at, units as ut
@@ -4510,7 +4511,69 @@ class AOABelowStickShakerAOAMin(KeyPointValueNode):
 ##############################################################################
 # Sensor Mismatch
 
-class AOADifference5SecMax(KeyPointValueNode):
+
+class SensorDifference5SecMaxMixin(object):
+    '''
+    Maximum recorded Sensor difference sustained for at least 5 seconds while Airborne.
+
+    This mixin can be added to any KPV measuring the greatest difference between
+    all available sensors.
+
+    Example on how to use this Mixin:
+
+    class MySensorDifference5SecMax(SensorDifference5SecMaxMixin, KeyPointValueNode):
+
+        def derive(self,
+                   sensor_1=P('Sensor (1)'),
+                   sensor_2=P('Sensor (2)'),
+                   sensor_3=P('Sensor (3)'),
+                   sensor_4=P('Sensor (4)'),
+                   airs=S('Airborne'),):
+            self.derive_sensors_diff([sensor_1, sensor_2, sensor_3, sensor_4], airs)
+
+    This will work for any dataframes. Any sensor can be missing. If there are
+    less than 2 sensors on the dataframe, no KPV will be created.
+    '''
+
+    @classmethod
+    def can_operate(cls, available):
+        sensors = [param for param in cls.get_dependency_names() if param != 'Airborne']
+        return ('Airborne' in available and
+                any_of(sensors, available))
+
+    def derive_sensors_diff(self, sensors, airs):
+        '''
+        Calculate the maximum difference among all sensors for at least 5
+        seconds while Airborne.
+
+        :param sensors: iterable of sensor parameter
+        :type sensors: Iterable[Optional[Parameter]]
+        :param airs: Airborne flight phases
+        :type airs: Section
+        '''
+
+        sensors = [s for s in sensors if s is not None]
+        if len(sensors) < 2:
+            # Only one sensor or none. Cannot disagree with oneself.
+            return
+
+        # Find the maximum diff for each combinations of 2 sensors
+        maximums = []
+        for sensor_l, sensor_r in itertools.combinations(sensors, 2):
+            diff = sensor_l.array - sensor_r.array
+            diff = second_window(diff, sensor_l.hz, 5, extend_window=True)
+            for air in airs:
+                idx, val = max_abs_value(
+                    diff, _slice=air.slice,
+                    start_edge=air.start_edge, stop_edge=air.stop_edge
+                )
+                maximums.append((idx, val))
+        idx, value = max(maximums, key=lambda idx_val: abs(idx_val[1]))
+
+        self.create_kpv(idx, value)
+
+
+class AOADifference5SecMax(SensorDifference5SecMaxMixin, KeyPointValueNode):
     '''
     Maximum recorded AoA difference sustained for at least 5 seconds while Airborne.
     Left greater than Right = negative value.
@@ -4522,13 +4585,13 @@ class AOADifference5SecMax(KeyPointValueNode):
     def derive(self,
                aoa_l=P('AOA (L)'),
                aoa_r=P('AOA (R)'),
+               aoa_1=P('AOA (1)'),
+               aoa_2=P('AOA (2)'),
                airs=S('Airborne'),):
-        diff = aoa_r.array - aoa_l.array
-        diff = second_window(diff, self.hz, 5, extend_window=True)
-        self.create_kpvs_within_slices(diff, airs, max_abs_value)
+        self.derive_sensors_diff([aoa_l, aoa_r, aoa_1, aoa_2], airs)
 
 
-class AirspeedDifference5SecMax(KeyPointValueNode):
+class AirspeedDifference5SecMax(SensorDifference5SecMaxMixin, KeyPointValueNode):
     '''
     Maximum recorded Airspeed difference sustained for at least 5 seconds while Airborne.
     '''
@@ -4538,11 +4601,100 @@ class AirspeedDifference5SecMax(KeyPointValueNode):
 
     def derive(self,
                ias=P('Airspeed'),
+               ias_1=P('Airspeed (1)'),
                ias_2=P('Airspeed (2)'),
+               ias_3=P('Airspeed (3)'),
+               ias_4=P('Airspeed (4)'),
                airs=S('Airborne'),):
-        diff = ias_2.array - ias.array
-        diff = second_window(diff, self.hz, 5, extend_window=True)
-        self.create_kpvs_within_slices(diff, airs, max_abs_value)
+        self.derive_sensors_diff([ias, ias_1, ias_2, ias_3, ias_4], airs)
+
+
+class AltitudeSTDDifference5SecMax(SensorDifference5SecMaxMixin, KeyPointValueNode):
+    '''
+    Maximum recorded Altitude STD difference sustained for at least 5 seconds while Airborne.
+    '''
+
+    name = 'Altitude STD Difference 5 Sec Max'
+    units = ut.FT
+
+    def derive(self,
+               alt=P('Altitude STD'),
+               alt_1=P('Altitude STD (1)'),
+               alt_2=P('Altitude STD (2)'),
+               alt_3=P('Altitude STD (3)'),
+               alt_4=P('Altitude STD (4)'),
+               airs=S('Airborne'),):
+        self.derive_sensors_diff([alt, alt_1, alt_2, alt_3, alt_4], airs)
+
+
+class PitchDifference5SecMax(SensorDifference5SecMaxMixin, KeyPointValueNode):
+    '''
+    Maximum recorded Pitch difference sustained for at least 5 seconds while Airborne.
+    '''
+
+    name = 'Pitch Difference 5 Sec Max'
+    units = ut.DEGREE
+
+    def derive(self,
+               pitch=P('Pitch'),
+               pitch_1=P('Pitch (1)'),
+               pitch_2=P('Pitch (2)'),
+               pitch_3=P('Pitch (3)'),
+               pitch_4=P('Pitch (4)'),
+               pitch_5=P('Pitch (5)'),
+               pitch_6=P('Pitch (6)'),
+               pitch_7=P('Pitch (7)'),
+               pitch_8=P('Pitch (8)'),
+               airs=S('Airborne'),):
+        self.derive_sensors_diff(
+            [pitch, pitch_1, pitch_2, pitch_3, pitch_4,
+             pitch_5, pitch_6, pitch_7, pitch_8],
+            airs
+        )
+
+
+class RollDifference5SecMax(SensorDifference5SecMaxMixin, KeyPointValueNode):
+    '''
+    Maximum recorded Roll difference sustained for at least 5 seconds while Airborne.
+    '''
+
+    name = 'Roll Difference 5 Sec Max'
+    units = ut.DEGREE
+
+    def derive(self,
+               roll=P('Roll'),
+               roll_1=P('Roll (1)'),
+               roll_2=P('Roll (2)'),
+               roll_3=P('Roll (3)'),
+               roll_4=P('Roll (4)'),
+               roll_5=P('Roll (5)'),
+               roll_6=P('Roll (6)'),
+               roll_7=P('Roll (7)'),
+               roll_8=P('Roll (8)'),
+               roll_9=P('Roll (9)'),
+               airs=S('Airborne'),):
+        self.derive_sensors_diff(
+            [roll, roll_1, roll_2, roll_3, roll_4,
+             roll_5, roll_6, roll_7, roll_8, roll_9],
+            airs
+        )
+
+
+class HeadingDifference5SecMax(SensorDifference5SecMaxMixin, KeyPointValueNode):
+    '''
+    Maximum recorded Heading difference sustained for at least 5 seconds while Airborne.
+    '''
+
+    name = 'Heading Difference 5 Sec Max'
+    units = ut.DEGREE
+
+    def derive(self,
+               hdg=P('Heading'),
+               hdg_1=P('Heading (1)'),
+               hdg_2=P('Heading (2)'),
+               hdg_3=P('Heading (3)'),
+               airs=S('Airborne'),):
+        self.derive_sensors_diff([hdg, hdg_1, hdg_2, hdg_3], airs)
 
 
 ##############################################################################
