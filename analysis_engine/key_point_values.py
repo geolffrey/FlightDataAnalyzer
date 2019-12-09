@@ -86,6 +86,7 @@ from analysis_engine.library import (
     slices_below,
     slices_between,
     slices_duration,
+    slices_extend_duration,
     slices_from_ktis,
     slices_from_to,
     slices_not,
@@ -1625,6 +1626,52 @@ class Airspeed8000To10000FtMax(KeyPointValueNode):
         )
 
 
+class Airspeed8000To10000FtMaxQNH(KeyPointValueNode):
+    '''
+    Maximum airspeed during climb between 8000ft QNH and 10000ft QNH.
+    Ignores Level sections close to 10,000ft QNH.
+    '''
+
+    name = 'Airspeed 8000 To 10000 Ft Max QNH'
+    units = ut.KT
+
+    def derive(self,
+               air_spd=P('Airspeed'),
+               alt_qnh=P('Altitude QNH'),
+               climbs=S('Climb'),
+               levels=S('Level Flight')):
+
+            _, climb_sections = slices_from_to(alt_qnh.array, 8000, 10000)
+            _, slices_at_10000 = slices_between(alt_qnh.array, 9500, 10000)
+            levels_at_10000 = slices_and(
+                slices_at_10000,
+                levels.get_slices()
+            )
+            # Find out if Level section stopped right before reaching 10,000 ft
+            # In which case we will extend our slice to when 10,000 ft was crossed
+            for i, lvl_at_10000 in enumerate(levels_at_10000):
+                # Restrict the scope of our search to the climb section
+                climb = climbs.get(containing_index=lvl_at_10000.start)
+                if not climb:
+                    continue
+                climb = climb[0]
+                at_10500 = index_at_value(
+                    alt_qnh.array,
+                    10500,
+                    _slice=slice(lvl_at_10000.stop, climb.slice.stop),
+                    endpoint='exact'
+                )
+                if at_10500 is not None:
+                    levels_at_10000[i] = slice(lvl_at_10000.start, int(at_10500))
+
+            climb_sections = slices_and_not(climb_sections, levels_at_10000)
+            self.create_kpvs_within_slices(
+                air_spd.array,
+                climb_sections,
+                max_value,
+            )
+
+
 class Airspeed3000FtToTopOfClimbMax(KeyPointValueNode):
     '''
     Maximum recorded airspeed between 3000ft AAL and Top of Climb.
@@ -1724,6 +1771,52 @@ class Airspeed10000To8000FtMax(KeyPointValueNode):
             alt_descent_sections,
             max_value,
         )
+
+
+class Airspeed10000To8000FtMaxQNH(KeyPointValueNode):
+    '''
+    Maximum airspeed during descent between 10000ft QNH and 8000ft QNH.
+    Ignores Level sections close to 10,000ft QNH.
+    '''
+
+    name = 'Airspeed 10000 To 8000 Ft Max QNH'
+    units = ut.KT
+
+    def derive(self,
+               air_spd=P('Airspeed'),
+               alt_qnh=P('Altitude QNH'),
+               descents=S('Descent'),
+               levels=S('Level Flight')):
+
+            _, descent_sections = slices_from_to(alt_qnh.array, 10000, 8000)
+            _, slices_at_10000 = slices_between(alt_qnh.array, 9500, 10000)
+            levels_at_10000 = slices_and(
+                slices_at_10000,
+                levels.get_slices()
+            )
+            # Find out if Level section started right before reaching 10,000 ft
+            # In which case we will extend our slice to when 10,000 ft was crossed
+            for i, lvl_at_10000 in enumerate(levels_at_10000):
+                # Restrict the scope of our search to the descent section
+                descent = descents.get(containing_index=lvl_at_10000.start)
+                if not descent:
+                    continue
+                descent = descent[0]
+                at_10500 = index_at_value(
+                    alt_qnh.array,
+                    10500,
+                    _slice=slice(lvl_at_10000.start, descent.slice.start, -1),
+                    endpoint='exact'
+                )
+                if at_10500 is not None:
+                    levels_at_10000[i] = slice(int(at_10500), lvl_at_10000.stop)
+
+            descent_sections = slices_and_not(descent_sections, levels_at_10000)
+            self.create_kpvs_within_slices(
+                air_spd.array,
+                descent_sections,
+                max_value,
+            )
 
 
 class Airspeed8000To5000FtMax(KeyPointValueNode):

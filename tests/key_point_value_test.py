@@ -83,6 +83,7 @@ from analysis_engine.key_point_values import (
     AircraftEnergyWhenDescending,
     Airspeed10000To5000FtMax,
     Airspeed10000To8000FtMax,
+    Airspeed10000To8000FtMaxQNH,
     Airspeed1000To500FtMax,
     Airspeed1000To500FtMin,
     Airspeed1000To5000FtMax,
@@ -100,6 +101,7 @@ from analysis_engine.key_point_values import (
     Airspeed5000To8000FtMax,
     Airspeed5000To10000FtMax,
     Airspeed8000To10000FtMax,
+    Airspeed8000To10000FtMaxQNH,
     Airspeed8000To5000FtMax,
     AirspeedAboveStickShakerSpeedMin,
     AirspeedAtAPUpperModesEngaged,
@@ -3048,6 +3050,62 @@ class TestAirspeed8000To10000FtMax(unittest.TestCase):
         self.assertTrue(False, msg='Test Not Implemented')
 
 
+class TestAirspeed8000To10000FtMaxQNH(unittest.TestCase):
+
+    def setUp(self):
+        self.node_class = Airspeed8000To10000FtMaxQNH
+        self.operational_combinations = [('Airspeed', 'Altitude QNH', 'Climb', 'Level Flight')]
+        self.function = max_value
+
+    def test_can_operate(self):
+        opts = self.node_class.get_operational_combinations()
+        self.assertEqual(opts, self.operational_combinations)
+
+    def test_derive(self):
+        alt = P('Altitude QNH', array=np.ma.arange(7000, 15000, 100))
+        spd = P('Airspeed', array=np.arange(220, 300))
+        climbs = buildsection('Climb', 0, 80)
+        levels = S('Level Flight')
+        node = self.node_class()
+        node.derive(spd, alt, climbs, levels)
+        self.assertEqual(node[0].index, 29)
+        self.assertEqual(node[0].value, 249)
+
+    def test_derive_ignore_level_at_10000(self):
+        array = np.ma.concatenate([
+            np.ma.arange(7000, 10000, 100),
+            np.ma.ones(10) * 10000,
+            np.ma.arange(10000, 15000, 100),
+        ])
+        array -= 1
+        alt = P('Altitude QNH', array=array)
+        spd = P('Airspeed', array=np.ma.arange(230, 320))
+        climbs = buildsection('Climb', 0, 80)
+        levels = buildsection('Level Flight', 30,41)
+        node = self.node_class()
+        node.derive(spd, alt, climbs, levels)
+        self.assertEqual(node[0].index, 30-1)
+        self.assertEqual(node[0].value, 259)
+
+    def test_derive_ignore_climb_after_level_at_10000(self):
+        array = np.ma.concatenate([
+            np.ma.arange(7000, 9800, 100),
+            np.ma.ones(10) * 9800,
+            np.ma.arange(9800, 15000, 100)
+        ])
+        alt = P('Altitude QNH', array=array)
+        spd = P('Airspeed', array=np.ma.concatenate([
+            np.arange(220, 250),
+            np.ones(60) * 300,
+        ]))
+        climbs = buildsection('Climb', 0, 80)
+        levels = buildsection('Level Flight', 28, 38)
+        node = self.node_class()
+        node.derive(spd, alt, climbs, levels)
+        self.assertEqual(node[0].index, 27)
+        self.assertEqual(node[0].value, 220 + 27)
+
+
 ########################################
 # Airspeed: Descending
 
@@ -3066,6 +3124,62 @@ class TestAirspeed10000To8000FtMax(unittest.TestCase):
     @unittest.skip('Test Not Implemented')
     def test_derive(self):
         self.assertTrue(False, msg='Test Not Implemented')
+
+
+class TestAirspeed10000To8000FtMaxQNH(unittest.TestCase):
+
+    def setUp(self):
+        self.node_class = Airspeed10000To8000FtMaxQNH
+        self.operational_combinations = [('Airspeed', 'Altitude QNH', 'Descent', 'Level Flight')]
+        self.function = max_value
+
+    def test_can_operate(self):
+        opts = self.node_class.get_operational_combinations()
+        self.assertEqual(opts, self.operational_combinations)
+
+    def test_derive(self):
+        alt = P('Altitude QNH', array=np.ma.arange(15000, 7000, -100))
+        spd = P('Airspeed', array=np.repeat(np.arange(300, 220, -10), 10))
+        descents = buildsection('Descent', 0, 80)
+        levels = S('Level Flight')
+        node = self.node_class()
+        node.derive(spd, alt, descents, levels)
+        self.assertEqual(node[0].index, 51)
+        self.assertEqual(node[0].value, 250)
+
+    def test_derive_ignore_level_at_10000(self):
+        array = np.ma.concatenate([
+            np.ma.arange(15000, 9900, -100),
+            np.ma.ones(10) * 10000,
+            np.ma.arange(10000, 7000, -100)
+        ])
+        array -= 1
+        alt = P('Altitude QNH', array=array)
+        spd = P('Airspeed', array=np.repeat(np.arange(300, 210, -10), 10))
+        descents = buildsection('Descent', 0, 80)
+        levels = buildsection('Level Flight', 50, 62)
+        node = self.node_class()
+        node.derive(spd, alt, descents, levels)
+        self.assertEqual(node[0].index, 62)
+        self.assertEqual(node[0].value, 240)
+
+    def test_derive_ignore_descent_prior_level_at_10000(self):
+        array = np.ma.concatenate([
+            np.ma.arange(15000, 9800, -100),
+            np.ma.ones(10) * 9800,
+            np.ma.arange(9800, 7000, -100)
+        ])
+        alt = P('Altitude QNH', array=array)
+        spd = P('Airspeed', array=np.ma.concatenate([
+            np.ones(60) * 300,
+            np.ones(30) * 250
+        ]))
+        descents = buildsection('Descent', 0, 80)
+        levels = buildsection('Level Flight', 52, 62)
+        node = self.node_class()
+        node.derive(spd, alt, descents, levels)
+        self.assertEqual(node[0].index, 62)
+        self.assertEqual(node[0].value, 250)
 
 
 class TestAirspeed8000To5000FtMax(unittest.TestCase, NodeTest):
