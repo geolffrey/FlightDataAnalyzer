@@ -6823,7 +6823,9 @@ def including_transition(array, steps, hz=1, mode='include'):
                         output[int(index + band.start - 1)] = flap
                     else:
                         # Going down
-                        output[int(index + band.start + 1)] = flap
+                        idx = int(index + band.start + 1)
+                        idx = idx - 1 if idx == len(output) else idx
+                        output[idx] = flap
                 else:
                     # The data may have just crept into this band without being a
                     # true change into the new flap setting. Let's just ignore this.

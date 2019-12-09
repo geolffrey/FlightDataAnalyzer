@@ -5788,7 +5788,7 @@ class AltitudeAtClimbThrustDerateDeselectedDuringClimbBelow33000Ft(KeyPointValue
         for derate_deselected in derate_deselecteds.get(within_slices=climbs.get_slices()):
             alt_aal_value = value_at_index(alt_aal.array,
                                            derate_deselected.index)
-            if alt_aal_value < 33000:
+            if alt_aal_value and alt_aal_value < 33000:
                 self.create_kpv(derate_deselected.index, alt_aal_value)
 
 
@@ -19669,6 +19669,8 @@ class EngTakeoffDerateDuration(KeyPointValueNode):
             if epr_max and epr_limit_1 and epr_limit_2:
                 epr_lim_max = np.ma.maximum(epr_limit_1.array, epr_limit_2.array)
                 sections = slices_and([roll.slice], airspd_slices)
+                if not sections:
+                    continue
                 for s in sections:
                     peak_epr_lim = np.ma.max(epr_lim_max[s])
                     peak_epr = np.ma.max(epr_max.array[s])
