@@ -8821,9 +8821,35 @@ class TestMb2Ft(unittest.TestCase):
 class TestMaxMaintainedValue(unittest.TestCase):
     def test_example_max_maintained_value(self):
         arrays = np.ma.array([1,2,3,4,3,4,3,4,3,2,5,2])
-        index, value = max_maintained_value(arrays, 5, 1, slice(0,12))
-        self.assertEquals(index, 4)
+        index, value = max_maintained_value(arrays, 5, 1)
+        self.assertEquals(index, 2)
         self.assertEquals(value, 3)
+
+    def test_short_down_spike(self):
+        arrays = np.ma.array([1, 8, 8, 8, 1, 8, 1, 7, 7, 7, 7, 7, 9])
+        index, value = max_maintained_value(arrays, 5, 1)
+        self.assertEquals(index, 7)
+        self.assertEquals(value, 7)
+
+    def test_all_masked(self):
+        arrays = np.ma.array([1, 8, 8, 8, 1, 8, 1, 7, 7, 7, 7, 7, 9], mask=True)
+        index, value = max_maintained_value(arrays, 5, 1)
+        self.assertEquals(index, None)
+        self.assertEquals(value, None)
+
+    def test_partly_masked(self):
+        arrays = np.ma.array([1, 7, 7, 7, 7, 7, 9, 1, 8, 8, 8, 1, 8])
+        arrays[1:3] = np.ma.masked
+        index, value = max_maintained_value(arrays, 5, 1)
+        self.assertEquals(index, 3)
+        self.assertEquals(value, 1)
+
+    def test_slice_outside_array(self):
+        arrays = np.ma.array([1,2,3,4,3,4,3,4,3,2,5,2])
+        arrays[2] = np.ma.masked
+        index, value = max_maintained_value(arrays, 5, 1, slice(100, 200))
+        self.assertEquals(index, None)
+        self.assertEquals(value, None)
 
     def test_max_maintained_value(self):
         eng_torq_max=load(os.path.join(test_data_path,
@@ -8831,14 +8857,13 @@ class TestMaxMaintainedValue(unittest.TestCase):
         go_arounds=load(os.path.join(test_data_path,
                                      'ebe456663820_go_arounds.nod'))
         phase = go_arounds.get_slices()[0]
-        array = eng_torq_max.array[slices_int(phase)]
         expected = (
             (10, 2922, 148.697),
             (20, 2920, 146.5),
-            (300, 2750, 4.248)
+            (300, 2733.5, 4.248)
         )
         hz = eng_torq_max.frequency
         for sec, idx, val in expected:
-            index, value = max_maintained_value(array, sec, hz, phase)
+            index, value = max_maintained_value(eng_torq_max.array, sec, hz, phase)
             self.assertAlmostEqual(index, idx, places=0)
             self.assertAlmostEqual(value, val, places=3)

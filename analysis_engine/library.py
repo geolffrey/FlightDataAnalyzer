@@ -17,6 +17,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from hashlib import sha256
 from math import ceil, copysign, cos, floor, log, radians, sin, sqrt
+from operator import itemgetter
 from scipy import interpolate as scipy_interpolate, optimize
 from scipy.ndimage import filters
 from scipy.signal import medfilt
@@ -8724,61 +8725,64 @@ def find_rig_approach(condition_defs, phase_map, approach_map,
         return None, None, None
 
 
-def max_maintained_value(arrays, seconds, frequency, phase):
-    """
-    For the given phase, return the indices of the maximum value maintained
-    for the given number of samples (this is the minimum value within the slice
-    equal to the number of samples containing the highest values)
+def max_maintained_value(array, seconds, frequency, _slice=slice(None)):
+    '''
+    Return the indice and the value of the maximum value maintained for at least
+    the given duration within the slice. The index will be relative to the start
+    of the array, not to the start of the slice.
 
-    E.g.
-    arrays = [1,2,3,4,3,4,3,4,3,2,5,2]
-    samples = 5
+    seconds * frequency gives the number of samples which must be greater or equal to 2.
 
-    max_value = 5
-    windows:
-    0: [[1,2,3,4,3],4,3,4,3,2,5,2] => min_diff = sum(5-1 + 5-2 + 5-3 + 5-4 + 5-3) = 12
-    1: [1,[2,3,4,3,4],3,4,3,2,5,2] => min_diff = sum(5-2 + 5-3 + 5-4 + 5-3 + 5-4) = 9
-    2: [1,2,[3,4,3,4,3],4,3,2,5,2] => min_diff = sum(5-3 + 5-4 + 5-3 + 5-4 + 5-3) = 8
-    3: [1,2,3,[4,3,4,3,4],3,2,5,2] => min_diff = sum(5-4 + 5-3 + 5-4 + 5-3 + 5-4) = 7 <-- min_difference_index = 3
-    4: [1,2,3,4,[3,4,3,4,3],2,5,2] => min_diff = sum(5-3 + 5-4 + 5-3 + 5-4 + 5-3) = 8
-    5: [1,2,3,4,3,[4,3,4,3,2],5,2] => min_diff = sum(5-4 + 5-3 + 5-4 + 5-3 + 5-2) = 9
-    6: [1,2,3,4,3,4,[3,4,3,2,5],2] => min_diff = sum(5-3 + 5-4 + 5-3 + 5-2 + 5-5) = 8
-    7: [1,2,3,4,3,4,3,[4,3,2,5,2]] => min_diff = sum(5-4 + 5-3 + 5-2 + 5-5 + 5-2) = 9
-    The returned values will be:
-    min_difference_index = 3
-    array_index = 4
-    value = 3
-
-    The slice starting at index 3 and ending at index 8 (5 samples) is the slice
-    with the minimum difference from the maximum value in the array, therefore it contains
-    the samples with the highest values. The value returned along with this index is 3,
-    as if we return the minimum value within this slice, we ensure that all other values
-    will be higher than this.
-    """
-    indices = []
-    values = []
-    samples = int(frequency * seconds)
-    for unmasked_slice in np.ma.clump_unmasked(arrays):
-        array = arrays[unmasked_slice]
-        if samples <= len(array):
-            max_value = array.max()
-            min_difference_index = 0
-            min_difference = sum = np.ma.sum(max_value - array[:samples])
-            for i in range(1, len(array) - samples + 1):
-                sum += array[i - 1]
-                sum -= array[samples + i - 1]
-                if sum < min_difference:
-                    min_difference = sum
-                    min_difference_index = i
-            index, value = min_value(array[min_difference_index:min_difference_index+samples])
-            indices.append(min_difference_index + index + phase.start + unmasked_slice.start)
-            values.append(value)
-
-    if len(values) == 1:
-        return indices[0], values[0]
-    elif len(values) > 1:
-        value = max(values)
-        index = indices[int(index_at_value(np.array(values), value))]
-        return index, value
-    else:
+    :param array: ...
+    :type array: np.ma.masked_array
+    :param seconds: window size in seconds
+    :type seconds: float or int
+    :param frequncy: frequency of the array data
+    :type frequency: float or int
+    :param _slice: slice for the data of interest.
+    :type _slice: slice
+    '''
+    array = array[slices_int(_slice)]
+    if not array.size:
         return None, None
+    sample_duration = 1 / frequency
+    if modulo(seconds, sample_duration) != 0:
+        seconds = seconds - seconds % sample_duration + sample_duration
+
+    samples = int(frequency * seconds)
+    if samples < 2:
+        raise ValueError('Too small duration %s for frequency %s Hz.\n'
+                         'Value of seconds * frequency must be at least 2.'
+                         % (seconds, frequency))
+
+    def max_maintained_value_in_valid_array(array, samples):
+        for valid_slice in np.ma.clump_unmasked(array):
+            # Make a view of a sliding window using a different stride.
+            # For 3 samples, the array [1, 2, 3, 4, 5, 6, 7, 8, 9] will become
+            # [[1, 2, 3],
+            #  [2, 3, 4],
+            #  [3, 4, 5],
+            #  [4, 5, 6],
+            #  [5, 6, 7],
+            #  [6, 7, 8],
+            #  [7, 8, 9]]
+            valid_array = array[valid_slice]
+            if valid_array.size < samples:
+                continue
+            sliding_window = np.lib.stride_tricks.as_strided(
+                valid_array, shape=(len(valid_array) - samples + 1, samples),
+                strides=valid_array.strides * 2)
+
+            # Calculate min over the last axis (for each sliding window)
+            min_ = np.min(sliding_window, axis=-1)
+            idx, value =  min_.argmax(), min_.max()
+            yield idx + valid_slice.start, value
+
+    idx, value = max(
+        max_maintained_value_in_valid_array(array, samples),
+        key=itemgetter(1),
+        default=(None, None)
+    )
+    if idx is not None:
+        idx += _slice.start or 0
+    return idx, value

@@ -10611,8 +10611,8 @@ class TestEngNpMaxDuringTakeoff(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_np_max, takeoffs, None)
         self.assertEqual(node, KPV(name=name, items=[
-            KeyPointValue(index=18, value=99, name='Eng (*) Np Max During Takeoff 5 Sec'),
-            KeyPointValue(index=23, value=98, name='Eng (*) Np Max During Takeoff 20 Sec'),
+            KeyPointValue(index=15, value=99, name='Eng (*) Np Max During Takeoff 5 Sec'),
+            KeyPointValue(index=15, value=98, name='Eng (*) Np Max During Takeoff 20 Sec'),
         ]))
 
     def test_derive_short_takeoff(self):
@@ -10641,7 +10641,7 @@ class TestEngNpMaxDuringTakeoff(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_np_max, takeoffs, None)
         self.assertEqual(node, KPV(name=name, items=[
-            KeyPointValue(index=34, value=99, name='Eng (*) Np Max During Takeoff 5 Sec'),
+            KeyPointValue(index=32, value=99, name='Eng (*) Np Max During Takeoff 5 Sec'),
         ]))
 
     def test_derive_multiple_masked_slices(self):
@@ -10657,7 +10657,7 @@ class TestEngNpMaxDuringTakeoff(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_np_max, takeoffs, None)
         self.assertEqual(node, KPV(name=name, items=[
-            KeyPointValue(index=18, value=99, name='Eng (*) Np Max During Takeoff 5 Sec'),
+            KeyPointValue(index=15, value=99, name='Eng (*) Np Max During Takeoff 5 Sec'),
             KeyPointValue(index=10, value=85, name='Eng (*) Np Max During Takeoff 20 Sec'),
         ]))
 
@@ -10683,7 +10683,7 @@ class TestEngNpMaxDuringTakeoff(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_np_max, takeoffs, None)
         self.assertEqual(node, KPV(name=name, items=[
-            KeyPointValue(index=15, value=86, name='Eng (*) Np Max During Takeoff 5 Sec'),
+            KeyPointValue(index=11, value=86, name='Eng (*) Np Max During Takeoff 5 Sec'),
         ]))
 
     def test_derive_hz_2(self):
@@ -10698,7 +10698,7 @@ class TestEngNpMaxDuringTakeoff(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_np_max, takeoffs, None)
         self.assertEqual(node, KPV(name=name, items=[
-            KeyPointValue(index=25, value=98, name='Eng (*) Np Max During Takeoff 5 Sec'),
+            KeyPointValue(index=15, value=98, name='Eng (*) Np Max During Takeoff 5 Sec'),
                 KeyPointValue(index=12, value=92, name='Eng (*) Np Max During Takeoff 20 Sec'),
         ]))
 
@@ -10712,7 +10712,7 @@ class TestEngNpMaxDuringTakeoff(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_np_max, takeoffs, None)
         self.assertEqual(node, KPV(name=name, items=[
-            KeyPointValue(index=18, value=99, name='Eng (*) Np Max During Takeoff 5 Sec'),
+            KeyPointValue(index=15, value=99, name='Eng (*) Np Max During Takeoff 5 Sec'),
                 KeyPointValue(index=15, value=99, name='Eng (*) Np Max During Takeoff 20 Sec'),
         ]))
 
@@ -10727,10 +10727,10 @@ class TestEngNpMaxDuringTakeoff(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_np_max, takeoffs, go_arounds)
         self.assertEqual(node, KPV(name=name, items=[
-            KeyPointValue(index=68, value=99, name='Eng (*) Np Max During Takeoff 5 Sec'),
-            KeyPointValue(index=73, value=98, name='Eng (*) Np Max During Takeoff 20 Sec'),
-            KeyPointValue(index=18, value=99, name='Eng (*) Np Max During Takeoff 5 Sec'),
-            KeyPointValue(index=23, value=98, name='Eng (*) Np Max During Takeoff 20 Sec'),
+            KeyPointValue(index=65, value=99, name='Eng (*) Np Max During Takeoff 5 Sec'),
+            KeyPointValue(index=65, value=98, name='Eng (*) Np Max During Takeoff 20 Sec'),
+            KeyPointValue(index=15, value=99, name='Eng (*) Np Max During Takeoff 5 Sec'),
+            KeyPointValue(index=15, value=98, name='Eng (*) Np Max During Takeoff 20 Sec'),
         ]))
 
 
@@ -10946,10 +10946,10 @@ class TestEngTorqueMaxDuringMaximumContinuousPower(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_torque_max, mcp)
         self.assertEqual(node, KPV(name=name, items=[
-            KeyPointValue(index=23, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 10 Sec'),
-                KeyPointValue(index=23, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 20 Sec'),
-                KeyPointValue(index=23, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 5 Min'),
-                KeyPointValue(index=23, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 10 Min'),
+            KeyPointValue(index=20, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 10 Sec'),
+                KeyPointValue(index=20, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 20 Sec'),
+                KeyPointValue(index=20, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 5 Min'),
+                KeyPointValue(index=20, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 10 Min'),
         ]))
 
     def test_derive_short_mcp(self):
@@ -10962,9 +10962,9 @@ class TestEngTorqueMaxDuringMaximumContinuousPower(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_torque_max, mcp)
         self.assertEqual(node, KPV(name=name, items=[
-            KeyPointValue(index=23, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 10 Sec'),
-                KeyPointValue(index=23, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 20 Sec'),
-                KeyPointValue(index=23, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 5 Min'),
+            KeyPointValue(index=20, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 10 Sec'),
+                KeyPointValue(index=20, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 20 Sec'),
+                KeyPointValue(index=20, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 5 Min'),
         ]))
 
     def test_derive_masked_data(self):
@@ -10978,8 +10978,8 @@ class TestEngTorqueMaxDuringMaximumContinuousPower(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_torque_max, mcp)
         self.assertEqual(node, KPV(name=name, items=[
-            KeyPointValue(index=23, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 10 Sec'),
-                KeyPointValue(index=23, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 20 Sec'),
+            KeyPointValue(index=20, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 10 Sec'),
+                KeyPointValue(index=20, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 20 Sec'),
         ]))
 
     def test_derive_multiple_masked_slices(self):
@@ -10996,9 +10996,9 @@ class TestEngTorqueMaxDuringMaximumContinuousPower(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_torque_max, mcp)
         self.assertEqual(node, KPV(name=name, items=[
-            KeyPointValue(index=23, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 10 Sec'),
-                KeyPointValue(index=23, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 20 Sec'),
-                KeyPointValue(index=23, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 5 Min'),
+            KeyPointValue(index=20, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 10 Sec'),
+                KeyPointValue(index=20, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 20 Sec'),
+                KeyPointValue(index=20, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 5 Min'),
         ]))
 
     def test_derive_all_data_masked(self):
@@ -11022,10 +11022,10 @@ class TestEngTorqueMaxDuringMaximumContinuousPower(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_torque_max, mcp)
         self.assertEqual(node, KPV(name=name, items=[
-            KeyPointValue(index=43, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 10 Sec'),
-                KeyPointValue(index=43, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 20 Sec'),
-                KeyPointValue(index=43, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 5 Min'),
-                KeyPointValue(index=43, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 10 Min'),
+            KeyPointValue(index=40, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 10 Sec'),
+                KeyPointValue(index=40, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 20 Sec'),
+                KeyPointValue(index=40, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 5 Min'),
+                KeyPointValue(index=40, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 10 Min'),
         ]))
 
 
@@ -11046,9 +11046,9 @@ class TestEngTorqueMaxDuringTakeoff(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_torque_max, takeoffs)
         self.assertEqual(node, KPV(name=name, items=[
-            KeyPointValue(index=17, value=98, name='Eng (*) Torque Max During Takeoff 10 Sec'),
-            KeyPointValue(index=17, value=98, name='Eng (*) Torque Max During Takeoff 20 Sec'),
-            KeyPointValue(index=17, value=98, name='Eng (*) Torque Max During Takeoff 5 Min'),
+            KeyPointValue(index=10, value=98, name='Eng (*) Torque Max During Takeoff 10 Sec'),
+            KeyPointValue(index=10, value=98, name='Eng (*) Torque Max During Takeoff 20 Sec'),
+            KeyPointValue(index=10, value=98, name='Eng (*) Torque Max During Takeoff 5 Min'),
         ]))
 
     def test_derive_short_takeoff(self):
@@ -11060,7 +11060,7 @@ class TestEngTorqueMaxDuringTakeoff(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_torque_max, takeoffs)
         self.assertEqual(node, KPV(name=name, items=[
-            KeyPointValue(index=17, value=98, name='Eng (*) Torque Max During Takeoff 10 Sec'),
+            KeyPointValue(index=10, value=98, name='Eng (*) Torque Max During Takeoff 10 Sec'),
         ]))
 
     def test_derive_masked_data(self):
@@ -11073,8 +11073,8 @@ class TestEngTorqueMaxDuringTakeoff(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_torque_max, takeoffs)
         self.assertEqual(node, KPV(name=name, items=[
-            KeyPointValue(index=17, value=98, name='Eng (*) Torque Max During Takeoff 10 Sec'),
-                KeyPointValue(index=17, value=98, name='Eng (*) Torque Max During Takeoff 20 Sec'),
+            KeyPointValue(index=10, value=98, name='Eng (*) Torque Max During Takeoff 10 Sec'),
+                KeyPointValue(index=10, value=98, name='Eng (*) Torque Max During Takeoff 20 Sec'),
         ]))
 
     def test_derive_multiple_masked_slices(self):
@@ -11090,8 +11090,8 @@ class TestEngTorqueMaxDuringTakeoff(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_torque_max, takeoffs)
         self.assertEqual(node, KPV(name=name, items=[
-            KeyPointValue(index=17, value=98, name='Eng (*) Torque Max During Takeoff 10 Sec'),
-            KeyPointValue(index=17, value=98, name='Eng (*) Torque Max During Takeoff 20 Sec'),
+            KeyPointValue(index=10, value=98, name='Eng (*) Torque Max During Takeoff 10 Sec'),
+            KeyPointValue(index=10, value=98, name='Eng (*) Torque Max During Takeoff 20 Sec'),
         ]))
 
     def test_derive_all_data_masked(self):
@@ -11112,9 +11112,9 @@ class TestEngTorqueMaxDuringTakeoff(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_torque_max, takeoffs)
         self.assertEqual(node, KPV(name=name, items=[
-            KeyPointValue(index=24, value=86, name='Eng (*) Torque Max During Takeoff 10 Sec'),
-                KeyPointValue(index=26, value=80, name='Eng (*) Torque Max During Takeoff 20 Sec'),
-                KeyPointValue(index=26, value=80, name='Eng (*) Torque Max During Takeoff 5 Min'),
+            KeyPointValue(index=15, value=86, name='Eng (*) Torque Max During Takeoff 10 Sec'),
+                KeyPointValue(index=10, value=80, name='Eng (*) Torque Max During Takeoff 20 Sec'),
+                KeyPointValue(index=10, value=80, name='Eng (*) Torque Max During Takeoff 5 Min'),
         ]))
 
     def test_derive_hz_2(self):
@@ -11126,9 +11126,9 @@ class TestEngTorqueMaxDuringTakeoff(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_torque_max, takeoffs)
         self.assertEqual(node, KPV(name=name, items=[
-            KeyPointValue(index=27, value=98, name='Eng (*) Torque Max During Takeoff 10 Sec'),
-                KeyPointValue(index=27, value=98, name='Eng (*) Torque Max During Takeoff 20 Sec'),
-                KeyPointValue(index=27, value=98, name='Eng (*) Torque Max During Takeoff 5 Min'),
+            KeyPointValue(index=20, value=98, name='Eng (*) Torque Max During Takeoff 10 Sec'),
+                KeyPointValue(index=20, value=98, name='Eng (*) Torque Max During Takeoff 20 Sec'),
+                KeyPointValue(index=20, value=98, name='Eng (*) Torque Max During Takeoff 5 Min'),
         ]))
 
     def test_derive_with_go_around(self):
@@ -11141,12 +11141,12 @@ class TestEngTorqueMaxDuringTakeoff(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_torque_max, takeoffs, go_arounds)
         self.assertEqual(node, KPV(name=name, items=[
-            KeyPointValue(index=387, value=98, name='Eng (*) Torque Max During Takeoff 10 Sec'),
-            KeyPointValue(index=387, value=98, name='Eng (*) Torque Max During Takeoff 20 Sec'),
-            KeyPointValue(index=387, value=98, name='Eng (*) Torque Max During Takeoff 5 Min'),
-            KeyPointValue(index=17, value=98, name='Eng (*) Torque Max During Takeoff 10 Sec'),
-            KeyPointValue(index=17, value=98, name='Eng (*) Torque Max During Takeoff 20 Sec'),
-            KeyPointValue(index=17, value=98, name='Eng (*) Torque Max During Takeoff 5 Min'),
+            KeyPointValue(index=380, value=98, name='Eng (*) Torque Max During Takeoff 10 Sec'),
+            KeyPointValue(index=380, value=98, name='Eng (*) Torque Max During Takeoff 20 Sec'),
+            KeyPointValue(index=380, value=98, name='Eng (*) Torque Max During Takeoff 5 Min'),
+            KeyPointValue(index=10, value=98, name='Eng (*) Torque Max During Takeoff 10 Sec'),
+            KeyPointValue(index=10, value=98, name='Eng (*) Torque Max During Takeoff 20 Sec'),
+            KeyPointValue(index=10, value=98, name='Eng (*) Torque Max During Takeoff 5 Min'),
         ]))
 
 
@@ -11167,9 +11167,9 @@ class TestEngN2DuringTakeoffForXSecMax(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_N2_max, takeoffs)
         self.assertEqual(node, KPV(name=name, items=[
-            KeyPointValue(index=17, value=98, name='Eng (*) N2 During Takeoff For 10 Sec Max'),
-            KeyPointValue(index=17, value=98, name='Eng (*) N2 During Takeoff For 20 Sec Max'),
-            KeyPointValue(index=17, value=98, name='Eng (*) N2 During Takeoff For 5 Min Max'),
+            KeyPointValue(index=10, value=98, name='Eng (*) N2 During Takeoff For 10 Sec Max'),
+            KeyPointValue(index=10, value=98, name='Eng (*) N2 During Takeoff For 20 Sec Max'),
+            KeyPointValue(index=10, value=98, name='Eng (*) N2 During Takeoff For 5 Min Max'),
         ]))
 
     def test_derive_short_takeoff(self):
@@ -11181,7 +11181,7 @@ class TestEngN2DuringTakeoffForXSecMax(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_N2_max, takeoffs)
         self.assertEqual(node, KPV(name=name, items=[
-            KeyPointValue(index=17, value=98, name='Eng (*) N2 During Takeoff For 10 Sec Max'),
+            KeyPointValue(index=10, value=98, name='Eng (*) N2 During Takeoff For 10 Sec Max'),
         ]))
 
     def test_derive_masked_data(self):
@@ -11194,8 +11194,8 @@ class TestEngN2DuringTakeoffForXSecMax(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_N2_max, takeoffs)
         self.assertEqual(node, KPV(name=name, items=[
-            KeyPointValue(index=17, value=98, name='Eng (*) N2 During Takeoff For 10 Sec Max'),
-                KeyPointValue(index=17, value=98, name='Eng (*) N2 During Takeoff For 20 Sec Max'),
+            KeyPointValue(index=10, value=98, name='Eng (*) N2 During Takeoff For 10 Sec Max'),
+                KeyPointValue(index=10, value=98, name='Eng (*) N2 During Takeoff For 20 Sec Max'),
         ]))
 
     def test_derive_multiple_masked_slices(self):
@@ -11211,8 +11211,8 @@ class TestEngN2DuringTakeoffForXSecMax(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_N2_max, takeoffs)
         self.assertEqual(node, KPV(name=name, items=[
-            KeyPointValue(index=17, value=98, name='Eng (*) N2 During Takeoff For 10 Sec Max'),
-            KeyPointValue(index=17, value=98, name='Eng (*) N2 During Takeoff For 20 Sec Max'),
+            KeyPointValue(index=10, value=98, name='Eng (*) N2 During Takeoff For 10 Sec Max'),
+            KeyPointValue(index=10, value=98, name='Eng (*) N2 During Takeoff For 20 Sec Max'),
         ]))
 
     def test_derive_all_data_masked(self):
@@ -11233,9 +11233,9 @@ class TestEngN2DuringTakeoffForXSecMax(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_N2_max, takeoffs)
         self.assertEqual(node, KPV(name=name, items=[
-            KeyPointValue(index=24, value=86, name='Eng (*) N2 During Takeoff For 10 Sec Max'),
-                KeyPointValue(index=26, value=80, name='Eng (*) N2 During Takeoff For 20 Sec Max'),
-                KeyPointValue(index=26, value=80, name='Eng (*) N2 During Takeoff For 5 Min Max'),
+            KeyPointValue(index=15, value=86, name='Eng (*) N2 During Takeoff For 10 Sec Max'),
+                KeyPointValue(index=10, value=80, name='Eng (*) N2 During Takeoff For 20 Sec Max'),
+                KeyPointValue(index=10, value=80, name='Eng (*) N2 During Takeoff For 5 Min Max'),
         ]))
 
     def test_derive_hz_2(self):
@@ -11247,9 +11247,9 @@ class TestEngN2DuringTakeoffForXSecMax(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_N2_max, takeoffs)
         self.assertEqual(node, KPV(name=name, items=[
-            KeyPointValue(index=27, value=98, name='Eng (*) N2 During Takeoff For 10 Sec Max'),
-                KeyPointValue(index=27, value=98, name='Eng (*) N2 During Takeoff For 20 Sec Max'),
-                KeyPointValue(index=27, value=98, name='Eng (*) N2 During Takeoff For 5 Min Max'),
+            KeyPointValue(index=20, value=98, name='Eng (*) N2 During Takeoff For 10 Sec Max'),
+                KeyPointValue(index=20, value=98, name='Eng (*) N2 During Takeoff For 20 Sec Max'),
+                KeyPointValue(index=20, value=98, name='Eng (*) N2 During Takeoff For 5 Min Max'),
         ]))
 
     def test_derive_with_go_around(self):
@@ -11262,12 +11262,12 @@ class TestEngN2DuringTakeoffForXSecMax(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_N2_max, takeoffs, go_arounds)
         self.assertEqual(node, KPV(name=name, items=[
-            KeyPointValue(index=387, value=98, name='Eng (*) N2 During Takeoff For 10 Sec Max'),
-            KeyPointValue(index=387, value=98, name='Eng (*) N2 During Takeoff For 20 Sec Max'),
-            KeyPointValue(index=387, value=98, name='Eng (*) N2 During Takeoff For 5 Min Max'),
-            KeyPointValue(index=17, value=98, name='Eng (*) N2 During Takeoff For 10 Sec Max'),
-            KeyPointValue(index=17, value=98, name='Eng (*) N2 During Takeoff For 20 Sec Max'),
-            KeyPointValue(index=17, value=98, name='Eng (*) N2 During Takeoff For 5 Min Max'),
+            KeyPointValue(index=380, value=98, name='Eng (*) N2 During Takeoff For 10 Sec Max'),
+            KeyPointValue(index=380, value=98, name='Eng (*) N2 During Takeoff For 20 Sec Max'),
+            KeyPointValue(index=380, value=98, name='Eng (*) N2 During Takeoff For 5 Min Max'),
+            KeyPointValue(index=10, value=98, name='Eng (*) N2 During Takeoff For 10 Sec Max'),
+            KeyPointValue(index=10, value=98, name='Eng (*) N2 During Takeoff For 20 Sec Max'),
+            KeyPointValue(index=10, value=98, name='Eng (*) N2 During Takeoff For 5 Min Max'),
         ]))
 
 
@@ -11289,10 +11289,10 @@ class TestEngN2DuringMaximumContinuousPowerForXSecMax(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_N2_max, mcp)
         self.assertEqual(node, KPV(name=name, items=[
-            KeyPointValue(index=23, value=75, name='Eng (*) N2 During Maximum Continuous Power For 10 Sec Max'),
-                KeyPointValue(index=23, value=75, name='Eng (*) N2 During Maximum Continuous Power For 20 Sec Max'),
-                KeyPointValue(index=23, value=75, name='Eng (*) N2 During Maximum Continuous Power For 5 Min Max'),
-                KeyPointValue(index=23, value=75, name='Eng (*) N2 During Maximum Continuous Power For 10 Min Max'),
+            KeyPointValue(index=20, value=75, name='Eng (*) N2 During Maximum Continuous Power For 10 Sec Max'),
+                KeyPointValue(index=20, value=75, name='Eng (*) N2 During Maximum Continuous Power For 20 Sec Max'),
+                KeyPointValue(index=20, value=75, name='Eng (*) N2 During Maximum Continuous Power For 5 Min Max'),
+                KeyPointValue(index=20, value=75, name='Eng (*) N2 During Maximum Continuous Power For 10 Min Max'),
         ]))
 
     def test_derive_short_mcp(self):
@@ -11305,9 +11305,9 @@ class TestEngN2DuringMaximumContinuousPowerForXSecMax(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_N2_max, mcp)
         self.assertEqual(node, KPV(name=name, items=[
-            KeyPointValue(index=23, value=75, name='Eng (*) N2 During Maximum Continuous Power For 10 Sec Max'),
-                KeyPointValue(index=23, value=75, name='Eng (*) N2 During Maximum Continuous Power For 20 Sec Max'),
-                KeyPointValue(index=23, value=75, name='Eng (*) N2 During Maximum Continuous Power For 5 Min Max'),
+            KeyPointValue(index=20, value=75, name='Eng (*) N2 During Maximum Continuous Power For 10 Sec Max'),
+                KeyPointValue(index=20, value=75, name='Eng (*) N2 During Maximum Continuous Power For 20 Sec Max'),
+                KeyPointValue(index=20, value=75, name='Eng (*) N2 During Maximum Continuous Power For 5 Min Max'),
         ]))
 
     def test_derive_masked_data(self):
@@ -11321,8 +11321,8 @@ class TestEngN2DuringMaximumContinuousPowerForXSecMax(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_N2_max, mcp)
         self.assertEqual(node, KPV(name=name, items=[
-            KeyPointValue(index=23, value=75, name='Eng (*) N2 During Maximum Continuous Power For 10 Sec Max'),
-                KeyPointValue(index=23, value=75, name='Eng (*) N2 During Maximum Continuous Power For 20 Sec Max'),
+            KeyPointValue(index=20, value=75, name='Eng (*) N2 During Maximum Continuous Power For 10 Sec Max'),
+                KeyPointValue(index=20, value=75, name='Eng (*) N2 During Maximum Continuous Power For 20 Sec Max'),
         ]))
 
     def test_derive_multiple_masked_slices(self):
@@ -11339,9 +11339,9 @@ class TestEngN2DuringMaximumContinuousPowerForXSecMax(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_N2_max, mcp)
         self.assertEqual(node, KPV(name=name, items=[
-            KeyPointValue(index=23, value=75, name='Eng (*) N2 During Maximum Continuous Power For 10 Sec Max'),
-                KeyPointValue(index=23, value=75, name='Eng (*) N2 During Maximum Continuous Power For 20 Sec Max'),
-                KeyPointValue(index=23, value=75, name='Eng (*) N2 During Maximum Continuous Power For 5 Min Max'),
+            KeyPointValue(index=20, value=75, name='Eng (*) N2 During Maximum Continuous Power For 10 Sec Max'),
+                KeyPointValue(index=20, value=75, name='Eng (*) N2 During Maximum Continuous Power For 20 Sec Max'),
+                KeyPointValue(index=20, value=75, name='Eng (*) N2 During Maximum Continuous Power For 5 Min Max'),
         ]))
 
     def test_derive_all_data_masked(self):
@@ -11365,10 +11365,10 @@ class TestEngN2DuringMaximumContinuousPowerForXSecMax(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_N2_max, mcp)
         self.assertEqual(node, KPV(name=name, items=[
-            KeyPointValue(index=43, value=75, name='Eng (*) N2 During Maximum Continuous Power For 10 Sec Max'),
-                KeyPointValue(index=43, value=75, name='Eng (*) N2 During Maximum Continuous Power For 20 Sec Max'),
-                KeyPointValue(index=43, value=75, name='Eng (*) N2 During Maximum Continuous Power For 5 Min Max'),
-                KeyPointValue(index=43, value=75, name='Eng (*) N2 During Maximum Continuous Power For 10 Min Max'),
+            KeyPointValue(index=40, value=75, name='Eng (*) N2 During Maximum Continuous Power For 10 Sec Max'),
+                KeyPointValue(index=40, value=75, name='Eng (*) N2 During Maximum Continuous Power For 20 Sec Max'),
+                KeyPointValue(index=40, value=75, name='Eng (*) N2 During Maximum Continuous Power For 5 Min Max'),
+                KeyPointValue(index=40, value=75, name='Eng (*) N2 During Maximum Continuous Power For 10 Min Max'),
         ]))
 
 
@@ -12116,11 +12116,11 @@ class TestEngGasTempMaxDuringTakeoffMaxMaintained(unittest.TestCase, NodeTest):
         expected_results = [
             (926.8359375, 722.3524525, 'Eng Gas Temp Max During Takeoff 5 Sec Max Maintained'),
             (2934.5546875, 810.2792775, 'Eng Gas Temp Max During Takeoff 5 Sec Max Maintained'),
-            (923.8359375, 721.096355, 'Eng Gas Temp Max During Takeoff 10 Sec Max Maintained'),
+            (920.8359375, 721.096355, 'Eng Gas Temp Max During Takeoff 10 Sec Max Maintained'),
             (2929.5546875, 805.568911875, 'Eng Gas Temp Max During Takeoff 10 Sec Max Maintained'),
             (913.8359375, 718.898184375, 'Eng Gas Temp Max During Takeoff 20 Sec Max Maintained'),
             (2919.5546875, 784.52927875, 'Eng Gas Temp Max During Takeoff 20 Sec Max Maintained'),
-            (2740.5546875, 444.318, 'Eng Gas Temp Max During Takeoff 5 Min Max Maintained'),
+            (2733.5546875, 444.318, 'Eng Gas Temp Max During Takeoff 5 Min Max Maintained'),
         ]
 
         self.assertEqual(len(node), 7)
@@ -12137,7 +12137,7 @@ class TestEngGasTempMaxDuringTakeoffMaxMaintained(unittest.TestCase, NodeTest):
 
         expected_results = [
             (926.8359375, 722.3524525, 'Eng Gas Temp Max During Takeoff 5 Sec Max Maintained'),
-            (923.8359375, 721.096355, 'Eng Gas Temp Max During Takeoff 10 Sec Max Maintained'),
+            (920.8359375, 721.096355, 'Eng Gas Temp Max During Takeoff 10 Sec Max Maintained'),
             (913.8359375, 718.898184375, 'Eng Gas Temp Max During Takeoff 20 Sec Max Maintained'),
         ]
 
@@ -12159,7 +12159,7 @@ class TestEngGasTempMaxDuringTakeoffMaxMaintained(unittest.TestCase, NodeTest):
 
         expected_results = [
             (926.8359375, 722.3524525, 'Eng Gas Temp Max During Takeoff 5 Sec Max Maintained'),
-            (923.8359375, 721.096355, 'Eng Gas Temp Max During Takeoff 10 Sec Max Maintained'),
+            (920.8359375, 721.096355, 'Eng Gas Temp Max During Takeoff 10 Sec Max Maintained'),
             (913.8359375, 718.898184375, 'Eng Gas Temp Max During Takeoff 20 Sec Max Maintained'),
         ]
 
