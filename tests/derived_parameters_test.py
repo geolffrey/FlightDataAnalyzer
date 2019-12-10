@@ -2246,7 +2246,7 @@ class TestAltitudeRadio(unittest.TestCase):
             )).astype(float)
         )
         fast = buildsection('Fast', 0, 200)
-        ccd = buildsections('Climb Cruise Descent', (30, 99), (110, 190))
+        ccd = buildsections('Climb Cruise Descent', (30, 100), (110, 191))
         alt_rad.derive(
             Parameter('Altitude Radio (A)', np.ma.array(
                 data=[0.0]*40 + [28000.0]*40 + [50.0]*20 + [100.0]*20 + [25000.0]*40 + [0.0]*40,
