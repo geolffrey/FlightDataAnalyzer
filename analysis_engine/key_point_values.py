@@ -4715,10 +4715,12 @@ class SensorDifference5SecMaxMixin(object):
                     diff, _slice=air.slice,
                     start_edge=air.start_edge, stop_edge=air.stop_edge
                 )
-                maximums.append((idx, val))
-        idx, value = max(maximums, key=lambda idx_val: abs(idx_val[1]))
+                if val is not None:  # None if at least one sensor is entirely masked
+                    maximums.append((idx, val))
+        if maximums:
+            idx, value = max(maximums, key=lambda idx_val: abs(idx_val[1]))
 
-        self.create_kpv(idx, value)
+            self.create_kpv(idx, value)
 
 
 class AOADifference5SecMax(SensorDifference5SecMaxMixin, KeyPointValueNode):
