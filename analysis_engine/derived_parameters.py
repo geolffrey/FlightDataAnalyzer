@@ -548,7 +548,8 @@ class AltitudeAAL(DerivedParameterNode):
             lowest_index = np.ma.argmin(alt_std)
             lowest_height = alt_std[lowest_index]
             # and go up 50ft
-            still_airborne = index_at_value(alt_std[lowest_index:],
+            still_airborne = index_at_value(repair_mask(alt_std[lowest_index:],
+                                                        repair_duration=None),
                                             lowest_height + 50.0,
                                             endpoint='closing')
             check_slice = slices_int(lowest_index, lowest_index + still_airborne)
