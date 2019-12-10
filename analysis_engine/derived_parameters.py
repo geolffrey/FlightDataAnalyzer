@@ -35,6 +35,7 @@ from analysis_engine.library import (
     blend_parameters,
     blend_two_parameters,
     cas2dp,
+    closest_unmasked_value,
     coreg,
     cycle_finder,
     dp2tas,
@@ -556,7 +557,10 @@ class AltitudeAAL(DerivedParameterNode):
             # and the last index at this attitude is given by:
             if max_pitch:
                 max_pch_idx = (land_pitch[check_slice] == max_pitch).nonzero()[-1][0]
-                pit = alt_std[lowest_index + max_pch_idx]
+                pit_value = closest_unmasked_value(alt_std, lowest_index + max_pch_idx, check_slice.start,
+                                                   check_slice.stop)
+                if pit_value:
+                    pit = pit_value.value
 
             '''
             # Quick visual check of the operation of the takeoff point detection.
