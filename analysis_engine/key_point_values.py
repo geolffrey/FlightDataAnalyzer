@@ -6935,12 +6935,15 @@ class AltitudeLastUnstableDuringApproachBeforeGoAround(KeyPointValueNode):
         apps = np.ma.clump_unmasked(stable.array)
         for app in apps[:-1]:
             index = index_of_last_stop(stable.array != 'Stable', app, min_dur=2)
-            if (index or 0) > app.stop - 1:
+            if index is None:
+                # Has always been stable
+                continue
+            if index > app.stop - 1:
                 # approach ended unstable
-                # we were not stable so force altitude of 0 ft
-                self.create_kpv(app.stop - 0.5, 0)
-            else:
-                self.create_kpv(index, value_at_index(alt.array, index))
+                # we were not stable so force altitude to last altitude in approach
+                index = app.stop - 1
+
+            self.create_kpv(index, value_at_index(alt.array, index))
 
 
 class LastUnstableStateDuringLastApproach(KeyPointValueNode):

@@ -10359,9 +10359,9 @@ class TestAltitudeLastUnstableDuringApproachBeforeGoAround(unittest.TestCase):
     def test_derive_two_approaches(self):
         # two approaches
         lastunstable = AltitudeLastUnstableDuringApproachBeforeGoAround()
-        #                                                 stable tooshort stable  last
+        #                                            stable  tooshort stable  last
         stable = StableApproach(array=np.ma.array([1,4,9,9,  3,2,9,2,9,9,1,1, 1,3,9,9,9],
-                                                  mask=[0,0,0,0,  1,0,0,0,0,0,0,0, 1,0,0,0,0]))
+                                             mask=[0,0,0,0,  1,0,0,0,0,0,0,0, 1,0,0,0,0]))
         alt2app = P(array=np.ma.array([1500,1400,1200,1000,
                                        900,800,700,600,500,400,300,200,
                                        100,50,20,0,0]))
@@ -10370,20 +10370,30 @@ class TestAltitudeLastUnstableDuringApproachBeforeGoAround(unittest.TestCase):
         # stable to the end of the approach
         self.assertEqual(lastunstable[0].index, 1.5)
         self.assertEqual(lastunstable[0].value, 1300)
-        self.assertEqual(lastunstable[1].index, 11.5)
-        self.assertEqual(lastunstable[1].value, 0)  # was not stable prior to go around
+        self.assertEqual(lastunstable[1].index, 11)
+        self.assertEqual(lastunstable[1].value, 200)  # was not stable prior to go around
 
     def test_never_stable_reads_0(self):
         lastunstable = AltitudeLastUnstableDuringApproachBeforeGoAround()
         # not stable for either approach
         stable = StableApproach(array=np.ma.array([1,4,4,4,  3,2,2,2,2,2,1,1],
-                                                  mask=[0,0,0,0,  1,0,0,0,0,0,0,0]))
+                                             mask=[0,0,0,0,  1,0,0,0,0,0,0,0]))
         alt2app = P(array=np.ma.array([1000,900,800,700,600,500,400,300,200,100,50,20]))
         lastunstable.derive(stable, alt2app)
         self.assertEqual(len(lastunstable), 1)
-        # stable to the end of the approach
-        self.assertEqual(lastunstable[0].index, 3.5)
-        self.assertEqual(lastunstable[0].value, 0)
+        # unstable to the end of the approach
+        self.assertEqual(lastunstable[0].index, 3)
+        self.assertEqual(lastunstable[0].value, 700)
+
+    def test_always_stable_followed_by_go_around(self):
+        lastunstable = AltitudeLastUnstableDuringApproachBeforeGoAround()
+        # not stable for either approach
+        stable = StableApproach(array=np.ma.array([9,9,9,9,  3,2,2,2,2,2,1,1],
+                                             mask=[0,0,0,0,  1,0,0,0,0,0,0,0]))
+        alt2app = P(array=np.ma.array([1000,900,800,700,600,500,400,300,200,100,50,20]))
+        lastunstable.derive(stable, alt2app)
+        # Has never been unstable before go-around
+        self.assertEqual(len(lastunstable), 0)
 
 
 class TestLastUnstableStateDuringLastApproach(unittest.TestCase):
