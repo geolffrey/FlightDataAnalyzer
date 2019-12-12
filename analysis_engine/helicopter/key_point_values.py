@@ -921,7 +921,7 @@ class HeadingVariation1_5NMTo1_0NMFromOffshoreTouchdownMaxStandardApproach(KeyPo
                         stop_kti = dtts.get_previous(tdwn.index, name='1.0 NM To Touchdown')
                         if start_kti and stop_kti:
                             phase = slice(start_kti.index, stop_kti.index+1)
-                            heading_delta = np.ma.ptp(heading.array[phase])
+                            heading_delta = np.ma.ptp(heading.array[slices_int(phase)])
                             self.create_kpv(phase.stop-1, heading_delta)
 
 
