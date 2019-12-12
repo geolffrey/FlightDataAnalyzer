@@ -5456,7 +5456,7 @@ def align_altitudes(alt_rad, alt_std, good_slices, fast_slices, hz, ccd):
             temp = fast_slice
             for section in ccd[:-1]:
                 next_split = slices_split([temp], section.slice.stop)
-                if next_split:
+                if len(next_split) == 2:
                     split_fast_slices.append(next_split[0])
                     temp = next_split[1]
             split_fast_slices.append(temp)
