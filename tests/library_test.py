@@ -6709,6 +6709,12 @@ class TestSlicesOverlapMerge(unittest.TestCase):
         self.assertEqual(slices_overlap_merge(first, second, extend_stop=2),
                              [slice(10, 37)])
 
+    def test_slices_overlap_merge_limited(self):
+        first = [slice(10,20)]
+        second = [slice(1,35)]
+        self.assertEqual(slices_overlap_merge(first, second, limit_start=2, limit_end=3),
+                         [slice(8, 23)])
+
 class TestSlicesOverlay(unittest.TestCase):
     def test_slices_and(self):
         # overlay

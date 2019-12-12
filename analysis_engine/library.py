@@ -3697,7 +3697,7 @@ def slices_overlap(first_slice, second_slice):
            ((first_slice.stop is None) or ((second_slice.start or 0) < first_slice.stop))
 
 
-def slices_overlap_merge(first_list, second_list, extend_start=0, extend_stop=0):
+def slices_overlap_merge(first_list, second_list, extend_start=0, extend_stop=0, limit_start=None, limit_end=None):
     '''
     Where slices from the second list overlap the first, the first slice is
     extended to the limit of the second list slice.
@@ -3711,6 +3711,10 @@ def slices_overlap_merge(first_list, second_list, extend_start=0, extend_stop=0)
     :type extend_stop: Integer
     :param extend_stop: Increment at stop end of the resulting slices_above
     :type extend_stop: Integer
+    :param limit_start: Maximum length of overlap to merge into at start
+    :type limit_start: Integer
+    :param limit_stop: Maximum length of overlap to merge into at end
+    :type limit_stop: Integer
     '''
     result_list = []
 
@@ -3719,9 +3723,15 @@ def slices_overlap_merge(first_list, second_list, extend_start=0, extend_stop=0)
         for second_slice in second_list:
             if slices_overlap(first_slice, second_slice):
                 overlap = True
-                result_list.append(slice(max(min(first_slice.start, second_slice.start) - extend_start, 0),
-                                         max(first_slice.stop, second_slice.stop) + extend_stop))
+                begin = max(min(first_slice.start, second_slice.start) - extend_start, 0)
+                if limit_start:
+                    begin = max(begin, first_slice.start - limit_start)
+                end = max(first_slice.stop, second_slice.stop) + extend_stop
+                if limit_end:
+                    end = min(end, first_slice.stop + limit_end)
+                result_list.append(slice(begin, end))
                 break
+
         if not overlap:
             if not extend_start and not extend_stop:
                 result_list.append(first_slice)
