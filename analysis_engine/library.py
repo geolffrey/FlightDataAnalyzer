@@ -6808,7 +6808,16 @@ def including_transition(array, steps, hz=1, mode='include'):
         mid_steps.append((step_1 + step_2) / 2.0)
     mid_steps.append(steps[-1] + 10.0)
 
-    change = np.ma.ediff1d(array, to_begin=0.0)
+    change = rate_of_change_array(array, hz)
+    # change will show non null values a bit too soon as the function is looking
+    # over multiple samples (a window). We want to check the edges of the periods
+    # where there is a change and overwrite it with the value given by a
+    # simple ediff1d
+    significant_roc = np.ma.abs(change) > 0.03
+    edges = np_ma_zeros_like(significant_roc, dtype=np.bool)
+    edges[1:] = significant_roc[1:] ^ significant_roc[:-1]
+    sample_change = np.ma.ediff1d(array, to_begin=0.0)
+    change[edges] = sample_change[edges]
 
     # first raise the array to the next step if it exceeds the previous step
     # plus a minimal threshold (step as early as possible)
@@ -6830,23 +6839,35 @@ def including_transition(array, steps, hz=1, mode='include'):
             if np.ma.count(partial):
                 # Unchanged data can be included in our output flap array directly
                 output[band] = partial
-            else:
-                # The data did not have a still moment, so see if it passed
-                # through the flap setting of interest.
-                index = index_at_value(array[band], flap)
-                if index:
-                    if array[band.start:band.stop][-1] > array[band.start]:
-                        # Going up
-                        output[int(index + band.start - 1)] = flap
-                    else:
-                        # Going down
-                        idx = int(index + band.start + 1)
-                        idx = idx - 1 if idx == len(output) else idx
-                        output[idx] = flap
+
+            # See if it passed through the flap setting of interest.
+            # Widen band of interest in case values were rapidly changing.
+            # mid_1, flap = 27.5, 30. If array = [..., 27.0, 31.0, 33.0, ...] the band would
+            # only capture the values starting at 31.0 and we would miss the point where
+            # we crossed 30 degrees of flap.
+            wider_band = slice(max(band.start - 1, 0), min(band.stop + 1, len(array)))
+            index = index_at_value(array[wider_band], flap)
+            if index is not None:
+                if array[wider_band][-1] > array[wider_band.start]:
+                    # Going up
+                    output[floor(index + wider_band.start)] = flap
                 else:
-                    # The data may have just crept into this band without being a
-                    # true change into the new flap setting. Let's just ignore this.
+                    # Going down
+                    output[ceil(index + wider_band.start)] = flap
+
+            elif not np.ma.count(partial):
+                # The data crept into this band without reaching the flap setting.
+                # Find the local extrema.
+                array_derivative_sign_change = np.diff(np.sign(sample_change[band]))
+                idx_non_zero = np.nonzero(array_derivative_sign_change)
+                if idx_non_zero:
+                    output[band.start + idx_non_zero[0]] = flap
+                else:
+                    # This would mean that the data continuously increased or decreased
+                    # in this band but never crossed the flap setting.
+                    # Unless masked data, this seems impossible. Ignore.
                     pass
+
 
     for gap in np.ma.clump_masked(output):
         before = output[max(gap.start - 1, 0)]
