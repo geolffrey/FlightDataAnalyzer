@@ -4974,14 +4974,13 @@ class TestWindAcrossLandingRunway(unittest.TestCase):
 class TestAOA(unittest.TestCase):
     def test_can_operate(self):
         opts = AOA.get_operational_combinations()
-        self.assertEqual(opts, [
-            ('AOA (L)',),
-            ('AOA (R)',),
-            ('AOA (L)', 'AOA (R)'),
-            ('AOA (L)', 'Model'),
-            ('AOA (R)', 'Model'),
-            ('AOA (L)', 'AOA (R)', 'Model'),
-        ])
+        self.assertTrue(('AOA (L)',) in opts)
+        self.assertTrue(('AOA (1)', 'AOA (2)') in opts)
+        self.assertTrue(('AOA (1)', 'AOA (2)', 'AOA (3)', 'AOA (4)') in opts)
+        self.assertTrue(('AOA (L)', 'AOA (R)') in opts)
+        self.assertTrue(('AOA (L)', 'Model') in opts)
+        self.assertTrue(('AOA (R)', 'Model') in opts)
+        self.assertTrue(('AOA (L)', 'AOA (R)', 'Model') in opts)
 
     def test_derive(self):
         aoa_l = P('AOA (L)', [4.921875, 4.5703125, 4.5703125, 4.5703125,
@@ -4991,7 +4990,7 @@ class TestAOA(unittest.TestCase):
         aoa_r = P('AOA (R)', [4.881875, 4.5703125, 4.5712125, 4.544125],
                           frequency=0.5, offset=0.6484375)
         aoa = AOA()
-        res = aoa.get_derived((aoa_l, aoa_r, None))
+        res = aoa.get_derived((aoa_l, aoa_r, None, None, None, None, None))
         self.assertEqual(aoa.hz, 1)
         self.assertEqual(aoa.offset, 0.1484375)
 
@@ -5001,7 +5000,7 @@ class TestAOA(unittest.TestCase):
                   frequency=1.0, offset=0.1484375)
 
         aoa = AOA()
-        res = aoa.get_derived((aoa_l, None, None))
+        res = aoa.get_derived((aoa_l, None, None, None, None, None, None))
         self.assertEqual(aoa.hz, 1)
         self.assertEqual(aoa.offset, 0.1484375)
 
@@ -5009,10 +5008,18 @@ class TestAOA(unittest.TestCase):
         aoa_r = P('AOA (R)', [0.0, 1.0])
         model = A('Model', 'CRJ-200ER (CL-600-2B19)')
         aoa = AOA()
-        aoa.get_derived([None, aoa_r, model])
+        aoa.get_derived([None, aoa_r, None, None, None, None, model])
         self.assertAlmostEqual(aoa.array[0], -1.404)
         self.assertAlmostEqual(aoa.array[1], 0.257)
 
+    def test_four_sources(self):
+        aoa_1 = P('AOA (1)', [4.0,   0,    0,    0])
+        aoa_2 = P('AOA (2)', [  0, 8.0,    0,    0])
+        aoa_3 = P('AOA (3)', [  0,   0, 12.0,    0])
+        aoa_4 = P('AOA (4)', [  0,   0,    0, 16.0])
+        aoa = AOA()
+        aoa.get_derived([None, None, aoa_1, aoa_2, aoa_3, aoa_4, None])
+        ma_test.assert_array_equal(aoa.array, [1.0, 2.0, 3.0, 4.0])
 
 class TestAccelerationLateralOffsetRemoved(unittest.TestCase):
 

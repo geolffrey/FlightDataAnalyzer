@@ -5897,10 +5897,32 @@ class TestAOADifference5SecMax(unittest.TestCase, NodeTest):
         aoa_r = P('AOA (R)', array=aoa_r_arr)
         airs = buildsection('Airborne', 3, 15)
         node = self.node_class()
-        node.derive(aoa_l, aoa_r, None, None, airs)
+        node.derive(aoa_l, aoa_r, None, None, None, None, airs)
         self.assertEqual(len(node), 1)
         self.assertAlmostEqual(node[0].value, -0.30, places=2)
         self.assertEqual(node[0].index, 3)
+
+    def test_derive_3_aoa(self):
+        aoa_1_arr = np.sin(np.arange(1, 20))
+        aoa_2_arr = np.cos(np.arange(1, 20))
+        aoa_3_arr = np.cos(np.arange(1, 20))
+        aoa_1 = P('AOA (1)', array=aoa_1_arr)
+        aoa_2 = P('AOA (2)', array=aoa_2_arr)
+        aoa_3 = P('AOA (3)', array=aoa_3_arr)
+        airs = buildsection('Airborne', 3, 15)
+        node = self.node_class()
+        node.derive(None, None, aoa_1, aoa_2, aoa_3, None, airs)
+        self.assertEqual(len(node), 1)
+        self.assertAlmostEqual(node[0].value, 0.30, places=2)
+        self.assertEqual(node[0].index, 3)
+
+    def test_derive_single_parameter(self):
+        aoa_2_arr = np.sin(np.arange(1, 20))
+        aoa_2 = P('AOA (2)', array=aoa_2_arr)
+        airs = buildsection('Airborne', 3, 15)
+        node = self.node_class()
+        node.derive(None, None, None, aoa_2, None, None, airs)
+        self.assertEqual(len(node), 0)
 
 
 class TestAOAAbnormalOperationDuration(unittest.TestCase):

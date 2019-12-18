@@ -4727,6 +4727,11 @@ class AOADifference5SecMax(SensorDifference5SecMaxMixin, KeyPointValueNode):
     '''
     Maximum recorded AoA difference sustained for at least 5 seconds while Airborne.
     Left greater than Right = negative value.
+
+    Note: Some aircraft have two sources where one is of higher sample rate
+    than the other, or where one is calibrated and the other is not, in which
+    case the best source is labelled "AOA" in the data frame, and there will
+    be only one parameter in this list, and no comparison is possible.
     '''
 
     name = 'AOA Difference 5 Sec Max'
@@ -4737,8 +4742,10 @@ class AOADifference5SecMax(SensorDifference5SecMaxMixin, KeyPointValueNode):
                aoa_r=P('AOA (R)'),
                aoa_1=P('AOA (1)'),
                aoa_2=P('AOA (2)'),
+               aoa_3=P('AOA (3)'),
+               aoa_4=P('AOA (4)'),
                airs=S('Airborne'),):
-        self.derive_sensors_diff([aoa_l, aoa_r, aoa_1, aoa_2], airs)
+        self.derive_sensors_diff([aoa_l, aoa_r, aoa_1, aoa_2, aoa_3, aoa_4], airs)
 
 
 class AirspeedDifference5SecMax(SensorDifference5SecMaxMixin, KeyPointValueNode):

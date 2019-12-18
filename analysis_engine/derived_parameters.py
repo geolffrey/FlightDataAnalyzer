@@ -1740,27 +1740,31 @@ class DescendForFlightPhases(DerivedParameterNode):
 
 class AOA(DerivedParameterNode):
     '''
-    Angle of Attack - averages Left and Right signals to account for side slip.
-    See Bombardier AOM-1281 document for further details.
+    Angle of Attack - averages available signals.
     '''
 
     name = 'AOA'
+    align = False
     units = ut.DEGREE
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(('AOA (L)', 'AOA (R)'), available)
+        return any_of(('AOA (L)', 'AOA (R)', 'AOA (1)', 'AOA (2)', 'AOA (3)', 'AOA (4)'), available)
 
     def derive(self, aoa_l=P('AOA (L)'), aoa_r=P('AOA (R)'),
+               aoa_1=P('AOA (1)'), aoa_2=P('AOA (2)'), aoa_3=P('AOA (3)'), aoa_4=P('AOA (4)'),
                model=A('Model')):
 
-        if aoa_l and aoa_r:
-            # Average angle of attack to compensate for sideslip.
-            self.array = (aoa_l.array + aoa_r.array) / 2
+        sources = [s for s in [aoa_l, aoa_r, aoa_1, aoa_2, aoa_3, aoa_4] if s]
+        freqs = np.unique([s.frequency for s in sources])
+        if len(sources) == 0:
+            return
+        elif len(sources) == 1:
+            self.array = sources[0].array
+        elif len(sources) == 2 and len(freqs) == 1:
+            self.array, self.frequency, self.offset = blend_two_parameters(sources[0], sources[1])
         else:
-            # only one available
-            aoa = aoa_l or aoa_r
-            self.array = aoa.array
+            self.array = blend_parameters(sources)
 
         if model and 'CL-600-2B19' in model.value:
             # The Angle of Attack recorded in the FDR is "filtered" Body AoA
