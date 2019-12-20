@@ -4738,7 +4738,8 @@ class AOADifference5SecMax(SensorDifference5SecMaxMixin, KeyPointValueNode):
                aoa_1=P('AOA (1)'),
                aoa_2=P('AOA (2)'),
                airs=S('Airborne'),):
-        self.derive_sensors_diff([aoa_l, aoa_r, aoa_1, aoa_2], airs)
+        self.derive_sensors_diff([aoa_l, aoa_r, aoa_1, aoa_2],
+                                 airs)
 
 
 class AirspeedDifference5SecMax(SensorDifference5SecMaxMixin, KeyPointValueNode):
@@ -4787,7 +4788,8 @@ class AltitudeSTDDifference5SecMax(SensorDifference5SecMaxMixin, KeyPointValueNo
                alt_r=P('Altitude STD (R)'),
                airs=S('Airborne'),):
         self.derive_sensors_diff([alt, alt_1, alt_2, alt_3, alt_4,
-                                  alt_capt, alt_fo, alt_l, alt_c, alt_r], airs)
+                                  alt_capt, alt_fo, alt_l, alt_c, alt_r],
+                                 airs)
 
 
 class PitchDifference5SecMax(SensorDifference5SecMaxMixin, KeyPointValueNode):
@@ -4804,16 +4806,15 @@ class PitchDifference5SecMax(SensorDifference5SecMaxMixin, KeyPointValueNode):
                pitch_2=P('Pitch (2)'),
                pitch_3=P('Pitch (3)'),
                pitch_4=P('Pitch (4)'),
-               pitch_5=P('Pitch (5)'),
-               pitch_6=P('Pitch (6)'),
-               pitch_7=P('Pitch (7)'),
-               pitch_8=P('Pitch (8)'),
+               pitch_capt=P('Pitch (Capt)'),
+               pitch_fo=P('Pitch (FO)'),
+               pitch_l=P('Pitch (L)'),
+               pitch_c=P('Pitch (C)'),
+               pitch_r=P('Pitch (R)'),
                airs=S('Airborne'),):
-        self.derive_sensors_diff(
-            [pitch, pitch_1, pitch_2, pitch_3, pitch_4,
-             pitch_5, pitch_6, pitch_7, pitch_8],
-            airs
-        )
+        self.derive_sensors_diff([pitch, pitch_1, pitch_2, pitch_3, pitch_4,
+                                  pitch_capt, pitch_fo, pitch_l, pitch_c, pitch_r],
+                                 airs)
 
 
 class RollDifference5SecMax(SensorDifference5SecMaxMixin, KeyPointValueNode):
@@ -4830,17 +4831,15 @@ class RollDifference5SecMax(SensorDifference5SecMaxMixin, KeyPointValueNode):
                roll_2=P('Roll (2)'),
                roll_3=P('Roll (3)'),
                roll_4=P('Roll (4)'),
-               roll_5=P('Roll (5)'),
-               roll_6=P('Roll (6)'),
-               roll_7=P('Roll (7)'),
-               roll_8=P('Roll (8)'),
-               roll_9=P('Roll (9)'),
+               roll_capt=P('Roll (Capt)'),
+               roll_fo=P('Roll (FO)'),
+               roll_l=P('Roll (L)'),
+               roll_c=P('Roll (C)'),
+               roll_r=P('Roll (R)'),
                airs=S('Airborne'),):
-        self.derive_sensors_diff(
-            [roll, roll_1, roll_2, roll_3, roll_4,
-             roll_5, roll_6, roll_7, roll_8, roll_9],
-            airs
-        )
+        self.derive_sensors_diff([roll, roll_1, roll_2, roll_3, roll_4,
+                                  roll_capt, roll_fo, roll_l, roll_c, roll_r],
+                                 airs)
 
 
 class HeadingDifference5SecMax(SensorDifference5SecMaxMixin, KeyPointValueNode):
@@ -4856,8 +4855,16 @@ class HeadingDifference5SecMax(SensorDifference5SecMaxMixin, KeyPointValueNode):
                hdg_1=P('Heading (1)'),
                hdg_2=P('Heading (2)'),
                hdg_3=P('Heading (3)'),
+               hdg_4=P('Heading (4)'),
+               hdg_capt=P('Heading (Capt)'),
+               hdg_fo=P('Heading (FO)'),
+               hdg_l=P('Heading (L)'),
+               hdg_c=P('Heading (C)'),
+               hdg_r=P('Heading (R)'),
                airs=S('Airborne'),):
-        self.derive_sensors_diff([hdg, hdg_1, hdg_2, hdg_3], airs)
+        self.derive_sensors_diff([hdg, hdg_1, hdg_2, hdg_3, hdg_4,
+                                  hdg_capt, hdg_fo, hdg_l, hdg_c, hdg_r],
+                                 airs)
 
 
 ##############################################################################
