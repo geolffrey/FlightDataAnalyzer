@@ -4755,8 +4755,15 @@ class AirspeedDifference5SecMax(SensorDifference5SecMaxMixin, KeyPointValueNode)
                ias_2=P('Airspeed (2)'),
                ias_3=P('Airspeed (3)'),
                ias_4=P('Airspeed (4)'),
+               ias_capt=P('Airspeed (Capt)'),
+               ias_fo=P('Airspeed (FO)'),
+               ias_l=P('Airspeed (L)'),
+               ias_c=P('Airspeed (C)'),
+               ias_r=P('Airspeed (R)'),
                airs=S('Airborne'),):
-        self.derive_sensors_diff([ias, ias_1, ias_2, ias_3, ias_4], airs)
+        self.derive_sensors_diff([ias, ias_1, ias_2, ias_3, ias_4,
+                                  ias_capt, ias_fo, ias_l, ias_c, ias_r],
+                                 airs)
 
 
 class AltitudeSTDDifference5SecMax(SensorDifference5SecMaxMixin, KeyPointValueNode):
