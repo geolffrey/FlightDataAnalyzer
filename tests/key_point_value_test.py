@@ -6006,7 +6006,7 @@ class TestAirspeedDifference5SecMax(unittest.TestCase, NodeTest):
         ias_2 = P('Airspeed (2)', array=ias_2_arr)
         airs = buildsection('Airborne', 3, 15)
         node = self.node_class()
-        node.derive(ias, None, ias_2, None, None, airs)
+        node.derive(ias, None, ias_2, None, None, None, None, None, None, None, airs)
         self.assertEqual(len(node), 1)
         self.assertAlmostEqual(node[0].value, 0.30, places=2)
         self.assertEqual(node[0].index, 3)
