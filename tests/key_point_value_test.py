@@ -5899,7 +5899,7 @@ class TestAOADifference5SecMax(unittest.TestCase, NodeTest):
         node = self.node_class()
         node.derive(aoa_l, aoa_r, None, None, None, None, airs)
         self.assertEqual(len(node), 1)
-        self.assertAlmostEqual(node[0].value, -0.30, places=2)
+        self.assertAlmostEqual(node[0].value, 0.10, places=2)
         self.assertEqual(node[0].index, 3)
 
     def test_derive_3_aoa(self):
@@ -5913,7 +5913,7 @@ class TestAOADifference5SecMax(unittest.TestCase, NodeTest):
         node = self.node_class()
         node.derive(None, None, aoa_1, aoa_2, aoa_3, None, airs)
         self.assertEqual(len(node), 1)
-        self.assertAlmostEqual(node[0].value, 0.30, places=2)
+        self.assertAlmostEqual(node[0].value, -0.10, places=2)
         self.assertEqual(node[0].index, 3)
 
     def test_derive_single_parameter(self):

@@ -4709,14 +4709,11 @@ class SensorDifference5SecMaxMixin(object):
         maximums = []
         for sensor_l, sensor_r in itertools.combinations(sensors, 2):
             diff = sensor_l.array - sensor_r.array
-            diff = second_window(diff, sensor_l.hz, 5, extend_window=True)
             for air in airs:
-                idx, val = max_abs_value(
-                    diff, _slice=air.slice,
-                    start_edge=air.start_edge, stop_edge=air.stop_edge
-                )
+                air_diff = second_window(diff[air.slice], sensor_l.hz, 5, extend_window=True)
+                idx, val = max_abs_value(air_diff)
                 if val is not None:  # None if at least one sensor is entirely masked
-                    maximums.append((idx, val))
+                    maximums.append((idx + air.slice.start, val))
         if maximums:
             idx, value = max(maximums, key=lambda idx_val: abs(idx_val[1]))
 
