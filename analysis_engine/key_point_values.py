@@ -4780,8 +4780,14 @@ class AltitudeSTDDifference5SecMax(SensorDifference5SecMaxMixin, KeyPointValueNo
                alt_2=P('Altitude STD (2)'),
                alt_3=P('Altitude STD (3)'),
                alt_4=P('Altitude STD (4)'),
+               alt_capt=P('Altitude STD (Capt)'),
+               alt_fo=P('Altitude STD (FO)'),
+               alt_l=P('Altitude STD (L)'),
+               alt_c=P('Altitude STD (C)'),
+               alt_r=P('Altitude STD (R)'),
                airs=S('Airborne'),):
-        self.derive_sensors_diff([alt, alt_1, alt_2, alt_3, alt_4], airs)
+        self.derive_sensors_diff([alt, alt_1, alt_2, alt_3, alt_4,
+                                  alt_capt, alt_fo, alt_l, alt_c, alt_r], airs)
 
 
 class PitchDifference5SecMax(SensorDifference5SecMaxMixin, KeyPointValueNode):
