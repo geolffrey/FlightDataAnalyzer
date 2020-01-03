@@ -4689,7 +4689,7 @@ class SensorDifference5SecMaxMixin(object):
         return ('Airborne' in available and
                 any_of(sensors, available))
 
-    def derive_sensors_diff(self, sensors, airs):
+    def derive_sensors_diff(self, sensors, airs, default=True):
         '''
         Calculate the maximum difference among all sensors for at least 5
         seconds while Airborne.
@@ -4699,10 +4699,11 @@ class SensorDifference5SecMaxMixin(object):
         :param airs: Airborne flight phases
         :type airs: Section
         '''
-
-        sensors = [s for s in sensors if s is not None]
-        if len(sensors) < 2:
-            # Only one sensor or none. Cannot disagree with oneself.
+        if default:
+            sensors = [sensors[0]] + [s for s in sensors[1:] if s is not None]
+        else:
+            sensors = [s for s in sensors if s is not None]
+        if len(sensors) <= 1:
             return
 
         # Find the maximum diff for each combinations of 2 sensors
@@ -4739,7 +4740,7 @@ class AOADifference5SecMax(SensorDifference5SecMaxMixin, KeyPointValueNode):
                aoa_2=P('AOA (2)'),
                airs=S('Airborne'),):
         self.derive_sensors_diff([aoa_l, aoa_r, aoa_1, aoa_2],
-                                 airs)
+                                 airs, default=False)
 
 
 class AirspeedDifference5SecMax(SensorDifference5SecMaxMixin, KeyPointValueNode):
