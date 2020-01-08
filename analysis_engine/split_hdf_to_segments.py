@@ -769,11 +769,10 @@ def _get_speed_parameter(hdf, aircraft_info):
 
 def _mask_invalid_years(array, latest_year):
     '''
-    Mask years which are in the future, not 2 or 4 digits or were made before
-    the first recording FDR was invented.
+    Mask years which are in the future, not 2 or 4 digits or were made before the first recording FDR was invented.
 
-    FDR date based on the Aeronautical Research Laboratory system named the
-    "Red Egg", made by the British firm of S. Davall & Son in 1960.
+    FDR date based on the Aeronautical Research Laboratory system named the "Red Egg", made by the British firm of
+    S. Davall & Son in 1960.
     '''
     # ignore 4 digit years in the future
     array[array > latest_year] = np.ma.masked
@@ -807,11 +806,11 @@ def get_dt_arrays(hdf, fallback_dt, validation_dt, valid_slices=[]):
             # do not interpolate date/time parameters to avoid rollover issues
             array = align(param, onehz, interpolate=False)
             if len(array) == 0 or np.ma.count(array) == 0:
-                logger.warning("No valid values returned for %s", name)
+                logger.warning(f"No valid values returned for {name}")
             elif (np.ma.all(array == 0)) and not (name == 'Hour' and len(array) < 3600): # Hour can be 0 for up to 1 hour (after midnight)
                 # Other than the year 2000 or possibly 2100, no date values
                 # can be all 0's
-                logger.warning("Only zero values returned for %s", name)
+                logger.warning(f"Only zero values returned for {name}")
             else:
                 # values returned, continue
                 dt_arrays.append(array)
@@ -827,7 +826,7 @@ def get_dt_arrays(hdf, fallback_dt, validation_dt, valid_slices=[]):
             dt_parameter_origin[name]=FALLBACK_VALIDATION if param else FALLBACK_NO_PARAM
             continue
         else:
-            raise TimebaseError("Required parameter '%s' not available" % name)
+            raise TimebaseError(f"Required parameter '{name}' not available")
 
     validated_dt_arrays = [mask_outside_slices(np.ma.array(a), valid_slices) for a in dt_arrays] if valid_slices else dt_arrays
 
@@ -888,8 +887,7 @@ def calculate_fallback_dt(hdf, fallback_dt=None, validation_dt=None,
     else:
         now = datetime.utcnow().replace(tzinfo=pytz.utc)
         assert timebase <= now, (
-            "Fallback time '%s' in the future is not allowed. Current time "
-            "is '%s'." % (fallback_dt, now))
+            f"Fallback time '{fallback_dt}' in the future is not allowed. Current time is '{now}'.")
         if validation_dt is not None:
             assert timebase <= validation_dt, (
                 "Fallback time '%s' ahead of validation time is not allowed. "
@@ -947,7 +945,7 @@ def _calculate_start_datetime(hdf, fallback_dt, validation_dt):
     dt_arrays, precise_timestamp, timestamp_configuration = get_dt_arrays(hdf, fallback_dt, validation_dt,
                                                                           valid_slices=get_valid_dt_slices(hdf))
 
-    length = max([len(a) for a in dt_arrays])
+    length = max(len(a) for a in dt_arrays)
     if length > 1:
         # ensure all arrays are the same length
         for n, arr in enumerate(dt_arrays):
@@ -956,8 +954,7 @@ def _calculate_start_datetime(hdf, fallback_dt, validation_dt):
                 arr = np.repeat(arr, length)
                 dt_arrays[n] = arr
             elif len(arr) != length:
-                raise ValueError("After align, all arrays should be the same "
-                                 "length")
+                raise ValueError('After align, all arrays should be the same length')
             else:
                 pass
 
@@ -968,63 +965,52 @@ def _calculate_start_datetime(hdf, fallback_dt, validation_dt):
         try:
             timebase = calculate_timebase(*dt_arrays)
         except (KeyError, ValueError) as err:
-            raise TimebaseError("Error with timestamp values: %s" % err)
+            raise TimebaseError(f'Error with timestamp values: {err}')
 
     if timebase > now:
-        # Flight Data Analysis in the future is a challenge, lets see if we
-        # can correct this first...
+        # Flight Data Analysis in the future is a challenge, lets see if we can correct this first...
         if 'Day' not in hdf:
             # unlikely to have year, month or day.
-            # Scenario: that fallback_dt is of the current day but recorded
-            # time is in the future of the fallback time, therefore resulting
-            # in a futuristic date.
+            # Scenario: that fallback_dt is of the current day but recorded time is in the future of the fallback time,
+            # therefore resulting in a futuristic date.
             a_day_before = timebase - relativedelta(days=1)
             if a_day_before < now:
-                logger.info(
-                    "Timebase was in the future, using a DAY before "
-                    "satisfies requirements: %s", a_day_before)
+                logger.info(f'Timebase was in the future, using a DAY before satisfies requirements: {a_day_before}')
                 return a_day_before, False, timestamp_configuration
             # continue to take away a Year
         if 'Year' not in hdf:
             # remove a year from the timebase
             a_year_before = timebase - relativedelta(years=1)
             if a_year_before < now:
-                logger.info("Timebase was in the future, using a YEAR before "
-                            "satisfies requirements: %s", a_year_before)
+                logger.info(f'Timebase was in the future, using a YEAR before satisfies requirements: {a_year_before}')
                 return a_year_before, False, timestamp_configuration
 
-        raise TimebaseError("Timebase '%s' is in the future.", timebase)
+        raise TimebaseError(f"Timebase '{timebase}' is in the future.")
 
-    if settings.MAX_TIMEBASE_AGE and \
-       timebase < (now - timedelta(days=settings.MAX_TIMEBASE_AGE)):
+    if settings.MAX_TIMEBASE_AGE and timebase < (now - timedelta(days=settings.MAX_TIMEBASE_AGE)):
         # Only allow recent timebases.
-        error_msg = "Timebase '%s' older than the allowed '%d' days." % (
-            timebase, settings.MAX_TIMEBASE_AGE)
-        raise TimebaseError(error_msg)
+        raise TimebaseError(f"Timebase '{timebase}' older than the allowed '{settings.MAX_TIMEBASE_AGE}' days.")
 
-    logger.info("Valid timebase identified as %s", timebase)
+    logger.info(f'Valid timebase identified as {timebase}')
     return timebase, precise_timestamp, timestamp_configuration
 
 
 def append_segment_info(hdf_segment_path, segment_type, segment_slice, part,
                         fallback_dt=None, validation_dt=None, aircraft_info={}):
     """
-    Get information about a segment such as type, hash, etc. and return a
-    named tuple.
+    Get information about a segment such as type, hash, etc. and return a named tuple.
 
-    If a valid timestamp can't be found, it creates start_dt as epoch(0)
-    i.e. datetime(1970,1,1,1,0). Go-fast dt and Stop dt are relative to this
-    point in time.
+    If a valid timestamp can't be found, it creates start_dt as epoch(0) i.e. datetime(1970,1,1,1,0). Go-fast dt and
+    Stop dt are relative to this point in time.
 
     :param hdf_segment_path: path to HDF segment to analyse
     :type hdf_segment_path: string
     :param segment_slice: Slice of this segment relative to original file.
     :type segment_slice: slice
-    :param part: Numeric part this segment was in the original data file (1
-        indexed)
+    :param part: Numeric part this segment was in the original data file (1 indexed)
     :type part: Integer
-    :param fallback_dt: Used to replace elements of datetimes which are not
-        available in the hdf file (e.g. YEAR not being recorded)
+    :param fallback_dt: Used to replace elements of datetimes which are not available in the hdf file (e.g. YEAR not
+        being recorded)
     :type fallback_dt: datetime
     :returns: Segment named tuple
     :rtype: Segment
@@ -1037,10 +1023,9 @@ def append_segment_info(hdf_segment_path, segment_type, segment_slice, part,
             start_datetime, precise_timestamp, timestamp_configuration = _calculate_start_datetime(
                 hdf, fallback_dt, validation_dt)
         except TimebaseError:
-            # Warn the user and store the fake datetime. The code on the other
-            # side should check the datetime and avoid processing this file
-            logger.exception(
-                'Unable to calculate timebase, using 1970-01-01 00:00:00+0000!')
+            # Warn the user and store the fake datetime. The code on the other side should check the datetime and avoid
+            # processing this file
+            logger.exception('Unable to calculate timebase, using 1970-01-01 00:00:00+0000!')
             start_datetime = datetime.utcfromtimestamp(0).replace(tzinfo=pytz.utc)
             precise_timestamp = False
             timestamp_configuration = None
@@ -1109,7 +1094,7 @@ def split_hdf_to_segments(hdf_path, aircraft_info, fallback_dt=None,
     :returns: List of Segments
     :rtype: List of Segment recordtypes ('slice type part duration path hash')
     """
-    logger.debug("Processing file: %s", hdf_path)
+    logger.debug(f"Processing file: {hdf_path}")
 
     if dest_dir is None:
         dest_dir = os.path.dirname(hdf_path)
@@ -1163,7 +1148,7 @@ def split_hdf_to_segments(hdf_path, aircraft_info, fallback_dt=None,
         basename = os.path.basename(hdf_path)
         dest_basename = os.path.splitext(basename)[0] + '.%03d.hdf5' % part
         dest_path = os.path.join(dest_dir, dest_basename)
-        logger.debug("Writing segment %d: %s", part, dest_path)
+        logger.debug(f"Writing segment {part}: {dest_path}")
 
         write_segment(hdf_path, segment_slice, dest_path, boundary,
                       submasks=('arinc', 'invalid_states', 'padding', 'saturation'))
@@ -1179,8 +1164,7 @@ def split_hdf_to_segments(hdf_path, aircraft_info, fallback_dt=None,
             # In theory, this should not happen - but be warned of superframe
             # padding?
             logger.warning(
-                "Segment start_dt '%s' comes before the previous segment "
-                "ended '%s'", segment.start_dt, previous_stop_dt)
+                f"Segment start_dt '{segment.start_dt}' comes before the previous segment ended '{previous_stop_dt}'")
         previous_stop_dt = segment.stop_dt
 
         if fallback_dt:
@@ -1232,7 +1216,7 @@ def parse_cmdline():
         log_level = args.log_level.upper()
         # Convert log level name to value
         if not hasattr(logging, log_level):
-            raise parser.error('Invalid log level `%s`' % log_level)
+            raise parser.error(f'Invalid log level `{log_level}`')
         args.log_level_number = getattr(logging, log_level)
     else:
         args.log_level_number = logging.WARNING
@@ -1247,7 +1231,7 @@ def main():
     args, parser = parse_cmdline()
 
     if not args.quiet:
-        print('FlightDataSplitter (c) Copyright 2013 Flight Data Services, Ltd.')
+        print('FlightDataSplitter (c) Copyright 2020 Flight Data Services, Ltd.')
         print('  - Powered by POLARIS')
         print('  - http://www.flightdatacommunity.com')
         print()

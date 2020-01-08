@@ -1521,27 +1521,23 @@ class Flaperon(MultistateDerivedParameterNode):
         # Take the difference of the two signals (which should cancel each
         # other out when rolling) and divide the range by two (to account for
         # the left going negative and right going positive when flaperons set)
-        #al.array = (al.array - ar.array) / 2
 
-        #self.values_mapping = at.get_aileron_map(model.value, series.value, family.value)
-        #self.array, self.frequency, self.offset = calculate_surface_angle(
-            #'lever',
-            #al,
-            #self.values_mapping.keys(),
-        #)
         flaperon_angle = (al.array - ar.array) / 2
         self.values_mapping = at.get_aileron_map(model.value, series.value, family.value)
         snapped = step_values(flaperon_angle, self.values_mapping.keys(), al.hz, step_at='move_start')
-        # Reduce noise. Always allows single inc/dec, allows for up to 4 inc/dec in window if they dont return to same value.
-        window = int(30 * al.hz)
-        chunks = [snapped[i:i+window] for i in range(len(snapped)) if i + window < len(snapped)]
-        for i, c in enumerate(chunks):
-            if not np.ma.is_masked(c):
-                diff = np.ediff1d(c)
-                count = np.count_nonzero(diff)
-                if count > 4 or (4 >= count > 1 and np.sum(diff) == 0):
-                    snap_slice = snapped[i:i+window]
-                    snapped[i:i+window] = np.argmax(np.bincount(snap_slice.astype(int)))
+        snap_step_at = np.nonzero(np.ediff1d(snapped))[0]
+        # Move through the data with the front foot at each change point. If the stride is small enough,
+        # make the change at the beginning of this stride, and keep going until it's too big a stride in
+        # which case the back foot needs to move up.
+        back = 0
+        front = 1
+        while front < len(snap_step_at) - 1:
+            if (snap_step_at[front] - snap_step_at[back]) < 10:
+                snapped[snap_step_at[back] + 1 : snap_step_at[front] +1] = snapped[snap_step_at[front] + 1]
+            else:
+                back = front
+            front += 1
+
         self.array = snapped
 
 

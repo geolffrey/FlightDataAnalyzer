@@ -247,8 +247,10 @@ class FlightNumber(FlightAttributeNode):
             value = most_common_value(num.array, threshold=0.45)
             if value is not None:
                 # Only parse valid ASCII characters
-                self.set_flight_attr(re.sub(r'[^\x00-\x7f]', r'', value.decode()))
-
+                try:
+                    self.set_flight_attr(re.sub(r'[^\x00-\x7f]', r'', value.decode()))
+                except UnicodeDecodeError:
+                    self.set_flight_attr(None)
             return
 
         # Values of 0 are invalid flight numbers

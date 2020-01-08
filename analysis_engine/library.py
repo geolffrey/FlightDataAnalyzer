@@ -17,6 +17,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from hashlib import sha256
 from math import ceil, copysign, cos, floor, log, radians, sin, sqrt
+from operator import itemgetter
 from scipy import interpolate as scipy_interpolate, optimize
 from scipy.ndimage import filters
 from scipy.signal import medfilt
@@ -1363,9 +1364,8 @@ def delay(array, period, hz=1.0):
 
 def positive_index(container, index):
     '''
-    Always return a positive index.
-    e.g. 7 if len(container) == 10 and index == -3.
-
+    Always return a positive index but without going to the other
+    end of the array for indexes greater than -1 which arise from alignment.
     :param container: Container with a length.
     :param index: Positive or negative index within the array.
     :type index: int or float
@@ -1375,8 +1375,10 @@ def positive_index(container, index):
     if index is None:
         return index
 
-    if index < 0:
+    if index <= -1:
         index += len(container)
+    elif -1 < index < 0:
+        index = 0
     elif index >= len(container):
         index = len(container) - 1
 
@@ -1629,11 +1631,16 @@ def compress_iter_repr(iterable, cast=None, join='+'):
     '''
     prev_v = None
     res = []
+    count = 0
     for v in iterable:
         if cast:
             v = cast(v)
-        if v != prev_v:
-            if prev_v != None:
+        if v != prev_v or \
+           not np.ma.is_masked(v) and np.ma.is_masked(prev_v) or \
+           np.ma.is_masked(v) and not np.ma.is_masked(prev_v):
+            if np.ma.is_masked(prev_v):
+                res.append((prev_v, count))
+            elif prev_v != None:
                 # FIXME: NameError for count
                 res.append((prev_v, count))
             count = 1
@@ -3702,7 +3709,7 @@ def slices_overlap(first_slice, second_slice):
            ((first_slice.stop is None) or ((second_slice.start or 0) < first_slice.stop))
 
 
-def slices_overlap_merge(first_list, second_list, extend_start=0, extend_stop=0):
+def slices_overlap_merge(first_list, second_list, extend_start=0, extend_stop=0, limit_start=None, limit_end=None):
     '''
     Where slices from the second list overlap the first, the first slice is
     extended to the limit of the second list slice.
@@ -3716,6 +3723,10 @@ def slices_overlap_merge(first_list, second_list, extend_start=0, extend_stop=0)
     :type extend_stop: Integer
     :param extend_stop: Increment at stop end of the resulting slices_above
     :type extend_stop: Integer
+    :param limit_start: Maximum length of overlap to merge into at start
+    :type limit_start: Integer
+    :param limit_stop: Maximum length of overlap to merge into at end
+    :type limit_stop: Integer
     '''
     result_list = []
 
@@ -3724,9 +3735,15 @@ def slices_overlap_merge(first_list, second_list, extend_start=0, extend_stop=0)
         for second_slice in second_list:
             if slices_overlap(first_slice, second_slice):
                 overlap = True
-                result_list.append(slice(max(min(first_slice.start, second_slice.start) - extend_start, 0),
-                                         max(first_slice.stop, second_slice.stop) + extend_stop))
+                begin = max(min(first_slice.start, second_slice.start) - extend_start, 0)
+                if limit_start:
+                    begin = max(begin, first_slice.start - limit_start)
+                end = max(first_slice.stop, second_slice.stop) + extend_stop
+                if limit_end:
+                    end = min(end, first_slice.stop + limit_end)
+                result_list.append(slice(begin, end))
                 break
+
         if not overlap:
             if not extend_start and not extend_stop:
                 result_list.append(first_slice)
@@ -5384,7 +5401,7 @@ def offset_select(mode, param_list):
     raise ValueError ("offset_select called with unrecognised mode")
 
 
-def overflow_correction(array, ref=None, fast=None, hz=1):
+def overflow_correction(array, ref=None, fast=None, hz=1, ccd=None):
     '''
     Overflow Correction postprocessing procedure. Used only on Altitude Radio
     signals.
@@ -5432,11 +5449,12 @@ def overflow_correction(array, ref=None, fast=None, hz=1):
                                 ref,
                                 slices_int(good_slices),
                                 slices_int(fast.get_slices()),
-                                hz)
+                                hz,
+                                ccd)
 
     return array
 
-def align_altitudes(alt_rad, alt_std, good_slices, fast_slices, hz):
+def align_altitudes(alt_rad, alt_std, good_slices, fast_slices, hz, ccd):
     '''
     This corrects the offset for each section of radio altitude data, on the basis that the
     tops of the data will be similar in value.
@@ -6781,7 +6799,16 @@ def including_transition(array, steps, hz=1, mode='include'):
         mid_steps.append((step_1 + step_2) / 2.0)
     mid_steps.append(steps[-1] + 10.0)
 
-    change = np.ma.ediff1d(array, to_begin=0.0)
+    change = rate_of_change_array(array, hz)
+    # change will show non null values a bit too soon as the function is looking
+    # over multiple samples (a window). We want to check the edges of the periods
+    # where there is a change and overwrite it with the value given by a
+    # simple ediff1d
+    significant_roc = np.ma.abs(change) > 0.03
+    edges = np_ma_zeros_like(significant_roc, dtype=np.bool)
+    edges[1:] = significant_roc[1:] ^ significant_roc[:-1]
+    sample_change = np.ma.ediff1d(array, to_begin=0.0)
+    change[edges] = sample_change[edges]
 
     # first raise the array to the next step if it exceeds the previous step
     # plus a minimal threshold (step as early as possible)
@@ -6803,21 +6830,35 @@ def including_transition(array, steps, hz=1, mode='include'):
             if np.ma.count(partial):
                 # Unchanged data can be included in our output flap array directly
                 output[band] = partial
-            else:
-                # The data did not have a still moment, so see if it passed
-                # through the flap setting of interest.
-                index = index_at_value(array[band], flap)
-                if index:
-                    if array[band.start:band.stop][-1] > array[band.start]:
-                        # Going up
-                        output[int(index + band.start - 1)] = flap
-                    else:
-                        # Going down
-                        output[int(index + band.start + 1)] = flap
+
+            # See if it passed through the flap setting of interest.
+            # Widen band of interest in case values were rapidly changing.
+            # mid_1, flap = 27.5, 30. If array = [..., 27.0, 31.0, 33.0, ...] the band would
+            # only capture the values starting at 31.0 and we would miss the point where
+            # we crossed 30 degrees of flap.
+            wider_band = slice(max(band.start - 1, 0), min(band.stop + 1, len(array)))
+            index = index_at_value(array[wider_band], flap)
+            if index is not None:
+                if array[wider_band][-1] > array[wider_band.start]:
+                    # Going up
+                    output[floor(index + wider_band.start)] = flap
                 else:
-                    # The data may have just crept into this band without being a
-                    # true change into the new flap setting. Let's just ignore this.
+                    # Going down
+                    output[ceil(index + wider_band.start)] = flap
+
+            elif not np.ma.count(partial):
+                # The data crept into this band without reaching the flap setting.
+                # Find the local extrema.
+                array_derivative_sign_change = np.diff(np.sign(sample_change[band]))
+                idx_non_zero = np.nonzero(array_derivative_sign_change)
+                if idx_non_zero:
+                    output[band.start + idx_non_zero[0]] = flap
+                else:
+                    # This would mean that the data continuously increased or decreased
+                    # in this band but never crossed the flap setting.
+                    # Unless masked data, this seems impossible. Ignore.
                     pass
+
 
     for gap in np.ma.clump_masked(output):
         before = output[max(gap.start - 1, 0)]
@@ -7394,8 +7435,8 @@ def straighten_overflows(array, min_val, max_val, threshold=4):
     lower = min_val + partition
 
     last_value = None
-    overflow = 0
     for unmasked_slice in np.ma.clump_unmasked(array):
+        overflow = 0
         first_value = array[unmasked_slice.start]
         if last_value is not None:
             # Check if overflow occurred within masked region.
@@ -7403,11 +7444,12 @@ def straighten_overflows(array, min_val, max_val, threshold=4):
                 overflow -= 1
             elif last_value > upper and first_value < lower:
                 overflow += 1
+            # correct the rest of the array
+            straight[unmasked_slice.start:] += overflow * total_range
 
         # locate overflows and shift the arrays
         diff = np.ediff1d(array[unmasked_slice])
         abs_diff = np.abs(diff)
-        straight[unmasked_slice] += overflow * total_range
 
         for idx in np.where(abs_diff > total_range - partition)[0]:
             if (idx + 1 < len(abs_diff) and
@@ -8711,61 +8753,64 @@ def find_rig_approach(condition_defs, phase_map, approach_map,
         return None, None, None
 
 
-def max_maintained_value(arrays, seconds, frequency, phase):
-    """
-    For the given phase, return the indices of the maximum value maintained
-    for the given number of samples (this is the minimum value within the slice
-    equal to the number of samples containing the highest values)
+def max_maintained_value(array, seconds, frequency, _slice=slice(None)):
+    '''
+    Return the indice and the value of the maximum value maintained for at least
+    the given duration within the slice. The index will be relative to the start
+    of the array, not to the start of the slice.
 
-    E.g.
-    arrays = [1,2,3,4,3,4,3,4,3,2,5,2]
-    samples = 5
+    seconds * frequency gives the number of samples which must be greater or equal to 2.
 
-    max_value = 5
-    windows:
-    0: [[1,2,3,4,3],4,3,4,3,2,5,2] => min_diff = sum(5-1 + 5-2 + 5-3 + 5-4 + 5-3) = 12
-    1: [1,[2,3,4,3,4],3,4,3,2,5,2] => min_diff = sum(5-2 + 5-3 + 5-4 + 5-3 + 5-4) = 9
-    2: [1,2,[3,4,3,4,3],4,3,2,5,2] => min_diff = sum(5-3 + 5-4 + 5-3 + 5-4 + 5-3) = 8
-    3: [1,2,3,[4,3,4,3,4],3,2,5,2] => min_diff = sum(5-4 + 5-3 + 5-4 + 5-3 + 5-4) = 7 <-- min_difference_index = 3
-    4: [1,2,3,4,[3,4,3,4,3],2,5,2] => min_diff = sum(5-3 + 5-4 + 5-3 + 5-4 + 5-3) = 8
-    5: [1,2,3,4,3,[4,3,4,3,2],5,2] => min_diff = sum(5-4 + 5-3 + 5-4 + 5-3 + 5-2) = 9
-    6: [1,2,3,4,3,4,[3,4,3,2,5],2] => min_diff = sum(5-3 + 5-4 + 5-3 + 5-2 + 5-5) = 8
-    7: [1,2,3,4,3,4,3,[4,3,2,5,2]] => min_diff = sum(5-4 + 5-3 + 5-2 + 5-5 + 5-2) = 9
-    The returned values will be:
-    min_difference_index = 3
-    array_index = 4
-    value = 3
-
-    The slice starting at index 3 and ending at index 8 (5 samples) is the slice
-    with the minimum difference from the maximum value in the array, therefore it contains
-    the samples with the highest values. The value returned along with this index is 3,
-    as if we return the minimum value within this slice, we ensure that all other values
-    will be higher than this.
-    """
-    indices = []
-    values = []
-    samples = int(frequency * seconds)
-    for unmasked_slice in np.ma.clump_unmasked(arrays):
-        array = arrays[unmasked_slice]
-        if samples <= len(array):
-            max_value = array.max()
-            min_difference_index = 0
-            min_difference = sum = np.ma.sum(max_value - array[:samples])
-            for i in range(1, len(array) - samples + 1):
-                sum += array[i - 1]
-                sum -= array[samples + i - 1]
-                if sum < min_difference:
-                    min_difference = sum
-                    min_difference_index = i
-            index, value = min_value(array[min_difference_index:min_difference_index+samples])
-            indices.append(min_difference_index + index + phase.start + unmasked_slice.start)
-            values.append(value)
-
-    if len(values) == 1:
-        return indices[0], values[0]
-    elif len(values) > 1:
-        value = max(values)
-        index = indices[int(index_at_value(np.array(values), value))]
-        return index, value
-    else:
+    :param array: ...
+    :type array: np.ma.masked_array
+    :param seconds: window size in seconds
+    :type seconds: float or int
+    :param frequncy: frequency of the array data
+    :type frequency: float or int
+    :param _slice: slice for the data of interest.
+    :type _slice: slice
+    '''
+    array = array[slices_int(_slice)]
+    if not array.size:
         return None, None
+    sample_duration = 1 / frequency
+    if modulo(seconds, sample_duration) != 0:
+        seconds = seconds - seconds % sample_duration + sample_duration
+
+    samples = int(frequency * seconds)
+    if samples < 2:
+        raise ValueError('Too small duration %s for frequency %s Hz.\n'
+                         'Value of seconds * frequency must be at least 2.'
+                         % (seconds, frequency))
+
+    def max_maintained_value_in_valid_array(array, samples):
+        for valid_slice in np.ma.clump_unmasked(array):
+            # Make a view of a sliding window using a different stride.
+            # For 3 samples, the array [1, 2, 3, 4, 5, 6, 7, 8, 9] will become
+            # [[1, 2, 3],
+            #  [2, 3, 4],
+            #  [3, 4, 5],
+            #  [4, 5, 6],
+            #  [5, 6, 7],
+            #  [6, 7, 8],
+            #  [7, 8, 9]]
+            valid_array = array[valid_slice]
+            if valid_array.size < samples:
+                continue
+            sliding_window = np.lib.stride_tricks.as_strided(
+                valid_array, shape=(len(valid_array) - samples + 1, samples),
+                strides=valid_array.strides * 2)
+
+            # Calculate min over the last axis (for each sliding window)
+            min_ = np.min(sliding_window, axis=-1)
+            idx, value =  min_.argmax(), min_.max()
+            yield idx + valid_slice.start, value
+
+    idx, value = max(
+        max_maintained_value_in_valid_array(array, samples),
+        key=itemgetter(1),
+        default=(None, None)
+    )
+    if idx is not None:
+        idx += _slice.start or 0
+    return idx, value

@@ -1695,11 +1695,11 @@ class TestFlapIncludingTransition(unittest.TestCase, NodeTest):
         self.assertEqual(node.values_mapping, at.get_flap_map.return_value)
         self.assertEqual(node.units, ut.DEGREE)
         self.assertIsInstance(node.array, MappedArray)
-        expected = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 5.0, 5.0,
-                    5.0, 10.0, 10.0, 10.0, 10.0, 10.0, 15.0, 15.0,
-                    15.0, 15.0, 15.0, 25.0, 25.0, 25.0, 25.0, 25.0,
-                    25.0, 25.0, 25.0, 25.0, 25.0, 30.0, 30.0, 30.0,
-                    30.0, 30.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0,
+        expected = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 2.0, 5.0,
+                    5.0, 5.0, 10.0, 10.0, 10.0, 10.0, 10.0, 15.0,
+                    15.0, 15.0, 15.0, 15.0, 25.0, 25.0, 25.0, 25.0,
+                    25.0, 25.0, 25.0, 25.0, 25.0, 25.0, 30.0, 30.0,
+                    30.0, 30.0, 30.0, 40.0, 40.0, 40.0, 40.0, 40.0,
                     40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0,
                     40.0, 40.0, 40.0]
         self.assertEqual(node.array.raw.tolist(), expected)
@@ -1729,19 +1729,19 @@ class TestFlapIncludingTransition(unittest.TestCase, NodeTest):
 
     @patch('analysis_engine.multistate_parameters.at')
     def test_derive__single_point(self, at):
-        at.get_flap_map.return_value = {0: '0', 10: '10', 20: '20', 39: '39'}
+        at.get_flap_map.return_value = {0: '0', 10: '10', 20: '20', 30: '30', 40: '40'}
         _am = A('Model', 'B737-333')
         _as = A('Series', 'B737-300')
         _af = A('Family', 'B737 Classic')
         attributes = (_am, _as, _af)
 
-        flap_mapping = {8: '39', 1: '0', 2: '10', 4: '20'}
-        array = np.ma.array([0]*4 + [10, 10, 10] + [0]*3 + [10, 10, 10, 40, 40, 40] + \
+        flap_mapping = {39: '39', 0: '0', 10: '10', 20: '20'}
+        array = np.ma.array([0]*4 + [10, 10, 10] + [0]*4 + [10, 10, 10, 40, 40, 40] + \
                             [20] * 6 + [40, 10] + [0] * 6)
         array = (1.1 * array + 0.9 * np.roll(array, 1))/ 2.0
         array.mask = np.ma.getmaskarray(array)
-        flap_array = MappedArray(array, values_mapping=flap_mapping)
-        flap = M(name='Flap', array=flap_array, frequency=1)
+        #flap_array = MappedArray(array, values_mapping=flap_mapping)
+        flap = P(name='Flap Angle', array=array, frequency=1)
         node = self.node_class()
         node.derive(flap, None, *attributes)
         attributes = (a.value for a in attributes)
@@ -1749,9 +1749,9 @@ class TestFlapIncludingTransition(unittest.TestCase, NodeTest):
         self.assertEqual(node.values_mapping, at.get_flap_map.return_value)
         self.assertEqual(node.units, ut.DEGREE)
         self.assertIsInstance(node.array, MappedArray)
-        expected = [0.0, 0.0, 0.0, 0.0, 10.0, 10.0, 10.0, 10.0, 10.0, 0.0,
-                    10.0, 10.0, 10.0, 20.0, 39.0, 39.0, 39.0, 39.0, 20.0,
-                    20.0, 20.0, 20.0, 39.0, 20.0, 20.0, 20.0, 0.0, 0.0, 0.0, 0.0]
+        expected = [0.0, 0.0, 0.0, 0.0, 10.0, 10.0, 10.0, 10.0, 0.0, 0.0, 0.0,
+                    10.0, 10.0, 30.0, 30.0, 40.0, 40.0, 30.0, 20.0, 20.0, 20.0,
+                    20.0, 20.0, 30.0, 20.0, 20.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         self.assertEqual(node.array.raw.tolist(), expected)
 
 
@@ -2207,8 +2207,7 @@ class TestFlaperon(unittest.TestCase):
         flaperon = Flaperon()
         flaperon.derive(al, ar, model, series, family)
         self.assertTrue(
-            flaperon.array.raw.tolist() ==
-            [None] * 53 +
+            flaperon.array.raw.tolist()[53:-4] ==
             [10.0] * 11 +
             [5.0] * 244 +
             [10.0] * 584 +
@@ -2216,13 +2215,11 @@ class TestFlaperon(unittest.TestCase):
             [0.0] * 21775 +
             [5.0] * 11 +
             [10.0] * 310 +
-            [5.0] * 3 +
-            [0.0] * 275 +
+            [0.0] * 278 +
             [5.0] +
-            [10.0] * 260 +
-            [None] * 4
+            [10.0] * 260
         )
-    
+
     def test_derive_with_rapid_aileron_cycling(self):
         al = load(os.path.join(test_data_path, 'A330_Rapid_Aileron_L_Cycle.nod'))
         ar = load(os.path.join(test_data_path, 'A330_Rapid_Aileron_R_Cycle.nod'))
@@ -2234,19 +2231,8 @@ class TestFlaperon(unittest.TestCase):
         flaperon = Flaperon()
         flaperon.derive(al, ar, model, series, family)
         self.assertTrue(
-            flaperon.array.raw.tolist() ==
-            [None] * 9 +
-            [10] * 2 +
-            [5] +
-            [0] * 500 +
-            [5] * 687 +
-            [0] * 18340 +
-            [5] * 10 +
-            [10] * 364 +
-            [5] * 6 +
-            [0] * 372 +
-            [10] * 241 +
-            [None] * 12
+            flaperon.array.raw.tolist()[9:-12] == [10]*2+[0.0]*501+[5.0]*687+\
+            [0.0]*18340+[5.0]*10+[10.0]*364+[0.0]*378+[10]*241
         )
 
 
@@ -2720,7 +2706,7 @@ class TestSlatIncludingTransition(unittest.TestCase, NodeTest):
         self.assertEqual(node.units, ut.DEGREE)
         self.assertIsInstance(node.array, MappedArray)
         self.assertEqual(node.frequency, 1)
-        self.assertEqual(node.array.raw.tolist(), [0] * 6 + [16] * 15 + [20] * 4 + [23] * 12)
+        self.assertEqual(node.array.raw.tolist(), [0] * 6 + [16] * 16 + [20] * 4 + [23] * 11)
 
 
 class TestSlatFullyExtended(unittest.TestCase):

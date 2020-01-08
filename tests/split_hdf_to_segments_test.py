@@ -19,7 +19,7 @@ from analysis_engine.split_hdf_to_segments import (
     get_valid_dt_slices,
     has_constant_time,
     split_segments,
-    PRECISE
+    PRECISE,
 )
 from analysis_engine.node import M, P, Parameter
 
@@ -491,9 +491,8 @@ class TestSplitSegments(unittest.TestCase):
         self.assertEqual(segment_slice.stop, airspeed_secs)
         # TODO: Test engine parameters.
 
-    @unittest.skipIf(not os.path.isfile(os.path.join(test_data_path,
-                                                     "1_7295949_737-3C.hdf5")),
-                     "Test file not present")
+    @unittest.skipIf(
+        not os.path.isfile(os.path.join(test_data_path, "1_7295949_737-3C.hdf5")), "Test file not present")
     def test_split_segments_737_3C(self):
         '''Splits on both DFC Jump and Engine parameters.'''
         hdf = hdf_file(os.path.join(test_data_path, "1_7295949_737-3C.hdf5"))
@@ -561,9 +560,8 @@ class TestSplitSegments(unittest.TestCase):
                           ('START_AND_STOP', slice(30875.0, 33488.0, None), 3),
                           ('NO_MOVEMENT', slice(33488.0, 33680.0, None), 0),])
 
-    @unittest.skipIf(not os.path.isfile(os.path.join(test_data_path,
-                                                     "4_3377853_146-301.hdf5")),
-                     "Test file not present")
+    @unittest.skipIf(
+        not os.path.isfile(os.path.join(test_data_path, "4_3377853_146-301.hdf5")), "Test file not present")
     def test_split_segments_146_300(self):
         hdf = hdf_file(os.path.join(test_data_path, "4_3377853_146-301.hdf5"))
         segment_tuples = split_segments(hdf, {})
@@ -617,8 +615,8 @@ class TestSplitSegments(unittest.TestCase):
                           'START_ONLY'))
 
 
-    @unittest.skipIf(not os.path.isfile(os.path.join(
-        test_data_path, "rto_split_segment.hdf5")), "Test file not present")
+    @unittest.skipIf(
+        not os.path.isfile(os.path.join(test_data_path, "rto_split_segment.hdf5")), "Test file not present")
     def test_rto_correct_side_of_split(self):
         '''
         Test to ensure that RTO's are on the correct side of splitting, i.e. at
@@ -639,7 +637,6 @@ class TestSplitSegments(unittest.TestCase):
              ('START_AND_STOP', slice(split_idx, 21997.0, None), 52),
              ('GROUND_ONLY', slice(21997.0, 22784.0, None), 45),]
         )
-
 
     def test__get_normalised_split_params(self):
         hdf = mock.Mock()
@@ -707,7 +704,7 @@ class mocked_hdf(object):
             else:
                 if key == 'Year':
                     if self.path == 'future timestamps':
-                        data = np.ma.array([2020] * self.duration)
+                        data = np.ma.array([datetime.now().year + 1] * self.duration)
                     elif self.path == 'old timestamps':
                         data = np.ma.array([1999] * self.duration)
                     else:
@@ -724,8 +721,7 @@ class mocked_hdf(object):
 class TestSegmentInfo(unittest.TestCase):
     @mock.patch('analysis_engine.split_hdf_to_segments.logger')
     @mock.patch('analysis_engine.split_hdf_to_segments.sha_hash_file')
-    @mock.patch('analysis_engine.split_hdf_to_segments.hdf_file',
-                new_callable=mocked_hdf)
+    @mock.patch('analysis_engine.split_hdf_to_segments.hdf_file', new_callable=mocked_hdf)
     def test_timestamps_in_past(self, hdf_file_patch, sha_hash_file_patch, logger_patch):
         # No longer raising exception, using epoch instead with exception logging,
         # allows segment to be created.
@@ -743,26 +739,21 @@ class TestSegmentInfo(unittest.TestCase):
         self.assertEqual(logger_patch.exception.call_args[0], ('Unable to calculate timebase, using 1970-01-01 00:00:00+0000!',))
 
     @mock.patch('analysis_engine.split_hdf_to_segments.sha_hash_file')
-    @mock.patch('analysis_engine.split_hdf_to_segments.hdf_file',
-                new_callable=mocked_hdf)
+    @mock.patch('analysis_engine.split_hdf_to_segments.hdf_file', new_callable=mocked_hdf)
     def test_timestamps_in_future_use_fallback_year(self, hdf_file_patch, sha_hash_file_patch):
-        # Using fallback time is no longer recommended
-        # example where it goes fast
-        seg = append_segment_info('future timestamps', 'START_AND_STOP',
-                                  slice(10, 1000), 4,
+        # Using fallback time is no longer recommended example where it goes fast
+        seg = append_segment_info('future timestamps', 'START_AND_STOP', slice(10, 1000), 4,
                                   fallback_dt=datetime(2012, 12, 12, 0, 0, 0, tzinfo=pytz.utc))
         self.assertEqual(seg.start_dt, datetime(2012, 12, 25, 0, 0, 0, tzinfo=pytz.utc))
         self.assertEqual(seg.go_fast_dt, datetime(2012, 12, 25, 0, 6, 52, tzinfo=pytz.utc))
         self.assertEqual(seg.stop_dt, datetime(2012, 12, 25, 11, 29, 56, tzinfo=pytz.utc))
-        # This was true, but now we invalidate the Year component!
-        # Raising exception is more pythonic
+        ## This was true, but now we invalidate the Year component! Raising exception is more pythonic
         #self.assertRaises(TimebaseError, append_segment_info,
-        #                  'future timestamps', 'START_AND_STOP', slice(10,1000),
-        #                  4, fallback_dt=datetime(2012,12,12,0,0,0))
+                         #'future timestamps', 'START_AND_STOP', slice(10,1000),
+                         #4, fallback_dt=datetime(2012, 12, 12, 0, 0, 0, tzinfo=pytz.utc))
 
     @mock.patch('analysis_engine.split_hdf_to_segments.sha_hash_file')
-    @mock.patch('analysis_engine.split_hdf_to_segments.hdf_file',
-                new_callable=mocked_hdf)
+    @mock.patch('analysis_engine.split_hdf_to_segments.hdf_file', new_callable=mocked_hdf)
     def test_append_segment_info(self, hdf_file_patch, sha_hash_file_patch):
         # example where it goes fast
         # TODO: Increase slice to be realitic for duration of data
@@ -775,10 +766,8 @@ class TestSegmentInfo(unittest.TestCase):
         self.assertEqual(seg.stop_dt, datetime(2012, 12, 25, 11, 29, 56, tzinfo=pytz.utc))
 
     @mock.patch('analysis_engine.split_hdf_to_segments.sha_hash_file')
-    @mock.patch('analysis_engine.split_hdf_to_segments.hdf_file',
-                new_callable=mocked_hdf)
-    def test_append_segment_info_no_gofast(self, hdf_file_patch,
-                                           sha_hash_file_patch):
+    @mock.patch('analysis_engine.split_hdf_to_segments.hdf_file', new_callable=mocked_hdf)
+    def test_append_segment_info_no_gofast(self, hdf_file_patch, sha_hash_file_patch):
         sha_hash_file_patch.return_value = 'ABCDEFG'
         # example where it does not go fast
         seg = append_segment_info('slow', 'GROUND_ONLY', slice(10, 110), 1)
@@ -792,8 +781,7 @@ class TestSegmentInfo(unittest.TestCase):
 
     @mock.patch('analysis_engine.split_hdf_to_segments.logger')
     @mock.patch('analysis_engine.split_hdf_to_segments.sha_hash_file')
-    @mock.patch('analysis_engine.split_hdf_to_segments.hdf_file',
-                new_callable=mocked_hdf)
+    @mock.patch('analysis_engine.split_hdf_to_segments.hdf_file', new_callable=mocked_hdf)
     def test_invalid_datetimes(self, hdf_file_patch, sha_hash_file_patch, logger_patch):
         # No longer raising exception, using epoch instead
         #seg = append_segment_info('invalid timestamps', 'START_AND_STOP', slice(10,110), 2)
@@ -805,8 +793,6 @@ class TestSegmentInfo(unittest.TestCase):
         self.assertEqual(logger_patch.exception.call_args[0], ('Unable to calculate timebase, using 1970-01-01 00:00:00+0000!',))
 
     def test_calculate_start_datetime(self):
-        """
-        """
         hdf = MockHDF({
             'Year': P('Year', np.ma.array([2011])),
             'Month': P('Month', np.ma.array([11])),
