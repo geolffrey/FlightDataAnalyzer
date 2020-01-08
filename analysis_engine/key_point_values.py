@@ -20231,3 +20231,169 @@ class DHSelectedAt1500FtLVO(KeyPointValueNode):
         self.create_kpvs_at_ktis(dh_selected.array,
                                  alt_descending.get(name='1500 Ft Descending'),
                                  suppress_zeros=True)
+
+class AltitudeDeviationFromAltitudeSelectedMax(KeyPointValueNode):
+    '''
+    Altitude deviation from Altitude Selected which could possibly indicate
+    a level bust.
+
+    Altitude is based off Altitude QNH which is derived from Baro Correction.
+    '''
+
+    units = ut.FT
+
+    @classmethod
+    def can_operate(cls, available, manufacturer=A('Manufacturer')):
+        if manufacturer and manufacturer.value == 'Airbus':
+            # Airbus Baro Correction does not show 1013 when selecting QNH STD.
+            # Can only be used in the presence of other parameters telling us when STD is selected.
+            baro_setting_sel = any((
+                any_of(('Baro Setting Selection', 'Baro Correction (ISIS)'), available),
+                all_of(('Baro Setting Selection (Capt)', 'Baro Setting Selection (FO)'), available)
+            ))
+            if not baro_setting_sel:
+                return False
+
+        return all_of(
+            ('Altitude QNH', 'Altitude Selected', 'Airborne', 'Approach And Landing'),
+            available
+        )
+
+    def derive(self, alt=P('Altitude QNH'),
+               alt_sel=P('Altitude Selected'),
+               airborne=S('Airborne'),
+               apps=S('Approach And Landing'),
+               # Those kwargs populate the `available` arg in the `can_operate` method
+               bar_sel=P('Baro Setting Selection'),
+               bar_sel_cpt=P('Baro Setting Selection (Capt)'),
+               bar_sel_fo=P('Baro Setting Selection (FO)'),
+               bar_cor_isis=P('Baro Correction (ISIS)')):
+
+        # Round Altitude Selected to the next 100 ft
+        alt_sel_rounded = np.ma.ceil(alt_sel.array / 100) * 100
+        repair_mask(alt.array, frequency=alt.hz)
+        dist = alt.array - alt_sel_rounded
+        dist = mask_outside_slices(dist, airborne.get_slices())
+        # Mask out when Altitude Selected is changing
+        alt_sel_change = np.ma.ediff1d(alt_sel.array, to_end=0.0) == 0.0
+        # Filter out Alt Sel constant for less than 8 seconds
+        min_samples = ceil(8 * alt_sel.hz) - 1
+        alt_sel_change_slices = runs_of_ones(alt_sel_change, min_samples)
+        dist = mask_outside_slices(dist, alt_sel_change_slices)
+        clumps = np.ma.clump_unmasked(dist)
+
+        # Mask out the sections of approaches where the plane was on final path.
+        # Usually the plane starts at an intercept altitude and then descends
+        # on the final path. It leaves the intercept altitude and this should
+        # not be treated as a deviation. The missed approach altitude selection
+        # should also be ignored.
+        # Three cases are possible:
+        # 1. The intercept altitude is the missed approach altitude. We detect
+        #    when the plane left last that altitude and we mask out from that
+        #    point until the end of the approach phase.
+        # 2. The intercept altitude is different fom the missed approach
+        #    altitude. We ignore the missed approach altitude section until the
+        #    end of the approach phase. We then check the previous Altitude
+        #    Selected which is the intercept altitude if we maintained it for at
+        #    least 20 sec. In that case, we mask out the part where we left last
+        #    the intercept altitude.
+        # 3. There was no intercept altitude - the path was intercepted during
+        #    descent. We mask out the missed approach altitude from the start
+        #    until the end of the approach phase. We mask out the previous
+        #    Altitude Selected from the last moment we crossed it.
+        for app in apps:
+            idx, missed_app_clump = [(i, clump) for (i, clump) in enumerate(clumps)
+                                     if slices_overlap(clump, app.slice)][-1]
+            if self._maintain_alt(dist[missed_app_clump], hz=alt.hz):
+                # If we have maintained the missed approach altitude, it means it was
+                # also the intercept altitude for the approach. In that case, we
+                # mask out `dist` from the moment we fly below the Altitude Selected
+                # while within the Approach flight phase.
+                missed_app_clump = slice(missed_app_clump.start, min(missed_app_clump.stop, app.slice.stop))
+                self._mask_out_leaving_altitude(dist, missed_app_clump)
+            else:
+                # Mask out the go-around Altitude Selected.
+                ignore = slice(missed_app_clump.start, app.slice.stop)
+                dist[ignore] = np.ma.masked
+
+                # Check the previous Altitude Selected section as it could be
+                # the intercept altitude for the approach. We want then to mask
+                # out the part where we're leaving it.
+                previous_idx = idx - 1
+                if previous_idx >= 0:
+                    previous_clump = clumps[previous_idx]
+                    self._mask_out_leaving_altitude(dist, previous_clump)
+
+        # Find departures from Altitude Selected
+        clumps = np.ma.clump_unmasked(dist)
+        for clump in clumps:
+            first_idx = index_at_value(dist, 0.0, clump)
+            if first_idx is None:
+                within_50ft = np.abs(dist[clump]) < 50
+                if np.any(within_50ft):
+                    first_idx = np.argmax(within_50ft) + clump.start
+            if first_idx is not None:
+                first_idx = int(first_idx)
+                max_dev_idx = np.argmax(np.abs(dist[first_idx:clump.stop])) + first_idx
+                max_deviation = dist[max_dev_idx]
+                if abs(max_deviation) > 100:
+                    self.create_kpv(max_dev_idx, max_deviation)
+
+        '''
+        # This part of the code makes redundant findings witht he previous code
+
+        # Find Altitude QNH moving away from Altitude Selected
+        # Mask out where dist is less than 100 ft
+        dist[np.abs(dist) < 100] = np.ma.masked
+        vert_spd = np.ma.ediff1d(dist, to_end=0.0)
+        dist_sign = np.sign(dist)
+        vert_spd_sign = np.sign(vert_spd)
+        combination = dist_sign * vert_spd_sign
+        # Flying away means dist is positive and vert_spd is positive or
+        # dist is negative and vert_spd is positive. So multiplying both signs
+        # is always positive in that case
+        flying_away = combination > 0
+        # Filter out small vertical speeds
+        flying_away[np.abs(vert_spd) < 5] = 0
+
+        # When flying_away is True for more than 5 (?) consecutive seconds,
+        # create KPV.
+        '''
+
+
+    def _maintain_alt(self, dist_array, hz=1.0):
+        '''
+        Check if the altitude was maintained given the Distance array between
+        Altitude Selected and Altitude QNH.
+
+        :param dist_array: The array of distances between Altitude Selected and
+            Altitude QNH
+        :type dist_array: numpy.array
+        :param hz: Array sampling frequency
+        :type hz: float
+
+        :returns: If altitude QNH was within 50 ft of Altitude Selected for 20
+            consecutive secs.
+        :rtype: bool
+        '''
+        within_50ft = np.abs(dist_array) < 50
+        clumps = ezclump(within_50ft)
+        return any((clump.stop - clump.start) > 20 * hz for clump in clumps)
+
+    def _mask_out_leaving_altitude(self, dist_array, slice_):
+        '''
+        Mask out `dist_array` in `slice_` the last time it deviated more than
+        50 ft.
+
+        :param dist_array: The array of distances between Altitude Selected and
+            Altitude QNH
+        :type dist_array: numpy.array
+        :param slice_: The slice to consider in `dist_array`
+        :type slice_: slice
+        '''
+        on_final = dist_array[slice_] < -50
+        below_clumps = ezclump(on_final)
+        if below_clumps:
+            on_final_slice = below_clumps[-1]
+            on_final_slice = shift_slice(on_final_slice, slice_.start)
+            dist_array[on_final_slice] = np.ma.masked
