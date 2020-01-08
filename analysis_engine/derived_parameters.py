@@ -1011,8 +1011,7 @@ class AltitudeRadio(DerivedParameterNode):
         # Reminder: If you add parameters here, they need limits adding in the
         # database !!!
 
-        sources = [source_A, source_B, source_C, source_L, source_R,
-                   source_efis, source_efis_L, source_efis_R]
+        sources = [source_A, source_B, source_C, source_L, source_R, source_efis, source_efis_L, source_efis_R]
 
         self.offset = 0.0
         self.frequency = 4.0
@@ -1022,17 +1021,11 @@ class AltitudeRadio(DerivedParameterNode):
             if source is None:
                 continue
             # correct for overflow, aligning the fast slice to each source
-            aligned_fast = fast.get_aligned(source)
+            source.array = overflow_correction(
+                source.array, align(alt_std, source), fast=fast.get_aligned(source), hz=source.frequency)
 
-            source.array = overflow_correction(source.array,
-                                               align(alt_std, source),
-                                               fast=aligned_fast,
-                                               hz=source.frequency)
-
-            # Some data frames reference altimeters which are optionally
-            # recorded. It is impractical to maintain the LFL patching
-            # required, so we only manage altimeters with a significant
-            # signal.
+            # Some data frames reference altimeters which are optionally recorded. It is impractical to maintain the LFL
+            # patching required, so we only manage altimeters with a significant signal.
             if np.ma.ptp(source.array) > 10.0:
                 osources.append(source)
 
@@ -1044,8 +1037,9 @@ class AltitudeRadio(DerivedParameterNode):
             # correction algorithms can be out of step, giving differences of the order of
             # 1,000ft between two sensors. The tolerance threshold ensures these are rejected
             # (a wide tolerance ensures we don't react to normal levels of noise between altimeters).
-            self.array = blend_parameters(osources, offset=self.offset, frequency=self.frequency, small_slice_duration=10,
-                                          mode='cubic', validity='all_but_one', tolerance=500.0)
+            self.array = blend_parameters(osources, offset=self.offset, frequency=self.frequency,
+                                          small_slice_duration=10, mode='cubic', validity='all_but_one',
+                                          tolerance=500.0)
 
             self.array = np.ma.masked_greater(self.array, ALTITUDE_RADIO_MAX_RANGE)
 

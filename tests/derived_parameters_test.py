@@ -2123,13 +2123,7 @@ class TestAltitudeRadio(unittest.TestCase):
                    fast=fast, family=A('Family', 'A320'))
 
         sects = np.ma.clump_unmasked(rad.array)
-        self.assertEqual(len(sects), 6)
-        for sect in sects[0], sects[2]:
-            # takeoffs
-            self.assertAlmostEqual(rad.array[sect.start] / 10., 0, 0)
-        for sect in sects[1], sects[5]:
-            # landings
-            self.assertAlmostEqual(rad.array[sect.stop - 1] / 10., 0, 0)
+        self.assertEqual(sects, [slice(273, 3365), slice(41030, 44799), slice(45073, 47955), slice(90566, 93263)])
 
     @unittest.skip('Code now requires signal change; this test defunct')
     def test_altitude_radio_A320_zero_dropouts(self):
@@ -2180,11 +2174,11 @@ class TestAltitudeRadio(unittest.TestCase):
             test_data_path, 'A330_AltitudeRadio_B_overflow_8191.nod'))
         radioA.array = overflow_correction(radioA.array)
         radioB.array = overflow_correction(radioB.array)
-        alt_baro = P('Altitude STD', np.ma.concatenate([np.zeros(509), np.arange(0, 10000, 30), np.ones(29170) * 10000, np.arange(10000, 0, -10), np.zeros(2267)]), frequency = 1.0)
+        alt_baro = P('Altitude STD', np.ma.concatenate([np.zeros(509), np.arange(0, 10000, 30), np.ones(29170) * 10000,
+                                                        np.arange(10000, 0, -10), np.zeros(2267)]))
         rad = AltitudeRadio()
-        rad.derive(radioA, radioB, None, None, None, None, None, None,
-                   alt_baro, None,
-                   fast=fast, family=A('Family', 'A330'))
+        rad.derive(radioA, radioB, None, None, None, None, None, None, alt_baro, None, fast=fast,
+                   family=A('Family', 'A330'))
 
         sects = np.ma.clump_unmasked(rad.array)
         self.assertEqual(len(sects), 3)
@@ -2193,7 +2187,6 @@ class TestAltitudeRadio(unittest.TestCase):
         self.assertAlmostEqual(rad.array[2708], 4997, places=0)
         self.assertEqual(sects[2].start, 122508)
         self.assertAlmostEqual(rad.array[122508], 4994, places=0)
-
 
     def test_altitude_radio_CL_600(self):
         alt_rad = AltitudeRadio()
@@ -2247,17 +2240,12 @@ class TestAltitudeRadio(unittest.TestCase):
         )
         fast = buildsection('Fast', 0, 200)
         ccd = buildsections('Climb Cruise Descent', (30, 99), (110, 190))
-        alt_rad.derive(
-            Parameter('Altitude Radio (A)', np.ma.array(
-                data=[0.0]*40 + [28000.0]*40 + [50.0]*20 + [100.0]*20 + [25000.0]*40 + [0.0]*40,
-                mask=[0.0]*40 + [1.0]*40 + [0.0]*40 + [1.0]*40 + [0.0]*40),
-            ),
-            Parameter('Altitude Radio (b)', np.ma.array(
-                data=[0.0]*20 + [28000.0]*20 + [50.0]*10 + [100.0]*10 + [25000.0]*20 + [0.0]*20,
-                mask=[0.0]*20 + [1.0]*20 + [0.0]*20 + [1.0]*20 + [0.0]*20),
-            ),
-            None, None, None, None, None, None, alt_baro, None, fast, None, ccd,
+        array = np.ma.array(
+            data=[0.0]*40 + [28000.0]*40 + [50.0]*20 + [100.0]*20 + [25000.0]*40 + [0.0]*40,
+            mask=[0.0]*40 + [1.0]*40 + [0.0]*40 + [1.0]*40 + [0.0]*40,
         )
+        alt_rad.derive(Parameter('Altitude Radio (A)', array), Parameter('Altitude Radio (B)', array),
+                       None, None, None, None, None, None, alt_baro, None, fast, None, ccd)
         self.assertListEqual(list(alt_rad.array[1:159]), [0.0]*158)
         self.assertTrue(all(alt_rad.array.mask[160:320]))
         self.assertTrue(all(alt_rad.array.mask[480:640]))

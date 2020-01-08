@@ -1063,8 +1063,7 @@ class SectionNode(Node, list):
         :returns: An object of the same type as self containing matching elements.
         :rtype: self.__class__
         '''
-        aligned_node = self.__class__(frequency=param.frequency,
-                                      offset=param.offset)
+        aligned_node = self.__class__(frequency=param.frequency, offset=param.offset)
 
         multiplier = param.frequency / self.frequency
         offset = (self.offset - param.offset) * param.frequency
