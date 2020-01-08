@@ -892,7 +892,7 @@ class AltitudeAAL(DerivedParameterNode):
             plt.plot(alt_std.array, 'y-')
         if alt_rad:
             plt.plot(alt_rad.array, 'r-')
-        plt.show()
+            plt.show()
         '''
 
         self.array = alt_aal
@@ -1022,8 +1022,7 @@ class AltitudeRadio(DerivedParameterNode):
             source.array = overflow_correction(source.array,
                                                align(alt_std, source),
                                                fast=aligned_fast,
-                                               hz=source.frequency,
-                                               ccd=ccd)
+                                               hz=source.frequency)
 
             # Some data frames reference altimeters which are optionally
             # recorded. It is impractical to maintain the LFL patching

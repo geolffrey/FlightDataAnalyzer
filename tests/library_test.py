@@ -45,6 +45,7 @@ from analysis_engine.library import (
     align,
     align_slice,
     align_slices,
+    are_indexes_within_slices,
     average_value,
     bearing_and_distance,
     bearings_and_distances,
@@ -2568,6 +2569,12 @@ class TestCycleFinder(unittest.TestCase):
         np.testing.assert_array_equal(idxs, [0, 2, 4, 7, 9, 12, 14])
         np.testing.assert_array_equal(vals, [0., 3.8, 0.3, 3., 1., 4., 2.])
 
+    def test_cycle_finder_masked(self):
+        idxs, vals = cycle_finder(array=np.ma.array(data = self.array.data,
+                                                    mask = [0]*6 +[1]*3 +[0]*6))
+        np.testing.assert_array_equal(idxs, [0, 2, 4, 12, 14])
+        np.testing.assert_array_equal(vals, [0., 3.8, 0.3, 4., 2.])
+
     def test_cycle_finder_single_peak(self):
         idxs, vals = cycle_finder(self.array, min_step=15)
         np.testing.assert_array_equal(idxs, 12)
@@ -3869,6 +3876,15 @@ class TestIsIndexWithinSlices(unittest.TestCase):
         self.assertTrue(is_index_within_slices(10, [slice(8,None)]))
         self.assertTrue(is_index_within_slices(10, [slice(None, 12)]))
 
+class TestAreIndexesWithinSlices(unittest.TestCase):
+    def test_are_indexes_within_slices(self):
+        self.assertTrue(are_indexes_within_slices([1], [slice(0,2), slice(5,10)]))
+        self.assertTrue(are_indexes_within_slices([27, 5], [slice(5,7), slice(9,10)]))
+        # Slice is not inclusive of last index.
+        self.assertFalse(are_indexes_within_slices([4, 7, 27], [slice(0,2), slice(5,7)]))
+        self.assertFalse(are_indexes_within_slices([], [slice(0,2), slice(5,7)]))
+        self.assertTrue(are_indexes_within_slices([10], [slice(8,None)]))
+        self.assertTrue(are_indexes_within_slices([10], [slice(None, 12)]))
 
 class TestILSEstablished(unittest.TestCase):
     def test_basic(self):
@@ -5117,7 +5133,7 @@ class TestOverflowCorrection(unittest.TestCase):
         first_pass = overflow_correction(radioA.array, None, None)
         resA = overflow_correction(first_pass, alt_baro, fast)
         sects = np.ma.clump_unmasked(resA)
-        self.assertEqual(len(sects), 4)
+        self.assertEqual(len(sects), 5)
         self.assertGreater(resA.max(), 5000)
         self.assertEqual(resA.min(), -2)
 
