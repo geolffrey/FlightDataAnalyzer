@@ -216,35 +216,46 @@ def dependencies3(di_graph, root, node_mgr, raise_cir_dep=False):
     circular_log = Counter()
     def traverse_tree(node):
         "Begin the recursion at this node's position in the dependency tree"
-        if node in path:
-            # add node for it to be removed (pop'd) in a moment
-            path.append(node)
-            # we've met this node before; start of circular dependency?
-            tree_path.append(list(path) + ['CIRCULAR',])
-            if log_stuff:
-                if node_mgr.segment_info['Segment Type'] == 'START_AND_STOP':
-                    logger.debug("Circular dependency avoided at node '%s'. Branch path: %s", node, path)
-                else:
-                    circular_log.update(
-                        ["Circular dependency avoided at node '%s'" % (node,),]
-                    )
-            if node_mgr.segment_info['Segment Type'] == 'GROUND_ONLY':
-                logger.debug("Circular dependency avoided at node '%s'. Branch path: %s", node, path)
-            if raise_cir_dep:
-                raise CircularDependency("Circular Dependency In Path (node: '%s', path: '%s')"
-                                         % (node,"' > '".join(path)))
-            return False  # establishing if available; cannot yet be available
-        # we're recursing down
-        path.append(node)
-        if node in active_nodes:
-            # node already discovered operational
-            return True
 
         layer = set()  # layer of current node's available dependencies
         # order the successors based on the order in the derive method; this allows the
         # class to define the best path through the dependency tree.
         ordered_successors = [
             name for (name, d) in sorted(di_graph[node].items(), key=lambda a: (a[1].get('order', False), a[0]))]
+
+        if node in path:
+            # Start of circular dependency. Figure out if current node could be
+            # derived from other dependencies than the one already tried up to now.
+            successors_in_path = {name for name in ordered_successors if name in path}
+
+            if node_mgr.optional_dependencies(node, successors_in_path):
+                # There is still a chance to derive this node based on its other successors
+                ordered_successors = [
+                    name for name in ordered_successors
+                    if name not in successors_in_path
+                ]
+            else:
+                # we've met this node before; start of circular dependency?
+                path.append(node)
+                tree_path.append(list(path) + ['CIRCULAR',])
+                if log_stuff:
+                    if node_mgr.segment_info['Segment Type'] == 'START_AND_STOP':
+                        logger.debug("Circular dependency avoided at node '%s'. Branch path: %s", node, path)
+                    else:
+                        circular_log.update(
+                                ["Circular dependency avoided at node '%s'" % (node,),]
+                            )
+                if node_mgr.segment_info['Segment Type'] == 'GROUND_ONLY':
+                    logger.debug("Circular dependency avoided at node '%s'. Branch path: %s", node, path)
+                if raise_cir_dep:
+                    raise CircularDependency("Circular Dependency In Path (node: '%s', path: '%s')"
+                                                 % (node,"' > '".join(path)))
+                return False  # establishing if available; cannot yet be available
+
+        path.append(node)
+        if node in active_nodes:
+            # node already discovered operational
+            return True
 
         # Move troublesome nodes to the end of ordered_successors list. The first node traversed
         # can have a big impact on the processing order. In Python 2 dictionaries are unordered
@@ -430,10 +441,19 @@ def graph_nodes(node_mgr):
     gr_all.add_node('root', color='#ffffff')
     root_edges = []
     for node_req in node_mgr.requested:
+        if any_predecessors_in_requested(node_req, node_mgr.requested, gr_all):
+            # no need to link root to this requested node as one of it's
+            # predecessors will have the link therefore the tree will be
+            # built inclusive of this node.
+            continue
+        else:
+            # This node is required to build the tree
+            root_edges.append(('root', node_req))
+
         # Add all required nodes to the root. We cannot count on the fact that a
         # predecessor links to this node, as at that stage other dependencies might
         # be missing.
-        root_edges.append(('root', node_req))
+        # root_edges.append(('root', node_req))
 
     gr_all.add_edges_from(root_edges) ##, color='red')
 
