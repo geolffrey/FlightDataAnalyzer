@@ -7,6 +7,7 @@ import networkx as nx # pip install networkx or /opt/epd/bin/easy_install networ
 import copy
 
 from collections import deque, Counter
+from itertools import islice
 
 from analysis_engine.node import (
     ApproachNode,
@@ -272,26 +273,38 @@ def dependencies3(di_graph, root, node_mgr, raise_cir_dep=False):
     circular_log = Counter()
     def traverse_tree(node):
         "Begin the recursion at this node's position in the dependency tree"
+        path.append(node)
+
+        if node in active_nodes:
+            # node already discovered operational
+            return True
 
         layer = set()  # layer of current node's available dependencies
         # order the successors based on the order in the derive method; this allows the
         # class to define the best path through the dependency tree.
-        ordered_successors = [name for (name, d) in sorted(di_graph[node].items(), key=lambda a: a[1].get('order', False))]
+        ordered_successors = [
+            name
+            for (name, d) in sorted(
+                di_graph[node].items(), key=lambda a: (a[1].get("order", False), a[0])
+            )
+        ]
 
-        if node in path:
+        if node in islice(path, 0, len(path) - 1):
             # Start of circular dependency. Figure out if current node could be
-            # derived from other dependencies than the one already tried up to now.
-            successors_in_path = {name for name in ordered_successors if name in path}
+            # derived from other dependencies than the ones already tried in the path.
+            successors = set(ordered_successors)
+            successors_not_in_path = successors - set(path) # - cannot_operate
 
-            if node_mgr.optional_dependencies(node, successors_in_path):
+            if node_mgr.operational(node, successors_not_in_path):
                 # There is still a chance to derive this node based on its other successors
+                # Try again with subset of successors (ignore those in path)
                 ordered_successors = [
                     name for name in ordered_successors
-                    if name not in successors_in_path
+                    if name in successors_not_in_path
                 ]
             else:
-                # we've met this node before; start of circular dependency?
-                path.append(node)
+                # we've met this node before and there are no other ways to derive it
+                # Back track.
                 tree_path.append(list(path) + ['CIRCULAR',])
                 if log_stuff:
                     if node_mgr.segment_info['Segment Type'] == 'START_AND_STOP':
@@ -305,12 +318,7 @@ def dependencies3(di_graph, root, node_mgr, raise_cir_dep=False):
                 if raise_cir_dep:
                     raise CircularDependency("Circular Dependency In Path (node: '%s', path: '%s')"
                                                  % (node,"' > '".join(path)))
-                return False  # establishing if available; cannot yet be available
-
-        path.append(node)
-        if node in active_nodes:
-            # node already discovered operational
-            return True
+                return False
 
         # Move troublesome nodes to the end of ordered_successors list. The first node traversed
         # can have a big impact on the processing order. In Python 2 dictionaries are unordered
@@ -318,11 +326,13 @@ def dependencies3(di_graph, root, node_mgr, raise_cir_dep=False):
         # Instead of starting with 'Airspeed Top Of Descent To 4000 Ft Min' it
         # is now starting with '2 Deg Pitch To 35 Ft Duration' causing a
         # node process order issue for TouchDown kti.
-        if node == 'root':
-            while ordered_successors and ordered_successors[0] in CALCULATE_NODE_LAST:
-                ordered_successors.append(ordered_successors.pop(0))
+        #if node == 'root':
+            #while ordered_successors[0] in CALCULATE_NODE_LAST:
+                #ordered_successors.append(ordered_successors.pop(0))
 
         for dependency in ordered_successors:
+            #if dependency in cannot_operate:
+                #continue
             # traverse again, 'like we did last summer'
             if traverse_tree(dependency):
                 layer.add(dependency)
@@ -339,12 +349,14 @@ def dependencies3(di_graph, root, node_mgr, raise_cir_dep=False):
             return True  # layer below works
         else:
             # node will not work with available dependencies
+            #cannot_operate.add(node)
             tree_path.append(list(path) + ['NOT OPERATIONAL',])
             return False
 
     ordering = []
     path = deque()  # current branch path
     active_nodes = set()  # operational nodes visited for fast lookup
+    cannot_operate = set()  # nodes that cannot operate due to insatisfied dependencies
     tree_path = [] # For viewing the tree in which nodes are add to path
     traverse_tree(root)  # start recursion
     # log any circular dependencies caught
@@ -555,7 +567,16 @@ def process_order(gr_all, node_mgr, raise_inoperable_requested=False,
     :returns:
     :rtype:
     """
+    #import cProfile, pstats
+    #pr = cProfile.Profile()
+    #pr.enable()
     process_order, tree_path = dependencies3(gr_all, 'root', node_mgr, raise_cir_dep=raise_cir_dep)
+    #pr.disable()
+    #sortby = pstats.SortKey.CUMULATIVE
+    #ps = pstats.Stats(pr).sort_stats('tottime')
+    #ps.print_stats(20)
+
+
     logger.debug("Processing order of %d nodes is: %s", len(process_order), process_order)
     if dependency_tree_log:
         ordered_tree_to_file(tree_path, name=dependency_tree_log)
