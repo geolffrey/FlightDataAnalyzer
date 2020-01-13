@@ -2577,14 +2577,19 @@ class NodeManager(object):
             derived_node = self.derived_nodes[name]
             # NOTE: Raises "Unbound method" here due to can_operate being
             # overridden without wrapping with @classmethod decorator
-            attributes = []
-            argspec = inspect.getargspec(derived_node.can_operate)
-            if argspec.defaults:
-                for default in argspec.defaults:
-                    if not isinstance(default, Attribute):
-                        raise TypeError('Only Attributes may be keyword '
-                                        'arguments in can_operate methods.')
-                    attributes.append(self.get_attribute(default.name))
+            try:
+                attributes = derived_node._attributes
+            except AttributeError:
+                attributes = []
+                argspec = inspect.getargspec(derived_node.can_operate)
+                if argspec.defaults:
+                    for default in argspec.defaults:
+                        if not isinstance(default, Attribute):
+                            raise TypeError('Only Attributes may be keyword '
+                                            'arguments in can_operate methods.')
+                        attributes.append(self.get_attribute(default.name))
+                # cache argspec for improved performance
+                derived_node._attributes = attributes
             # can_operate expects attributes.
             res = derived_node.can_operate(available, *attributes)
             ##if not res:
