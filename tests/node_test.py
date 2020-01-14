@@ -197,32 +197,6 @@ class TestNode(unittest.TestCase):
             res = c.derive(*deps)
             self.assertEqual(res[:2], ('A', 'B'))
 
-
-    def test_get_operational_combinations(self):
-        """ NOTE: This shows a REALLY neat way to test all combinations of a
-        derived Node class!
-        """
-        class Combo(Node):
-            def derive(self, aa=P('a'), bb=P('b'), cc=P('c'), dd=P('d')):
-                # we require 'a' and 'b' and 'c' and 'd' are a bonuses
-                assert aa == 'A'
-                assert bb == 'B'
-                return aa, bb, cc, dd
-
-            def get_derived(self, params):
-                pass
-
-            @classmethod
-            def can_operate(cls, available):
-                return 'a' in available and 'b' in available
-
-        self.assertFalse(Combo.optional_dependencies(['a']))
-        self.assertFalse(Combo.optional_dependencies(['b']))
-        self.assertFalse(Combo.optional_dependencies(['a', 'b']))
-        self.assertFalse(Combo.optional_dependencies(['a', 'c']))
-        self.assertTrue(Combo.optional_dependencies(['c']))
-        self.assertTrue(Combo.optional_dependencies(['d', 'c']))
-
     def test_get_derived_default(self):
         param1, param2 = _get_mock_params()
 
