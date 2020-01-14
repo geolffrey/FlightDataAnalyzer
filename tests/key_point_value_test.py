@@ -324,6 +324,7 @@ from analysis_engine.key_point_values import (
     EngN1For5SecDuringGoAround5MinRatingMax,
     EngN1For5SecDuringMaximumContinuousPowerMax,
     EngN1For5SecDuringTakeoff5MinRatingMax,
+    EngN1DuringTakeoffMax,
     EngN1OverThresholdDuration,
     EngN1TakeoffDerate,
     EngN1WithThrustReversersDeployedMax,
@@ -11150,6 +11151,40 @@ class TestEngTorqueMaxDuringTakeoff(unittest.TestCase):
             KeyPointValue(index=10, value=98, name='Eng (*) Torque Max During Takeoff 5 Min'),
         ]))
 
+
+class TestEngN1DuringTakeoffMax(unittest.TestCase):
+
+    def setUp(self):
+        self.node_class = EngN1DuringTakeoffMax
+
+    def test_can_operate(self):
+        self.assertTrue(self.node_class.can_operate(('Eng (*) N1 Max', 'Takeoff 5 Min Rating')))
+
+    def test_derive(self):
+        takeoffs=buildsection('Takeoff 5 Min Rating', 10, 360)
+        eng_N1_max=P('Eng (*) N1 Max', array=np.ma.array([80, 81, 82, 83, 85, 90, 92, 95, 96, 99] +
+                                                         [99, 100, 99, 99, 99, 100, 99, 98, 99, 98] * 35 +
+                                                                 [95, 94, 92, 89, 86, 82, 80, 80, 81, 82]))
+        name = self.node_class.get_name()
+        node = self.node_class()
+        node.derive(eng_N1_max, takeoffs)
+        self.assertEqual(node, KPV(name=name, items=[
+            KeyPointValue(index=17, value=98, name='Eng (*) N1 During Takeoff For 10 Sec Max'),
+        ]))
+
+    def test_derive_with_go_around(self):
+        go_arounds=buildsection('Go Around 5 Min Rating', 10, 360)
+        takeoffs=buildsection('Takeoff 5 Min Rating', 380, 720)
+        eng_N1_max=P('Eng (*) N1 Max', array=np.tile(np.ma.array([80, 81, 82, 83, 85, 90, 92, 95, 96, 99] +
+                                                                 [99, 100, 99, 99, 99, 100, 99, 98, 99, 98] * 35 +
+                                                                 [95, 94, 92, 89, 86, 82, 80, 80, 81, 82]), 2))
+        name = self.node_class.get_name()
+        node = self.node_class()
+        node.derive(eng_N1_max, takeoffs, go_arounds)
+        self.assertEqual(node, KPV(name=name, items=[
+            KeyPointValue(index=387, value=98, name='Eng (*) N1 During Takeoff For 10 Sec Max'),
+            KeyPointValue(index=17, value=98, name='Eng (*) N1 During Takeoff For 10 Sec Max'),
+        ]))
 
 class TestEngN2DuringTakeoffForXSecMax(unittest.TestCase):
 

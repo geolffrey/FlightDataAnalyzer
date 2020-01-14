@@ -20038,14 +20038,35 @@ class EngTakeoffFlexTemp(KeyPointValueNode):
                 self.create_kpv(index, value)
 
 
-class EngNpMaxDuringTakeoff(KeyPointValueNode):
+class EngMaxMixin:
+    '''
+    Mixin class providing the `create_kpv_max` as a helper function to different
+    KPVs measuring maximum engine parameter sustained for a given duration.
+    '''
+
+    def create_kpv_max(self, eng_param, sections, seconds):
+        '''
+        Create the maximum value for `eng_param` in `sections` maintained for
+        `seconds` duration.
+        '''
+        hz = eng_param.frequency
+        for second, duration in zip(seconds, self.NAME_VALUES['durations']):
+            for takeoff in sections.get_slices():
+                arrays = eng_param.array[slices_int(takeoff)]
+                if len(arrays) > 0:
+                    index, value = max_maintained_value(arrays, second, hz, takeoff)
+                    if index is not None and value is not None:
+                        self.create_kpv(index, value, durations=duration)
+
+
+class EngNpMaxDuringTakeoff(EngMaxMixin, KeyPointValueNode):
     '''
     The maximum value of Eng (*) Np Max during Takeoff 5 Min Rating phase
     maintained for the specified duration
     '''
 
-    NAME_FORMAT = 'Eng (*) Np Max During Takeoff %(seconds)d Sec'
-    NAME_VALUES = {'seconds': [5, 20]}
+    NAME_FORMAT = 'Eng (*) Np Max During Takeoff %(durations)s'
+    NAME_VALUES = {'durations': ['5 Sec', '20 Sec']}
     units = ut.PERCENT
 
     @classmethod
@@ -20056,22 +20077,14 @@ class EngNpMaxDuringTakeoff(KeyPointValueNode):
                eng_np_max=P('Eng (*) Np Max'),
                takeoffs=S('Takeoff 5 Min Rating'),
                go_arounds=S('Go Around 5 Min Rating')):
-        hz = eng_np_max.frequency
-        for duration in self.NAME_VALUES['seconds']:
-            for takeoff in takeoffs.get_slices():
-                index, value = max_maintained_value(eng_np_max.array, duration, hz, takeoff)
-                if index is not None and value is not None:
-                    self.create_kpv(index, value, seconds=duration)
+        seconds = np.array([5, 20])
+        self.create_kpv_max(eng_np_max, takeoffs, seconds)
 
         if go_arounds:
-            for duration in self.NAME_VALUES['seconds']:
-                for go_around in go_arounds.get_slices():
-                    index, value = max_maintained_value(eng_np_max.array, duration, hz, go_around)
-                    if index is not None and value is not None:
-                        self.create_kpv(index, value, seconds=duration)
+            self.create_kpv_max(eng_np_max, go_arounds, seconds)
 
 
-class EngTorqueMaxDuringTakeoff(KeyPointValueNode):
+class EngTorqueMaxDuringTakeoff(EngMaxMixin, KeyPointValueNode):
     '''
     The maximum value of Eng (*) Torque Max during Takeoff 5 Min Rating phase
     maintained for the specified duration
@@ -20089,23 +20102,15 @@ class EngTorqueMaxDuringTakeoff(KeyPointValueNode):
                eng_torq_max=P('Eng (*) Torque Max'),
                takeoffs=S('Takeoff 5 Min Rating'),
                go_arounds=S('Go Around 5 Min Rating')):
-        hz = eng_torq_max.frequency
+
         seconds = np.array([10, 20, 300])
-        for samples, duration in zip(seconds, self.NAME_VALUES['durations']):
-            for takeoff in takeoffs.get_slices():
-                index, value = max_maintained_value(eng_torq_max.array, samples, hz, takeoff)
-                if index is not None and value is not None:
-                    self.create_kpv(index, value, durations=duration)
+        self.create_kpv_max(eng_torq_max, takeoffs, seconds)
 
         if go_arounds:
-            for samples, duration in zip(seconds, self.NAME_VALUES['durations']):
-                for go_around in go_arounds.get_slices():
-                    index, value = max_maintained_value(eng_torq_max.array, samples, hz, go_around)
-                    if index is not None and value is not None:
-                        self.create_kpv(index, value, durations=duration)
+            self.create_kpv_max(eng_torq_max, go_arounds, seconds)
 
 
-class EngTorqueMaxDuringMaximumContinuousPower(KeyPointValueNode):
+class EngTorqueMaxDuringMaximumContinuousPower(EngMaxMixin, KeyPointValueNode):
     '''
     The maximum value of Eng (*) Torque Max during Maximum Continous Power phase
     maintained for the specified duration
@@ -20122,16 +20127,38 @@ class EngTorqueMaxDuringMaximumContinuousPower(KeyPointValueNode):
     def derive(self,
                eng_torq_max=P('Eng (*) Torque Max'),
                ratings=S('Maximum Continuous Power')):
-        hz = eng_torq_max.frequency
+
         seconds = np.array([10, 20, 300, 600])
-        for samples, duration in zip(seconds, self.NAME_VALUES['durations']):
-            for mcp in ratings.get_slices():
-                index, value = max_maintained_value(eng_torq_max.array, samples, hz, mcp)
-                if index is not None and value is not None:
-                    self.create_kpv(index, value, durations=duration)
+        self.create_kpv_max(eng_torq_max, ratings, seconds)
 
 
-class EngN2DuringTakeoffForXSecMax(KeyPointValueNode):
+class EngN1DuringTakeoffMax(EngMaxMixin, KeyPointValueNode):
+    '''
+    The maximum value of Eng (*) N1 Max during Takeoff 5 Min Rating phase
+    maintained for the specified duration
+    '''
+
+    NAME_FORMAT = 'Eng (*) N1 During Takeoff For %(durations)s Max'
+    NAME_VALUES = {'durations': ['10 Sec']}
+    units = ut.PERCENT
+
+    @classmethod
+    def can_operate(cls, available):
+        return all_of(('Eng (*) N1 Max', 'Takeoff 5 Min Rating'), available)
+
+    def derive(self,
+               eng_n1_max=P('Eng (*) N1 Max'),
+               takeoffs=S('Takeoff 5 Min Rating'),
+               go_arounds=S('Go Around 5 Min Rating')):
+
+        seconds = np.array([10])
+        self.create_kpv_max(eng_n1_max, takeoffs, seconds)
+
+        if go_arounds:
+            self.create_kpv_max(eng_n1_max, go_arounds, seconds)
+
+
+class EngN2DuringTakeoffForXSecMax(EngMaxMixin, KeyPointValueNode):
     '''
     The maximum value of Eng (*) N2 Max during Takeoff 5 Min Rating phase
     maintained for the specified duration
@@ -20150,21 +20177,13 @@ class EngN2DuringTakeoffForXSecMax(KeyPointValueNode):
                go_arounds=S('Go Around 5 Min Rating')):
 
         seconds = np.array([10, 20, 300])
-        for samples, duration in zip(seconds, self.NAME_VALUES['durations']):
-            for takeoff in slices_int(takeoffs.get_slices()):
-                index, value = max_maintained_value(eng_n2_max.array, samples, eng_n2_max.hz, takeoff)
-                if index is not None and value is not None:
-                    self.create_kpv(index, value, durations=duration)
+        self.create_kpv_max(eng_n2_max, takeoffs, seconds)
 
         if go_arounds:
-            for samples, duration in zip(seconds, self.NAME_VALUES['durations']):
-                for go_around in slices_int(go_arounds.get_slices()):
-                    index, value = max_maintained_value(eng_n2_max.array, samples, eng_n2_max.hz, go_around)
-                    if index is not None and value is not None:
-                        self.create_kpv(index, value, durations=duration)
+            self.create_kpv_max(eng_n2_max, go_arounds, seconds)
 
 
-class EngN2DuringMaximumContinuousPowerForXSecMax(KeyPointValueNode):
+class EngN2DuringMaximumContinuousPowerForXSecMax(EngMaxMixin, KeyPointValueNode):
     '''
     The maximum value of Eng (*) N2 Max during Maximum Continous Power phase
     maintained for the specified duration
@@ -20183,11 +20202,7 @@ class EngN2DuringMaximumContinuousPowerForXSecMax(KeyPointValueNode):
                ratings=S('Maximum Continuous Power')):
 
         seconds = np.array([10, 20, 300, 600])
-        for samples, duration in zip(seconds, self.NAME_VALUES['durations']):
-            for mcp in slices_int(ratings.get_slices()):
-                index, value = max_maintained_value(eng_n2_max.array, samples, eng_n2_max.hz, mcp)
-                if index is not None and value is not None:
-                    self.create_kpv(index, value, durations=duration)
+        self.create_kpv_max(eng_n2_max, ratings, seconds)
 
 
 class TransmitInactivityDuration(KeyPointValueNode):
