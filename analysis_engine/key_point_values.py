@@ -4437,31 +4437,62 @@ class AirspeedDuringLevelFlightMax(KeyPointValueNode):
             self.create_kpv(*max_value(air_spd.array, section.slice))
 
 
-class AirspeedAboveFL200Max(KeyPointValueNode):
+class AirspeedBetweenFL200AndFL300Max(KeyPointValueNode):
     '''
     Maximum airspeed above FL200 (Alt STD Smoothed)
+    Monitoring the values in both climb and descent.
     '''
-    name = 'Airspeed Above FL200 Max'
+    name = 'Airspeed Between FL200 And FL300 Max'
     units = ut.KT
 
     def derive(self, air_spd= P('Airspeed'), alt=P('Altitude STD Smoothed')):
 
         alt.array = nearest_neighbour_mask_repair(alt.array)
         self.create_kpvs_within_slices(air_spd.array,
-                                       alt.slices_above(20000), max_value)
+                                       alt.slices_between(20000, 30000), max_value)
 
-class AirspeedAboveFL200Min(KeyPointValueNode):
+
+class AirspeedBetweenFL200AndFL300Min(KeyPointValueNode):
     '''
-    Minimum airspeed above FL200 (Alt STD Smoothed)
+    Minimum airspeed between FL200 and FL300 (Alt STD Smoothed)
+    Monitoring the values in both climb and descent.
     '''
-    name = 'Airspeed Above FL200 Min'
+    name = 'Airspeed Between FL200 and FL300 Min'
     units = ut.KT
 
     def derive(self, air_spd= P('Airspeed'), alt=P('Altitude STD Smoothed')):
 
         alt.array = nearest_neighbour_mask_repair(alt.array)
         self.create_kpvs_within_slices(air_spd.array,
-                                       alt.slices_above(20000), min_value)
+                                       alt.slices_between(20000, 30000), min_value)
+
+
+class AirspeedAboveFL300Max(KeyPointValueNode):
+    '''
+    Maximum airspeed above FL300 (Alt STD Smoothed)
+    '''
+    name = 'Airspeed Above FL300 Max'
+    units = ut.KT
+
+    def derive(self, air_spd= P('Airspeed'), alt=P('Altitude STD Smoothed')):
+
+        alt.array = nearest_neighbour_mask_repair(alt.array)
+        self.create_kpvs_within_slices(air_spd.array,
+                                       alt.slices_above(30000), max_value)
+
+
+class AirspeedAboveFL300Min(KeyPointValueNode):
+    '''
+    Minimum airspeed above FL300 (Alt STD Smoothed)
+    '''
+    name = 'Airspeed Above FL300 Min'
+    units = ut.KT
+
+    def derive(self, air_spd= P('Airspeed'), alt=P('Altitude STD Smoothed')):
+
+        alt.array = nearest_neighbour_mask_repair(alt.array)
+        self.create_kpvs_within_slices(air_spd.array,
+                                       alt.slices_above(30000), min_value)
 
 
 class AirspeedAboveStickShakerSpeedMin(KeyPointValueNode):
@@ -9455,12 +9486,12 @@ class MachDuringCruiseAvg(KeyPointValueNode):
                             np.ma.mean(mach.array[slices_int(_slice)]))
 
 
-class MachAboveFL200Max(KeyPointValueNode):
+class MachBetweenFL200AndFL300Max(KeyPointValueNode):
     '''
-    Maximum Mach speed above FL200 (Alt STD Smoothed)
+    Maximum Mach speed between FL200 and FL300 (Alt STD Smoothed)
     '''
 
-    name = 'Mach Above FL200 Max'
+    name = 'Mach Between FL200 And FL300 Max'
     units = ut.MACH
 
     def derive(self,
@@ -9469,14 +9500,14 @@ class MachAboveFL200Max(KeyPointValueNode):
 
         alt.array = nearest_neighbour_mask_repair(alt.array)
         self.create_kpvs_within_slices(mach.array,
-                                       alt.slices_above(20000), max_value)
+                                       alt.slices_between(20000, 30000), max_value)
 
-class MachAboveFL200Min(KeyPointValueNode):
+class MachBetweenFL200AndFL300Min(KeyPointValueNode):
     '''
-    Minimum Mach speed above FL200 (Alt STD Smoothed)
+    Minimum Mach speed between FL200 and FL300 (Alt STD Smoothed)
     '''
 
-    name = 'Mach Above FL200 Min'
+    name = 'Mach Between FL200 And FL300 Min'
     units = ut.MACH
 
     def derive(self,
@@ -9485,7 +9516,41 @@ class MachAboveFL200Min(KeyPointValueNode):
 
         alt.array = nearest_neighbour_mask_repair(alt.array)
         self.create_kpvs_within_slices(mach.array,
-                                       alt.slices_above(20000), min_value)
+                                       alt.slices_between(20000, 30000), min_value)
+
+
+class MachAboveFL300Max(KeyPointValueNode):
+    '''
+    Maximum Mach speed above FL300 (Alt STD Smoothed)
+    '''
+
+    name = 'Mach Above FL300 Max'
+    units = ut.MACH
+
+    def derive(self,
+               mach=P('Mach'),
+               alt=P('Altitude STD Smoothed')):
+
+        alt.array = nearest_neighbour_mask_repair(alt.array)
+        self.create_kpvs_within_slices(mach.array,
+                                       alt.slices_above(30000), max_value)
+
+class MachAboveFL300Min(KeyPointValueNode):
+    '''
+    Minimum Mach speed above FL300 (Alt STD Smoothed)
+    '''
+
+    name = 'Mach Above FL300 Min'
+    units = ut.MACH
+
+    def derive(self,
+               mach=P('Mach'),
+               alt=P('Altitude STD Smoothed')):
+
+        alt.array = nearest_neighbour_mask_repair(alt.array)
+        self.create_kpvs_within_slices(mach.array,
+                                       alt.slices_above(30000), min_value)
+
 ########################################
 # Mach: Flap
 
@@ -15415,32 +15480,58 @@ class PitchTouchdownTo60KtsAirspeedMax(KeyPointValueNode):
                                        slice(tdwn.index, stop)))
 
 
-class PitchAboveFL200Max(KeyPointValueNode):
+class PitchBetweenFL200AndFL300Max(KeyPointValueNode):
     '''
-    Maximum pitch angle above FL200 (Alt STD Smoothed)
+    Maximum pitch angle between FL200 and FL300 (Alt STD Smoothed)
     '''
-    name = 'Pitch Above FL200 Max'
+    name = 'Pitch Between FL200 And FL300 Max'
     units = ut.DEGREE
 
     def derive(self, pitch=P('Pitch'), alt=P('Altitude STD Smoothed')):
 
         alt.array = nearest_neighbour_mask_repair(alt.array)
         self.create_kpvs_within_slices(pitch.array,
-                                       alt.slices_above(20000), max_value)
+                                       alt.slices_between(20000,30000), max_value)
 
-class PitchAboveFL200Min(KeyPointValueNode):
+class PitchBetweenFL200AndFL300Min(KeyPointValueNode):
     '''
     Minimum pitch angle above FL200 (Alt STD Smoothed)
     '''
-    name = 'Pitch Above FL200 Min'
+    name = 'Pitch Between FL200 And FL300 Min'
     units = ut.DEGREE
 
     def derive(self, pitch=P('Pitch'), alt=P('Altitude STD Smoothed')):
 
         alt.array = nearest_neighbour_mask_repair(alt.array)
         self.create_kpvs_within_slices(pitch.array,
-                                       alt.slices_above(20000), min_value)
+                                       alt.slices_between(20000,30000), min_value)
 
+
+class PitchAboveFL300Max(KeyPointValueNode):
+    '''
+    Maximum pitch angle above FL300 (Alt STD Smoothed)
+    '''
+    name = 'Pitch Above FL300 Max'
+    units = ut.DEGREE
+
+    def derive(self, pitch=P('Pitch'), alt=P('Altitude STD Smoothed')):
+
+        alt.array = nearest_neighbour_mask_repair(alt.array)
+        self.create_kpvs_within_slices(pitch.array,
+                                       alt.slices_above(30000), max_value)
+
+class PitchAboveFL300Min(KeyPointValueNode):
+    '''
+    Minimum pitch angle above FL300 (Alt STD Smoothed)
+    '''
+    name = 'Pitch Above FL300 Min'
+    units = ut.DEGREE
+
+    def derive(self, pitch=P('Pitch'), alt=P('Altitude STD Smoothed')):
+
+        alt.array = nearest_neighbour_mask_repair(alt.array)
+        self.create_kpvs_within_slices(pitch.array,
+                                       alt.slices_above(30000), min_value)
 
 
 ##############################################################################
@@ -16560,12 +16651,12 @@ class RollLeftAbove8000FtAltitudeDensityAbove60Kts(KeyPointValueNode):
         )
 
 
-class RollAboveFL200Max(KeyPointValueNode):
+class RollBetweenFL200AndFL300Max(KeyPointValueNode):
     '''
     Maximum bank angle above FL200  (Alt STD Smoothed) (absolute value)
     '''
 
-    name = 'Roll Above FL200 Max'
+    name = 'Roll Between FL200 and FL300 Max'
     units = ut.DEGREE
 
     def derive(self,
@@ -16575,7 +16666,27 @@ class RollAboveFL200Max(KeyPointValueNode):
         alt.array = nearest_neighbour_mask_repair(alt.array)
         self.create_kpvs_within_slices(
             roll.array,
-            alt.slices_above(20000),
+            alt.slices_between(20000,30000),
+            max_abs_value,
+        )
+
+
+class RollAboveFL300Max(KeyPointValueNode):
+    '''
+    Maximum bank angle above FL300  (Alt STD Smoothed) (absolute value)
+    '''
+
+    name = 'Roll Above FL300 Max'
+    units = ut.DEGREE
+
+    def derive(self,
+               roll=P('Roll'),
+               alt=P('Altitude STD Smoothed')):
+
+        alt.array = nearest_neighbour_mask_repair(alt.array)
+        self.create_kpvs_within_slices(
+            roll.array,
+            alt.slices_above(30000),
             max_abs_value,
         )
 
