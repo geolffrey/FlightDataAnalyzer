@@ -231,6 +231,7 @@ from analysis_engine.key_point_values import (
     AltitudeSTDWithGearDownMax,
     AltitudeSTDMax,
     AltitudeWithGearDownMax,
+    AltitudeWithGearUpBeforeBottomOfDescentMin,
     AltitudeInCruiseAverage,
     ATEngagedAPDisengagedOutsideClimbDuration,
     ATDisengagedAPEngagedDuration,
@@ -7652,6 +7653,109 @@ class TestAltitudeAtGearDownSelectionWithFlapUp(unittest.TestCase, NodeTest):
             KeyPointValue(index=4, value=400, name=name),
             KeyPointValue(index=6, value=600, name=name),
         ]))
+
+
+class TestAltitudeWithGearUpBeforeBottomOfDescentMin(unittest.TestCase, NodeTest):
+
+    def setUp(self):
+        self.node_class = AltitudeWithGearUpBeforeBottomOfDescentMin
+        self.operational_combinations = [
+            ('Altitude AAL', 'Gear Down Selection', 'Bottom Of Descent'),
+        ]
+
+    def test_derive(self):
+        alt = P('Altitude AAL', array=np.ma.arange(2000, -100, -100))
+        gear_downs = KTI('Gear Down Selection', items=[
+            KeyTimeInstance(name='Gear Down Selection', index=10),
+        ])
+        bottom_descents = KTI('Bottom Of Descent', items=[
+            KeyTimeInstance(name='Bottom Of Descent', index=20)
+        ])
+        node = self.node_class()
+        node.derive(alt, gear_downs, bottom_descents)
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].value, 1000)
+        self.assertEqual(node[0].index, 10)
+
+    def test_derive_go_around(self):
+        alt = P('Altitude AAL',
+                array=np.ma.concatenate([
+                    np.ma.arange(2500, 500, -100),
+                    np.ma.arange(700, 1700, 100),
+                    np.ma.arange(1500, -100, -100),
+                ])
+        )
+        gear_downs = KTI('Gear Down Selection', items=[
+            KeyTimeInstance(name='Gear Down Selection', index=10),
+            KeyTimeInstance(name='Gear Down Selection', index=33),
+        ])
+        bottom_descents = KTI('Bottom Of Descent', items=[
+            KeyTimeInstance(name='Bottom Of Descent', index=19),
+            KeyTimeInstance(name='Bottom Of Descent', index=45),
+        ])
+        node = self.node_class()
+        node.derive(alt, gear_downs, bottom_descents)
+        self.assertEqual(len(node), 2)
+        self.assertEqual(node[0].value, 1500)
+        self.assertEqual(node[0].index, 10)
+        self.assertEqual(node[1].value, 1200)
+        self.assertEqual(node[1].index, 33)
+
+    def test_derive_gear_up_before_go_around(self):
+        alt = P('Altitude AAL',
+                array=np.ma.concatenate([
+                    np.ma.arange(2500, 500, -100),
+                    np.ma.arange(700, 1700, 100),
+                    np.ma.arange(1500, -100, -100),
+                ])
+        )
+        gear_downs = KTI('Gear Down Selection', items=[
+            KeyTimeInstance(name='Gear Down Selection', index=33),
+        ])
+        bottom_descents = KTI('Bottom Of Descent', items=[
+            KeyTimeInstance(name='Bottom Of Descent', index=19),
+            KeyTimeInstance(name='Bottom Of Descent', index=45),
+        ])
+        node = self.node_class()
+        node.derive(alt, gear_downs, bottom_descents)
+        self.assertEqual(len(node), 2)
+        self.assertEqual(node[0].value, 600)
+        self.assertEqual(node[0].index, 19)
+        self.assertEqual(node[1].value, 1200)
+        self.assertEqual(node[1].index, 33)
+
+    def test_derive_multiple_gear_down_before_go_around_and_gear_up_before_go_around(self):
+        alt = P('Altitude AAL',
+                array=np.ma.concatenate([
+                    np.ma.arange(2500, 500, -100),
+                    np.ma.arange(700, 1700, 100),
+                    np.ma.arange(2500, 500, -100),
+                    np.ma.arange(700, 1700, 100),
+                    np.ma.arange(1500, -100, -100),
+                ])
+        )
+        gear_downs = KTI('Gear Down Selection', items=[
+            KeyTimeInstance(name='Gear Down Selection', index=5),
+            KeyTimeInstance(name='Gear Down Selection', index=10),
+            KeyTimeInstance(name='Gear Down Selection', index=63),
+        ])
+        bottom_descents = KTI('Bottom Of Descent', items=[
+            KeyTimeInstance(name='Bottom Of Descent', index=19),
+            KeyTimeInstance(name='Bottom Of Descent', index=49),
+            KeyTimeInstance(name='Bottom Of Descent', index=74),
+        ])
+        node = self.node_class()
+        node.derive(alt, gear_downs, bottom_descents)
+        self.assertEqual(len(node), 3)
+        # Go-around with multiple gear down selections
+        self.assertEqual(node[0].value, 1500)
+        self.assertEqual(node[0].index, 10)
+        # Go-around without any gear down selection
+        self.assertEqual(node[1].value, 600)
+        self.assertEqual(node[1].index, 49)
+        # Landing with gear down selection
+        self.assertEqual(node[2].value, 1200)
+        self.assertEqual(node[2].index, 63)
 
 
 ########################################

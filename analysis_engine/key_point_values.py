@@ -6287,6 +6287,37 @@ class AltitudeAtGearDownSelectionWithFlapUp(KeyPointValueNode):
         self.create_kpvs_at_ktis(alt_aal.array, flap_up_gear_downs)
 
 
+class AltitudeWithGearUpBeforeBottomOfDescentMin(KeyPointValueNode):
+    '''
+    Minimum altitude when landing gear is still selected up before reaching the
+    bottom of descent.
+
+    In case the landing gear was not selected down, the minimum altitude reached
+    will be measured.
+    '''
+
+    units = ut.FT
+
+    def derive(self,
+               alt_aal=P('Altitude AAL'),
+               gear_downs=KTI('Gear Down Selection'),
+               bottom_descents=KTI('Bottom Of Descent')):
+
+        gear_downs_ordered = gear_downs.get_ordered_by_index()
+        bottom_descents_ordered = bottom_descents.get_ordered_by_index()
+
+        for bottom_descent in bottom_descents_ordered:
+            previous_gear_down = gear_downs_ordered.get_previous(bottom_descent.index)
+            if previous_gear_down is None:
+                # No previous gear down selection. Gear up till bottom of descent.
+                self.create_kpvs_at_ktis(alt_aal.array, [bottom_descent])
+                continue
+
+            self.create_kpvs_at_ktis(alt_aal.array, [previous_gear_down])
+            # Remove all previous gear down selection for the next bottom of descent.
+            del gear_downs_ordered[:gear_downs_ordered.index(previous_gear_down)+1]
+
+
 ########################################
 # Altitude: Automated Systems
 
