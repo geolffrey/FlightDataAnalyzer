@@ -424,35 +424,38 @@ class TestFlightID(unittest.TestCase):
 class TestFlightNumber(unittest.TestCase):
     def test_can_operate(self):
         self.assertEqual(FlightNumber.get_operational_combinations(),
-                         [('Flight Number',)])
+                         [('Flight Number', 'Mobile')])
 
     def test_derive_basic(self):
         flight_number_param = P('Flight Number',
                                 array=np.ma.masked_array([103, 102,102]))
+        mobiles = buildsection('Mobile', 0, 3)
         flight_number = FlightNumber()
         flight_number.set_flight_attr = Mock()
-        flight_number.derive(flight_number_param)
+        flight_number.derive(flight_number_param, mobiles)
         flight_number.set_flight_attr.assert_called_with('102')
 
     def test_derive(self):
         flight_number = load(os.path.join(test_data_path,
                                           'FDRFlightNumber_FlightNumber.nod'))
+        mobiles = buildsection('Mobile', 10, 130)
         node = FlightNumber()
-        node.derive(flight_number)
+        node.derive(flight_number, mobiles)
         self.assertEqual(node.value, '805')
 
     def test_derive_ascii(self):
         flight_number_param = P('Flight Number',
                                 array=np.ma.masked_array(['ABC', 'DEF', 'DEF'],
                                                          dtype=np.string_))
+        mobiles = buildsection('Mobile', 0, 3)
         flight_number = FlightNumber()
         flight_number.set_flight_attr = Mock()
-        flight_number.derive(flight_number_param)
+        flight_number.derive(flight_number_param, mobiles)
         flight_number.set_flight_attr.assert_called_with('DEF')
         flight_number.set_flight_attr.reset_mock()
         # Entirely masked.
         flight_number_param.array[:] = np.ma.masked
-        flight_number.derive(flight_number_param)
+        flight_number.derive(flight_number_param, mobiles)
         flight_number.set_flight_attr.called = False
 
     def test_derive_masked(self):
@@ -464,7 +467,8 @@ class TestFlightNumber(unittest.TestCase):
             'Flight Number',
             array=np.ma.array([0, 0, 0, 0, 36, 36, 0, 0, 0, 0],
                               mask=[True] * 4 + [False] * 2 + [True] * 4))
-        flight_number.derive(number_param)
+        mobiles = buildsection('Mobile', 0, 10)
+        flight_number.derive(number_param, mobiles)
         self.assertEqual(flight_number.value, '36')
 
     def test_derive_most_common_positive_float(self):
@@ -473,7 +477,8 @@ class TestFlightNumber(unittest.TestCase):
         neg_number_param = P(
             'Flight Number',
             array=np.ma.array([-1,2,-4,10,20,40,11]))
-        flight_number.derive(neg_number_param)
+        mobiles = buildsection('Mobile', 0, 7)
+        flight_number.derive(neg_number_param, mobiles)
         self.assertEqual(flight_number.value, None)
 
         # TODO: Implement variance checks as below
@@ -486,9 +491,18 @@ class TestFlightNumber(unittest.TestCase):
             'Flight Number',
             array=np.ma.array([2,555.6,444,444,444,444,444,444,888,444,444,
                                444,444,444,444,444,444,7777,9100]))
+        mobiles = buildsection('Mobile', 0, 19)
         flight_number.set_flight_attr = Mock()
-        flight_number.derive(flight_number_param)
+        flight_number.derive(flight_number_param, mobiles)
         flight_number.set_flight_attr.assert_called_with('444')
+
+    def test_derive_restrict_to_mobile(self):
+        flight_number_param = P('Flight Number',
+                                array=np.ma.repeat([103, 102], [30, 20]))
+        mobiles = buildsection('Mobile', 20, 50)
+        flight_number = FlightNumber()
+        flight_number.derive(flight_number_param, mobiles)
+        self.assertEqual(flight_number.value, '102')
 
 
 class TestLandingAirport(unittest.TestCase, NodeTest):
