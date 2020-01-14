@@ -5955,11 +5955,18 @@ class TestFlapSynchroAsymmetry(unittest.TestCase):
     # very simple test but it ensures we aren't getting negative
     # values as that would affect the FlapSynchroAsymmetryMax KPV
     def test_basic(self):
-        synchro_l = P('Flap Angle (L) Synchro', [0,1,2,3,4,5,5,5,5,5,5,5,5])
-        synchro_r = P('Flap Angle (R) Synchro', [0,1,2,3,4,5,6,7,8,9,10,11,12])
+        synchro_l = P('Flap Angle (L) Synchro', [0, 1, 2, 3, 4, 5, 5, 5, 5, 5, 5, 5, 5])
+        synchro_r = P('Flap Angle (R) Synchro', [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
         asym = FlapSynchroAsymmetry()
         asym.get_derived((synchro_l, synchro_r))
-        self.assertEqual(asym.array[8], 3)
+        self.assertEqual(np.max(asym.array), 3)
+
+    def test_second_window(self):
+        synchro_l = P('Flap Angle (L) Synchro', [12, 11, 10, 9,  8,  7, 6, 5, 4, 3, 2, 1])
+        synchro_r = P('Flap Angle (R) Synchro', [12, 12, 12, 12, 12, 12, 6, 5, 4, 3, 2, 1])
+        asym = FlapSynchroAsymmetry()
+        asym.get_derived((synchro_l, synchro_r))
+        self.assertEqual(np.max(asym.array), 1)
 
 
 class TestHeadingTrueContinuous(unittest.TestCase):

@@ -4365,7 +4365,7 @@ class FlapSynchroAsymmetry(DerivedParameterNode):
     '''
     Flap Synchro Asymmetry angle.
 
-    Shows an absolute value of difference between Left and Right Flap Synchros.
+    Shows an absolute value of difference between Left and Right Flap Synchros, over at least 4 seconds.
     Note: this is not a difference in flap angle.
     '''
 
@@ -4376,7 +4376,7 @@ class FlapSynchroAsymmetry(DerivedParameterNode):
         return all_of(('Flap Angle (L) Synchro', 'Flap Angle (R) Synchro',), available)
 
     def derive(self, synchro_l=P('Flap Angle (L) Synchro'), synchro_r=P('Flap Angle (R) Synchro'),):
-        self.array = np.abs(synchro_l.array - synchro_r.array)
+        self.array = second_window(np.abs(synchro_l.array - synchro_r.array), self.hz, 4)
 
 
 '''
