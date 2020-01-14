@@ -340,21 +340,6 @@ def can_operate(cls, available, actype=A('Aircraft Type')):
         return [args for args in dependencies_powerset if
                 cls.can_operate(args, **kwargs)]
 
-    @classmethod
-    def optional_dependencies(cls, dependencies, *args):
-        '''
-        Check if `dependencies` are optional parameters for this Node.
-
-        :param dependencies: Parameters checked to see if they are optional
-        :type dependencies: Iterable of strings
-        :returns: True if Node can be derived without `dependency`.
-        :rtype: [bool]
-        '''
-        dependencies = set(dependencies)
-        dependencies_powerset = powerset(cls.get_dependency_names())
-        return any(dependencies.isdisjoint(set(deps)) for deps in dependencies_powerset if
-                   cls.can_operate(deps, *args))
-
     @staticmethod
     def cache_key(name, frequency, offset, dp=NODE_CACHE_OFFSET_DP):
         '''
@@ -2568,34 +2553,6 @@ class NodeManager(object):
         else:
             ##logger.debug("Node '%s' is unavailable", name)
             return False
-
-    def optional_dependencies(self, name, dependencies):
-        '''
-        Looks up the node by name and returns whether the dependencies are optional
-        '''
-        if name in self.hdf_keys \
-                or self.aircraft_info.get(name) is not None \
-                or self.achieved_flight_record.get(name) is not None \
-                or self.segment_info.get(name) is not None \
-                or name in ('root', 'HDF Duration'):
-            raise ValueError(f'Expected derived node. Received instead {name}')
-
-        if name in self.derived_nodes:
-            derived_node = self.derived_nodes[name]
-            # NOTE: Raises "Unbound method" here due to can_operate being
-            # overridden without wrapping with @classmethod decorator
-            attributes = []
-            argspec = inspect.getargspec(derived_node.can_operate)
-            if argspec.defaults:
-                for default in argspec.defaults:
-                    if not isinstance(default, Attribute):
-                        raise TypeError('Only Attributes may be keyword '
-                                        'arguments in can_operate methods.')
-                    attributes.append(self.get_attribute(default.name))
-            # optional_dependencies expects attributes.
-            return derived_node.optional_dependencies(dependencies, *attributes)
-        else:
-            raise ValueError(f'Node {name} is unavailable')
 
     def node_type(self, node_name):
         '''
