@@ -23207,240 +23207,240 @@ class TestTransmitInactivityDuration(unittest.TestCase, NodeTest):
 
 
 class TestAltitudeDeviationfromAltitudeSelectedMax(unittest.TestCase, NodeTest):
-	def setUp(self):
-		self.node_class = AltitudeDeviationFromAltitudeSelectedMax
-		self.operational_combinations = [
-		    ('Altitude QNH', 'Altitude Selected', 'Airborne', 'Approach And Landing'),
-		]
+    def setUp(self):
+        self.node_class = AltitudeDeviationFromAltitudeSelectedMax
+        self.operational_combinations = [
+            ('Altitude QNH', 'Altitude Selected', 'Airborne', 'Approach And Landing'),
+        ]
 
-	def test_can_operate_airbus(self):
-		manufacturer = A('Manufacturer', 'Airbus')
-		available = ['Altitude QNH', 'Altitude Selected', 'Airborne', 'Approach And Landing']
-		self.assertFalse(self.node_class.can_operate(available, manufacturer=manufacturer))
+    def test_can_operate_airbus(self):
+        manufacturer = A('Manufacturer', 'Airbus')
+        available = ['Altitude QNH', 'Altitude Selected', 'Airborne', 'Approach And Landing']
+        self.assertFalse(self.node_class.can_operate(available, manufacturer=manufacturer))
 
-		for params in (['Baro Setting Selection'],
-		               ['Baro Setting Selection (Capt)', 'Baro Setting Selection (FO)'],
-		               ['Baro Correction (ISIS)']):
+        for params in (['Baro Setting Selection'],
+                       ['Baro Setting Selection (Capt)', 'Baro Setting Selection (FO)'],
+                       ['Baro Correction (ISIS)']):
 
-			self.assertTrue(self.node_class.can_operate(available + params, manufacturer=manufacturer))
+            self.assertTrue(self.node_class.can_operate(available + params, manufacturer=manufacturer))
 
 
-	def test_attributes(self):
-		node = self.node_class()
-		self.assertEqual(node.units, ut.FT)
-		self.assertEqual(node.name,
-			             'Altitude Deviation From Altitude Selected Max')
+    def test_attributes(self):
+        node = self.node_class()
+        self.assertEqual(node.units, ut.FT)
+        self.assertEqual(node.name,
+                         'Altitude Deviation From Altitude Selected Max')
 
-	def test_climb_and_maintain(self):
-		airborne = buildsection('Airborne', 0, 20)
-		apps = S('Approach And Landing')
-		alt_sel = P('Altitude Selected', array=np.ma.ones(20)* 5000)
-		alt = P('Altitude QNH', array=np.ma.concatenate((np.linspace(4000, 5000, num=6), np.ma.ones(14) * 5000)))
-		node = self.node_class()
-		node.derive(alt, alt_sel, airborne, apps, None, None, None, None)
-		self.assertEqual(len(node), 0)
+    def test_climb_and_maintain(self):
+        airborne = buildsection('Airborne', 0, 20)
+        apps = S('Approach And Landing')
+        alt_sel = P('Altitude Selected', array=np.ma.ones(20)* 5000)
+        alt = P('Altitude QNH', array=np.ma.concatenate((np.linspace(4000, 5000, num=6), np.ma.ones(14) * 5000)))
+        node = self.node_class()
+        node.derive(alt, alt_sel, airborne, apps, None, None, None, None)
+        self.assertEqual(len(node), 0)
 
-	def test_descend_and_maintain(self):
-		airborne = buildsection('Airborne', 0, 20)
-		apps = S('Approach And Landing')
-		alt_sel = P('Altitude Selected', array=np.ma.ones(20)* 5000)
-		alt = P('Altitude QNH', array=np.ma.concatenate((np.linspace(6000, 5000, num=6), np.ma.ones(14) * 5000)))
-		node = self.node_class()
-		node.derive(alt, alt_sel, airborne, apps, None, None, None, None)
-		self.assertEqual(len(node), 0)
+    def test_descend_and_maintain(self):
+        airborne = buildsection('Airborne', 0, 20)
+        apps = S('Approach And Landing')
+        alt_sel = P('Altitude Selected', array=np.ma.ones(20)* 5000)
+        alt = P('Altitude QNH', array=np.ma.concatenate((np.linspace(6000, 5000, num=6), np.ma.ones(14) * 5000)))
+        node = self.node_class()
+        node.derive(alt, alt_sel, airborne, apps, None, None, None, None)
+        self.assertEqual(len(node), 0)
 
-	def test_maintain_and_deviate(self):
-		airborne = buildsection('Airborne', 0, 20)
-		apps = S('Approach And Landing')
-		alt_sel = P('Altitude Selected', array=np.ma.ones(20)* 5000)
-		alt = P('Altitude QNH', array=np.ma.concatenate((
-		            np.ma.ones(4) * 5000,
-		            np.linspace(5000, 4000, num=6),
-		            np.ma.ones(10) * 4000,
-		)))
-		node = self.node_class()
-		node.derive(alt, alt_sel, airborne, apps, None, None, None, None)
-		self.assertEqual(len(node), 1)
-		self.assertAlmostEqual(node[0].value, -1000.)
-		self.assertEqual(node[0].index, 9)
+    def test_maintain_and_deviate(self):
+        airborne = buildsection('Airborne', 0, 20)
+        apps = S('Approach And Landing')
+        alt_sel = P('Altitude Selected', array=np.ma.ones(20)* 5000)
+        alt = P('Altitude QNH', array=np.ma.concatenate((
+            np.ma.ones(4) * 5000,
+            np.linspace(5000, 4000, num=6),
+            np.ma.ones(10) * 4000,
+        )))
+        node = self.node_class()
+        node.derive(alt, alt_sel, airborne, apps, None, None, None, None)
+        self.assertEqual(len(node), 1)
+        self.assertAlmostEqual(node[0].value, -1000.)
+        self.assertEqual(node[0].index, 9)
 
-	def test_climb_through(self):
-		airborne = buildsection('Airborne', 0, 100)
-		apps = S('Approach And Landing')
-		alt_sel = P('Altitude Selected', array=np.ma.ones(100)* 5000)
-		alt = P('Altitude QNH', array=np.linspace(4000, 6000, num=100))
-		node = self.node_class()
-		node.derive(alt, alt_sel, airborne, apps, None, None, None, None)
-		self.assertEqual(len(node), 1)
-		self.assertAlmostEqual(node[0].value, 1000.0)
-		self.assertEqual(node[0].index, 99)
+    def test_climb_through(self):
+        airborne = buildsection('Airborne', 0, 100)
+        apps = S('Approach And Landing')
+        alt_sel = P('Altitude Selected', array=np.ma.ones(100)* 5000)
+        alt = P('Altitude QNH', array=np.linspace(4000, 6000, num=100))
+        node = self.node_class()
+        node.derive(alt, alt_sel, airborne, apps, None, None, None, None)
+        self.assertEqual(len(node), 1)
+        self.assertAlmostEqual(node[0].value, 1000.0)
+        self.assertEqual(node[0].index, 99)
 
-	def test_oscillate_80ft(self):
-		airborne = buildsection('Airborne', 0, 100)
-		apps = S('Approach And Landing')
-		alt_sel = P('Altitude Selected', array=np.ma.ones(100)* 5000)
-		x = np.arange(0, 180, 2)
-		alt = P('Altitude QNH', array=np.ma.concatenate((
-		    np.linspace(4000, 5000, num=10),
-		    5000 + np.sin(np.deg2rad(x)) * 80
-		)))
-		node = self.node_class()
-		node.derive(alt, alt_sel, airborne, apps, None, None, None, None)
-		self.assertEqual(len(node), 0)
+    def test_oscillate_80ft(self):
+        airborne = buildsection('Airborne', 0, 100)
+        apps = S('Approach And Landing')
+        alt_sel = P('Altitude Selected', array=np.ma.ones(100)* 5000)
+        x = np.arange(0, 180, 2)
+        alt = P('Altitude QNH', array=np.ma.concatenate((
+            np.linspace(4000, 5000, num=10),
+            5000 + np.sin(np.deg2rad(x)) * 80
+        )))
+        node = self.node_class()
+        node.derive(alt, alt_sel, airborne, apps, None, None, None, None)
+        self.assertEqual(len(node), 0)
 
-	def test_oscillate_120ft(self):
-		airborne = buildsection('Airborne', 0, 100)
-		apps = S('Approach And Landing')
-		alt_sel = P('Altitude Selected', array=np.ma.ones(100)* 5000)
-		x = np.arange(0, 180, 2)
-		alt = P('Altitude QNH', array=np.ma.concatenate((
-		    np.linspace(4000, 5000, num=10),
-		    5000 - np.sin(np.deg2rad(x)) * 120
-		)))
-		node = self.node_class()
-		node.derive(alt, alt_sel, airborne, apps, None, None, None, None)
-		self.assertEqual(len(node), 1)
-		self.assertAlmostEqual(node[0].value, -120.)
-		self.assertEqual(node[0].index, 55)
+    def test_oscillate_120ft(self):
+        airborne = buildsection('Airborne', 0, 100)
+        apps = S('Approach And Landing')
+        alt_sel = P('Altitude Selected', array=np.ma.ones(100)* 5000)
+        x = np.arange(0, 180, 2)
+        alt = P('Altitude QNH', array=np.ma.concatenate((
+            np.linspace(4000, 5000, num=10),
+            5000 - np.sin(np.deg2rad(x)) * 120
+        )))
+        node = self.node_class()
+        node.derive(alt, alt_sel, airborne, apps, None, None, None, None)
+        self.assertEqual(len(node), 1)
+        self.assertAlmostEqual(node[0].value, -120.)
+        self.assertEqual(node[0].index, 55)
 
-	def test_missed_approach_is_intercept_altitude(self):
-		airborne = buildsection('Airborne', 0, 20)
-		alt_sel = P('Altitude Selected', array=np.ma.ones(20)* 4000)
-		alt = P('Altitude QNH', array=np.ma.concatenate((
-		    np.ma.ones(4) * 4000,
-		    np.linspace(4000, 0, num=16)
-		)))
-		apps = buildsection('Approach And Landing', 8, 20)
-		node = self.node_class()
-		node.derive(alt, alt_sel, airborne, apps, None, None, None, None)
-		self.assertEqual(len(node), 0)
+    def test_missed_approach_is_intercept_altitude(self):
+        airborne = buildsection('Airborne', 0, 20)
+        alt_sel = P('Altitude Selected', array=np.ma.ones(20)* 4000)
+        alt = P('Altitude QNH', array=np.ma.concatenate((
+            np.ma.ones(4) * 4000,
+            np.linspace(4000, 0, num=16)
+        )))
+        apps = buildsection('Approach And Landing', 8, 20)
+        node = self.node_class()
+        node.derive(alt, alt_sel, airborne, apps, None, None, None, None)
+        self.assertEqual(len(node), 0)
 
-	def test_missed_approach_higher_than_intercept_altitude(self):
-		airborne = buildsection('Airborne', 0, 50)
-		alt_sel = P('Altitude Selected', array=np.ma.concatenate((
-		    np.ma.ones(30) * 4000,
-		    np.ma.ones(20) * 5000
-		)))
-		alt = P('Altitude QNH', array=np.ma.concatenate((
-			        np.ma.ones(25) * 4000,
-			        np.linspace(4000, 0, num=25)
-			    )))
-		apps = buildsection('Approach And Landing', 10, 50)
-		node = self.node_class()
-		node.derive(alt, alt_sel, airborne, apps, None, None, None, None)
-		self.assertEqual(len(node), 0)
+    def test_missed_approach_higher_than_intercept_altitude(self):
+        airborne = buildsection('Airborne', 0, 50)
+        alt_sel = P('Altitude Selected', array=np.ma.concatenate((
+            np.ma.ones(30) * 4000,
+            np.ma.ones(20) * 5000
+        )))
+        alt = P('Altitude QNH', array=np.ma.concatenate((
+            np.ma.ones(25) * 4000,
+            np.linspace(4000, 0, num=25)
+        )))
+        apps = buildsection('Approach And Landing', 10, 50)
+        node = self.node_class()
+        node.derive(alt, alt_sel, airborne, apps, None, None, None, None)
+        self.assertEqual(len(node), 0)
 
-	def test_missed_approach_lower_than_intercept_altitude(self):
-		airborne = buildsection('Airborne', 0, 50)
-		alt_sel = P('Altitude Selected', array=np.ma.concatenate((
-			        np.ma.ones(30) * 4000,
-			        np.ma.ones(20) * 3000
-			    )))
-		alt = P('Altitude QNH', array=np.ma.concatenate((
-			        np.ma.ones(25) * 4000,
-		            np.linspace(4000, 0, num=25)
-			    )))
-		apps = buildsection('Approach And Landing', 10, 50)
-		node = self.node_class()
-		node.derive(alt, alt_sel, airborne, apps, None, None, None, None)
-		self.assertEqual(len(node), 0)
+    def test_missed_approach_lower_than_intercept_altitude(self):
+        airborne = buildsection('Airborne', 0, 50)
+        alt_sel = P('Altitude Selected', array=np.ma.concatenate((
+            np.ma.ones(30) * 4000,
+            np.ma.ones(20) * 3000
+        )))
+        alt = P('Altitude QNH', array=np.ma.concatenate((
+            np.ma.ones(25) * 4000,
+            np.linspace(4000, 0, num=25)
+        )))
+        apps = buildsection('Approach And Landing', 10, 50)
+        node = self.node_class()
+        node.derive(alt, alt_sel, airborne, apps, None, None, None, None)
+        self.assertEqual(len(node), 0)
 
-	def test_no_intercept_altitude(self):
-		airborne = buildsection('Airborne', 0, 50)
-		alt_sel = P('Altitude Selected', array=np.ma.concatenate((
-			        np.ma.ones(30) * 4000,
-		            np.ma.ones(20) * 3000
-			    )))
-		alt = P('Altitude QNH', array=np.linspace(5000, 100, num=50))
-		apps = buildsection('Approach And Landing', 10, 50)
-		node = self.node_class()
-		node.derive(alt, alt_sel, airborne, apps, None, None, None, None)
-		self.assertEqual(len(node), 0)
+    def test_no_intercept_altitude(self):
+        airborne = buildsection('Airborne', 0, 50)
+        alt_sel = P('Altitude Selected', array=np.ma.concatenate((
+            np.ma.ones(30) * 4000,
+            np.ma.ones(20) * 3000
+        )))
+        alt = P('Altitude QNH', array=np.linspace(5000, 100, num=50))
+        apps = buildsection('Approach And Landing', 10, 50)
+        node = self.node_class()
+        node.derive(alt, alt_sel, airborne, apps, None, None, None, None)
+        self.assertEqual(len(node), 0)
 
-	def test_altitude_selected_rounding(self):
-		airborne = buildsection('Airborne', 0, 20)
-		apps = S('Approach And Landing')
-		alt_sel = P('Altitude Selected', array=np.ma.ones(20)* 4936.0)
-		alt = P('Altitude QNH', array=np.ma.concatenate((
-		    np.ma.ones(4) * 5000.0,
-		    np.linspace(5000.0, 4000.0, num=6),
-		    np.ma.ones(10) * 4000.0)
-		))
-		node = self.node_class()
-		node.derive(alt, alt_sel, airborne, apps, None, None, None, None)
-		self.assertEqual(len(node), 1)
-		self.assertAlmostEqual(node[0].value, -1000.0)
-		self.assertEqual(node[0].index, 9)
+    def test_altitude_selected_rounding(self):
+        airborne = buildsection('Airborne', 0, 20)
+        apps = S('Approach And Landing')
+        alt_sel = P('Altitude Selected', array=np.ma.ones(20)* 4936.0)
+        alt = P('Altitude QNH', array=np.ma.concatenate((
+            np.ma.ones(4) * 5000.0,
+            np.linspace(5000.0, 4000.0, num=6),
+            np.ma.ones(10) * 4000.0)
+        ))
+        node = self.node_class()
+        node.derive(alt, alt_sel, airborne, apps, None, None, None, None)
+        self.assertEqual(len(node), 1)
+        self.assertAlmostEqual(node[0].value, -1000.0)
+        self.assertEqual(node[0].index, 9)
 
-	def test_short_approach_followed_by_deviation(self):
-		airborne = buildsection('Airborne', 0, 40)
-		alt_sel = P('Altitude Selected', array=np.ma.ones(40)* 4000)
-		alt = P('Altitude QNH', array=np.ma.concatenate((
-		    np.ma.ones(20) * 4000,
-		    np.linspace(4000, 3000, num=10),
-		    np.ma.ones(10) * 3000
-		)))
-		apps = buildsection('Approach And Landing', 0, 8)
-		node = self.node_class()
-		node.derive(alt, alt_sel, airborne, apps, None, None, None, None)
-		self.assertEqual(len(node), 1)
-		self.assertAlmostEqual(node[0].value, -1000.0)
-		self.assertEqual(node[0].index, 29)
+    def test_short_approach_followed_by_deviation(self):
+        airborne = buildsection('Airborne', 0, 40)
+        alt_sel = P('Altitude Selected', array=np.ma.ones(40)* 4000)
+        alt = P('Altitude QNH', array=np.ma.concatenate((
+            np.ma.ones(20) * 4000,
+            np.linspace(4000, 3000, num=10),
+            np.ma.ones(10) * 3000
+        )))
+        apps = buildsection('Approach And Landing', 0, 8)
+        node = self.node_class()
+        node.derive(alt, alt_sel, airborne, apps, None, None, None, None)
+        self.assertEqual(len(node), 1)
+        self.assertAlmostEqual(node[0].value, -1000.0)
+        self.assertEqual(node[0].index, 29)
 
-	def test_alt_sel_low_frequency(self):
-		airborne = buildsection('Airborne', 0, 40)
-		alt_sel = P('Altitude Selected',
-		            array=np.ma.concatenate((
-		                np.ma.ones(3)* 2992,
-		                np.ma.ones(3)* 2000,
-		                np.ma.array([2688]),
-		                np.ma.ones(3)* 2992,
-		            )),
-		            frequency=0.25,
-		            offset=3.0
-		)
-		alt = P('Altitude QNH',
-		        array=np.ma.concatenate((
-		            np.ma.ones(10) * 3000,
-		            np.linspace(3000, 0, num=30)
-		        ))
-		)
-		apps = buildsection('Approach And Landing', 10, 40)
-		node = self.node_class()
-		node.get_derived((alt, alt_sel, airborne, apps, None, None, None, None))
-		self.assertEqual(len(node), 0)
+    def test_alt_sel_low_frequency(self):
+        airborne = buildsection('Airborne', 0, 40)
+        alt_sel = P('Altitude Selected',
+                    array=np.ma.concatenate((
+                        np.ma.ones(3)* 2992,
+                        np.ma.ones(3)* 2000,
+                        np.ma.array([2688]),
+                        np.ma.ones(3)* 2992,
+                    )),
+                    frequency=0.25,
+                    offset=3.0
+        )
+        alt = P('Altitude QNH',
+                array=np.ma.concatenate((
+                    np.ma.ones(10) * 3000,
+                    np.linspace(3000, 0, num=30)
+                ))
+        )
+        apps = buildsection('Approach And Landing', 10, 40)
+        node = self.node_class()
+        node.get_derived((alt, alt_sel, airborne, apps, None, None, None, None))
+        self.assertEqual(len(node), 0)
 
-	def test_missed_approach_short_fluctuations(self):
-		airborne = buildsection('Airborne', 0, 50)
-		alt_sel = P('Altitude Selected', array=np.ma.concatenate((
-			    np.ma.ones(30) * 4000,
-			    np.ma.ones(7) * 5100,
-			    np.ma.ones(13) * 5000
-			)))
-		alt = P('Altitude QNH', array=np.ma.concatenate((
-			    np.ma.ones(25) * 4000,
-			        np.linspace(4000, 0, num=25)
-			)))
-		apps = buildsection('Approach And Landing', 10, 50)
-		node = self.node_class()
-		node.derive(alt, alt_sel, airborne, apps, None, None, None, None)
-		self.assertEqual(len(node), 0)
+    def test_missed_approach_short_fluctuations(self):
+        airborne = buildsection('Airborne', 0, 50)
+        alt_sel = P('Altitude Selected', array=np.ma.concatenate((
+            np.ma.ones(30) * 4000,
+            np.ma.ones(7) * 5100,
+            np.ma.ones(13) * 5000
+        )))
+        alt = P('Altitude QNH', array=np.ma.concatenate((
+            np.ma.ones(25) * 4000,
+            np.linspace(4000, 0, num=25)
+        )))
+        apps = buildsection('Approach And Landing', 10, 50)
+        node = self.node_class()
+        node.derive(alt, alt_sel, airborne, apps, None, None, None, None)
+        self.assertEqual(len(node), 0)
 
-	def test_masked_alt_qnh_in_approach(self):
-		airborne = buildsection('Airborne', 0, 50)
-		alt_sel = P('Altitude Selected', array=np.ma.concatenate((
-			    np.ma.ones(30) * 4000,
-			    np.ma.ones(20) * 5000
-			)))
-		alt = P('Altitude QNH', array=np.ma.concatenate((
-			    np.ma.ones(25) * 4000,
-			        np.linspace(4000, 0, num=25)
-			)))
-		alt.array[-10: -5] = np.ma.masked
-		apps = buildsection('Approach And Landing', 10, 50)
-		node = self.node_class()
-		node.derive(alt, alt_sel, airborne, apps, None, None, None, None)
-		self.assertEqual(len(node), 0)
+    def test_masked_alt_qnh_in_approach(self):
+        airborne = buildsection('Airborne', 0, 50)
+        alt_sel = P('Altitude Selected', array=np.ma.concatenate((
+            np.ma.ones(30) * 4000,
+            np.ma.ones(20) * 5000
+        )))
+        alt = P('Altitude QNH', array=np.ma.concatenate((
+            np.ma.ones(25) * 4000,
+            np.linspace(4000, 0, num=25)
+        )))
+        alt.array[-10: -5] = np.ma.masked
+        apps = buildsection('Approach And Landing', 10, 50)
+        node = self.node_class()
+        node.derive(alt, alt_sel, airborne, apps, None, None, None, None)
+        self.assertEqual(len(node), 0)
 
 if __name__ == '__main__':
     unittest.main()
