@@ -11362,7 +11362,7 @@ class TestEngN1DuringTakeoffMax(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_N1_max, takeoffs)
         self.assertEqual(node, KPV(name=name, items=[
-            KeyPointValue(index=17, value=98, name='Eng (*) N1 During Takeoff For 10 Sec Max'),
+            KeyPointValue(index=10, value=98, name='Eng (*) N1 During Takeoff For 10 Sec Max'),
         ]))
 
     def test_derive_with_go_around(self):
@@ -11375,8 +11375,8 @@ class TestEngN1DuringTakeoffMax(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_N1_max, takeoffs, go_arounds)
         self.assertEqual(node, KPV(name=name, items=[
-            KeyPointValue(index=387, value=98, name='Eng (*) N1 During Takeoff For 10 Sec Max'),
-            KeyPointValue(index=17, value=98, name='Eng (*) N1 During Takeoff For 10 Sec Max'),
+            KeyPointValue(index=380, value=98, name='Eng (*) N1 During Takeoff For 10 Sec Max'),
+            KeyPointValue(index=10, value=98, name='Eng (*) N1 During Takeoff For 10 Sec Max'),
         ]))
 
 class TestEngN2DuringTakeoffForXSecMax(unittest.TestCase):
