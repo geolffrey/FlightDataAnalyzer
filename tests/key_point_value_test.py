@@ -23108,5 +23108,21 @@ class TestAltitudeDeviationfromAltitudeSelectedMax(unittest.TestCase, NodeTest):
 		node.derive(alt, alt_sel, airborne, apps, None, None, None, None)
 		self.assertEqual(len(node), 0)
 
+    def test_masked_alt_sel_in_approach(self):
+        airborne = buildsection('Airborne', 0, 50)
+        alt_sel = P('Altitude Selected', array=np.ma.concatenate((
+            np.ma.ones(30) * 4000,
+            np.ma.ones(20) * 5000
+        )))
+        alt = P('Altitude QNH', array=np.ma.concatenate((
+            np.ma.ones(25) * 4000,
+            np.linspace(4000, 0, num=25)
+        )))
+        alt_sel.array[10: 50] = np.ma.masked
+        apps = buildsection('Approach And Landing', 10, 50)
+        node = self.node_class()
+        node.derive(alt, alt_sel, airborne, apps, None, None, None, None)
+        self.assertEqual(len(node), 0)
+
 if __name__ == '__main__':
     unittest.main()
