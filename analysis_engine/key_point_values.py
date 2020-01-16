@@ -20481,8 +20481,12 @@ class AltitudeDeviationFromAltitudeSelectedMax(KeyPointValueNode):
         #    until the end of the approach phase. We mask out the previous
         #    Altitude Selected from the last moment we crossed it.
         for app in apps:
-            idx, missed_app_clump = [(i, clump) for (i, clump) in enumerate(clumps)
-                                     if slices_overlap(clump, app.slice)][-1]
+            clumps_in_app = [(i, clump) for (i, clump) in enumerate(clumps)
+                             if slices_overlap(clump, app.slice)]
+            if not clumps_in_app:
+                # Altitude Selected completely masked during this approach
+                continue
+            idx, missed_app_clump = clumps_in_app[-1]
             if self._maintain_alt(dist[missed_app_clump], hz=alt.hz):
                 # If we have maintained the missed approach altitude, it means it was
                 # also the intercept altitude for the approach. In that case, we
