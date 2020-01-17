@@ -2468,6 +2468,8 @@ class NodeManager(object):
         self.requested = requested
         self.required = required
         self.derived_nodes = derived_nodes
+        # Caching for derived nodes attributes. {NodeClass: List[Attributes]}
+        self.attributes = {}
         # Attributes:
         self.aircraft_info = non_empty(aircraft_info)
         self.achieved_flight_record = non_empty(achieved_flight_record)
@@ -2529,9 +2531,7 @@ class NodeManager(object):
             derived_node = self.derived_nodes[name]
             # NOTE: Raises "Unbound method" here due to can_operate being
             # overridden without wrapping with @classmethod decorator
-            try:
-                attributes = derived_node._attributes
-            except AttributeError:
+            if derived_node not in self.attributes:
                 attributes = []
                 argspec = inspect.getargspec(derived_node.can_operate)
                 if argspec.defaults:
@@ -2541,8 +2541,10 @@ class NodeManager(object):
                                             'arguments in can_operate methods.')
                         attributes.append(self.get_attribute(default.name))
                 # cache argspec for improved performance
-                derived_node._attributes = attributes
+                self.attributes[derived_node] = attributes
+
             # can_operate expects attributes.
+            attributes = self.attributes[derived_node]
             res = derived_node.can_operate(available, *attributes)
             ##if not res:
             ##    logger.debug("Derived Node '%s' cannot operate with available nodes: %s",
