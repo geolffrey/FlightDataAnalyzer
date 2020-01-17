@@ -244,7 +244,7 @@ def dependencies3(di_graph, root, node_mgr, raise_cir_dep=False):
             # Start of circular dependency. Figure out if current node could be
             # derived from other dependencies than the ones already tried in the path.
             successors = set(ordered_successors)
-            successors_not_in_path = successors - set(path) # - cannot_operate
+            successors_not_in_path = successors - set(path)
 
             if node_mgr.operational(node, successors_not_in_path):
                 # There is still a chance to derive this node based on its other successors
