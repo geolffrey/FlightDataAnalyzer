@@ -8,6 +8,7 @@ import six
 
 from copy import deepcopy
 from datetime import date
+import itertools
 from math import radians
 from operator import attrgetter
 from scipy import interp
@@ -93,6 +94,7 @@ from analysis_engine.library import (
     runway_snap_dict,
     second_window,
     shift_slice,
+    shift_slices,
     slices_and,
     slices_of_runs,
     slices_between,
@@ -1017,20 +1019,30 @@ class AltitudeRadio(DerivedParameterNode):
         self.offset = 0.0
         self.frequency = 4.0
 
-        # Create a crude ClimbCruiseDescent ignoring Airborne phase
-        # We cannot use ClimbCruiseDescent as it would create a circular dependency
-        # which would prevent AltitudeAAL to use AltitudeRadio.
-        # AltitudeAAL -> AltitudeRadio -> ClimbCruiseDescent ->
-        # Airborne -> AltitudeAALForFlightPhases -> AltitudeAAL
 
-        valid_edges = np.ma.flatnotmasked_edges(alt_std.array)
-        if valid_edges is None:
-            # No valid Altitude STD, can't do anything then. :/
-            samples = int(len(alt_std.array) * self.frequency / alt_std.frequency)
-            self.array = np_ma_masked_zeros(samples)
-            return
-        start, stop = valid_edges
-        ccd = find_climb_cruise_descent(alt_std.array[start:stop])
+        def get_climb_cruise_descent():
+            '''
+            Create a crude ClimbCruiseDescent replacing Airborne phase by Fast.
+            We cannot use ClimbCruiseDescent as it would create a circular dependency
+            which would prevent AltitudeAAL to use AltitudeRadio.
+            AltitudeAAL -> AltitudeRadio -> ClimbCruiseDescent ->
+            Airborne -> AltitudeAALForFlightPhases -> AltitudeAAL
+
+            This generator will return a list of slices representing a
+            climb-cruise-descent per fast section.
+            '''
+            for quick in fast:
+                try:
+                    alts = repair_mask(alt_std.array[quick.slice], repair_duration=None)
+                except:
+                    # Short segments may be wholly masked. We ignore these.
+                    continue
+
+                section_slices = find_climb_cruise_descent(alts)
+                section_slices = shift_slices(section_slices, quick.slice.start or 0)
+                yield section_slices
+
+        ccd = list(itertools.chain.from_iterable(get_climb_cruise_descent()))
 
         osources = []
         for source in sources:
