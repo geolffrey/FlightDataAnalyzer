@@ -41,6 +41,7 @@ from analysis_engine.library import (
     dp2tas,
     dp_over_p2mach,
     filter_vor_ils_frequencies,
+    find_climb_cruise_descent,
     first_valid_parameter,
     first_valid_sample,
     first_order_lag,
@@ -990,7 +991,7 @@ class AltitudeRadio(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
         alt_rads = [n for n in cls.get_dependency_names() if n.startswith('Altitude Radio')]
-        return all_of(('Fast', 'Climb Cruise Descent'), available) and any_of(alt_rads, available)
+        return ('Fast' in available) and any_of(alt_rads, available)
 
 
     def derive(self,
@@ -1005,8 +1006,7 @@ class AltitudeRadio(DerivedParameterNode):
                alt_std=P('Altitude STD'),
                pitch=P('Pitch'),
                fast=S('Fast'),
-               family=A('Family'),
-               ccd=S('Climb Cruise Descent')):
+               family=A('Family')):
 
         # Reminder: If you add parameters here, they need limits adding in the
         # database !!!
@@ -1017,6 +1017,21 @@ class AltitudeRadio(DerivedParameterNode):
         self.offset = 0.0
         self.frequency = 4.0
 
+        # Create a crude ClimbCruiseDescent ignoring Airborne phase
+        # We cannot use ClimbCruiseDescent as it would create a circular dependency
+        # which would prevent AltitudeAAL to use AltitudeRadio.
+        # AltitudeAAL -> AltitudeRadio -> ClimbCruiseDescent ->
+        # Airborne -> AltitudeAALForFlightPhases -> AltitudeAAL
+
+        valid_edges = np.ma.flatnotmasked_edges(alt_std.array)
+        if valid_edges is None:
+            # No valid Altitude STD, can't do anything then. :/
+            samples = int(len(alt_std.array) * self.frequency / alt_std.frequency)
+            self.array = np_ma_masked_zeros(samples)
+            return
+        start, stop = valid_edges
+        ccd = find_climb_cruise_descent(alt_std.array[start:stop])
+
         osources = []
         for source in sources:
             if source is None:
@@ -1026,7 +1041,7 @@ class AltitudeRadio(DerivedParameterNode):
                                                align(alt_std, source),
                                                fast=fast.get_aligned(source),
                                                hz=source.frequency,
-                                               ccd=ccd.get_aligned(source))
+                                               ccd=ccd)
 
             # Some data frames reference altimeters which are optionally
             # recorded. It is impractical to maintain the LFL patching

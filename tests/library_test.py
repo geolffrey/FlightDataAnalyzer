@@ -80,6 +80,7 @@ from analysis_engine.library import (
     filter_slices_duration,
     filter_slices_length,
     filter_vor_ils_frequencies,
+    find_climb_cruise_descent,
     find_edges,
     find_edges_on_state_change,
     find_slices_overlap,
@@ -8883,3 +8884,67 @@ class TestMaxMaintainedValue(unittest.TestCase):
             index, value = max_maintained_value(eng_torq_max.array, sec, hz, phase)
             self.assertAlmostEqual(index, idx, places=0)
             self.assertAlmostEqual(value, val, places=3)
+
+class TestFindClimbCruiseDescent(unittest.TestCase):
+    def test_climb_cruise_descent_start_midflight(self):
+        # This test will find out if we can separate the two humps on this camel
+        testwave = np.ma.concatenate((np.ones(5) * 15000, np.arange(15000, 1000, -1000)))
+        camel = find_climb_cruise_descent(testwave)
+        self.assertEqual(len(camel), 1)
+        self.assertEqual(camel[0], slice(None, 18))
+
+    def test_climb_cruise_descent_end_midflight(self):
+        # This test will find out if we can separate the two humps on this camel
+        testwave = np.ma.concatenate((np.arange(1000,15000,1000), np.ones(5) * 15000))
+        camel = find_climb_cruise_descent(testwave)
+        self.assertEqual(len(camel), 1)
+        self.assertEqual(camel[0], slice(0, None))
+
+    def test_climb_cruise_descent_all_high(self):
+        # This test will find out if we can separate the two humps on this camel
+        testwave = np.ma.ones(5) * 15000
+        camel = find_climb_cruise_descent(testwave)
+        self.assertEqual(len(camel), 0)
+
+    def test_climb_cruise_descent_one_humps(self):
+        # This test will find out if we can separate the two humps on this camel
+        testwave = np.ma.cos(np.arange(0, 3.14 * 2, 0.1)) * -3000 + 12500
+        camel = find_climb_cruise_descent(testwave)
+        self.assertEqual(len(camel), 1)
+        self.assertEqual(camel[0], slice(0, len(testwave)-1))
+
+    def test_climb_cruise_descent_two_humps(self):
+        # This test will find out if we can separate the two humps on this camel
+        testwave = np.ma.cos(np.arange(0, 3.14 * 4, 0.1)) * -3000 + 12500
+        camel = find_climb_cruise_descent(testwave)
+        self.assertEqual(len(camel), 2)
+        self.assertEqual(camel[0], slice(0, 63))
+        self.assertEqual(camel[1], slice(63, 125))
+
+    def test_climb_cruise_descent_three_humps(self):
+        # This test will find out if we can separate the two humps on this camel
+        testwave = np.ma.cos(np.arange(0, 3.14 * 6, 0.1)) * (-3000) + 12500
+        camel = find_climb_cruise_descent(testwave)
+        self.assertEqual(len(camel), 3)
+        self.assertEqual(camel[0], slice(0, 63))
+        self.assertEqual(camel[1], slice(63, 126))
+        self.assertEqual(camel[2], slice(126, 188))
+
+    def test_climb_cruise_descent_masked(self):
+        # This test will find out if we can separate the two humps on this camel
+        testwave = np.ma.cos(np.arange(0, 3.14 * 6, 0.1)) * (-3000) + 12500
+        testwave[63:125] = np.ma.masked
+        camel = find_climb_cruise_descent(testwave)
+        self.assertEqual(len(camel), 2)
+        self.assertEqual(camel[0], slice(0, 126))
+        self.assertEqual(camel[1], slice(126, 188))
+
+    def test_climb_cruise_descent_repair_mask(self):
+        # If the Altitude STD mask isn't repaired, a spurious cycle is reported
+        # by cycle_finder which results in an infinite loop.
+        camel = find_climb_cruise_descent(
+            load_compressed(
+                os.path.join(test_data_path, 'climb_cruise_descent_alt_std.npz')
+            )
+        )
+        self.assertEqual(len(camel), 1)
