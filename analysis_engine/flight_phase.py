@@ -479,7 +479,7 @@ class ClimbCruiseDescent(FlightPhaseNode):
                 continue
 
             section_slices = find_climb_cruise_descent(alts)
-            shift_slices(section_slices, air.slice.start or 0)
+            section_slices = shift_slices(section_slices, air.slice.start or 0)
             self.create_sections(section_slices)
 
 

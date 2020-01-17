@@ -953,6 +953,16 @@ class TestClimbCruiseDescent(unittest.TestCase):
         camel.derive(Parameter('Altitude STD Smoothed', testwave), air)
         self.assertEqual(len(camel), 1)
 
+    def test_climb_cruise_descent_one_hump_with_airborne_delayed(self):
+        # This test will find out if we can separate the two humps on this camel
+        camel = ClimbCruiseDescent()
+        # Needs to get above 15000ft and below 10000ft to create this phase.
+        testwave = np.ma.cos(np.arange(0, 3.14 * 2, 0.1)) * -3000 + 12500
+        air = buildsection('Airborne', 5, 62)
+        camel.derive(Parameter('Altitude STD Smoothed', testwave), air)
+        self.assertEqual(len(camel), 1)
+        self.assertEqual(camel[0].slice, slice(5, 62, None))
+
     def test_climb_cruise_descent_two_humps(self):
         # This test will find out if we can separate the two humps on this camel
         camel = ClimbCruiseDescent()
