@@ -2246,7 +2246,6 @@ class TestAltitudeRadio(unittest.TestCase):
             )).astype(float)
         )
         fast = buildsection('Fast', 0, 200)
-        ccd = buildsections('Climb Cruise Descent', (30, 100), (110, 191))
         alt_rad.derive(
             Parameter('Altitude Radio (A)', np.ma.array(
                 data=[0.0]*40 + [28000.0]*40 + [50.0]*20 + [100.0]*20 + [25000.0]*40 + [0.0]*40,
@@ -2256,7 +2255,7 @@ class TestAltitudeRadio(unittest.TestCase):
                 data=[0.0]*20 + [28000.0]*20 + [50.0]*10 + [100.0]*10 + [25000.0]*20 + [0.0]*20,
                 mask=[0.0]*20 + [1.0]*20 + [0.0]*20 + [1.0]*20 + [0.0]*20),
             ),
-            None, None, None, None, None, None, alt_baro, None, fast, None, ccd,
+            None, None, None, None, None, None, alt_baro, None, fast, None,
         )
         self.assertListEqual(list(alt_rad.array[1:159]), [0.0]*158)
         self.assertTrue(all(alt_rad.array.mask[160:320]))
@@ -2274,11 +2273,10 @@ class TestAltitudeRadio(unittest.TestCase):
         alt_std = load(os.path.join(test_data_path, 'radio_737_test_alt_std.nod'))
         pitch = load(os.path.join(test_data_path, 'radio_737_test_pitch.nod'))
         fast = load(os.path.join(test_data_path, 'radio_737_test_fast.nod'))
-        ccd = load(os.path.join(test_data_path, 'radio_737_test_ccd.nod'))
         rad = AltitudeRadio()
         rad.derive(source_A, source_B, source_C, None, None, None, None, None,
                    alt_std, pitch,
-                   fast, family=A('Family', 'B737'), ccd=ccd)
+                   fast, family=A('Family', 'B737'))
 
         sects = np.ma.clump_unmasked(rad.array)
         self.assertEqual(len(sects), 2)

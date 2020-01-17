@@ -35,6 +35,7 @@ from flightdatautilities.numpy_utils import (
 from analysis_engine.settings import (
     ALTITUDE_RADIO_MAX_RANGE,
     BUMP_HALF_WIDTH,
+    HYSTERESIS_FPALT_CCD,
     ILS_CAPTURE,
     ILS_CAPTURE_ROC,
     ILS_ESTABLISHED_DURATION,
@@ -5454,8 +5455,9 @@ def align_altitudes(alt_rad, alt_std, good_slices, fast_slices, hz, ccd):
         split_fast_slices = []
         for fast_slice in fast_slices:
             temp = fast_slice
-            for section in ccd[:-1]:
-                next_split = slices_split([temp], section.slice.stop)
+            for slice_ in ccd[:-1]:
+                next_split = slices_split([temp], slice_.stop)
+                next_split = slices_remove_small_slices(next_split, time_limit=60, hz=hz)
                 if len(next_split) == 2:
                     split_fast_slices.append(next_split[0])
                     temp = next_split[1]
@@ -8823,3 +8825,51 @@ def max_maintained_value(array, seconds, frequency, _slice=slice(None)):
     if idx is not None:
         idx += _slice.start or 0
     return idx, value
+
+def find_climb_cruise_descent(alt_std):
+    '''
+    Find slices defining a climb-cruise-descent for the given pressure altitude array
+
+    :param alt_std: pressure altitude array
+    :type alt_std: np.ma.masked_array
+    :returns: List of slices defining each a climb-cruise-descent
+    :rtype: List of slices
+    '''
+    slices = list()
+
+    # We squash the altitude signal above 10,000ft so that changes of
+    # altitude to create a new flight phase have to be 10 times
+    # greater; 500ft changes below 10,000ft are significant, while
+    # above this 5,000ft is more meaningful.
+    alt_squash = np.ma.where(
+        alt_std > 10000, (alt_std - 10000) / 10.0 + 10000, alt_std)
+    pk_idxs, pk_vals = cycle_finder(alt_squash,
+                                    min_step=HYSTERESIS_FPALT_CCD)
+
+    if pk_vals is not None:
+        n = 0
+        n_vals = len(pk_vals)
+        while n < n_vals - 1:
+            pk_val = pk_vals[n]
+            pk_idx = pk_idxs[n]
+            next_pk_val = pk_vals[n + 1]
+            next_pk_idx = pk_idxs[n + 1]
+            if pk_val > next_pk_val:
+                # descending
+                slices.append(slice(None, next_pk_idx))
+                n += 1
+            else:
+                # ascending
+                # We are going upwards from n->n+1, does it go down
+                # again?
+                if n + 2 < n_vals:
+                    if pk_vals[n + 2] < next_pk_val:
+                        # Hurrah! make that phase
+                        slices.append(slice(pk_idx,
+                                                pk_idxs[n + 2]))
+                        n += 2
+                else:
+                    slices.append(slice(pk_idx, None))
+                    n += 1
+
+        return slices
