@@ -294,8 +294,9 @@ def dependencies3(di_graph, root, node_mgr, raise_cir_dep=False):
 
         if node_mgr.operational(node, operating_dependencies):
             # node will work at this level with the operating dependencies
-            active_nodes.add(node)
-            ordering.append(node)
+            if node not in active_nodes:
+                active_nodes.add(node)
+                ordering.append(node)
 
             if node not in node_mgr.hdf_keys:
                 tree_path.append(list(path))
