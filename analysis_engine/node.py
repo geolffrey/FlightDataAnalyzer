@@ -2533,7 +2533,7 @@ class NodeManager(object):
             # overridden without wrapping with @classmethod decorator
             if derived_node not in self.attributes:
                 attributes = []
-                argspec = inspect.getargspec(derived_node.can_operate)
+                argspec = inspect.getfullargspec(derived_node.can_operate)
                 if argspec.defaults:
                     for default in argspec.defaults:
                         if not isinstance(default, Attribute):
