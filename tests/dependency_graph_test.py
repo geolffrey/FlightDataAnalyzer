@@ -196,14 +196,14 @@ class TestDependencyGraph(unittest.TestCase):
         self.assertEqual(len(gr), 11)
         self.assertEqual(sorted(gr.neighbors('root')), sorted(['P8', 'P7']))
 
-    def test_graph_requesting_all_dependencies_links_root_to_end_leafs(self):
+    def test_graph_requesting_all_dependencies_links_root_to_all_requests(self):
         # build list of all nodes as required
         requested = self.lfl_params + list(self.derived_nodes.keys())
         mgr = NodeManager({'Start Datetime': datetime.now()}, 1, self.lfl_params, requested, [],
                           self.derived_nodes, {}, {})
         gr = graph_nodes(mgr)
-        # should only be linked to end leafs
-        self.assertEqual(sorted(gr.neighbors('root')), sorted(['P8', 'P7']))
+        # should be linked to all requested nodes
+        self.assertEqual(sorted(gr.neighbors('root')), sorted(requested))
 
     def test_graph_middle_level_depenency_builds_partial_tree(self):
         requested = ['P5']
@@ -350,7 +350,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         derived = get_derived_nodes([import_module('sample_derived_parameters')])
         mgr = NodeManager({'Start Datetime': datetime.now()}, 10, lfl_params, requested, [],
                           derived, {}, {})
-        self.assertRaises(nx.NetworkXError, dependency_order, mgr, draw=False)
+        self.assertRaises(ValueError, dependency_order, mgr, draw=False)
 
     def test_avoiding_possible_circular_dependency(self):
         # Possible circular dependency which can be avoided:
