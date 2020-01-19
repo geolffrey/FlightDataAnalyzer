@@ -7,7 +7,7 @@ import networkx as nx # pip install networkx or /opt/epd/bin/easy_install networ
 import copy
 
 from collections import deque, Counter
-from itertools import islice
+from itertools import islice, chain
 
 from analysis_engine.node import (
     ApproachNode,
@@ -363,9 +363,15 @@ def dependencies3(di_graph, root, node_mgr, raise_cir_dep=False):
 
     ordering = []
     path = deque()  # current branch path
-    active_nodes = set()  # operational nodes visited for fast lookup
+    active_nodes = set(              # operational nodes visited for fast lookup
+        chain.from_iterable((
+            node_mgr.aircraft_info,
+            node_mgr.achieved_flight_record,
+            node_mgr.segment_info
+        ))
+    )
     inop_nodes = set()  # non operational nodes due to insatisfied dependencies
-    tree_path = []  # For viewing the tree in which nodes are add to path
+    tree_path = []  # For viewing the tree in which nodes are added to path
     cycles = set()  # set of cycles already seen
     traverse_tree(root)  # start recursion
     # log any circular dependencies caught
