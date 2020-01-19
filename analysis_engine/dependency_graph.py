@@ -303,6 +303,13 @@ def dependencies3(di_graph, root, node_mgr, raise_cir_dep=False):
             return True  # layer below works
         else:
             tree_path.append(list(path) + ['NOT OPERATIONAL',])
+            if node not in node_mgr.derived_nodes:
+                inop_nodes.add(node)
+            else:
+                # check if node can be derived with remaining potential dependencies
+                remainings = set(ordered_successors) - inop_nodes
+                if not node_mgr.operational(node, remainings):
+                    inop_nodes.add(node)
             return False
 
     ordering = []
@@ -318,6 +325,7 @@ def dependencies3(di_graph, root, node_mgr, raise_cir_dep=False):
     tree_path = []  # For viewing the tree in which nodes are added to path
     cycles = set()  # set of cycles already seen
     traverse_tree(root)  # start recursion
+    logger.debug(f"Inop nodes: {inop_nodes}")
     # log any circular dependencies caught
     if log_stuff and circular_log:
         logger.debug('Circular dependency avoided %s times.', sum(circular_log.values()))
