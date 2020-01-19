@@ -475,14 +475,16 @@ def graph_nodes(node_mgr):
     gr_all.add_node('root', color='#ffffff')
     root_edges = []
     for node_req in node_mgr.requested:
-        if any_predecessors_in_requested(node_req, node_mgr.requested, gr_all):
-            # no need to link root to this requested node as one of it's
-            # predecessors will have the link therefore the tree will be
-            # built inclusive of this node.
-            continue
-        else:
-            # This node is required to build the tree
-            root_edges.append(('root', node_req))
+        #if any_predecessors_in_requested(node_req, node_mgr.requested, gr_all):
+            ## no need to link root to this requested node as one of it's
+            ## predecessors will have the link therefore the tree will be
+            ## built inclusive of this node.
+            #continue
+        #else:
+            ## This node is required to build the tree
+            #root_edges.append(('root', node_req))
+
+        root_edges.append(('root', node_req))
 
         # Add all required nodes to the root. We cannot count on the fact that a
         # predecessor links to this node, as at that stage other dependencies might
