@@ -456,17 +456,17 @@ class TestNodeManager(unittest.TestCase):
                          ['HDF Duration'] +
                          list('abclmnopxyz'))
 
-    @mock.patch('analysis_engine.node.inspect.getargspec')
-    def test_operational_with_attribute(self, getargspec):
-        getargspec.return_value = ArgSpec(
+    @mock.patch('analysis_engine.node.inspect.getfullargspec')
+    def test_operational_with_attribute(self, getfullargspec):
+        getfullargspec.return_value = ArgSpec(
             args=['cls', 'available', 'x'], varargs=None, keywords=None,
             defaults=(Attribute('o', None),))
         self.assertTrue(self.mgr.operational('y', ['o']))
         self.mock_node.can_operate.assert_called_with(['o'], Attribute('o', 2))
 
-    @mock.patch('analysis_engine.node.inspect.getargspec')
-    def test_operational_with_wrong_attribute_type(self, getargspec):
-        getargspec.return_value = ArgSpec(
+    @mock.patch('analysis_engine.node.inspect.getfullargspec')
+    def test_operational_with_wrong_attribute_type(self, getfullargspec):
+        getfullargspec.return_value = ArgSpec(
             args=['cls', 'available', 'x'], varargs=None, keywords=None,
             defaults=(DerivedParameterNode('o'),))
         self.assertRaises(TypeError, self.mgr.operational, 'y', Attribute('o', 2))
