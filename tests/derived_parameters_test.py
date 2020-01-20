@@ -6790,6 +6790,18 @@ class TestTAT(unittest.TestCase):
         expected = np.ma.array([13.6575, 1.1232])
         assert_array_almost_equal(tat.array, expected)
 
+    def test_tat_has_precedence(self):
+        t1 = P('TAT (1)', array=[1,3,5], frequency=0.5)
+        t2 = P('TAT (2)', array=[2,4,6], frequency=0.5)
+        sat = P('SAT', array=np.ma.ones(6) * (-30.0))
+        mach = P('Mach', array=np.ma.ones(6) * (0.8))
+        tat = TAT()
+        tat.get_derived((t1, t2, sat, mach))
+        expected = np.ma.arange(1, 7) + 0.5
+        # This test correctly ignores the 6th overrun sample which is masked.
+        assert_array_almost_equal(tat.array, expected)
+        self.assertEqual(tat.frequency, 0.5 * 2)
+
 
 class TestTailwind(unittest.TestCase):
     @unittest.skip('Test Not Implemented')
