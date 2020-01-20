@@ -6929,7 +6929,11 @@ class TAT(DerivedParameterNode):
                source_2=P('TAT (2)'),
                sat=P('SAT'), mach=P('Mach')):
 
-        if sat:
+        if source_1 or source_2:
+            # Alternate samples (1)&(2) are blended.
+            self.array, self.frequency, self.offset = \
+                blend_two_parameters(source_1, source_2)
+        else:
             # We compute the total air temperature, assuming a perfect sensor.
             # Where Mach is masked we use SAT directly
             if sat.hz > mach.hz:
@@ -6944,11 +6948,6 @@ class TAT(DerivedParameterNode):
             self.array = np.ma.where(
                 np.ma.getmaskarray(mach.array), sat.array, machsat2tat(mach.array, sat.array,
                                                                        recovery_factor=1.0))
-
-        else:
-            # Alternate samples (1)&(2) are blended.
-            self.array, self.frequency, self.offset = \
-                blend_two_parameters(source_1, source_2)
 
 
 class WindAcrossLandingRunway(DerivedParameterNode):
