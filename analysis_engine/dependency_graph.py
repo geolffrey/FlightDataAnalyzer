@@ -233,7 +233,7 @@ def dependencies3(di_graph, root, node_mgr, raise_cir_dep=False):
 
         # order the successors based on the order in the derive method; this allows the
         # class to define the best path through the dependency tree.
-        ordered_successors = [
+        ordered_successors = all_successors = [
             name
             for (name, d) in sorted(
                 di_graph[node].items(), key=lambda a: (a[1].get("order", False), a[0])
@@ -307,7 +307,7 @@ def dependencies3(di_graph, root, node_mgr, raise_cir_dep=False):
                 inop_nodes.add(node)
             else:
                 # check if node can be derived with remaining potential dependencies
-                remainings = set(ordered_successors) - inop_nodes
+                remainings = set(all_successors) - inop_nodes
                 if not node_mgr.operational(node, remainings):
                     inop_nodes.add(node)
             return False
