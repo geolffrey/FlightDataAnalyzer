@@ -4817,7 +4817,6 @@ class PitchDifference5SecMax(SensorDifference5SecMaxMixin, KeyPointValueNode):
     units = ut.DEGREE
 
     def derive(self,
-               pitch=P('Pitch'),
                pitch_1=P('Pitch (1)'),
                pitch_2=P('Pitch (2)'),
                pitch_3=P('Pitch (3)'),
@@ -4828,7 +4827,7 @@ class PitchDifference5SecMax(SensorDifference5SecMaxMixin, KeyPointValueNode):
                pitch_8=P('Pitch (8)'),
                airs=S('Airborne'),):
         self.derive_sensors_diff(
-            [pitch, pitch_1, pitch_2, pitch_3, pitch_4,
+            [pitch_1, pitch_2, pitch_3, pitch_4,
              pitch_5, pitch_6, pitch_7, pitch_8],
             airs
         )
@@ -4843,7 +4842,6 @@ class RollDifference5SecMax(SensorDifference5SecMaxMixin, KeyPointValueNode):
     units = ut.DEGREE
 
     def derive(self,
-               roll=P('Roll'),
                roll_1=P('Roll (1)'),
                roll_2=P('Roll (2)'),
                roll_3=P('Roll (3)'),
@@ -4855,7 +4853,7 @@ class RollDifference5SecMax(SensorDifference5SecMaxMixin, KeyPointValueNode):
                roll_9=P('Roll (9)'),
                airs=S('Airborne'),):
         self.derive_sensors_diff(
-            [roll, roll_1, roll_2, roll_3, roll_4,
+            [roll_1, roll_2, roll_3, roll_4,
              roll_5, roll_6, roll_7, roll_8, roll_9],
             airs
         )
