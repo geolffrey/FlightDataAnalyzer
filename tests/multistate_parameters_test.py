@@ -4257,6 +4257,27 @@ class TestGearUpInTransit(unittest.TestCase):
         np.testing.assert_array_equal(node.array, self.expected_short.array)
         self.assertEqual(node.values_mapping, self.values_mapping)
 
+
+    @patch('analysis_engine.multistate_parameters.at')
+    def test_derive__gear_up_gear_in_transit_low_sample_rate(self, at):
+        at.get_gear_transition_times.return_value = (15, 15)
+        # Gear Up changed to Up - following Gear In Transit
+        gear_up = M('Gear Up', array=np.ma.array([0]*25 + [1]*20 + [0]*15),
+                    values_mapping={0: 'Down', 1: 'Up'},
+                    frequency=0.25)
+        in_trans = M('Gear In Transition', array=np.ma.array([0]*5 + [1]*3 + [0]*7 + [1]*10 + [0]*20 + [1]*10 + [0]*5),
+                     values_mapping={0: '-', 1: 'In Transit'},
+                     frequency=0.25)
+        node = self.node_class()
+        airborne = buildsection('Airborne', 17, 239)
+        node.get_derived((None, gear_up, None, in_trans, None, None, airborne, self.model, self.series, self.family))
+
+        expected_short = M('Gear Up In Transit',
+                           array=np.ma.array([0]*5 + [1]*3 + [0]*7 + [1]*10 + [0]*35),
+                           values_mapping=self.values_mapping)
+        np.testing.assert_array_equal(node.array, expected_short.array)
+        self.assertEqual(node.values_mapping, self.values_mapping)
+
     @patch('analysis_engine.multistate_parameters.at')
     def test_derive__gear_position(self, at):
         at.get_gear_transition_times.return_value = (15, 15)
@@ -4488,6 +4509,26 @@ class TestGearDownInTransit(unittest.TestCase):
         node.derive(gear_down, None, None, in_trans, None, None, self.airborne, self.model, self.series, self.family)
 
         np.testing.assert_array_equal(node.array, self.expected_short.array)
+        self.assertEqual(node.values_mapping, self.values_mapping)
+
+    @patch('analysis_engine.multistate_parameters.at')
+    def test_derive__gear_down_gear_in_transit_low_sample_rate(self, at):
+        at.get_gear_transition_times.return_value = (15, 15)
+        # Gear Down changed to Up + following Gear In Transit
+        gear_down = M('Gear Down', array=np.ma.array([1]*5 + [0]*50 + [1]*5),
+                      values_mapping={0: 'Up', 1: 'Down'},
+                      frequency=0.25)
+        in_trans = M('Gear In Transition', array=np.ma.array([0]*5 + [1]*10 + [0]*20 + [1]*3 + [0]*7 + [1]*10 + [0]*5),
+                     values_mapping={0: '-', 1: 'In Transit'},
+                     frequency=0.25)
+        airborne=buildsection('Airborne', 17, 230)  # Frequency 1 Hz
+        node = self.node_class()
+        node.get_derived((gear_down, None, None, in_trans, None, None, airborne, self.model, self.series, self.family))
+
+        expected_short = M('Gear Down In Transit',
+                           array=np.ma.array([0]*35 + [1]*3 + [0]*7 + [1]*10 + [0]*5),
+                           values_mapping=self.values_mapping)
+        np.testing.assert_array_equal(node.array, expected_short.array)
         self.assertEqual(node.values_mapping, self.values_mapping)
 
     @patch('analysis_engine.multistate_parameters.at')

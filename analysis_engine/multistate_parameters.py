@@ -1653,6 +1653,9 @@ class GearDownInTransit(MultistateDerivedParameterNode):
                airborne=S('Airborne'),
                model=A('Model'), series=A('Series'), family=A('Family')):
 
+        # Extend Airborne slices to make sure we don't miss Gear Down at liftoff for
+        # low Gear sample rate parameters
+        airborne = slices_extend(airborne.get_slices(), 1)
         gear_sels = gear_ups = gear_downs = runs = []
         self.array = np_ma_zeros_like(first_valid_parameter(gear_down, gear_up, gear_down_sel, gear_position).array, dtype=int)
 
@@ -1753,7 +1756,7 @@ class GearDownInTransit(MultistateDerivedParameterNode):
                     gear_downs = find_edges_on_state_change(
                         'Down',
                         nearest_neighbour_mask_repair(gear_up.array),
-                        phase=slices_extend(airborne.get_slices(), 1))  # Extend Airborne slices by 1 sample for low freq Gear Down
+                        phase=airborne)
                     gear_moving_downs = [
                         slice(
                             max(gear_down_edge - duration, 0),
