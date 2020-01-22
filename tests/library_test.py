@@ -2836,6 +2836,12 @@ class TestFindEdgesOnStateChange(unittest.TestCase):
                     'Down', gear_down, change='entering', phase=[slice(0, touchdown.index)], min_samples=1)
         self.assertEqual(gear_down_indexes, [3.5, 6.5, 11.5, 19.5, 25.5])
 
+    def test_slices_with_offset(self):
+        multi = self.Switch(array=np.ma.array([0,0,1,1,0,0,1,1,0,0]))
+        slices_ = [slice(2.9, 8.9)]
+        edges = find_edges_on_state_change('on', multi.array, phase=slices_)
+        expected = [5.5]
+        self.assertEqual(edges, expected)
 
 class TestFindTocTod(unittest.TestCase):
     def test_find_tod_with_smoothed_data(self):
