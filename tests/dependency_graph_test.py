@@ -313,6 +313,60 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         self.assertFalse('Floating' in order)
         self.assertFalse('root' in order) #don't include the root!
 
+    def test_dependency_one_path_circular(self):
+        '''Test that if one Node can be created using its 2 dependencies, but one of
+        them is optional and creates a circular dependency.
+
+          ,-> P1 ~~~~~~~~~> P2 ~~~~~~~~> P3--、
+         |      `---> Raw1   `---> Raw2      |
+         |                                   |
+          `----------------------------------’
+
+        P1 requires Raw1 but tries also P2. P2 requires Raw 2 but also tries P3.
+        P3 requires P1. This makes a circular dependency. But we don't want to give up
+        here as we could still make P1 from Raw1 only, avoiding the circular path.
+        '''
+        class MockParamOneRequiredOneOptionalP1(DerivedParameterNode):
+            @classmethod
+            def can_operate(self, avail):
+                return 'Raw1' in avail
+
+            def derive(self, P2=P('P2'), raw=P('Raw1')):
+                pass
+
+        class MockParamOneRequiredOneOptionalP2(DerivedParameterNode):
+            @classmethod
+            def can_operate(self, avail):
+                return 'Raw2' in avail
+
+            def derive(self, P3=P('P3'), raw=P('Raw2')):
+                pass
+
+        class MockParamOneRequiredP3(DerivedParameterNode):
+            @classmethod
+            def can_operate(self, avail):
+                return 'P1' in avail
+
+            def derive(self, P1=P('P1')):
+                pass
+
+        derived_nodes = {
+            'P0' : MockParam(dependencies=['P1']),
+            'P1' : MockParamOneRequiredOneOptionalP1,
+            'P2' : MockParamOneRequiredOneOptionalP2,
+            'P3' : MockParamOneRequiredP3,
+        }
+        requested = ['P0']
+        lfl_params = ['Raw1', 'Raw2']
+
+        segment_info = {'Start Datetime': datetime.now(), 'Segment Type': 'START_AND_STOP'}
+        mgr = NodeManager(segment_info, 10, lfl_params,
+                          requested, [], derived_nodes, {}, {})
+        gr = graph_nodes(mgr)
+        gr_all, gr_st, order = process_order(gr, mgr)
+        self.assertEqual(len(gr_st), 7)
+        self.assertListEqual(order, ['Raw1', 'P1', 'P3', 'Raw2', 'P2'])
+
     def test_sample_parameter_module(self):
         """Tests many options:
         can_operate on SmoothedTrack works with
