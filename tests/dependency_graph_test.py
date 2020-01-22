@@ -365,7 +365,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         gr = graph_nodes(mgr)
         gr_all, gr_st, order = process_order(gr, mgr)
         self.assertEqual(len(gr_st), 7)
-        self.assertListEqual(order, ['Raw1', 'P1', 'P3', 'Raw2', 'P2'])
+        self.assertListEqual(order, ['Raw1', 'P1', 'P3', 'Raw2', 'P2', 'P0'])
 
     def test_sample_parameter_module(self):
         """Tests many options:
