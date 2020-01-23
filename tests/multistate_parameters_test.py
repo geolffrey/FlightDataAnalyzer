@@ -4114,10 +4114,26 @@ class TestGearUpInTransit(unittest.TestCase):
         # Gear Up Selected Up + Gear In Transit
         up_sel = M('Gear Up Selected', array=np.ma.array([0]*5 + [1]*3 + [0]*7 + [1]*30 + [0]*15),
                    values_mapping={0: 'Down', 1: 'Up'})
-        in_trans = M('Gear In Transition', array=np.ma.array([0]*5 + [1]*3 + [0]*7 + [1]*10 + [0]*20 + [1]*10 + [0]*5),
+        in_trans = M('Gear In Transit', array=np.ma.array([0]*5 + [1]*3 + [0]*7 + [1]*10 + [0]*20 + [1]*10 + [0]*5),
                       values_mapping={0: '-', 1: 'In Transit'})
         node = self.node_class()
         node.derive(None, None, up_sel, in_trans, None, None, self.airborne, self.model, self.series, self.family)
+
+        np.testing.assert_array_equal(node.array, self.expected_short.array)
+        self.assertEqual(node.values_mapping, self.values_mapping)
+
+    @patch('analysis_engine.multistate_parameters.at')
+    def test_derive__up_sel_gear_in_transit_prior_airborne(self, at):
+        at.get_gear_transition_times.return_value = (15, 15)
+        # Gear Up Selected Up + Gear In Transit
+        up_sel = M('Gear Up Selected', array=np.ma.array([0]*5 + [1]*3 + [0]*7 + [1]*30 + [0]*15),
+                   values_mapping={0: 'Down', 1: 'Up'})
+        in_trans = M('Gear In Transit', array=np.ma.array([0]*5 + [1]*3 + [0]*7 + [1]*10 + [0]*20 + [1]*10 + [0]*5),
+                      values_mapping={0: '-', 1: 'In Transit'})
+        airborne = buildsection('Airborne', 5, 59)
+        node = self.node_class()
+
+        node.derive(None, None, up_sel, in_trans, None, None, airborne, self.model, self.series, self.family)
 
         np.testing.assert_array_equal(node.array, self.expected_short.array)
         self.assertEqual(node.values_mapping, self.values_mapping)
