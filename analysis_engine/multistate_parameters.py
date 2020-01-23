@@ -551,7 +551,7 @@ class Configuration(MultistateDerivedParameterNode):
             available,
         ):
             return False
-        
+
         if manufacturer and manufacturer.value == 'Embraer' and not all_of(('Approach And Landing', 'Taxi In'), available):
             return False
 
@@ -1653,8 +1653,7 @@ class GearDownInTransit(MultistateDerivedParameterNode):
                airborne=S('Airborne'),
                model=A('Model'), series=A('Series'), family=A('Family')):
 
-        # Extend Airborne slices to make sure we don't miss Gear Down at liftoff for
-        # low Gear sample rate parameters
+        # Extend Airborne slices to make sure we don't miss any Gear parameters at liftoff
         airborne = slices_extend(airborne.get_slices(), 1)
         gear_sels = gear_ups = gear_downs = runs = []
         self.array = np_ma_zeros_like(first_valid_parameter(gear_down, gear_up, gear_down_sel, gear_position).array, dtype=int)
@@ -1852,6 +1851,8 @@ class GearUpInTransit(MultistateDerivedParameterNode):
                airborne=S('Airborne'),
                model=A('Model'), series=A('Series'), family=A('Family')):
 
+        # Extend Airborne slices to make sure we don't miss any Gear parameters at liftoff
+        airborne = slices_extend(airborne.get_slices(), 1)
         gear_sels = gear_ups = gear_downs = runs = []
         self.array = np_ma_zeros_like(first_valid_parameter(gear_down, gear_up, gear_up_sel, gear_position).array, dtype=int)
 
@@ -1955,7 +1956,7 @@ class GearUpInTransit(MultistateDerivedParameterNode):
                 gear_ups = find_edges_on_state_change(
                     'Up',
                     nearest_neighbour_mask_repair(gear_down.array),
-                    phase=slices_extend(airborne.get_slices(), 1)  # Extend Airborne slices by 1 sample for low freq Gear Down
+                    phase=airborne
                 )
                 gear_moving_ups = [
                     slice(
