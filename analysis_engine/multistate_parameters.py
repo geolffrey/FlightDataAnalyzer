@@ -2140,18 +2140,22 @@ class GearUpSelected(MultistateDerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
         return all_of(('Gear Up', 'Gear Up In Transit'), available) or \
-               all_of(('Gear Down', 'Gear Down In Transit'), available)
+               all_of(('Gear Down', 'Gear Down In Transit'), available) or \
+               'Gear Down Selected' in available
 
     def derive(self,
                gear_up=M('Gear Up'),
                gear_up_transit=M('Gear Up In Transit'),
                gear_down=M('Gear Down'),
-               gear_down_transit=M('Gear Down In Transit')):
+               gear_down_transit=M('Gear Down In Transit'),
+               gear_down_sel=M('Gear Down Selected')):
 
-        if gear_up and gear_up_transit:
+        if gear_down_sel:
+            self.array = 1 - (gear_down_sel.array == 'Down')
+        elif gear_up and gear_up_transit:
             self.array = (gear_up.array == 'Up') | \
                 (gear_up_transit.array == 'Retracting')
-        if gear_down and gear_down_transit:
+        else:  # gear_down and gear_down_transit
             self.array = 1 - ((gear_down.array == 'Down') | \
                               (gear_down_transit.array == 'Extending'))
 
