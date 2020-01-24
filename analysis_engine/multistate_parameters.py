@@ -1925,7 +1925,7 @@ class GearUpInTransit(MultistateDerivedParameterNode):
             param, state = (gear_in_transit, 'In Transit') if gear_in_transit else (gear_red, 'Warning')
             transits = find_edges_on_state_change(state, nearest_neighbour_mask_repair(param.array), change='leaving', phase=airborne)
             for start in gear_sels:
-                stop = min([x for x in transits if x > start] or (None,))
+                stop = min([x for x in transits if x >= start] or (None,))
                 if stop is not None:
                     _slice = slice(int(math.ceil(start)), stop+1)
                     if family and family.value == 'B737 Classic' and retract_duration and slice_duration(_slice, self.frequency) > retract_duration:

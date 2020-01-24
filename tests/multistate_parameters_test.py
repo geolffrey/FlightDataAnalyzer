@@ -4123,6 +4123,35 @@ class TestGearUpInTransit(unittest.TestCase):
         self.assertEqual(node.values_mapping, self.values_mapping)
 
     @patch('analysis_engine.multistate_parameters.at')
+    def test_derive__up_sel_spurious_gear_in_transit(self, at):
+        '''
+        Edge case: spurious Gear In Transit producing a short Gear Up Selected
+        End of Gear In Transit coincides with Gear Up Selected going Up again
+        '''
+        at.get_gear_transition_times.return_value = (15, 15)
+        # Gear Up Selected Up + Gear In Transit
+        up_sel = M(
+            'Gear Up Selected',
+            array=np.ma.array([0]*5 + [1]*10 + [0]*2 + [1]*13 + [0]*15),
+            values_mapping={0: 'Down', 1: 'Up'}
+        )
+        in_trans = M(
+            'Gear In Transit',
+            array=np.ma.array([0]*5 + [1]*3 + [0]*7 + [1]*2 + [0]*13 + [1]*10 + [0]*5),
+            values_mapping={0: '-', 1: 'In Transit'}
+        )
+        node = self.node_class()
+        node.derive(None, None, up_sel, in_trans, None, None, self.airborne, self.model, self.series, self.family)
+
+        expected = M(
+            'Gear Up In Transit',
+            array=np.ma.array([0]*5 + [1]*3 + [0]*22 + [0]*15),
+            values_mapping=self.values_mapping
+        )
+        np.testing.assert_array_equal(node.array, expected.array)
+        self.assertEqual(node.values_mapping, self.values_mapping)
+
+    @patch('analysis_engine.multistate_parameters.at')
     def test_derive__up_sel_gear_in_transit_prior_airborne(self, at):
         at.get_gear_transition_times.return_value = (15, 15)
         # Gear Up Selected Up + Gear In Transit
