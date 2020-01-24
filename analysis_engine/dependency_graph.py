@@ -8,7 +8,7 @@ import six
 import copy
 
 from collections import deque, Counter
-from itertools import islice, chain
+from itertools import chain
 
 from analysis_engine.node import (
     ApproachNode,
@@ -240,7 +240,7 @@ def dependencies3(di_graph, root, node_mgr, raise_cir_dep=False):
             )
         ]
 
-        if node in islice(path, 0, len(path) - 1):
+        if node in path[:-1]:
             # Start of circular dependency. Figure out if current node could be
             # derived from other dependencies than the ones already tried in the path.
             successors = set(ordered_successors)
@@ -313,7 +313,7 @@ def dependencies3(di_graph, root, node_mgr, raise_cir_dep=False):
             return False
 
     ordering = []
-    path = deque()  # current branch path
+    path = []  # current branch path
     active_nodes = set(              # operational nodes visited for fast lookup
         chain.from_iterable((
             node_mgr.aircraft_info,
