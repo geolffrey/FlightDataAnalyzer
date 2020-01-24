@@ -4720,10 +4720,6 @@ class TestGearUpSelected(unittest.TestCase):
 
     def setUp(self):
         self.node_class = GearUpSelected
-        (
-            ('Gear (L) Up', 'Gear (N) Up', 'Gear (R) Up'), # any one will do
-            ('Gear Up Selected', 'Gear Up In Transit'),
-        )
         self.values_mapping = {
             0: 'Down',
             1: 'Up',
@@ -4737,6 +4733,7 @@ class TestGearUpSelected(unittest.TestCase):
         possible_combinations = (
             ('Gear Up', 'Gear Up In Transit'),
             ('Gear Down', 'Gear Down In Transit'),
+            ('Gear Down Selected', ),
         )
 
         for params in possible_combinations:
@@ -4748,7 +4745,7 @@ class TestGearUpSelected(unittest.TestCase):
         up_trans = M('Gear Up In Transit', array=np.ma.array([0]*5 + [1]*10 + [0]*45),
                       values_mapping={0: '-', 1: 'Retracting'})
         node = self.node_class()
-        node.derive(gear_up, up_trans, None, None)
+        node.derive(gear_up, up_trans, None, None, None)
 
         np.testing.assert_array_equal(node.array, self.expected.array)
         self.assertEqual(node.values_mapping, self.values_mapping)
@@ -4759,7 +4756,19 @@ class TestGearUpSelected(unittest.TestCase):
         down_transit = M('Gear Down In Transit', array=np.ma.array([0]*45 + [1]*10 + [0]*5),
                       values_mapping={0: '-', 1: 'Extending'})
         node = self.node_class()
-        node.derive(None, None, down, down_transit)
+        node.derive(None, None, down, down_transit, None)
+
+        np.testing.assert_array_equal(node.array, self.expected.array)
+        self.assertEqual(node.values_mapping, self.values_mapping)
+
+    def test_derive__down_selected(self):
+        gear_down_sel = M(
+            'Gear Down Selected',
+            array=np.ma.array([1]*5 + [0]*40 + [1]*15),
+            values_mapping={0: 'Up', 1: 'Down'}
+        )
+        node = self.node_class()
+        node.derive(None, None, None, None, gear_down_sel)
 
         np.testing.assert_array_equal(node.array, self.expected.array)
         self.assertEqual(node.values_mapping, self.values_mapping)
