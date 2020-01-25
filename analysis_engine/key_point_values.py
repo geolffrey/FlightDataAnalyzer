@@ -10595,9 +10595,14 @@ class APUFireWarningDuration(KeyPointValueNode):
 
     @classmethod
     def can_operate(cls, available):
-        return ('APU Fire',) in [available] or \
-               ('Fire APU Single Bottle System',
-                'Fire APU Dual Bottle System') in [available]
+        return any_of(
+            (
+                "APU Fire",
+                "Fire APU Single Bottle System",
+                "Fire APU Dual Bottle System",
+            ),
+            available,
+        )
 
     def derive(self, fire=M('APU Fire'),
                single_bottle=M('Fire APU Single Bottle System'),
