@@ -286,40 +286,43 @@ def dependencies3(di_graph, root, node_mgr, raise_cir_dep=False):
             # node already discovered operational
             return True
 
-
-        # order the successors based on the order in the derive method; this allows the
-        # class to define the best path through the dependency tree.
-        ordered_successors = all_successors = [
+        # order the successors based on the order in the derive method.
+        ordered_successors = [
             name
             for (name, d) in sorted(
                 di_graph[node].items(), key=lambda a: (a[1].get("order", False), a[0])
             )
         ]
 
-        if node in path[:-1]:
-            # Start of circular dependency. Figure out if current node could be
-            # derived from other dependencies than the ones already tried in the path.
-            successors = set(ordered_successors)
-            successors_not_in_path = successors - set(path)
+        # Optimization: check if node can be derived with potential dependencies.
+        # Because of this, we must have all required nodes connected to the root,
+        # as we might not visit all dependencies.
+        remainings = set(ordered_successors) - inop_nodes
+        if not node_mgr.operational(node, remainings):
+            inop_nodes.add(node)
+            return False
 
-            if node_mgr.operational(node, successors_not_in_path):
-                # There is still a chance to derive this node based on its other successors
-                # Try again with subset of successors (ignore those in path)
-                ordered_successors = [
-                    name for name in ordered_successors
-                    if name in successors_not_in_path
-                ]
-            else:
-                # we've met this node before and there are no other ways to derive it
-                # Back track.
+        if node in path[:-1]:
+            # Start of circular dependency.
+            # There might still be a chance to derive this node based on its remaining
+            # successors. Try again with subset of successors (ignore those in path)
+            ordered_successors = [
+                name for name in ordered_successors
+                if name not in path
+            ]
+
+            if not node_mgr.operational(node, ordered_successors):
+                # Unfortunately the remaining successors do not allow this node to
+                # be derived. Back track.
                 tree_path.append(list(path) + ['CIRCULAR',])
+                # Optimization
                 # Find the cycle within the current path
-                last_path = tree_path[-1]
+                last_path = list(path)
                 start = last_path.index(node)
-                stop = len(last_path) - 2  # Because we have 'CIRCULAR' at the end
+                stop = len(last_path) - 1  # Because we appear also at the end
                 cycle = tuple(last_path[start:stop])
                 if cycle in cycles:
-                    # If we've seen this cycle before, its parameters won't ever work
+                    # If we've seen this cycle before, its parameters will never work
                     inop_nodes.update(cycle)
                 else:
                     cycles.add(cycle)
@@ -342,7 +345,7 @@ def dependencies3(di_graph, root, node_mgr, raise_cir_dep=False):
         for dependency in ordered_successors:
             if dependency in inop_nodes:
                 continue
-            # traverse again, 'like we did last summer'
+            # recurse to find out if the dependency is available
             if traverse_tree(dependency):
                 operating_dependencies.add(dependency)
             # each time traverse_tree returns, remove node from visited path
@@ -359,14 +362,9 @@ def dependencies3(di_graph, root, node_mgr, raise_cir_dep=False):
 
             return True  # layer below works
         else:
-            tree_path.append(list(path) + ['NOT OPERATIONAL',])
             if node not in node_mgr.derived_nodes:
                 inop_nodes.add(node)
-            else:
-                # check if node can be derived with remaining potential dependencies
-                remainings = set(all_successors) - inop_nodes
-                if not node_mgr.operational(node, remainings):
-                    inop_nodes.add(node)
+            tree_path.append(list(path) + ['NOT OPERATIONAL',])
             return False
 
     ordering = []
@@ -593,7 +591,6 @@ def process_order(gr_all, node_mgr, raise_inoperable_requested=False,
     :returns:
     :rtype:
     """
-
     process_order, tree_path = dependencies3(gr_all, 'root', node_mgr, raise_cir_dep=raise_cir_dep)
     logger.debug("Processing order of %d nodes is: %s", len(process_order), process_order)
     if dependency_tree_log:
