@@ -476,11 +476,6 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         return order, gr_st
 
     def test_avoiding_circular_dependency_gear_up_selected(self):
-        '''
-        <<< Gear Up Selected CIRCULAR >>> (218)
-        root>Gear Up Selection>Gear Up Selected>Gear Up>Gear Up In Transit>
-        Gear Up Selected>Gear Down In Transit>Gear Down Selected>Gear Up Selected
-        '''
         lfl_params = [
             "Gear (L) Down",
             "Gear (L) On Ground",
@@ -505,99 +500,124 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
 
         self.assert_order_maintained(order, expected_order)
 
-    def test_avoiding_circular_dependency_track_true(self):
-        '''
-        <<< Track True Continuous CIRCULAR >>> (197)
-        root>Approach Range>Groundspeed>Latitude Prepared>Heading True>Magnetic Variation From Runway>
-        Heading During Takeoff>Takeoff Roll Or Rejected Takeoff>Takeoff Roll>
-        Takeoff Acceleration Start>Acceleration Longitudinal Offset Removed>
-        Acceleration Longitudinal Offset>Mobile>Groundspeed>Longitude Prepared>Heading True
-        '''
-        lfl_params = ['Altitude STD', 'Airspeed','Heading']
+    def test_avoiding_circular_dependency_approach_range(self):
+        lfl_params = ['Altitude STD', 'Airspeed', 'Heading']
         requested = ['Approach Range',]
-        aircraft_info = {'Aircraft Type': 'aeroplane',}
+        aircraft_info = {
+            'Aircraft Type': 'aeroplane',
+            'Precise Positioning': False,
+            'Frame': 'dummy_LFL'  # Needed for Altitude STD Smoothed, although not needed in derive method!
+        }
         order, graph = self._get_dependency_order(requested, aircraft_info, lfl_params)
         expected_order = [
             'Heading', 'Heading Continuous', 'Altitude STD', 'Airspeed', 'Fast',
-            'Heading Rate', 'Mobile', 'HDF Duration', 'Grounded', 'Off Blocks',
-            'ILS Localizer'
+            'Altitude STD Smoothed', 'Altitude AAL', 'Altitude AAL For Flight Phases',
+            'Airborne', 'Climb Cruise Descent', 'Takeoff', 'Heading Rate', 'Mach',
+            'Mobile', 'Landing', 'HDF Duration', 'Grounded', 'Taxiing', 'Airspeed True',
+            'Turning On Ground', 'Roll', 'Vertical Speed', 'Liftoff', 'Touchdown',
+            'Takeoff Acceleration Start', 'Takeoff Roll', 'Takeoff Roll Or Rejected Takeoff',
+            'Heading During Takeoff', 'Landing Roll', 'Heading During Landing', 'Off Blocks',
+            'Vertical Speed For Flight Phases', 'Level Flight', 'Approach',
+            'Approach And Landing', 'ILS Localizer', 'Approach Information',
+            'FDR Landing Runway', 'Approach Range'
         ]
         self.assert_order_maintained(order, expected_order)
 
-    def test_avoiding_circular_dependency_approach_range(self):
-        '''
-        <<< Approach Range CIRCULAR >>> (200)
-        root>Latitude Smoothed>Longitude Prepared>Heading True>Magnetic Variation From Runway>
-        Heading During Takeoff>Takeoff Roll Or Rejected Takeoff>Takeoff Roll>
-        Takeoff Acceleration Start>Acceleration Longitudinal Offset Removed>
-        Acceleration Longitudinal Offset>Mobile>Groundspeed>Latitude Prepared>Heading True
-        '''
-        lfl_params = ['Altitude STD', 'Airspeed','Heading']
+    def test_avoiding_circular_dependency_latitude_smoothed(self):
+        lfl_params = ['Altitude STD', 'Airspeed', 'Heading', 'Latitude', 'Longitude']
         requested = ['Latitude Smoothed',]
-        aircraft_info = {'Aircraft Type': 'aeroplane',}
+        aircraft_info = {
+            'Aircraft Type': 'aeroplane',
+            'Precise Positioning': False,
+            'Frame': 'dummy_LFL'  # Needed for Altitude STD Smoothed, although not needed in derive method!
+        }
         order, _ = self._get_dependency_order(requested, aircraft_info, lfl_params)
         expected_order = [
-            'Heading', 'Heading Continuous', 'Altitude STD', 'Airspeed', 'Fast',
-            'Heading Rate', 'Mobile', 'HDF Duration', 'Grounded', 'Off Blocks', 'ILS Localizer'
+            'Longitude Prepared', 'Latitude Prepared', 'Heading', 'Heading Continuous',
+            'Airspeed', 'ILS Localizer', 'Latitude', 'Longitude', 'Altitude STD', 'Fast',
+            'Altitude STD Smoothed', 'Altitude AAL', 'Altitude AAL For Flight Phases',
+            'Airborne', 'Climb Cruise Descent', 'Magnetic Variation', 'Takeoff',
+            'Heading Rate', 'Mobile', 'Takeoff Acceleration Start', 'Takeoff Roll',
+            'HDF Duration', 'Grounded', 'Takeoff Runway Heading',
+            'Takeoff Roll Or Rejected Takeoff', 'Heading During Takeoff', 'Mach',
+            'Landing', 'Taxiing', 'Airspeed True', 'Landing Roll',
+            'Heading During Landing', 'Turning On Ground', 'Roll', 'Vertical Speed',
+            'Liftoff', 'Latitude At Liftoff', 'Longitude At Liftoff', 'Off Blocks',
+            'Latitude Off Blocks', 'Longitude Off Blocks', 'FDR Takeoff Airport',
+            'Latitude At Takeoff Acceleration Start',
+            'Longitude At Takeoff Acceleration Start', 'FDR Takeoff Runway',
+            'Vertical Speed For Flight Phases', 'Level Flight', 'Approach',
+            'Approach And Landing', 'Touchdown', 'Latitude At Touchdown',
+            'Longitude At Touchdown', 'Approach Information', 'FDR Landing Runway',
+            'Magnetic Variation From Runway', 'Heading True', 'Approach Range',
+            'Heading True Continuous', 'Latitude Smoothed'
         ]
         self.assert_order_maintained(order, expected_order)
 
-    def test_avoiding_circular_dependency_approach_range_helicopter(self):
-        '''
-        <<< Approach Range CIRCULAR >>> (200)
-        root>Latitude Smoothed>Longitude Prepared>Heading True>Magnetic Variation From Runway>
-        Magnetic Variation>Altitude AAL>Altitude Radio Offset Removed>Altitude Radio>
-        Climb Cruise Descent>Airborne>Altitude Radio
-        '''
-        lfl_params = ['Altitude STD', 'Airspeed','Heading']
+    def test_avoiding_circular_dependency_latitude_smoothed_helicopter(self):
+        lfl_params = [
+            'Altitude STD', 'Airspeed', 'Heading', 'Latitude', 'Longitude']
         requested = ['Latitude Smoothed',]
-        aircraft_info = {'Aircraft Type': 'helicopter', 'Precise Positioning': False}
+        aircraft_info = {
+            'Aircraft Type': 'helicopter',
+            'Precise Positioning': False,
+            'Frame': 'dummy_LFL'  # Needed for Altitude STD Smoothed, although not needed in derive method!
+        }
         order, _ = self._get_dependency_order(requested, aircraft_info, lfl_params)
 
         expected_order = [
-            'Heading', 'Heading Continuous', 'Altitude STD', 'Airspeed', 'Heading Rate',
-            'Mobile', 'HDF Duration', 'Off Blocks', 'ILS Localizer'
+            'Longitude Prepared', 'Latitude Prepared', 'Heading', 'Heading Continuous',
+            'Airspeed', 'ILS Localizer', 'Altitude STD', 'Altitude STD Smoothed',
+            'Vertical Speed', 'Latitude', 'Longitude', 'Heading Rate', 'Mobile',
+            'HDF Duration', 'Off Blocks', 'Latitude Off Blocks', 'Longitude Off Blocks',
+            'FDR Takeoff Airport', 'Vertical Speed For Flight Phases', 'Mach',
+            'Airspeed True', 'Latitude Smoothed', 'Longitude Smoothed'
         ]
         self.assert_order_maintained(order, expected_order)
 
-    def test_avoiding_circular_dependency_approach_information(self):
-        '''
-        <<< Approach Information CIRCULAR >>> (60)
-        root>FDR Landing Airport>Approach Information>Approach And Landing>Approach>Landing>
-        Heading Continuous>Heading>Heading True Continuous>Heading True>
-        Magnetic Variation From Runway>Heading During Takeoff>Takeoff Roll Or Rejected Takeoff>
-        Takeoff Roll>Takeoff Acceleration Start>Acceleration Longitudinal Offset Removed>
-        Acceleration Longitudinal Offset>Mobile>Groundspeed>Latitude Prepared>Heading
-        '''
-        lfl_params = []
+    def test_avoiding_circular_dependency_fdr_landing(self):
+        lfl_params = [
+            'Altitude STD', 'Altitude Radio', 'Airspeed', 'Heading', 'Latitude',
+            'Longitude', 'Gear (L) On Ground', 'Collective',
+        ]
         requested = ['FDR Landing Airport',]
-        aircraft_info = {'Aircraft Type': 'aeroplane',}
+        aircraft_info = {
+            'Aircraft Type': 'helicopter',
+            'Precise Positioning': False,
+            'Frame': 'dummy_LFL'  # Needed for Altitude STD Smoothed, although not needed in derive method!
+        }
         self._get_dependency_order(requested, aircraft_info, lfl_params)
         order, _ = self._get_dependency_order(requested, aircraft_info, lfl_params)
 
-        expected_order = ['HDF Duration', 'Grounded']
+        expected_order = [
+            'Altitude Radio', 'Airspeed', 'Altitude STD', 'Altitude STD Smoothed',
+            'Gear (L) On Ground', 'Vertical Speed', 'Collective', 'Gear On Ground',
+            'Altitude AGL', 'Airborne', 'Vertical Speed For Flight Phases', 'Heading',
+            'Heading Continuous', 'Heading Rate', 'Latitude Prepared',
+            'Longitude Prepared', 'Mobile', 'Landing', 'Approach', 'Approach And Landing',
+            'ILS Localizer', 'Latitude', 'HDF Duration', 'Grounded', 'Liftoff', 'Takeoff',
+            'Touchdown', 'Latitude At Touchdown', 'Longitude', 'Longitude At Touchdown',
+            'Altitude ADH', 'Approach Information', 'FDR Landing Airport'
+        ]
         self.assert_order_maintained(order, expected_order)
 
     def test_avoiding_circular_dependency_approach_information_helicopter(self):
-        '''
-        <<< Approach Information CIRCULAR >>> (60)
-        root>Approach Information>Altitude AAL>Altitude Radio Offset Removed>
-        Altitude Radio>Climb Cruise Descent>Airborne>Altitude Radio
-        '''
-        lfl_params = ['Altitude STD', 'Airspeed','Heading',
-                      'Altitude AGL',
-                      'Approach And Landing',
-                      #'Latitude Prepared (Lat Lon)',
-                      'Longitude Prepared (Lat Lon)',
-                      ]
+        lfl_params = [
+            'Altitude STD', 'Altitude AGL', 'Altitude Radio', 'Airspeed', 'Heading',
+            'Latitude', 'Longitude', 'Gear (L) On Ground', 'Collective',
+        ]
         requested = ['Approach Information',]
         aircraft_info = {'Aircraft Type': 'helicopter', 'Precise Positioning': False}
         order, _ = self._get_dependency_order(requested, aircraft_info, lfl_params)
 
         expected_order = [
-            'Altitude STD', 'Airspeed', 'Altitude AGL', 'Approach And Landing',
-            'Heading', 'Heading Continuous', 'Heading Rate', 'Mobile', 'HDF Duration',
-            'Off Blocks', 'ILS Localizer'
+            'Altitude Radio', 'Airspeed', 'Altitude STD', 'Gear (L) On Ground',
+            'Collective', 'Gear On Ground', 'Altitude AGL', 'Airborne', 'Heading',
+            'Heading Continuous', 'Heading Rate', 'Latitude Prepared', 'Longitude Prepared',
+            'Mobile', 'Landing', 'Approach', 'Approach And Landing', 'ILS Localizer',
+            'Latitude', 'HDF Duration', 'Grounded', 'Liftoff', 'Takeoff', 'Touchdown',
+            'Latitude At Touchdown', 'Longitude', 'Longitude At Touchdown',
+            'Approach Information'
         ]
         self.assert_order_maintained(order, expected_order)
 
@@ -722,6 +742,30 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         # Magnetic Variation must be derived before Magnetic Variation From Runway
         self.assertLess(order.index('Magnetic Variation'),
                         order.index('Magnetic Variation From Runway'))
+
+    def test_processing_order_approach_and_landing(self):
+        lfl_params = ['Altitude STD', 'Airspeed','Heading']
+        requested = ['Approach And Landing',]
+        aircraft_info = {
+            'Aircraft Type': 'aeroplane',
+            'Precise Positioning': False,
+            'Frame': 'dummy_LFL'  # Needed for Altitude STD Smoothed, although not needed in derive method!
+        }
+        order, _ = self._get_dependency_order(requested, aircraft_info, lfl_params)
+
+        expected_order = [
+            'Altitude STD', 'Airspeed', 'Fast', 'Altitude STD Smoothed', 'Altitude AAL',
+            'Altitude AAL For Flight Phases', 'Airborne', 'Vertical Speed For Flight Phases',
+            'Level Flight', 'Heading', 'Heading Continuous', 'Heading Rate', 'Takeoff',
+            'Mobile', 'Takeoff Acceleration Start', 'Takeoff Roll', 'HDF Duration',
+            'Grounded', 'Takeoff Runway Heading', 'Takeoff Roll Or Rejected Takeoff',
+            'Heading During Takeoff', 'Mach', 'Landing', 'Taxiing', 'Airspeed True',
+            'Turning On Ground', 'Roll', 'Vertical Speed', 'Liftoff', 'Touchdown',
+            'Landing Roll', 'Heading During Landing', 'Off Blocks',
+            'Approach And Landing', 'ILS Localizer', 'Approach Information',
+            'FDR Landing Runway', 'Approach'
+        ]
+        self.assert_order_maintained(order, expected_order)
 
 
 
