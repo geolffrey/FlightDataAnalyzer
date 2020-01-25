@@ -296,10 +296,11 @@ def dependencies3(di_graph, root, node_mgr, raise_cir_dep=False):
             # node will work at this level with the operating dependencies
             if node not in active_nodes:
                 active_nodes.add(node)
-                ordering.append(node)
+                ordering.append(node)  # What about skipping nodes in node_mgr.hdf_keys (they don't derive)
 
             if node not in node_mgr.hdf_keys:
                 tree_path.append(list(path))
+
             return True  # layer below works
         else:
             tree_path.append(list(path) + ['NOT OPERATIONAL',])
