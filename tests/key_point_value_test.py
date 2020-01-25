@@ -12122,6 +12122,8 @@ class TestAPUFireWarningDuration(unittest.TestCase):
         self.assertTrue(simple in opts)
         self.assertTrue(bottles in opts)
 
+        self.assertTrue(self.node_class.can_operate(simple + bottles))
+
     def test_derive_basic(self):
         values_mapping = {
             0: '-',
