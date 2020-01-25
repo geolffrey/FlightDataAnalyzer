@@ -338,7 +338,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         P3 requires P1. This makes a circular dependency. But we don't want to give up
         here as we could still make P1 from Raw1 only, avoiding the circular path.
         '''
-        class MockParamOneRequiredOneOptionalP1(DerivedParameterNode):
+        class P1(DerivedParameterNode):
             @classmethod
             def can_operate(self, avail):
                 return 'Raw1' in avail
@@ -346,7 +346,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
             def derive(self, P2=P('P2'), raw=P('Raw1')):
                 pass
 
-        class MockParamOneRequiredOneOptionalP2(DerivedParameterNode):
+        class P2(DerivedParameterNode):
             @classmethod
             def can_operate(self, avail):
                 return 'Raw2' in avail
@@ -354,7 +354,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
             def derive(self, P3=P('P3'), raw=P('Raw2')):
                 pass
 
-        class MockParamOneRequiredP3(DerivedParameterNode):
+        class P3(DerivedParameterNode):
             @classmethod
             def can_operate(self, avail):
                 return 'P1' in avail
@@ -364,9 +364,9 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
 
         derived_nodes = {
             'P0' : MockParam(dependencies=['P1']),
-            'P1' : MockParamOneRequiredOneOptionalP1,
-            'P2' : MockParamOneRequiredOneOptionalP2,
-            'P3' : MockParamOneRequiredP3,
+            'P1' : P1,
+            'P2' : P2,
+            'P3' : P3,
         }
         requested = ['P0']
         lfl_params = ['Raw1', 'Raw2']
