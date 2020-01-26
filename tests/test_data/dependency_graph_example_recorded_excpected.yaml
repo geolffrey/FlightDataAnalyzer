@@ -34,38 +34,14 @@
 - Level Flight
 - Go Around And Climbout
 - AOA During Go Around Max
+- Flap Lever Angle
+- Flap Lever
 - Flap Angle (L)
 - Flap Angle (R)
 - Flap Angle
 - HDF Duration
 - Landing
 - Flap
-- Flap Including Transition
-- AP (1) Engaged
-- AP (2) Engaged
-- AP Engaged
-- Flap Lever Angle
-- Flap Lever
-- Slat (1) Fully Extended
-- Slat (2) Fully Extended
-- Slat (3) Fully Extended
-- Slat (4) Fully Extended
-- Slat (5) Fully Extended
-- Slat (6) Fully Extended
-- Slat (7) Fully Extended
-- Slat (8) Fully Extended
-- Slat Fully Extended
-- Slat (1) Part Extended
-- Slat (2) Part Extended
-- Slat (3) Part Extended
-- Slat (4) Part Extended
-- Slat (5) Part Extended
-- Slat (6) Part Extended
-- Slat (7) Part Extended
-- Slat (8) Part Extended
-- Slat Part Extended
-- Aileron (L)
-- Aileron (R)
 - Approach
 - Approach And Landing
 - Flap Lever (Synthetic)
@@ -74,7 +50,10 @@
 - Descending
 - AOA With Flap During Descent Max
 - AOA With Flap Max
+- AP (1) Engaged
+- AP (2) Engaged
 - AP Channels Engaged
+- AP Engaged
 - Climb Cruise Descent
 - Top Of Climb
 - Top Of Descent
@@ -185,14 +164,14 @@
 - Acceleration Longitudinal During Takeoff Max
 - Acceleration Longitudinal While Airborne Max
 - Acceleration Normal 20 Ft To 5 Ft Max
-- Eng (*) Fuel Flow
-- Gross Weight
-- Gross Weight Smoothed
 - Touch And Go
 - Acceleration Normal At Touchdown
 - Acceleration Normal At Liftoff
 - Acceleration Normal Liftoff To 35 Ft Max
 - Acceleration Normal Max
+- Eng (*) Fuel Flow
+- Gross Weight
+- Gross Weight Smoothed
 - Gross Weight At Touchdown
 - Load Factor Threshold At Touchdown
 - Acceleration Normal Minus Load Factor Threshold At Touchdown
@@ -202,6 +181,8 @@
 - Acceleration Normal With Flap Down While Airborne Min
 - Acceleration Normal With Flap Up While Airborne Max
 - Acceleration Normal With Flap Up While Airborne Min
+- Aileron (L)
+- Aileron (R)
 - Aileron
 - Last APU Start Before Liftoff
 - Aileron Preflight Check
@@ -305,6 +286,7 @@
 - FC Min Operating Speed
 - Min Operating Speed
 - Minimum Airspeed
+- Flap Including Transition
 - Flap Manoeuvre Speed
 - Airspeed Below Minimum Airspeed Flap Clean Min
 - Airspeed Difference 5 Sec Max
@@ -597,18 +579,18 @@
 - Eng (2) Bleed
 - Eng Bleed Open
 - Eng Bleed Valves At Liftoff
-- Go Around
-- Go Around 5 Min Rating
-- Takeoff 5 Min Rating
-- Maximum Continuous Power
 - Eng Eng Start To N1 At 60 Percent Duration
 - Eng Fire Warning Duration
 - Takeoff Turn Onto Runway
 - Eng Gas Temp During Eng Start For X Sec Max
 - Eng Gas Temp During Eng Start Max
 - Eng Gas Temp During Flight Min
+- Go Around
+- Go Around 5 Min Rating
 - Eng Gas Temp During Go Around 5 Min Rating Max
+- Takeoff 5 Min Rating
 - Eng Gas Temp During Maximum Continuous Power For X Min Max
+- Maximum Continuous Power
 - Eng Gas Temp During Maximum Continuous Power Max
 - Eng Gas Temp During Takeoff 5 Min Rating Max
 - Eng Gas Temp For 5 Sec During Go Around 5 Min Rating Max
@@ -656,7 +638,6 @@
 - Eng Oil Temp Max
 - Eng Running Duration
 - Eng Shutdown During Flight Duration
-- Stationary
 - Eng Torque 500 To 50 Ft Max
 - Eng Torque 500 To 50 Ft Min
 - Eng Torque 65 Kts To 35 Ft Min
@@ -732,7 +713,6 @@
 - Glideslope Established End
 - Glideslope Established Start
 - Great Circle Distance
-- Rate Of Descent At Touchdown
 - Gross Weight Delta 60 Seconds In Flight Max
 - Groundspeed At Liftoff
 - Groundspeed At TOGA
@@ -834,6 +814,7 @@
 - Main Gear On Ground To Nose Gear On Ground Duration
 - Master Caution
 - Master Caution During Takeoff Duration
+- Stationary
 - Movement Start
 - Movement Stop
 - Number of AP Channels Engaged At Touchdown
@@ -904,6 +885,7 @@
 - Rate Of Descent 5000 To 3000 Ft Max
 - Rate Of Descent Above 3000 Ft Max
 - Rate Of Descent At Height Before Level Flight
+- Rate Of Descent At Touchdown
 - Rate Of Descent Below 10000 Ft Max
 - Rate Of Descent Below 80 Kts Max
 - Rate Of Descent During Go Around Max
@@ -945,6 +927,24 @@
 - Shuttling Approach
 - Single Engine During Taxi In Duration
 - Single Engine During Taxi Out Duration
+- Slat (1) Fully Extended
+- Slat (2) Fully Extended
+- Slat (3) Fully Extended
+- Slat (4) Fully Extended
+- Slat (5) Fully Extended
+- Slat (6) Fully Extended
+- Slat (7) Fully Extended
+- Slat (8) Fully Extended
+- Slat Fully Extended
+- Slat (1) Part Extended
+- Slat (2) Part Extended
+- Slat (3) Part Extended
+- Slat (4) Part Extended
+- Slat (5) Part Extended
+- Slat (6) Part Extended
+- Slat (7) Part Extended
+- Slat (8) Part Extended
+- Slat Part Extended
 - Slat (1) In Transit
 - Slat (2) In Transit
 - Slat (3) In Transit
@@ -1098,7 +1098,6 @@
 - Transmitting
 - Transmit
 - Transmit Inactivity Duration
-- AP Trim Down
 - Turbulence
 - Turbulence During Approach Max
 - Turbulence During Cruise Max

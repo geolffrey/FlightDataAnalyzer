@@ -511,14 +511,14 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         expected_order = [
             'Heading', 'Heading Continuous', 'Altitude STD', 'Airspeed', 'Fast',
             'Altitude STD Smoothed', 'Altitude AAL', 'Altitude AAL For Flight Phases',
-            'Airborne', 'Climb Cruise Descent', 'Takeoff', 'Heading Rate', 'Mach',
-            'Mobile', 'Landing', 'HDF Duration', 'Grounded', 'Taxiing', 'Airspeed True',
-            'Turning On Ground', 'Roll', 'Vertical Speed', 'Liftoff', 'Touchdown',
-            'Takeoff Acceleration Start', 'Takeoff Roll', 'Takeoff Roll Or Rejected Takeoff',
-            'Heading During Takeoff', 'Landing Roll', 'Heading During Landing', 'Off Blocks',
+            'Airborne', 'Climb Cruise Descent', 'Takeoff', 'Takeoff Acceleration Start',
+            'Takeoff Roll', 'HDF Duration', 'Grounded', 'Takeoff Runway Heading',
+            'Takeoff Roll Or Rejected Takeoff', 'Heading During Takeoff', 'Mach',
+            'Heading Rate', 'Mobile', 'Landing', 'Airspeed True', 'Landing Roll',
+            'Heading During Landing', 'Vertical Speed', 'Liftoff',
             'Vertical Speed For Flight Phases', 'Level Flight', 'Approach',
-            'Approach And Landing', 'ILS Localizer', 'Approach Information',
-            'FDR Landing Runway', 'Approach Range'
+            'Approach And Landing', 'ILS Localizer', 'Roll', 'Touchdown',
+            'Approach Information', 'FDR Landing Runway', 'Approach Range'
         ]
         self.assert_order_maintained(order, expected_order)
 
@@ -536,20 +536,19 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
             'Airspeed', 'ILS Localizer', 'Latitude', 'Longitude', 'Altitude STD', 'Fast',
             'Altitude STD Smoothed', 'Altitude AAL', 'Altitude AAL For Flight Phases',
             'Airborne', 'Climb Cruise Descent', 'Magnetic Variation', 'Takeoff',
-            'Heading Rate', 'Mobile', 'Takeoff Acceleration Start', 'Takeoff Roll',
-            'HDF Duration', 'Grounded', 'Takeoff Runway Heading',
-            'Takeoff Roll Or Rejected Takeoff', 'Heading During Takeoff', 'Mach',
-            'Landing', 'Taxiing', 'Airspeed True', 'Landing Roll',
-            'Heading During Landing', 'Turning On Ground', 'Roll', 'Vertical Speed',
+            'Takeoff Acceleration Start', 'Takeoff Roll', 'HDF Duration', 'Grounded',
+            'Takeoff Runway Heading', 'Takeoff Roll Or Rejected Takeoff',
+            'Heading During Takeoff', 'Mach', 'Heading Rate', 'Mobile', 'Landing',
+            'Airspeed True', 'Landing Roll', 'Heading During Landing', 'Vertical Speed',
             'Liftoff', 'Latitude At Liftoff', 'Longitude At Liftoff', 'Off Blocks',
             'Latitude Off Blocks', 'Longitude Off Blocks', 'FDR Takeoff Airport',
             'Latitude At Takeoff Acceleration Start',
             'Longitude At Takeoff Acceleration Start', 'FDR Takeoff Runway',
             'Vertical Speed For Flight Phases', 'Level Flight', 'Approach',
             'Approach And Landing', 'Touchdown', 'Latitude At Touchdown',
-            'Longitude At Touchdown', 'Approach Information', 'FDR Landing Runway',
-            'Magnetic Variation From Runway', 'Heading True', 'Approach Range',
-            'Heading True Continuous', 'Latitude Smoothed'
+            'Longitude At Touchdown', 'Roll', 'Approach Information',
+            'FDR Landing Runway', 'Magnetic Variation From Runway', 'Heading True',
+            'Approach Range', 'Heading True Continuous', 'Latitude Smoothed'
         ]
         self.assert_order_maintained(order, expected_order)
 
@@ -568,9 +567,9 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
             'Longitude Prepared', 'Latitude Prepared', 'Heading', 'Heading Continuous',
             'Airspeed', 'ILS Localizer', 'Altitude STD', 'Altitude STD Smoothed',
             'Vertical Speed', 'Latitude', 'Longitude', 'Heading Rate', 'Mobile',
-            'HDF Duration', 'Off Blocks', 'Latitude Off Blocks', 'Longitude Off Blocks',
-            'FDR Takeoff Airport', 'Vertical Speed For Flight Phases', 'Mach',
-            'Airspeed True', 'Latitude Smoothed', 'Longitude Smoothed'
+            'Off Blocks', 'Latitude Off Blocks', 'Longitude Off Blocks',
+            'FDR Takeoff Airport', 'Mach', 'Airspeed True', 'Latitude Smoothed',
+            'Longitude Smoothed'
         ]
         self.assert_order_maintained(order, expected_order)
 
@@ -591,12 +590,11 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         expected_order = [
             'Altitude Radio', 'Airspeed', 'Altitude STD', 'Altitude STD Smoothed',
             'Gear (L) On Ground', 'Vertical Speed', 'Collective', 'Gear On Ground',
-            'Altitude AGL', 'Airborne', 'Vertical Speed For Flight Phases', 'Heading',
-            'Heading Continuous', 'Heading Rate', 'Latitude Prepared',
-            'Longitude Prepared', 'Mobile', 'Landing', 'Approach', 'Approach And Landing',
-            'ILS Localizer', 'Latitude', 'HDF Duration', 'Grounded', 'Liftoff', 'Takeoff',
-            'Touchdown', 'Latitude At Touchdown', 'Longitude', 'Longitude At Touchdown',
-            'Altitude ADH', 'Approach Information', 'FDR Landing Airport'
+            'Altitude AGL', 'Heading', 'Heading Continuous', 'Heading Rate',
+            'Latitude Prepared', 'Longitude Prepared', 'Airborne', 'Mobile', 'Landing',
+            'Approach', 'Approach And Landing', 'ILS Localizer', 'Latitude', 'Touchdown',
+            'Latitude At Touchdown', 'Longitude', 'Longitude At Touchdown', 'Altitude ADH',
+            'Liftoff', 'Takeoff', 'Approach Information', 'FDR Landing Airport'
         ]
         self.assert_order_maintained(order, expected_order)
 
@@ -611,12 +609,11 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
 
         expected_order = [
             'Altitude Radio', 'Airspeed', 'Altitude STD', 'Gear (L) On Ground',
-            'Collective', 'Gear On Ground', 'Altitude AGL', 'Airborne', 'Heading',
-            'Heading Continuous', 'Heading Rate', 'Latitude Prepared', 'Longitude Prepared',
-            'Mobile', 'Landing', 'Approach', 'Approach And Landing', 'ILS Localizer',
-            'Latitude', 'HDF Duration', 'Grounded', 'Liftoff', 'Takeoff', 'Touchdown',
-            'Latitude At Touchdown', 'Longitude', 'Longitude At Touchdown',
-            'Approach Information'
+            'Collective', 'Gear On Ground', 'Altitude AGL', 'Heading', 'Heading Continuous',
+            'Heading Rate', 'Latitude Prepared', 'Longitude Prepared', 'Airborne', 'Mobile',
+            'Landing', 'Approach', 'Approach And Landing', 'ILS Localizer', 'Latitude',
+            'Touchdown', 'Latitude At Touchdown', 'Longitude', 'Longitude At Touchdown',
+            'Liftoff', 'Takeoff', 'Approach Information'
         ]
         self.assert_order_maintained(order, expected_order)
 
@@ -694,6 +691,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         with open(Path(test_data_path) / 'dependency_graph_example_recorded_excpected.yaml') as f:
             expected = yaml.load(f, Loader=yaml.FullLoader)
 
+        self.assert_order_maintained(order, expected)
         self.assertTrue(set(order) >= set(expected))
 
     def test_acceleration_normal_offset_processing_order(self):
@@ -756,13 +754,12 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
             'Altitude STD', 'Airspeed', 'Fast', 'Altitude STD Smoothed', 'Altitude AAL',
             'Altitude AAL For Flight Phases', 'Airborne', 'Vertical Speed For Flight Phases',
             'Level Flight', 'Heading', 'Heading Continuous', 'Heading Rate', 'Takeoff',
-            'Mobile', 'Takeoff Acceleration Start', 'Takeoff Roll', 'HDF Duration',
-            'Grounded', 'Takeoff Runway Heading', 'Takeoff Roll Or Rejected Takeoff',
-            'Heading During Takeoff', 'Mach', 'Landing', 'Taxiing', 'Airspeed True',
-            'Turning On Ground', 'Roll', 'Vertical Speed', 'Liftoff', 'Touchdown',
-            'Landing Roll', 'Heading During Landing', 'Off Blocks',
-            'Approach And Landing', 'ILS Localizer', 'Approach Information',
-            'FDR Landing Runway', 'Approach'
+            'Takeoff Acceleration Start', 'Takeoff Roll', 'HDF Duration', 'Grounded',
+            'Takeoff Runway Heading', 'Takeoff Roll Or Rejected Takeoff',
+            'Heading During Takeoff', 'Mach', 'Landing', 'Airspeed True', 'Landing Roll',
+            'Heading During Landing', 'Vertical Speed', 'Liftoff', 'Approach And Landing',
+            'ILS Localizer', 'Roll', 'Touchdown', 'Approach Information',
+            'FDR Landing Runway', 'Mobile', 'Approach'
         ]
         self.assert_order_maintained(order, expected_order)
 
