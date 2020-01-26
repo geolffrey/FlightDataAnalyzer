@@ -14,7 +14,6 @@ from datetime import datetime
 
 from analysis_engine.node import (DerivedParameterNode, Node, NodeManager, P)
 from analysis_engine.dependency_graph import (
-    CircularDependency,
     any_predecessors_in_requested,
     dependency_order,
     graph_nodes,
@@ -616,16 +615,19 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         ]
         self.assert_order_maintained(order, expected_order)
 
-    @unittest.skip('Need to completely remove circular dependencies before this test could be use by Jenkins.')
+    @unittest.skip("Ignoring as node_manager blows up with missing attributes")
     def test_avoiding_all_circular_dependencies_by_having_nothing_recorded(self):
         # not realistic use case; but let's see if we can avoid all circular dependencies in the theoretical deriving tree structure things
         lfl_params = []#['Altitude STD', 'Airspeed', 'Heading'] # Core parameters
-        aircraft_info = {u'Aircraft Type': u'aeroplane',}
+        aircraft_info = {'Aircraft Type': 'aeroplane',}
         requested = []
-        try:
-            self._get_dependency_order(requested, aircraft_info, lfl_params)
-        except CircularDependency as err:
-            self.assertFalse(True, msg=err.message)
+        order, _ = self._get_dependency_order(requested, aircraft_info, lfl_params)
+
+        expected = [
+            'HDF Duration', 'Grounded', 'Eng Start', 'FDR Analysis Datetime',
+            'FDR Takeoff Datetime', 'FDR Flight Type', 'FDR Version'
+        ]
+        self.assertTrue(set(order) >= set(expected))
 
     def _example_recorded_parameters(self):
         # A more realistic tree, for finding circular dependencies, using the

@@ -64,10 +64,6 @@ class RequiredNodesMissing(KeyError):
     pass
 
 
-class CircularDependency(KeyError):
-    pass
-
-
 def print_ordered_tree(tree_path):
     '''
     This is tool that prints the order and the intended tree in which nodes are traversed.
@@ -186,8 +182,7 @@ def print_tree(graph, node='root', **kwargs):
     print('\n'.join(indent_tree(graph, node, **kwargs)))
 
 
-def dependencies3(di_graph, root, node_mgr, raise_cir_dep=False,
-                  dependency_tree_log=False):
+def dependencies3(di_graph, root, node_mgr, dependency_tree_log=False):
     '''
     Performs a Depth First Search down each dependency node in the tree
     (di_graph) until each branch's dependencies are best satisfied.
@@ -214,8 +209,6 @@ def dependencies3(di_graph, root, node_mgr, raise_cir_dep=False,
                      operational with the available dependencies at each
                      layer of the tree.
     :type node_mgr: analysis_engine.node.NodeManager
-    :raise_cir_dep: Stop and raise a CircularDependency error if a circular
-                    dependency on the node is encountered.
     :dependency_tree_log: If True, will populate `tree_path` for visualization of the
                           graph traversal.
     '''
@@ -274,9 +267,6 @@ def dependencies3(di_graph, root, node_mgr, raise_cir_dep=False,
                 if dependency_tree_log:
                     tree_path.append(list(path) + ['CIRCULAR',])
                 logger.debug("Circular dependency avoided at node '%s'. Branch path: %s", node, path)
-                if raise_cir_dep:
-                    raise CircularDependency("Circular Dependency In Path (node: '%s', path: '%s')"
-                                                 % (node,"' > '".join(path)))
                 return False
 
         operating_dependencies = set()  # operating nodes of current node's available dependencies
