@@ -443,7 +443,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         # try a bigger cyclic dependency on top of the above one
 
     def _get_dependency_order(self, requested, aircraft_info, lfl_params,
-                              draw=False, raise_cir_dep=False, segment_info={}):
+                              draw=False, segment_info={}):
         if not segment_info:
             segment_info = {
                 'Start Datetime': datetime.now(),
@@ -456,8 +456,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         node_mgr = NodeManager(
             segment_info, 10, lfl_params,
             pre_processing_requested, [], pre_processing_nodes, aircraft_info, {})
-        process_order, gr_st = dependency_order(node_mgr, draw=draw,
-                                                raise_cir_dep=raise_cir_dep)
+        process_order, gr_st = dependency_order(node_mgr, draw=draw)
 
 
         if aircraft_info['Aircraft Type'] == 'helicopter':
@@ -471,8 +470,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
             requested = [p for p in derived_nodes.keys() if p not in lfl_params]
         node_mgr= NodeManager(segment_info, 10, lfl_params + process_order,
                               requested, [], derived_nodes, aircraft_info, {})
-        order, gr_st = dependency_order(node_mgr, draw=draw,
-                                        raise_cir_dep=raise_cir_dep)
+        order, gr_st = dependency_order(node_mgr, draw=draw)
         return order, gr_st
 
     def test_avoiding_circular_dependency_gear_up_selected(self):
