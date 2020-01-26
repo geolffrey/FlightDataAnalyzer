@@ -343,7 +343,7 @@ def process_flight(segment_info, tail_number, aircraft_info={}, achieved_flight_
                    requested=[], required=[], include_flight_attributes=True,
                    additional_modules=[], pre_flight_kwargs={}, force=False,
                    initial={}, reprocess=False, requested_only=False,
-                   dependency_tree_log=None, derived_nodes=None):
+                   dependency_tree_log=False, derived_nodes=None):
     '''
     Processes the HDF file (segment_info['File']) to derive the required_params (Nodes)
     within python modules (settings.NODE_MODULES).
