@@ -2321,6 +2321,7 @@ class TestLoadFactorThresholdAtTouchdown(unittest.TestCase):
             ['B737-MAX-8', 'N/A', 'N/A', 70003],
 
             ['N/A', 'N/A', 'N/A', None],
+            [None, None, None, None]
         ]
         for aircraft in ac_variations:
             self._test_landing_weight(*aircraft)

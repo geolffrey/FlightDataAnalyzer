@@ -915,6 +915,8 @@ class LoadFactorThresholdAtTouchdown(KeyPointValueNode):
         B767-400     (ER)           None                                 158757
         Return the weight in KG when match is found else None
         '''
+        if None in (series, model, mods):
+            return None
         re_series = re.match(r'^B7[365]7-[2346789][05][0E]', series)
         if not re_series and series != 'B737-MAX-8':
             return None
