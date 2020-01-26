@@ -236,13 +236,13 @@ def dependencies3(di_graph, root, node_mgr, raise_cir_dep=False):
             for (name, d) in sorted(
                 di_graph[node].items(), key=lambda a: (a[1].get("order", False), a[0])
             )
+            if name not in inop_nodes
         ]
 
         # Optimization: check if node can be derived with potential dependencies.
         # Because of this, we must have all required nodes connected to the root,
         # as we might not visit all dependencies.
-        remainings = set(ordered_successors) - inop_nodes
-        if not node_mgr.operational(node, remainings):
+        if not node_mgr.operational(node, ordered_successors):
             inop_nodes.add(node)
             return False
 
@@ -287,8 +287,6 @@ def dependencies3(di_graph, root, node_mgr, raise_cir_dep=False):
 
         operating_dependencies = set()  # operating nodes of current node's available dependencies
         for dependency in ordered_successors:
-            if dependency in inop_nodes:
-                continue
             # recurse to find out if the dependency is available
             if traverse_tree(dependency):
                 operating_dependencies.add(dependency)
@@ -304,7 +302,7 @@ def dependencies3(di_graph, root, node_mgr, raise_cir_dep=False):
             if node not in node_mgr.hdf_keys:
                 tree_path.append(list(path))
 
-            return True  # layer below works
+            return True
         else:
             if node not in node_mgr.derived_nodes:
                 inop_nodes.add(node)
