@@ -186,7 +186,8 @@ def print_tree(graph, node='root', **kwargs):
     print('\n'.join(indent_tree(graph, node, **kwargs)))
 
 
-def dependencies3(di_graph, root, node_mgr, raise_cir_dep=False):
+def dependencies3(di_graph, root, node_mgr, raise_cir_dep=False,
+                  dependency_tree_log=False):
     '''
     Performs a Depth First Search down each dependency node in the tree
     (di_graph) until each branch's dependencies are best satisfied.
@@ -215,9 +216,9 @@ def dependencies3(di_graph, root, node_mgr, raise_cir_dep=False):
     :type node_mgr: analysis_engine.node.NodeManager
     :raise_cir_dep: Stop and raise a CircularDependency error if a circular
                     dependency on the node is encountered.
+    :dependency_tree_log: If True, will populate `tree_path` for visualization of the
+                          graph traversal.
     '''
-    log_stuff = logger.getEffectiveLevel() <= logging.DEBUG
-    circular_log = Counter()
     def traverse_tree(node):
         """
         Begin the recursion at this node's position in the dependency tree
@@ -258,7 +259,6 @@ def dependencies3(di_graph, root, node_mgr, raise_cir_dep=False):
             if not node_mgr.operational(node, ordered_successors):
                 # Unfortunately the remaining successors do not allow this node to
                 # be derived. Back track.
-                tree_path.append(list(path) + ['CIRCULAR',])
                 # Optimization
                 # Find the cycle within the current path
                 last_path = list(path)
@@ -271,15 +271,9 @@ def dependencies3(di_graph, root, node_mgr, raise_cir_dep=False):
                 else:
                     cycles.add(cycle)
 
-                if log_stuff:
-                    if node_mgr.segment_info['Segment Type'] == 'START_AND_STOP':
-                        logger.debug("Circular dependency avoided at node '%s'. Branch path: %s", node, path)
-                    else:
-                        circular_log.update(
-                                ["Circular dependency avoided at node '%s'" % (node,),]
-                            )
-                if node_mgr.segment_info['Segment Type'] == 'GROUND_ONLY':
-                    logger.debug("Circular dependency avoided at node '%s'. Branch path: %s", node, path)
+                if dependency_tree_log:
+                    tree_path.append(list(path) + ['CIRCULAR',])
+                logger.debug("Circular dependency avoided at node '%s'. Branch path: %s", node, path)
                 if raise_cir_dep:
                     raise CircularDependency("Circular Dependency In Path (node: '%s', path: '%s')"
                                                  % (node,"' > '".join(path)))
@@ -299,14 +293,15 @@ def dependencies3(di_graph, root, node_mgr, raise_cir_dep=False):
                 active_nodes.add(node)
                 ordering.append(node)  # What about skipping nodes in node_mgr.hdf_keys (they don't derive)
 
-            if node not in node_mgr.hdf_keys:
+            if node not in node_mgr.hdf_keys and dependency_tree_log:
                 tree_path.append(list(path))
 
             return True
         else:
             if node not in node_mgr.derived_nodes:
                 inop_nodes.add(node)
-            tree_path.append(list(path) + ['NOT OPERATIONAL',])
+            if dependency_tree_log:
+                tree_path.append(list(path) + ['NOT OPERATIONAL',])
             return False
 
     ordering = []
@@ -323,11 +318,6 @@ def dependencies3(di_graph, root, node_mgr, raise_cir_dep=False):
     cycles = set()  # set of cycles already seen
     traverse_tree(root)  # start recursion
     logger.debug(f"Inop nodes: {inop_nodes}")
-    # log any circular dependencies caught
-    if log_stuff and circular_log:
-        logger.debug('Circular dependency avoided %s times.', sum(circular_log.values()))
-        for l, v in circular_log.items():
-            logger.debug("%s (%s times)", l, v)
     return ordering, tree_path
 
 
@@ -523,7 +513,7 @@ def graph_nodes(node_mgr):
 
 
 def process_order(gr_all, node_mgr, raise_inoperable_requested=False,
-                  raise_cir_dep=False, dependency_tree_log=None):
+                  dependency_tree_log=False):
     """
     :param gr_all:
     :type gr_all: nx.DiGraph
@@ -532,7 +522,8 @@ def process_order(gr_all, node_mgr, raise_inoperable_requested=False,
     :returns:
     :rtype:
     """
-    process_order, tree_path = dependencies3(gr_all, 'root', node_mgr, raise_cir_dep=raise_cir_dep)
+    process_order, tree_path = dependencies3(
+        gr_all, 'root', node_mgr, dependency_tree_log=dependency_tree_log)
     logger.debug("Processing order of %d nodes is: %s", len(process_order), process_order)
     if dependency_tree_log:
         ordered_tree_to_file(tree_path, name=dependency_tree_log)
@@ -589,8 +580,8 @@ def remove_floating_nodes(graph):
 
 
 def dependency_order(node_mgr, draw=not_windows,
-                     raise_inoperable_requested=False, raise_cir_dep=False,
-                     dependency_tree_log=None):
+                     raise_inoperable_requested=False,
+                     dependency_tree_log=False):
     """
     Main method for retrieving processing order of nodes.
 
@@ -604,7 +595,7 @@ def dependency_order(node_mgr, draw=not_windows,
     _graph = graph_nodes(node_mgr)
     gr_all, gr_st, order = process_order(_graph, node_mgr,
                                          raise_inoperable_requested=raise_inoperable_requested,
-                                         raise_cir_dep=raise_cir_dep, dependency_tree_log=dependency_tree_log)
+                                         dependency_tree_log=dependency_tree_log)
 
     if draw:
         from json import dumps
