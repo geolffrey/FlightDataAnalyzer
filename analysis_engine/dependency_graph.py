@@ -344,8 +344,6 @@ def dependencies3(di_graph, root, node_mgr, dependency_tree_log=False):
 
             return True
         else:
-            if node not in node_mgr.derived_nodes:
-                inop_nodes.add(node)
             if dependency_tree_log:
                 tree_path.append(list(path) + ['NOT OPERATIONAL',])
             return False
