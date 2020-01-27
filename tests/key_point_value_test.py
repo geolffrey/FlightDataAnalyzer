@@ -2354,6 +2354,12 @@ class TestLoadFactorThresholdAtTouchdown(unittest.TestCase):
         self.assertEqual(len(opts), 1)
         self.assertEqual(opts, self.operational_combinations)
 
+    def test_can_operate_with_none_attributes(self):
+        opts = self.node_class.get_operational_combinations(
+            model=self.model, series=self.series, mods=self.mods)
+        self.assertEqual(len(opts), 1)
+        self.assertFalse(self.node_class.can_operate(opts, None, None, None))
+
     def _call_derive(self, roll_value, land_vert_acc, gw_kpv=[], gw=None):
         node = self.node_class()
 
