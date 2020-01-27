@@ -9742,6 +9742,8 @@ class EngN2OverThresholdDuration(KeyPointValueNode):
     def can_operate(cls, available, eng_series=A('Engine Series'), eng_type=A('Engine Type'), mods=A('Modifications')):
         try:
             at.get_engine_map(eng_series.value, eng_type.value, mods.value)
+        except AttributeError:
+            return False
         except KeyError:
             cls.warning("No engine thresholds available for '%s', '%s', '%s'.",
                         eng_series.value, eng_type.value, mods.value)
