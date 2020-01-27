@@ -10403,6 +10403,11 @@ class TestEngGasTempOverThresholdDuration(unittest.TestCase):
         self.assertFalse(self.node_class.can_operate(nodes, **kwargs))
 
     @patch('analysis_engine.key_point_values.at')
+    def test_can_operate_with_none_attributes(self, lookup_table):
+        nodes = ('Eng (1) Gas Temp', 'Takeoff 5 Min Rating')
+        self.assertFalse(self.node_class.can_operate(nodes, None, None, None))
+
+    @patch('analysis_engine.key_point_values.at')
     def test_derive(self, lookup_table):
 
         lookup_table.get_engine_map.return_value = self.engine_thresholds
