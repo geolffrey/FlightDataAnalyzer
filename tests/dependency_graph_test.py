@@ -615,7 +615,6 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         ]
         self.assert_order_maintained(order, expected_order)
 
-    @unittest.skip("Ignoring as node_manager blows up with missing attributes")
     def test_avoiding_all_circular_dependencies_by_having_nothing_recorded(self):
         # not realistic use case; but let's see if we can avoid all circular dependencies in the theoretical deriving tree structure things
         lfl_params = []#['Altitude STD', 'Airspeed', 'Heading'] # Core parameters
