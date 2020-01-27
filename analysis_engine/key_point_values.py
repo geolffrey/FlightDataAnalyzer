@@ -975,6 +975,8 @@ class LoadFactorThresholdAtTouchdown(KeyPointValueNode):
     @classmethod
     def can_operate(cls, available, model=A('Model'), series=A('Series'),
                     mods=A('Modifications')):
+        if None in (model, series, mods):
+            return False
         ac_weight = cls.get_landing_weight(series.value, model.value,
                                            mods.value)
         return ac_weight and all_deps(cls, available)
