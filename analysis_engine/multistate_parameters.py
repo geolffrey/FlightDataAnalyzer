@@ -14,7 +14,7 @@ from flightdatautilities import aircrafttables as at, dateext, units as ut
 from hdfaccess.parameter import MappedArray
 
 from analysis_engine.node import (
-    A, M, P, S, helicopter, MultistateDerivedParameterNode
+    A, M, P, S, helicopter, MultistateDerivedParameterNode, derived_param_from_hdf
 )
 
 from analysis_engine.library import (
@@ -2131,7 +2131,7 @@ class GearUpSelected(MultistateDerivedParameterNode):
     for us establishing transitions from 'Gear Down' with the assocaited Red
     Warnings.
     '''
-    align_frequency = 1
+    align = False
     units = None
     values_mapping = {
         0: 'Down',
@@ -2152,13 +2152,44 @@ class GearUpSelected(MultistateDerivedParameterNode):
                gear_down_sel=M('Gear Down Selected')):
 
         if gear_down_sel:
-            self.array = 1 - (gear_down_sel.array == 'Down')
-        elif gear_up and gear_up_transit:
+            self.frequency = gear_down_sel.frequency
+            self.offset = gear_down_sel.offset
+            if gear_down_sel.frequency >= 1:
+                # Use Gear Down Sel if the sample rate is sufficient
+                self.array = 1 - (gear_down_sel.array == 'Down')
+                return
+            else:
+                self.array = np_ma_masked_zeros_like(gear_down_sel.array)
+
+        if gear_up and gear_up_transit:
+            gear_up, gear_up_transit = self._align_params(gear_up, gear_up_transit)
             self.array = (gear_up.array == 'Up') | \
                 (gear_up_transit.array == 'Retracting')
-        else:  # gear_down and gear_down_transit
+        elif gear_down and gear_down_transit:
+            gear_down, gear_down_transit = self._align_params(gear_down, gear_down_transit)
             self.array = 1 - ((gear_down.array == 'Down') | \
                               (gear_down_transit.array == 'Extending'))
+
+    def _align_params(self, *args):
+        '''
+        Align the parameters to 1 Hz.
+
+        This has the same effect as align_frequency = 1.
+        This is a generator, using the parameters found in args and yielding the
+        aligned parameters.
+        '''
+
+        self.frequency = 1
+        self.offset = args[0].offset
+
+        for arg in args:
+            try:
+                aligned_arg = arg.get_aligned(self)
+            except AttributeError:
+                # If parameter came from an HDF, it's missing get_aligned
+                arg = derived_param_from_hdf(arg, cache=self._cache)
+                aligned_arg = arg.get_aligned(self)
+            yield aligned_arg
 
 
 class Gear_RedWarning(MultistateDerivedParameterNode):
