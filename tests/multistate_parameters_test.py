@@ -4802,6 +4802,23 @@ class TestGearUpSelected(unittest.TestCase):
         np.testing.assert_array_equal(node.array, self.expected.array)
         self.assertEqual(node.values_mapping, self.values_mapping)
 
+    def test_derive__down_selected_low_sample_rate(self):
+        gear_down_sel = M(
+            'Gear Down Selected',
+            array=np.ma.array([1]*2 + [0]*20 + [1]*8),
+            values_mapping={0: 'Up', 1: 'Down'},
+            frequency=0.5
+        )
+        down = M('Gear Down', array=np.ma.array([1]*5 + [0]*50 + [1]*5),
+                   values_mapping={0: 'Up', 1: 'Down'})
+        down_transit = M('Gear Down In Transit', array=np.ma.array([0]*45 + [1]*10 + [0]*5),
+                      values_mapping={0: '-', 1: 'Extending'})
+        node = self.node_class()
+        node.derive(None, None, down, down_transit, gear_down_sel)
+
+        np.testing.assert_array_equal(node.array, self.expected.array)
+        self.assertEqual(node.values_mapping, self.values_mapping)
+
 
 class TestGearInTransit(unittest.TestCase):
 
