@@ -1986,7 +1986,8 @@ class GearUpInTransit(MultistateDerivedParameterNode):
 
         elif gear_down and gear_up:
             for start, stop in zip(gear_downs, gear_ups):
-                runs.append(slice(math.ceil(start), stop+1))
+                # Ceil also stop in case gear_down and gear_up are offset by 0.5 sec
+                runs.append(slice(math.ceil(start), math.ceil(stop)+1))
 
         elif gear_up and fallback:
             for stop in gear_ups:
