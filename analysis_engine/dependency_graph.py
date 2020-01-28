@@ -8,8 +8,6 @@ import copy
 
 from collections import deque, Counter
 
-from flightdatautilities.dict_helpers import dict_filter
-
 from analysis_engine.node import (
     ApproachNode,
     DerivedParameterNode,
@@ -26,6 +24,63 @@ not_windows = sys.platform not in ('win32', 'win64') # False for Windows :-(
 CALCULATE_NODE_LAST = [
     '2 Deg Pitch To 35 Ft Duration',
 ]
+
+
+# XXX: Deprecated: Badly engineered...
+def dict_filter(d, keep=None, remove=None):
+    '''
+    Filter a dictionary specifying which keys should stay and which should be
+    removed.
+    :param d: A dictionary to filter keys on.
+    :type d: dict
+    :param keep: A list of keys to be kept within the output dictionary.
+    :type keep: list
+    :param remove: A list of keys to be removed from the output dictionary.
+    :type remove: list
+    '''
+    def replace_down(x, wildkey, thiskey):
+        new_dict = {}
+        try:
+            for key,value in x.items():
+                new_dict[key] = replace_down(x[key], wildkey, thiskey)
+        except:
+            try:
+                x = re.sub(wildkey, thiskey , x)
+            except:
+                pass
+            return x
+        return new_dict
+
+    if keep and remove:
+        raise ValueError('Cannot keep and remove at the same time!')
+    if keep:
+        f = lambda k, v: k in keep
+        return_dict = d.__class__((k, v) for k, v in d.items() if f(k, v))
+    elif remove:
+        f = lambda k, v: k not in remove
+        return_dict = d.__class__((k, v) for k, v in d.items() if f(k, v))
+    else:
+        return_dict = d
+
+    # return return_dict # Was the end
+
+    # Extract the wildcard entries from d
+    import re
+    new_dict={}
+    if keep==None:
+        return return_dict
+    for key in d:
+        if '(*)' in key:
+            wildkey = key.replace("(*)","\\(\\w*\\)") # This format for re.compile
+            wild_one = re.compile(wildkey)
+            for thiskey in keep:
+                pos = wild_one.match(thiskey)
+                if pos:
+                    wildkey = key.replace("(*)","\\(\\*\\)") # This format for re()
+                    new_dict[thiskey]=replace_down(d[key], wildkey, thiskey)
+
+    return dict(return_dict.items() + new_dict.items())
+
 
 """
 TODO:

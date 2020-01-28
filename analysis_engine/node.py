@@ -191,7 +191,7 @@ def _calculate_offset(frequency, offset):
     return offset % (1.0 / frequency)
 
 
-class Node(metaclass=ABCMeta)):
+class Node(metaclass=ABCMeta):
     '''
     Note about aligning options
     ---------------------------
@@ -243,8 +243,7 @@ class Node(metaclass=ABCMeta)):
         '''
         return "%s%s" % (
             self.__class__.__name__,
-            pprint.pformat((self.name or self.get_name(), self.frequency,
-                            self.offset)))
+            pprint.pformat((self.name or self.get_name(), self.frequency, self.offset)))
 
     @property
     def node_type(self):
@@ -631,21 +630,19 @@ class DerivedParameterNode(Node, fda.Parameter):
     data_type = 'Derived'
 
     # XXX: do we need this any more?
+    unit = None
     lfl = False
     source = 'derived'
 
-    def __init__(self, name='', array=np.ma.array([], dtype=float),
-                 frequency=1.0, offset=0.0, data_type=None, lfl=False, *args, **kwargs):
+    def __init__(self, name='', array=np.ma.empty(0, dtype=np.float64), frequency=1.0, offset=0.0, data_type=None,
+                 lfl=False, *args, **kwargs):
 
         kwargs['array'] = array
 
         # XXX: refactor the `lfl` argument
-        if lfl:
             # Where derived parameter is created to represent an LFL parameter, allow
             # it to declare it came from the LFL.
-            kwargs['source'] = 'lfl'
-        else:
-            kwargs['source'] = 'derived'
+        kwargs['source'] = 'lfl' if lfl else 'derived'
 
         if data_type:
             self.data_type = data_type

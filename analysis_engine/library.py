@@ -26,7 +26,7 @@ from scipy.signal import medfilt
 import flightdataaccessor as fda
 
 from flightdatautilities import aircrafttables as at, units as ut
-from flightdatautilities.array import is_power2, is_power2_fraction
+from flightdatautilities.data.scalar import is_power2, is_power2_fraction
 from flightdatautilities.geometry import cross_track_distance, great_circle_distance__haversine
 from flightdatautilities.numpy_utils import py2round, slices_int
 
@@ -46,6 +46,40 @@ from analysis_engine.settings import (
     TRUCK_OR_TRAILER_PERIOD,
     WRAPPING_PARAMS,
 )
+
+#
+# HACK: copied from flightdatautilities.array.scalar - change import once refactoring for FlightDataUtilities change is
+#       complete
+#
+
+def is_power2(number):
+    '''
+    Whether or not a number is a power of two. Forces floats to int.
+    Ref: http://code.activestate.com/recipes/577514-chek-if-a-number-is-a-power-of-two/
+
+    opt: ~4x faster than pure python version
+    '''
+    if number % 1:
+        return False
+    num = int(number)
+    return num > 0 and ((num & (num - 1)) == 0)
+
+
+def is_power2_fraction(number):
+    '''
+    Whether or not a number is a power of two or one divided by a power of two.
+
+    :type number: int or float
+    :returns: if the number is either a power of 2 or a fraction, e.g. 4, 2, 1, 0.5, 0.25
+    :rtype: bool
+    '''
+    if 0 < number < 1:
+        number = 1 / number
+    return is_power2(number)
+
+#
+# END OF HACK
+#
 
 # There is no numpy masked array function for radians, so we just multiply thus:
 deg2rad = radians(1.0)
@@ -7717,7 +7751,7 @@ def _value(array, _slice, operator, start_edge=None, stop_edge=None):
 
     if _slice.step and _slice.step < 0:
         raise ValueError("Negative step not supported")
-    if not array[search_slice].mask.all():
+    if np.ma.count(array[search_slice]):
         # get start_edge and stop_edge values if required
         if start_edge:
             start_result = value_at_index(array, start_edge)

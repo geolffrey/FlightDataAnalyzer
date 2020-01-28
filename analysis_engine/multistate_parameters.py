@@ -533,7 +533,6 @@ class Configuration(MultistateDerivedParameterNode):
     actual configuration state of the aircraft rather than the intended state
     represented by the selected lever position.
     ''' % pformat(at.constants.AVAILABLE_CONF_STATES)
-    values_mapping = at.constants.AVAILABLE_CONF_STATES
     align_frequency = 2
     units = None
 
@@ -562,11 +561,12 @@ class Configuration(MultistateDerivedParameterNode):
     def derive(self, flap=M('Flap Including Transition'), slat=M('Slat Including Transition'),
                model=A('Model'), series=A('Series'), family=A('Family'),):
 
+        values_mapping = at.constants.AVAILABLE_CONF_STATES['Airbus']
         angles = at.get_conf_angles(model.value, series.value, family.value)
 
         # initialize an empty masked array the same length as flap array
         array = MappedArray(np_ma_masked_zeros_like(flap.array, dtype=np.short),
-                                 values_mapping=self.values_mapping)
+                                 values_mapping=values_mapping)
 
         for (state, (s, f, a)) in angles.items():
             condition = (flap.array == f)
@@ -599,13 +599,12 @@ class ConfigurationExcludingTransition(MultistateDerivedParameterNode):
     actual configuration state of the aircraft rather than the intended state
     represented by the selected lever position.
     ''' % pformat(at.constants.AVAILABLE_CONF_STATES)
-    values_mapping = at.constants.AVAILABLE_CONF_STATES
     align_frequency = 2
     units = None
 
     @classmethod
     def can_operate(cls, available, manufacturer=A('Manufacturer'),
-                    model=A('Model'), series=A('Series'), family=A('Family'),):
+                    model=A('Model'), series=A('Series'), family=A('Family')):
 
         if manufacturer and not manufacturer.value == 'Airbus':
             return False
@@ -627,14 +626,13 @@ class ConfigurationExcludingTransition(MultistateDerivedParameterNode):
 
     def derive(self, flap=M('Flap Excluding Transition'), slat=M('Slat Excluding Transition'),
                model=A('Model'), series=A('Series'), family=A('Family'),
-
-
                conf=M('Configuration')):
 
+        values_mapping = at.constants.AVAILABLE_CONF_STATES['Airbus']
         angles = at.get_conf_angles(model.value, series.value, family.value)
 
         # initialize an empty masked array the same length as flap array
-        array = MappedArray(np_ma_masked_zeros_like(flap.array, dtype=np.short), values_mapping=self.values_mapping)
+        array = MappedArray(np_ma_masked_zeros_like(flap.array, dtype=np.short), values_mapping=values_mapping)
 
         for (state, (s, f, a)) in angles.items():
             condition = (flap.array == f)
@@ -687,8 +685,9 @@ class Daylight(MultistateDerivedParameterNode):
                start_datetime=A('Start Datetime'),
                duration=A('HDF Duration')):
         # Set default to 'Day'
-        array = np.ma.ones(int(duration.value * self.frequency))
-        for step in range(int(array_len)):
+        array_len = int(duration.value * self.frequency)
+        array = np.ma.ones(array_len)
+        for step in range(array_len):  # TODO: optimise calculating array in Python and using slow datetime_of_index
             curr_dt = datetime_of_index(start_datetime.value, step, 1)
             lat = latitude.array[step]
             lon = longitude.array[step]

@@ -1168,7 +1168,6 @@ class AltitudeQNH(DerivedParameterNode):
         baro_correction = next((p for p in [baro, baro_capt, baro_fo] if p and not p.array.mask.all()), None)
 
         if baro_correction:
-            baro_correction = baro_param[0]
             baro_fixed = nearest_neighbour_mask_repair(baro_correction.array)
 
             alt_qnh = np_ma_masked_zeros_like(alt_std.array)
@@ -1483,7 +1482,7 @@ class AltitudeTail(DerivedParameterNode):
         # The tail clearance is the value with the aircraft settled on its
         # wheels plus radio atimetry minus the pitch attitude change at that
         # tail arm.
-        for phase in phases:
+        for phase in slices_int(phases):
             result[phase] = alt_rad.array[phase] + ground2tail - np.ma.tan(pitch.array[phase]*deg2rad) * gear2tail
         self.array = result
 
@@ -1855,7 +1854,7 @@ class DistanceFlown(DerivedParameterNode):
         if airs.get_first():
             start = airs.get_first().slice.start
             stop = airs.get_last().slice.stop
-            array[_slice] = integrate(tas.array[start:stop], tas.frequency, scale=1.0 / 3600.0)
+            array[start:stop] = integrate(tas.array[start:stop], tas.frequency, scale=1.0 / 3600.0)
             array[stop:] = array[stop-1]
 
         self.array = array
@@ -5019,9 +5018,8 @@ class CoordinatesSmoothed(object):
                                 speed[join_idx:end],
                                 hdg.array[join_idx:end],
                                 freq)
-                        except ValueError:
-                            self.exception("'%s'. Using non smoothed coordinates for Taxi In",
-                                           self.__class__.__name__)
+                        except (IndexError, ValueError):
+                            self.exception("'%s'. Using non smoothed coordinates for Taxi In", self.__class__.__name__)
                             lat_in = lat.array[join_idx:end]
                             lon_in = lon.array[join_idx:end]
                     else:
@@ -5033,29 +5031,18 @@ class CoordinatesSmoothed(object):
                                 lat_in = lon_in = None
                             else:
                                 join_idx -= max(lat_join.index, lon_join.index) # step back to make sure the join location is not masked.
-                                speed_section = speed[join_idx:end]
+                                speed_slice = slice(join_idx, end)
+                                speed_section = speed[speed_slice]
                                 if len(speed_section):
-                                    lat_in, lon_in = self.taxi_in_track(
-                                        lat_adj[join_idx:end],
-                                        lon_adj[join_idx:end],
-                                        speed_section,
-                                        hdg.array[join_idx:end],
-                                        freq,
-                                    )
+                                    lat_in, lon_in = ground_track(lat_adj[join_idx], lon_adj[join_idx], speed_section,
+                                                                  hdg.array[speed_slice], freq, 'landing')
                                 else:
                                     lat_in, lon_in = [], []
 
-                    # If we have an array of taxi in track values, we use
-                    # this, otherwise we hold at the end of the landing.
-                    if lat_in is not None and not lat_in.mask.all():
-                        lat_adj[join_idx:end] = lat_in
-                    else:
-                        lat_adj[join_idx:end] = lat_adj[join_idx]
-
-                    if lon_in is not None and not lon_in.mask.all():
-                        lon_adj[join_idx:end] = lon_in
-                    else:
-                        lon_adj[join_idx:end] = lon_adj[join_idx]
+                    # If we have an array of taxi in track values, we use this, otherwise we hold at the end of the
+                    # landing.
+                    lat_adj[join_idx:end] = lat_in if lat_in is not None and not lat_in.mask.all() else lat_adj[join_idx]
+                    lon_adj[join_idx:end] = lon_in if lon_in is not None and not lon_in.mask.all() else lon_adj[join_idx]
 
         return lat_adj, lon_adj
 

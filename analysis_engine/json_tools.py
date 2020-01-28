@@ -190,13 +190,14 @@ def merge_process_flights(pf1, pf2):
     return data
 
 
-def process_flight_to_nodes(pf_results):
+def process_flight_to_nodes(pf_results, derived_nodes=None):
     '''
     Load process flight results into Node objects.
     '''
     from analysis_engine import node
 
-    derived_nodes = get_derived_nodes(settings.NODE_MODULES)
+    if derived_nodes is None:
+        derived_nodes = get_derived_nodes(settings.NODE_MODULES)
 
     params = {}
 

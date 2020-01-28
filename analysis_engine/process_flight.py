@@ -262,7 +262,7 @@ def derive_parameters(hdf, node_mgr, process_order, params=None, force=False):
                 # then there will be an array length of  1411 at 0.5Hz and 706
                 # at 0.25Hz (rounded upwards). If we combine two 0.25Hz
                 # parameters then we will have an array length of 1412.
-                expected_length = duration * node.frequency
+                expected_length = int(duration * node.frequency)
                 if node.array is None or (force and len(node.array) == 0):
                     logger.warning("No array set; creating a fully masked array for %s", param_name)
                     array_length = expected_length
@@ -599,7 +599,7 @@ def process_flight(segment_info, tail_number, aircraft_info={}, achieved_flight_
             requested_subset + list(get_derived_nodes(
                 ['analysis_engine.flight_attribute']).keys())))
 
-    initial = process_flight_to_nodes(initial)
+    initial = process_flight_to_nodes(initial, derived_nodes=derived_nodes)
     for node_name in requested_subset:
         initial.pop(node_name, None)
 
@@ -616,6 +616,7 @@ def process_flight(segment_info, tail_number, aircraft_info={}, achieved_flight_
 
         # Merge Params
         param_names = hdf.valid_lfl_param_names() if reprocess else hdf.valid_param_names()
+        param_names += list(initial.keys())  # do not rederive initial nodes
         pre_process_parameters(hdf, segment_info, param_names, required,
                                aircraft_info, achieved_flight_record, force=force,
                                dependency_tree_log=dependency_tree_log)

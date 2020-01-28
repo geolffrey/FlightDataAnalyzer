@@ -443,8 +443,10 @@ class AccelerationLateralOffset(KeyPointValueNode):
         Get the unmasked data within the taxiing in a straight line phase and
         compute the average for this section(s) if there are enough samples.
         '''
-        unmasked_data = np.ma.compressed(np.ma.concatenate(
-            [acc_lat.array[s] for s in slices_and(taxiing.get_slices(), slices_not(turns.get_slices()))]))
+        slices = slices_and(taxiing.get_slices(), slices_not(turns.get_slices()))
+        if not slices:
+            return
+        unmasked_data = np.ma.compressed(np.ma.concatenate([acc_lat.array[s] for s in slices_int(slices)]))
 
         if len(unmasked_data) > 20:
             delta = np.sum(unmasked_data) / float(len(unmasked_data))
@@ -1290,7 +1292,7 @@ class AirspeedAt35FtDuringTakeoff(KeyPointValueNode):
                takeoffs=S('Takeoff')):
 
         for takeoff in takeoffs:
-            self.create_kpv(*value_at_index(air_spd.array, takeoff.stop_edge))  # Takeoff ends at 35ft!
+            self.create_kpv(takeoff.stop_edge, value_at_index(air_spd.array, takeoff.stop_edge))  # Takeoff ends at 35ft!
 
 
 class Airspeed35To1000FtMax(KeyPointValueNode):
@@ -2181,7 +2183,7 @@ class AirspeedMinusV2At35FtDuringTakeoff(KeyPointValueNode):
                takeoffs=S('Takeoff')):
 
         for takeoff in takeoffs:
-            self.create_kpv(*value_at_index(spd_v2.array, takeoff.stop_edge))
+            self.create_kpv(takeoff.stop_edge, value_at_index(spd_v2.array, takeoff.stop_edge))
 
 
 class AirspeedMinusV235ToClimbAccelerationStartMin(KeyPointValueNode):
