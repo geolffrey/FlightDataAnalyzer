@@ -251,13 +251,13 @@ class AccelerationForwards(DerivedParameterNode):
     acceleration, that is, in the direction of the aircraft centreline
     when projected onto the earth's surface.
 
-    Forwards = +ve, Constant sensor errors not washed out.
+    Forwards = +ve, Constant sensor errors washed out.
     """
 
     units = ut.G
 
     def derive(self, acc_norm=P('Acceleration Normal Offset Removed'),
-               acc_long=P('Acceleration Longitudinal'),
+               acc_long=P('Acceleration Longitudinal Offset Removed'),
                pitch=P('Pitch')):
         pitch_rad = pitch.array * deg2rad
         self.array = acc_long.array * np.ma.cos(pitch_rad)\

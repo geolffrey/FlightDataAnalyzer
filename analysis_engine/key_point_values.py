@@ -521,6 +521,7 @@ class AccelerationLongitudinalOffset(KeyPointValueNode):
 
     def derive(self,
                acc_lon=P('Acceleration Longitudinal'),
+               pitch=P('Pitch'),
                mobiles=S('Mobile'),
                fasts=S('Fast')):
         '''
@@ -536,15 +537,16 @@ class AccelerationLongitudinalOffset(KeyPointValueNode):
 
         taxis = slices_and_not(mobiles.get_slices(), fasts.get_slices())
 
-        '''
-        Get the unmasked data within the taxis slices provided and compute
-        the average for this section(s) if there are enough samples.
-        '''
-        unmasked_data = []
-        for taxi in slices_int(taxis):
-            unmasked_data.extend(np.ma.compressed(acc_lon.array[taxi]))
-        if len(unmasked_data) > 20:
-            delta = np.sum(unmasked_data) / float(len(unmasked_data))
+        # Get the unmasked data within the taxis slices provided and compute
+        # the average for this section(s) if there are enough samples.
+
+        taxis = np.r_[tuple(slices_int(taxis))]
+        pitch_median = np.median(np.ma.compressed(pitch.array[taxis]))
+        acc_lon_data = np.ma.compressed(acc_lon.array[taxis])
+        if len(acc_lon_data) > 20:
+            acc_lon_avg = np.average(acc_lon_data)
+            expected_accel = np.sin(np.deg2rad(pitch_median))
+            delta = acc_lon_avg - expected_accel
             self.create_kpv(0, delta)
             if abs(delta) > ACCEL_LON_OFFSET_LIMIT:
                 self.warning("Acceleration Longitudinal offset '%s' greater than limit '%s'",
@@ -1138,17 +1140,20 @@ class AccelerationNormalOffset(KeyPointValueNode):
 
     def derive(self,
                acc_norm=P('Acceleration Normal'),
+               pitch=P('Pitch'),
                taxiing = S('Taxiing')):
 
         '''
         Get the unmasked data within the taxiing slices provided and compute
         the average for this section(s) if there are enough samples.
         '''
-        unmasked_data = []
-        for taxi in slices_int(taxiing.get_slices()):
-            unmasked_data.extend(np.ma.compressed(acc_norm.array[taxi]))
-        if len(unmasked_data) > 20:
-            delta = np.sum(unmasked_data) / float(len(unmasked_data)) - 1.0
+        taxiing = np.r_[tuple(slices_int(taxiing.get_slices()))]
+        pitch_median = np.median(np.ma.compressed(pitch.array[taxiing]))
+        acc_norm_data = np.ma.compressed(acc_norm.array[taxiing])
+        if len(acc_norm_data) >= 20:
+            acc_norm_avg = np.average(acc_norm_data)
+            expected_acc = np.cos(np.deg2rad(pitch_median))
+            delta = acc_norm_avg - expected_acc
             self.create_kpv(0, delta + 1.0)
             if abs(delta) > ACCEL_NORM_OFFSET_LIMIT:
                 self.warning("Acceleration Normal offset '%s' greater than limit '%s'",

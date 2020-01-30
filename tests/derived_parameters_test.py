@@ -463,7 +463,7 @@ class TestAccelerationVertical(unittest.TestCase):
 class TestAccelerationForwards(unittest.TestCase):
     def test_can_operate(self):
         expected = [('Acceleration Normal Offset Removed',
-                    'Acceleration Longitudinal', 'Pitch')]
+                    'Acceleration Longitudinal Offset Removed', 'Pitch')]
         opts = AccelerationForwards.get_operational_combinations()
         self.assertEqual(opts, expected)
 
@@ -473,7 +473,7 @@ class TestAccelerationForwards(unittest.TestCase):
 
         acc_fwd.get_derived([
             Parameter('Acceleration Normal Offset Removed', np.ma.ones(8), 8),
-            Parameter('Acceleration Longitudinal', np.ma.ones(4) * 0.1,4),
+            Parameter('Acceleration Longitudinal Offset Removed', np.ma.ones(4) * 0.1,4),
             Parameter('Pitch', np.ma.zeros(2), 2)
         ])
         ma_test.assert_masked_array_approx_equal(
@@ -486,7 +486,7 @@ class TestAccelerationForwards(unittest.TestCase):
 
         acc_fwd.get_derived([
             P('Acceleration Normal Offset Removed', np.ma.ones(8) * 0.8660254, 8),
-            P('Acceleration Longitudinal', np.ma.ones(4) * 0.5, 4),
+            P('Acceleration Longitudinal Offset Removed', np.ma.ones(4) * 0.5, 4),
             P('Pitch', np.ma.ones(2) * 30.0, 2)
         ])
 

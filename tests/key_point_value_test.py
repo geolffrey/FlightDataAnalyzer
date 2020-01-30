@@ -1476,11 +1476,14 @@ class TestAccelerationLongitudinalOffset(unittest.TestCase, NodeTest):
 
     def setUp(self):
         self.node_class = AccelerationLongitudinalOffset
-        self.operational_combinations = [('Acceleration Longitudinal', 'Mobile', 'Fast')]
+        self.operational_combinations = [
+            ('Acceleration Longitudinal', 'Mobile', 'Fast', 'Pitch')
+        ]
         self.acc_lon_array=np.ma.array([0] * 17 + [0.02, 0.05, 0.02, 0, -0.017,] + [0] * 7 +
                                        [0.02, 0.04, 0.01] + [0.011] * 4 + [0] * 6 + [-0.02] +
                                        [0] * 5 + [0.02, 0.08, 0.08, 0.08, 0.08] + [0] * 10 +
                                        [0.02, 0.04, 0.01] + [0.011] * 4 + [0] * 10)*1.5
+        self.pitch = P('Pitch', array=np.ma.array(np.zeros_like(self.acc_lon_array)))
         self.mobiles = S(items=[Section('Mobile', slice(10, 40), 10, 40),
                                 Section('Mobile', slice(60, 75), 60, 75)])
         self.fasts = S(items=[Section('Fast', slice(17, 20), 17, 20),
@@ -1492,7 +1495,7 @@ class TestAccelerationLongitudinalOffset(unittest.TestCase, NodeTest):
         acc_lon = P(name='Acceleration Longitudinal', array=self.acc_lon_array)
 
         acc_lon_offset_kpv = AccelerationLongitudinalOffset()
-        acc_lon_offset_kpv.derive(acc_lon, self.mobiles, self.fasts)
+        acc_lon_offset_kpv.derive(acc_lon, self.pitch, self.mobiles, self.fasts)
 
         self.assertEqual(len(acc_lon_offset_kpv), 1)
         self.assertAlmostEqual(acc_lon_offset_kpv[0].value, 0.005875, delta=0.00000000000001)
@@ -1501,7 +1504,7 @@ class TestAccelerationLongitudinalOffset(unittest.TestCase, NodeTest):
         acc_lon = P(name='Acceleration Longitudinal', array=-self.acc_lon_array)
 
         acc_lon_offset_kpv = AccelerationLongitudinalOffset()
-        acc_lon_offset_kpv.derive(acc_lon, self.mobiles, self.fasts)
+        acc_lon_offset_kpv.derive(acc_lon, self.pitch, self.mobiles, self.fasts)
 
         self.assertEqual(len(acc_lon_offset_kpv), 1)
         self.assertAlmostEqual(acc_lon_offset_kpv[0].value, -0.005875, delta=0.00000000000001)
@@ -1510,7 +1513,7 @@ class TestAccelerationLongitudinalOffset(unittest.TestCase, NodeTest):
         acc_lon = P(name='Acceleration Longitudinal', array=np.zeros_like(self.acc_lon_array))
 
         acc_lon_offset_kpv = AccelerationLongitudinalOffset()
-        acc_lon_offset_kpv.derive(acc_lon, self.mobiles, self.fasts)
+        acc_lon_offset_kpv.derive(acc_lon, self.pitch, self.mobiles, self.fasts)
 
         self.assertEqual(len(acc_lon_offset_kpv), 1)
         self.assertAlmostEqual(acc_lon_offset_kpv[0].value, 0.0)
@@ -1521,7 +1524,7 @@ class TestAccelerationLongitudinalOffset(unittest.TestCase, NodeTest):
             acc_lon.array[60:71] = acc_lon.array[74:75] = 0.0
 
         acc_lon_offset_kpv = AccelerationLongitudinalOffset()
-        acc_lon_offset_kpv.derive(acc_lon, self.mobiles, self.fasts)
+        acc_lon_offset_kpv.derive(acc_lon, self.pitch, self.mobiles, self.fasts)
 
         self.assertEqual(len(acc_lon_offset_kpv), 1)
         self.assertAlmostEqual(acc_lon_offset_kpv[0].value, 0.0)
@@ -1531,7 +1534,7 @@ class TestAccelerationLongitudinalOffset(unittest.TestCase, NodeTest):
         acc_lon.array[60:71] = acc_lon.array[74:75] = 0.0
 
         acc_lon_offset_kpv = AccelerationLongitudinalOffset()
-        acc_lon_offset_kpv.derive(acc_lon, self.mobiles, self.fasts)
+        acc_lon_offset_kpv.derive(acc_lon, self.pitch, self.mobiles, self.fasts)
 
         self.assertEqual(len(acc_lon_offset_kpv), 1)
         self.assertAlmostEqual(acc_lon_offset_kpv[0].value, 0.001125)
@@ -1542,7 +1545,7 @@ class TestAccelerationLongitudinalOffset(unittest.TestCase, NodeTest):
                          Section('Fast', slice(71, 74), 71, 74)])
 
         acc_lon_offset_kpv = AccelerationLongitudinalOffset()
-        acc_lon_offset_kpv.derive(acc_lon, self.mobiles, fasts)
+        acc_lon_offset_kpv.derive(acc_lon, self.pitch, self.mobiles, fasts)
 
         self.assertEqual(len(acc_lon_offset_kpv), 0)
 
@@ -1550,7 +1553,7 @@ class TestAccelerationLongitudinalOffset(unittest.TestCase, NodeTest):
         acc_lon = P(name='Acceleration Longitudinal', array=self.acc_lon_array+1.5)
 
         acc_lon_offset_kpv = AccelerationLongitudinalOffset()
-        acc_lon_offset_kpv.derive(acc_lon, self.mobiles, self.fasts)
+        acc_lon_offset_kpv.derive(acc_lon, self.pitch, self.mobiles, self.fasts)
 
         self.assertEqual(len(acc_lon_offset_kpv), 1)
         self.assertAlmostEqual(acc_lon_offset_kpv[0].value, 1.505875, delta=0.00000000000001)
@@ -1561,9 +1564,20 @@ class TestAccelerationLongitudinalOffset(unittest.TestCase, NodeTest):
         acc_lon.array[10:75] = np.ma.masked
 
         acc_lon_offset_kpv = AccelerationLongitudinalOffset()
-        acc_lon_offset_kpv.derive(acc_lon, self.mobiles, self.fasts)
+        acc_lon_offset_kpv.derive(acc_lon, self.pitch, self.mobiles, self.fasts)
 
         self.assertEqual(len(acc_lon_offset_kpv), 0)
+
+    def test_derive_negative_pitch(self):
+        pitch = P('Pitch', array=np.ma.array(np.ones_like(self.acc_lon_array) * -4))
+        acc_lon = P(name='Acceleration Longitudinal', array=self.acc_lon_array)
+
+        acc_lon_offset_kpv = AccelerationLongitudinalOffset()
+        acc_lon_offset_kpv.derive(acc_lon, pitch, self.mobiles, self.fasts)
+
+        self.assertEqual(len(acc_lon_offset_kpv), 1)
+        expected = 0.005875 - np.sin(np.deg2rad(pitch.array[0]))
+        self.assertAlmostEqual(acc_lon_offset_kpv[0].value, expected, delta=0.00000000000001)
 
 
 class TestAccelerationLongitudinalDuringTakeoffMax(unittest.TestCase, CreateKPVFromSlicesTest):
@@ -2483,86 +2497,101 @@ class TestAccelerationNormalOffset(unittest.TestCase, NodeTest):
 
     def setUp(self):
         self.node_class = AccelerationNormalOffset
-        self.operational_combinations = [('Acceleration Normal', 'Taxiing')]
-        self.acc_normal_array=np.ma.array([0] * 17 + [0.02, 0.05, 0.02, 0, -0.017,] + [0] * 7 +
-                                          [0.02, 0.04, 0.01] + [0.011] * 4 + [0] * 6 + [-0.02] +
-                                          [0] * 5 + [0.02, 0.08, 0.08, 0.08, 0.08] + [0] * 10 + [0.02, 0.04, 0.01] + [0.011] * 4 + [0] * 10)*1.5
+        self.operational_combinations = [('Acceleration Normal', 'Pitch', 'Taxiing')]
+        self.acc_normal_array = np.ma.array(
+            [0] * 17 + [0.02, 0.05, 0.02, 0, -0.017,] + [0] * 7 +
+            [0.02, 0.04, 0.01] + [0.011] * 4 + [0] * 6 + [-0.02] +
+            [0] * 5 + [0.02, 0.08, 0.08, 0.08, 0.08] + [0] * 10 +
+            [0.02, 0.04, 0.01] + [0.011] * 4 + [0] * 10
+        ) * 1.5
+        self.pitch = P('Pitch', array=np.ma.array(np.zeros_like(self.acc_normal_array)))
         self.taxiing = S(items=[Section('Taxiing', slice(10, 30), 10, 30),
                                 Section('Taxiing', slice(60, 75), 60, 75)])
 
     def test_derive_normal_scenario(self):
-        acc_normal = P(name='Acceleration Longitudinal', array=self.acc_normal_array)
+        acc_normal = P(name='Acceleration Normal', array=self.acc_normal_array+1)
 
         acc_normal_offset_kpv = AccelerationNormalOffset()
-        acc_normal_offset_kpv.derive(acc_normal, self.taxiing)
+        acc_normal_offset_kpv.derive(acc_normal, self.pitch, self.taxiing)
 
         self.assertEqual(len(acc_normal_offset_kpv), 1)
-        self.assertAlmostEqual(acc_normal_offset_kpv[0].value, 0.00887142857143, delta=0.00000000000001)
+        self.assertAlmostEqual(acc_normal_offset_kpv[0].value, 1.00887142857143, delta=0.00000000000001)
 
     def test_derive_negative_values(self):
-        acc_normal = P(name='Acceleration Longitudinal', array=-self.acc_normal_array)
+        acc_normal = P(name='Acceleration Normal', array=1-self.acc_normal_array)
 
         acc_normal_offset_kpv = AccelerationNormalOffset()
-        acc_normal_offset_kpv.derive(acc_normal, self.taxiing)
+        acc_normal_offset_kpv.derive(acc_normal, self.pitch, self.taxiing)
 
         self.assertEqual(len(acc_normal_offset_kpv), 1)
-        self.assertAlmostEqual(acc_normal_offset_kpv[0].value, -0.00887142857143, delta=0.00000000000001)
+        self.assertAlmostEqual(acc_normal_offset_kpv[0].value, 1-0.00887142857143, delta=0.00000000000001)
 
     def test_derive_all_values_equal_0(self):
-        acc_normal = P(name='Acceleration Longitudinal', array=np.zeros_like(self.acc_normal_array))
+        acc_normal = P(name='Acceleration Normal', array=np.zeros_like(self.acc_normal_array))
 
         acc_normal_offset_kpv = AccelerationNormalOffset()
-        acc_normal_offset_kpv.derive(acc_normal, self.taxiing)
+        acc_normal_offset_kpv.derive(acc_normal, self.pitch, self.taxiing)
 
         self.assertEqual(len(acc_normal_offset_kpv), 1)
         self.assertAlmostEqual(acc_normal_offset_kpv[0].value, 0.0, delta=0.00000000000001)
 
     def test_derive_values_in_given_slices_all_0(self):
-        acc_normal = P(name='Acceleration Longitudinal', array=self.acc_normal_array)
+        acc_normal = P(name='Acceleration Normal', array=self.acc_normal_array)
         acc_normal.array[10:30] = acc_normal.array[60:75] = 0.0
 
         acc_normal_offset_kpv = AccelerationNormalOffset()
-        acc_normal_offset_kpv.derive(acc_normal, self.taxiing)
+        acc_normal_offset_kpv.derive(acc_normal, self.pitch, self.taxiing)
 
         self.assertEqual(len(acc_normal_offset_kpv), 1)
         self.assertAlmostEqual(acc_normal_offset_kpv[0].value, 0.0, delta=0.00000000000001)
 
     def test_derive_values_in_one_slice_only(self):
-        acc_normal = P(name='Acceleration Longitudinal', array=self.acc_normal_array)
-        acc_normal.array[60:75] = 0.0
+        acc_normal = P(name='Acceleration Normal', array=1+self.acc_normal_array)
+        acc_normal.array[60:75] = np.ma.masked
 
         acc_normal_offset_kpv = AccelerationNormalOffset()
-        acc_normal_offset_kpv.derive(acc_normal, self.taxiing)
+        acc_normal_offset_kpv.derive(acc_normal, self.pitch, self.taxiing)
 
         self.assertEqual(len(acc_normal_offset_kpv), 1)
-        self.assertAlmostEqual(acc_normal_offset_kpv[0].value, 0.00398571428571, delta=0.00000000000001)
+        self.assertAlmostEqual(acc_normal_offset_kpv[0].value, 1.006975, delta=0.00000000000001)
 
     def test_derive_not_enough_samples(self):
-        acc_normal = P(name='Acceleration Longitudinal', array=self.acc_normal_array)
+        acc_normal = P(name='Acceleration Normal', array=self.acc_normal_array)
         taxiing = S(items=[Section('Taxiing', slice(10, 15), 10, 15)])
 
         acc_normal_offset_kpv = AccelerationNormalOffset()
-        acc_normal_offset_kpv.derive(acc_normal, taxiing)
+        acc_normal_offset_kpv.derive(acc_normal, self.pitch, taxiing)
 
         self.assertEqual(len(acc_normal_offset_kpv), 0)
 
     def test_derive_large_delta(self):
-        acc_normal = P(name='Acceleration Longitudinal', array=self.acc_normal_array+1.5)
+        acc_normal = P(name='Acceleration Normal', array=self.acc_normal_array+1.5)
 
         acc_normal_offset_kpv = AccelerationNormalOffset()
-        acc_normal_offset_kpv.derive(acc_normal, self.taxiing)
+        acc_normal_offset_kpv.derive(acc_normal, self.pitch, self.taxiing)
 
         self.assertEqual(len(acc_normal_offset_kpv), 1)
         self.assertAlmostEqual(acc_normal_offset_kpv[0].value, 1.50887142857, delta=0.0000000001)
 
     def test_derive_masked_data(self):
-        acc_normal = P(name='Acceleration Longitudinal', array=self.acc_normal_array)
+        acc_normal = P(name='Acceleration Normal', array=1+self.acc_normal_array)
         acc_normal.array[10:30] = acc_normal.array[60:75] = np.ma.masked
 
         acc_normal_offset_kpv = AccelerationNormalOffset()
-        acc_normal_offset_kpv.derive(acc_normal, self.taxiing)
+        acc_normal_offset_kpv.derive(acc_normal, self.pitch, self.taxiing)
 
         self.assertEqual(len(acc_normal_offset_kpv), 0)
+
+    def test_derive_negative_pitch(self):
+        pitch = P('Pitch', array=np.ma.array(np.ones_like(self.acc_normal_array) * -4))
+        acc_normal = P(name='Acceleration Normal', array=1+self.acc_normal_array)
+
+        acc_normal_offset_kpv = AccelerationNormalOffset()
+        acc_normal_offset_kpv.derive(acc_normal, pitch, self.taxiing)
+
+        expected = 1.00887142857143 - (np.cos(np.deg2rad(-4)) - 1)
+        self.assertEqual(len(acc_normal_offset_kpv), 1)
+        self.assertAlmostEqual(acc_normal_offset_kpv[0].value, expected, delta=0.00000000000001)
 
 
 class TestAccelerationNormalWhileAirborneMax(unittest.TestCase):
