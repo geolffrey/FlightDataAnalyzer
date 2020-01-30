@@ -98,7 +98,7 @@ SPLIT_PARAMETERS = ('Eng (1) N1', 'Eng (2) N1', 'Eng (3) N1', 'Eng (4) N1',
 
 # Node cache determines whether Nodes will be cached during processing to avoid
 # unnecessary array alignment. Caching parameters will increase memory usage.
-NODE_CACHE = True
+NODE_CACHE = False  # TODO: find out why cache is not freed for multiple flights
 
 # The number of decimal places which the offset of cached parameters will be
 # accurate to. A value of None will retain full accuracy.
