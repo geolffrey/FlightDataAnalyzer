@@ -993,8 +993,7 @@ class AltitudeRadio(DerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
         alt_rads = [n for n in cls.get_dependency_names() if n.startswith('Altitude Radio')]
-        return ('Fast' in available) and any_of(alt_rads, available)
-
+        return 'Fast' in available and any_of(alt_rads, available)
 
     def derive(self,
                source_A=P('Altitude Radio (A)'),
@@ -1019,41 +1018,15 @@ class AltitudeRadio(DerivedParameterNode):
         self.offset = 0.0
         self.frequency = 4.0
 
-
-        def get_climb_cruise_descent():
-            '''
-            Create a crude ClimbCruiseDescent replacing Airborne phase by Fast.
-            We cannot use ClimbCruiseDescent as it would create a circular dependency
-            which would prevent AltitudeAAL to use AltitudeRadio.
-            AltitudeAAL -> AltitudeRadio -> ClimbCruiseDescent ->
-            Airborne -> AltitudeAALForFlightPhases -> AltitudeAAL
-
-            This generator will return a list of slices representing a
-            climb-cruise-descent per fast section.
-            '''
-            for quick in fast:
-                try:
-                    alts = repair_mask(alt_std.array[quick.slice], repair_duration=None)
-                except:
-                    # Short segments may be wholly masked. We ignore these.
-                    continue
-
-                section_slices = find_climb_cruise_descent(alts)
-                section_slices = shift_slices(section_slices, quick.slice.start or 0)
-                yield section_slices
-
-        ccd = list(itertools.chain.from_iterable(get_climb_cruise_descent()))
-
         osources = []
         for source in sources:
             if source is None:
                 continue
             # correct for overflow, aligning the fast slice to each source
-            source.array = overflow_correction(source.array,
-                                               align(alt_std, source),
-                                               fast=fast.get_aligned(source),
-                                               hz=source.frequency,
-                                               ccd=ccd)
+            aligned_fast = fast.get_aligned(source)
+            source.array = np.ma.masked_invalid(
+                overflow_correction(source.array, align(alt_std, source),fast=aligned_fast, hz=source.frequency)
+            )
 
             # Some data frames reference altimeters which are optionally
             # recorded. It is impractical to maintain the LFL patching
