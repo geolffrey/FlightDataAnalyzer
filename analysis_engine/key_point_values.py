@@ -5960,8 +5960,11 @@ class AltitudeAtLastFlapChangeBeforeBottomOfDescent(KeyPointValueNode):
 
         flap = flap_lever or flap_synth
 
+        # Extend app sections as Bottom Of Descent might lie right after app section
+        # in case of go-around
+        app_slices = slices_extend_duration(apps.get_slices(), apps.hz, 2)
         bottoms_in_app = [
-            b for b in bottoms if is_index_within_slices(b.index, apps.get_slices())
+            b for b in bottoms if is_index_within_slices(b.index, app_slices)
         ]
 
         for bottom in bottoms_in_app:

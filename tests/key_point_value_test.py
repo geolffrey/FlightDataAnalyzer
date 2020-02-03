@@ -7321,6 +7321,25 @@ class TestAltitudeAtLastFlapChangeBeforeBottomOfDescent(unittest.TestCase, NodeT
             KeyPointValue(index=8.0, value=200.0, name=name),
         ]))
 
+    def test_bottom_of_descent_just_outside_approach(self):
+        # Real data shows that Bottom Of Descent could be a split second
+        # after Approach and Landing in case of go-around.
+        # We still want to consider it as if it was lying within the App & Landing section
+        array = np.ma.concatenate((np.ones(2) * 10, np.ones(3) * 15,  np.ones(8) * 10, np.ones(7) * 15))
+        mapping = {0: '0', 10: '10', 15: '15'}
+        flap_lever = M(name='Flap Lever', array=array, values_mapping=mapping)
+        array = np.ma.concatenate((np.arange(1000, 500, -100), np.arange(1000, 0, -100), np.zeros(5)))
+        alt_aal = P(name='Altitude AAL', array=array)
+        bottoms = KTI('Bottom Of Descent', items=[KeyTimeInstance(4), KeyTimeInstance(15)])
+        apps = buildsections('Approach And Landing', (0, 3.8), (9, 20))
+        name = self.node_class.get_name()
+        node = self.node_class()
+        node.derive(alt_aal, flap_lever, None, bottoms, apps, None)
+        self.assertEqual(node, KPV(name=name, items=[
+            KeyPointValue(index=2.0, value=800.0, name=name),
+            KeyPointValue(index=13.0, value=200.0, name=name),
+        ]))
+
 
 class TestAltitudeAtLastFlapSelectionBeforeTouchdown(unittest.TestCase):
     def setUp(self):
