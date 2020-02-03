@@ -604,6 +604,7 @@ from analysis_engine.key_point_values import (
     RateOfClimbBelow10000FtMax,
     RateOfClimbDuringGoAroundMax,
     RateOfClimbMax,
+    RateOfClimbAtHeightBeforeAltitudeSelected,
     RateOfClimbAtHeightBeforeLevelFlight,
     RateOfDescent10000To5000FtMax,
     RateOfDescent1000To500FtMax,
@@ -618,6 +619,7 @@ from analysis_engine.key_point_values import (
     RateOfDescentMax,
     RateOfDescentAbove3000FtMax,
     RateOfDescentTopOfDescentTo10000FtMax,
+    RateOfDescentAtHeightBeforeAltitudeSelected,
     RateOfDescentAtHeightBeforeLevelFlight,
     Roll1000To300FtMax,
     Roll20FtToTouchdownMax,
@@ -18070,6 +18072,54 @@ class TestRateOfClimbAtHeightBeforeLevelOff(unittest.TestCase):
         self.assertEqual(node, expected)
 
 
+class TestRateOfClimbAtHeightBeforeAltitudeSelected(unittest.TestCase):
+
+    def setUp(self):
+        self.node_class = RateOfClimbAtHeightBeforeAltitudeSelected
+
+    def test_can_operate_airbus(self):
+        manufacturer = A('Manufacturer', 'Airbus')
+        available = ['Altitude QNH', 'Altitude Selected', 'Airborne', 'Approach And Landing', 'Vertical Speed']
+        self.assertFalse(self.node_class.can_operate(available, manufacturer=manufacturer))
+
+        for params in (['Baro Setting Selection'],
+                       ['Baro Setting Selection (Capt)', 'Baro Setting Selection (FO)'],
+                       ['Baro Correction (ISIS)']):
+
+            self.assertTrue(self.node_class.can_operate(available + params, manufacturer=manufacturer))
+
+    def test_derive(self):
+        roc_array = np.ma.arange(3000, -100, -100)
+        vert_spd = P('Vertical Speed', roc_array)
+        alt = P('Altitude QNH', array=np.ma.arange(2000, 5100, 100))
+        alt_sel = P('Altitude Selected', array=np.ma.ones(31) * 5000)
+        airborne = buildsection('Airborne', 0, 31)
+        node = self.node_class()
+        node.derive(alt, alt_sel, vert_spd, airborne, None, None, None, None)
+
+        expected = KPV('Rate Of Climb At Height Before Altitude Selected', items=[
+            KeyPointValue(name='Rate Of Climb At 2000 Ft Before Altitude Selected',
+                          index=10,
+                          value=2000),
+            KeyPointValue(name='Rate Of Climb At 1000 Ft Before Altitude Selected',
+                          index=20,
+                          value=1000),
+        ])
+        self.assertEqual(node, expected)
+
+    def test_descending_below_alt_sel(self):
+        roc_array = np.ma.ones(25) * -1000
+        vert_spd = P('Vertical Speed', roc_array)
+        alt = P('Altitude QNH', array=np.ma.arange(5000, 2500, -100))
+        alt_sel = P('Altitude Selected', array=np.ma.ones(25) * 5000)
+        airborne = buildsection('Airborne', 0, 31)
+        node = self.node_class()
+        node.derive(alt, alt_sel, vert_spd, airborne, None, None, None, None)
+
+        expected = KPV('Rate Of Climb At Height Before Altitude Selected', items=[])
+        self.assertEqual(node, expected)
+
+
 ##############################################################################
 # Rate of Descent
 
@@ -18499,6 +18549,131 @@ class TestRateOfDescentAtHeightBeforeLevelOff(unittest.TestCase):
             KeyPointValue(name='Rate Of Descent At 1000 Ft Before Level Off',
                           index=24,
                           value=-625),
+        ])
+        self.assertEqual(node, expected)
+
+
+class TestRateOfDescentAtHeightBeforeAltitudeSelected(unittest.TestCase):
+
+    def setUp(self):
+        self.node_class = RateOfDescentAtHeightBeforeAltitudeSelected
+
+    def test_can_operate_airbus(self):
+        manufacturer = A('Manufacturer', 'Airbus')
+        available = [
+            'Altitude QNH', 'Altitude Selected', 'Airborne',
+            'Vertical Speed', 'Approach And Landing'
+        ]
+        self.assertFalse(self.node_class.can_operate(available, manufacturer=manufacturer))
+
+        for params in (['Baro Setting Selection'],
+                       ['Baro Setting Selection (Capt)', 'Baro Setting Selection (FO)'],
+                       ['Baro Correction (ISIS)']):
+
+            self.assertTrue(self.node_class.can_operate(available + params, manufacturer=manufacturer))
+
+    def test_derive(self):
+        roc_array = np.ma.arange(-3000, 100, 100)
+        vert_spd = P('Vertical Speed', roc_array)
+        alt = P('Altitude QNH', array=np.ma.arange(5000, 1900, -100))
+        alt_sel = P('Altitude Selected', array=np.ma.ones(31) * 2000)
+        airborne = buildsection('Airborne', 0, 31)
+        apps = S('Approach And Landing')
+        node = self.node_class()
+        node.derive(alt, alt_sel, vert_spd, airborne, apps, None, None, None, None)
+
+        expected = KPV('Rate Of Descent At Height Before Altitude Selected', items=[
+            KeyPointValue(name='Rate Of Descent At 2000 Ft Before Altitude Selected',
+                          index=10,
+                          value=-2000),
+            KeyPointValue(name='Rate Of Descent At 1000 Ft Before Altitude Selected',
+                          index=20,
+                          value=-1000),
+        ])
+        self.assertEqual(node, expected)
+
+    def test_climbing_above_alt_sel(self):
+        roc_array = np.ma.ones(25) * 1000
+        vert_spd = P('Vertical Speed', roc_array)
+        alt = P('Altitude QNH', array=np.ma.arange(3000, 5500, 100))
+        alt_sel = P('Altitude Selected', array=np.ma.ones(25) * 3000)
+        airborne = buildsection('Airborne', 0, 31)
+        apps = S('Approach And Landing')
+        node = self.node_class()
+        node.derive(alt, alt_sel, vert_spd, airborne, apps, None, None, None, None)
+
+        expected = KPV('Rate Of Descent At Height Before Altitude Selected', items=[])
+        self.assertEqual(node, expected)
+
+
+    def test_descent_through_missed_app_altitude(self):
+        roc_array = np.ma.arange(-3000, 100, 100)
+        vert_spd = P('Vertical Speed', roc_array)
+        alt = P('Altitude QNH', array=np.ma.arange(5000, 1900, -100))
+        alt_sel = P('Altitude Selected', array=np.ma.ones(31) * 2000)
+        airborne = buildsection('Airborne', 0, 31)
+        apps = buildsection('Approach And Landing', 20, 31)
+        node = self.node_class()
+        node.derive(alt, alt_sel, vert_spd, airborne, apps, None, None, None, None)
+
+        expected = KPV('Rate Of Descent At Height Before Altitude Selected', items=[])
+        self.assertEqual(node, expected)
+
+    def test_descent_through_intercept_altitude(self):
+        # The plane intercepted the final approach path before reaching the intercept
+        # altitude. The missed approach altitude might be set after the aicraft
+        # flew through the intercept altitude.
+        vert_spd = P('Vertical Speed', array=np.ma.ones(70) * -1000)
+        alt = P('Altitude QNH', array=np.ma.arange(7000, 0, -100))
+        array = np.ma.concatenate((
+            np.ma.ones(15) * 5000,
+            np.ma.ones(40) * 3000,
+            np.ma.ones(15) * 5000
+        ))
+        alt_sel = P('Altitude Selected', array=array)
+        airborne = buildsection('Airborne', 0, 70)
+        apps = buildsection('Approach And Landing', 0, 70)
+        node = self.node_class()
+        node.derive(alt, alt_sel, vert_spd, airborne, apps, None, None, None, None)
+
+        expected = KPV('Rate Of Descent At Height Before Altitude Selected', items=[
+            KeyPointValue(name='Rate Of Descent At 2000 Ft Before Altitude Selected',
+                          index=0.0, value=-1000.0),
+            KeyPointValue(name='Rate Of Descent At 1000 Ft Before Altitude Selected',
+                          index=10.0, value=-1000.0)
+        ])
+        self.assertEqual(node, expected)
+
+    def test_maintain_intercept_altitude(self):
+        # If the plane maintains the intercept altitude, we should still
+        # measure the rate of descent.
+        array = np.ma.concatenate((
+            np.ma.ones(25) * -1000,
+            np.ma.ones(30) * 0,
+            np.ma.ones(25) * -1000,
+        ))
+        vert_spd = P('Vertical Speed', array=array)
+        array = np.ma.concatenate((
+            np.ma.arange(5000, 2500, -100),
+            np.ma.ones(30) * 2500,
+            np.ma.arange(2400, -100, -100),
+        ))
+        alt = P('Altitude QNH', array=array)
+        array = np.ma.concatenate((
+            np.ma.ones(70) * 2500,
+            np.ma.ones(10) * 4000,
+        ))
+        alt_sel = P('Altitude Selected', array=array)
+        airborne = buildsection('Airborne', 0, 80)
+        apps = buildsection('Approach And Landing', 0, 80)
+        node = self.node_class()
+        node.derive(alt, alt_sel, vert_spd, airborne, apps, None, None, None, None)
+
+        expected = KPV('Rate Of Descent At Height Before Altitude Selected', items=[
+            KeyPointValue(name='Rate Of Descent At 2000 Ft Before Altitude Selected',
+                          index=5.0, value=-1000.0),
+            KeyPointValue(name='Rate Of Descent At 1000 Ft Before Altitude Selected',
+                          index=15.0, value=-1000.0)
         ])
         self.assertEqual(node, expected)
 

@@ -125,6 +125,7 @@ from analysis_engine.library import (
     localizer_scale,
     lookup_table,
     MappedArray,
+    maintain_altitude,
     mask_inside_slices,
     mask_outside_slices,
     max_abs_value,
@@ -8885,6 +8886,7 @@ class TestMaxMaintainedValue(unittest.TestCase):
             self.assertAlmostEqual(index, idx, places=0)
             self.assertAlmostEqual(value, val, places=3)
 
+
 class TestFindClimbCruiseDescent(unittest.TestCase):
     def test_climb_cruise_descent_start_midflight(self):
         # This test will find out if we can separate the two humps on this camel
@@ -8948,3 +8950,21 @@ class TestFindClimbCruiseDescent(unittest.TestCase):
             )
         )
         self.assertEqual(len(camel), 1)
+
+
+class TestMaintainAltitude(unittest.TestCase):
+    def test_stay_within_50_ft(self):
+        altitude = np.ma.concatenate((        
+            np.ma.arange(1000, 2000, 100),
+            np.ones(30) * 2000,
+            np.ma.arange(2000, 3000, 100),
+        ))
+        target = np.ma.ones(50) * 2000
+        distance = altitude - target
+        self.assertTrue(maintain_altitude(distance))
+
+    def test_fly_through_target(self):
+        altitude = np.ma.arange(1000, 4000, 100)
+        target = np.ma.ones(30) * 2000
+        distance = altitude - target
+        self.assertFalse(maintain_altitude(distance))        

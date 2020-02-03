@@ -8,6 +8,7 @@ import itertools
 import logging
 import math
 import numpy as np
+from numpy.ma.extras import _ezclump as ezclump
 import pytz
 
 from builtins import zip
@@ -8826,6 +8827,7 @@ def max_maintained_value(array, seconds, frequency, _slice=slice(None)):
         idx += _slice.start or 0
     return idx, value
 
+
 def find_climb_cruise_descent(alt_std):
     '''
     Find slices defining a climb-cruise-descent for the given pressure altitude array
@@ -8873,3 +8875,24 @@ def find_climb_cruise_descent(alt_std):
                     n += 1
 
         return slices
+
+
+def maintain_altitude(distance, hz=1.0):
+    '''
+    Check if the altitude was maintained given the `distance array` between
+    Current Altitude and Target Altitude.
+
+    :param distance: The array of distances between Target Altitude and
+        Current Altitude
+    :type distance: numpy.array
+    :param hz: Array sampling frequency
+    :type hz: float
+
+    :returns: If Current Altitude was within 50 ft of Target Altitude for 20
+        consecutive secs.
+    :rtype: bool
+    '''
+    within_50ft = np.abs(distance) < 50
+    clumps = ezclump(within_50ft)
+    return any((clump.stop - clump.start) > 20 * hz for clump in clumps)
+
