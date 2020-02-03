@@ -93,6 +93,8 @@ from analysis_engine.multistate_parameters import (
     TAWSAlert,
     TAWSDontSink,
     TAWSGlideslopeCancel,
+    TAWSTerrainCaution,
+    TAWSTerrainWarning,
     TAWSTooLowGear,
     TCASFailure,
     TCASRA,
@@ -735,7 +737,7 @@ class TestCargoSmokeOrFire(unittest.TestCase, NodeTest):
 
     def test_can_operate(self):
         for opt in self.all_opts:
-            self.assertTrue(CargoSmokeOrFire.can_operate(opt))
+            self.assertTrue(CargoSmokeOrFire.can_operate([opt]))
 
         for i in range(len(self.all_opts)):
             self.assertTrue(CargoSmokeOrFire.can_operate(self.all_opts[:i+1]))
@@ -3788,21 +3790,21 @@ class TestTAWSAlert(unittest.TestCase):
         parameters = ['TAWS Caution Terrain',
                        'TAWS Caution',
                        'TAWS Dont Sink',
-                       'TAWS Glideslope'
+                       'TAWS Glideslope',
                        'TAWS Predictive Windshear',
                        'TAWS Pull Up',
                        'TAWS Sink Rate',
                        'TAWS Terrain',
-                       'TAWS Terrain Warning Amber',
+                       'TAWS Terrain Caution',
                        'TAWS Terrain Pull Up',
-                       'TAWS Terrain Warning Red',
+                       'TAWS Terrain Warning',
                        'TAWS Too Low Flap',
                        'TAWS Too Low Gear',
                        'TAWS Too Low Terrain',
                        'TAWS Windshear Warning',
                        ]
         for p in parameters:
-            self.assertTrue(TAWSAlert.can_operate(p))
+            self.assertTrue(TAWSAlert.can_operate([p]))
 
     def setUp(self):
         terrain_array = [1,1,0,1,1,0,0,0,1,0,1,0,0,0,0,0,1,0,0,0]
@@ -3922,6 +3924,58 @@ class TestTAWSTooLowGear(unittest.TestCase):
     @unittest.skip('Test Not Implemented')
     def test_derive(self):
         pass
+
+
+class TestTAWSTerrainCaution(unittest.TestCase):
+    def setUp(self):
+        self.node_class = TAWSTerrainCaution
+
+    def test_name(self):
+        self.assertEqual(self.node_class.name, 'TAWS Terrain Caution')
+
+    def test_derive(self):
+        terrain_cpt = M(
+            name='TAWS Terrain Caution (Capt)',
+            array=np.ma.array([0, 0, 1, 1, 0, 0, 0]),
+            values_mapping={0: '-', 1: 'Warning'},
+        )
+
+        terrain_fo = M(
+            name='TAWS Terrain Caution (FO)',
+            array=np.ma.array([0, 1, 0, 1, 1, 0, 0]),
+            values_mapping={0: '-', 1: 'Warning'},
+        )
+        expected = np.ma.array([0, 1, 1, 1, 1, 0, 0])
+        node = self.node_class()
+        node.derive(terrain_cpt, terrain_fo)
+
+        assert_array_equal(expected, node.array)
+
+
+class TestTAWSTerrainWarning(unittest.TestCase):
+    def setUp(self):
+        self.node_class = TAWSTerrainWarning
+
+    def test_name(self):
+        self.assertEqual(self.node_class.name, 'TAWS Terrain Warning')
+
+    def test_derive(self):
+        terrain_cpt = M(
+            name='TAWS Terrain Warning (Capt)',
+            array=np.ma.array([0, 0, 1, 1, 0, 0, 0]),
+            values_mapping={0: '-', 1: 'Warning'},
+        )
+
+        terrain_fo = M(
+            name='TAWS Terrain Warning (FO)',
+            array=np.ma.array([0, 1, 0, 1, 1, 0, 0]),
+            values_mapping={0: '-', 1: 'Warning'},
+        )
+        expected = np.ma.array([0, 1, 1, 1, 1, 0, 0])
+        node = self.node_class()
+        node.derive(terrain_cpt, terrain_fo)
+
+        assert_array_equal(expected, node.array)
 
 
 class TestTCASFailure(unittest.TestCase):

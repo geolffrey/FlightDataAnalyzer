@@ -551,7 +551,7 @@ class Configuration(MultistateDerivedParameterNode):
             available,
         ):
             return False
-        
+
         if manufacturer and manufacturer.value == 'Embraer' and not all_of(('Approach And Landing', 'Taxi In'), available):
             return False
 
@@ -3882,9 +3882,9 @@ class TAWSAlert(MultistateDerivedParameterNode):
                        'TAWS Pull Up',
                        'TAWS Sink Rate',
                        'TAWS Terrain',
-                       'TAWS Terrain Warning Amber',
+                       'TAWS Terrain Caution',
                        'TAWS Terrain Pull Up',
-                       'TAWS Terrain Warning Red',
+                       'TAWS Terrain Warning',
                        'TAWS Too Low Flap',
                        'TAWS Too Low Gear',
                        'TAWS Too Low Terrain',
@@ -3901,8 +3901,8 @@ class TAWSAlert(MultistateDerivedParameterNode):
                taws_pull_up=M('TAWS Pull Up'),
                taws_sink_rate=M('TAWS Sink Rate'),
                taws_terrain_pull_up=M('TAWS Terrain Pull Up'),
-               taws_terrain_warning_amber=M('TAWS Terrain Warning Amber'),
-               taws_terrain_warning_red=M('TAWS Terrain Warning Red'),
+               taws_terrain_caution=M('TAWS Terrain Caution'),
+               taws_terrain_warning=M('TAWS Terrain Warning'),
                taws_terrain=M('TAWS Terrain'),
                taws_too_low_flap=M('TAWS Too Low Flap'),
                taws_too_low_gear=M('TAWS Too Low Gear'),
@@ -3919,8 +3919,8 @@ class TAWSAlert(MultistateDerivedParameterNode):
             (taws_pull_up, 'Warning'),
             (taws_sink_rate, 'Warning'),
             (taws_terrain_pull_up, 'Warning'),
-            (taws_terrain_warning_amber, 'Warning'),
-            (taws_terrain_warning_red, 'Warning'),
+            (taws_terrain_caution, 'Warning'),
+            (taws_terrain_warning, 'Warning'),
             (taws_terrain, 'Warning'),
             (taws_too_low_flap, 'Warning'),
             (taws_too_low_gear, 'Warning'),
@@ -3986,6 +3986,42 @@ class TAWSTooLowGear(MultistateDerivedParameterNode):
         self.array = vstack_params_where_state(
             (taws_l_gear, 'Warning'),
             (taws_r_gear, 'Warning'),
+        ).any(axis=0)
+
+
+class TAWSTerrainCaution(MultistateDerivedParameterNode):
+    '''
+    Merge Captain and FO TAWS Terrain Caution parameters.
+    '''
+
+    name = 'TAWS Terrain Caution'
+    units = None
+    values_mapping = {0: '-', 1: 'Warning'}
+
+    def derive(self, taws_terrain_cpt=M('TAWS Terrain Caution (Capt)'),
+               taws_terrain_fo=M('TAWS Terrain Caution (FO)'),):
+
+        self.array = vstack_params_where_state(
+            (taws_terrain_cpt, 'Warning'),
+            (taws_terrain_fo, 'Warning'),
+        ).any(axis=0)
+
+
+class TAWSTerrainWarning(MultistateDerivedParameterNode):
+    '''
+    Merge Captain and FO TAWS Terrain Warning parameters.
+    '''
+
+    name = 'TAWS Terrain Warning'
+    units = None
+    values_mapping = {0: '-', 1: 'Warning'}
+
+    def derive(self, taws_terrain_cpt=M('TAWS Terrain Warning (Capt)'),
+               taws_terrain_fo=M('TAWS Terrain Warning (FO)'),):
+
+        self.array = vstack_params_where_state(
+            (taws_terrain_cpt, 'Warning'),
+            (taws_terrain_fo, 'Warning'),
         ).any(axis=0)
 
 
