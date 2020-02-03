@@ -9,15 +9,6 @@ import copy
 from collections import deque, Counter
 from itertools import chain
 
-from analysis_engine.node import (
-    ApproachNode,
-    DerivedParameterNode,
-    MultistateDerivedParameterNode,
-    FlightAttributeNode,
-    FlightPhaseNode,
-    KeyPointValueNode,
-    KeyTimeInstanceNode,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -316,30 +307,11 @@ def graph_nodes(node_mgr):
     gr_all = nx.DiGraph()
     # create nodes without attributes now as you can only add attributes once
     # (limitation of add_node_attribute())
-    gr_all.add_nodes_from(node_mgr.hdf_keys, color='#72f4eb', # turquoise
-                          node_type='HDFNode')
+    gr_all.add_nodes_from(node_mgr.hdf_keys, node_type='HDFNode')
     derived_minus_lfl = {k: v for k, v in node_mgr.derived_nodes.items() if k not in node_mgr.hdf_keys}
-    # Group into node types to apply colour. TODO: Make colours less garish.
-    colors = {
-        ApproachNode: '#663399', # purple
-        MultistateDerivedParameterNode: '#2aa52a', # dark green
-        DerivedParameterNode: '#72cdf4',  # fds-blue
-        FlightAttributeNode: '#b88a00',  # brown
-        FlightPhaseNode: '#d93737',  # red
-        KeyPointValueNode: '#bed630',  # fds-green
-        KeyTimeInstanceNode: '#fdbb30',  # fds-orange
-    }
     derived_nodes = []
     for name, node in derived_minus_lfl.items():
-        # the default is gray, if you see it, something is wrong
-        color = '#888888'
-        for base in node.__bases__:
-            if base in colors:
-                color = colors[base]
-                break
-
-        node_info = (name, {'color': color,
-                            'node_type': node.__base__.__name__})
+        node_info = (name, {'node_type': node.__base__.__name__})
         derived_nodes.append(node_info)
     gr_all.add_nodes_from(derived_nodes)
 
@@ -354,13 +326,13 @@ def graph_nodes(node_mgr):
         gr_all.add_edges_from(edges)
 
     # add root - the top level application dependency structure based on required nodes
-    gr_all.add_node('root', color='#ffffff')
+    gr_all.add_node('root')
     root_edges = []
     for node_req in node_mgr.requested:
         # Add all requested nodes to the root
         root_edges.append(('root', node_req))
 
-    gr_all.add_edges_from(root_edges) ##, color='red')
+    gr_all.add_edges_from(root_edges)
 
     #TODO: Split this up into the following lists of nodes
     # * LFL used
@@ -389,7 +361,7 @@ def graph_nodes(node_mgr):
     # Add missing nodes to graph so it shows everything. These should all be
     # RAW parameters missing from the LFL unless something has gone wrong with
     # the derived_nodes dict!
-    gr_all.add_nodes_from(missing_derived_dep, color='#6a6e70')  # fds-grey
+    gr_all.add_nodes_from(missing_derived_dep)
 
     return gr_all
 
@@ -423,10 +395,9 @@ def dependency_order(node_mgr, raise_inoperable_requested=False, dependency_tree
 
     for node in inactive_nodes:
         # add attributes to the node to reflect it's inactivity
-        gr_all.node[node]['color'] = '#c0c0c0'  # silver
         gr_all.node[node]['active'] = False
         inactive_edges = gr_all.in_edges(node)
-        gr_all.add_edges_from(inactive_edges, color='#c0c0c0')  # silver
+        gr_all.add_edges_from(inactive_edges)
 
     inoperable_requested = list(set(node_mgr.requested) - set(process_order))
     if inoperable_requested:

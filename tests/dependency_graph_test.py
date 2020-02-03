@@ -213,13 +213,13 @@ class TestDependencyGraph(unittest.TestCase):
         self.assertEqual(len(gr), 5)
         # LFL
         self.assertEqual(list(gr.edges('1')), []) # as it's in LFL, it shouldn't have any edges
-        self.assertEqual(gr.node['1'], {'color': '#72f4eb', 'node_type': 'HDFNode'})
+        self.assertEqual(gr.node['1'], {'node_type': 'HDFNode'})
         # Derived
         self.assertEqual(list(gr.edges('4')), [('4','DepFour')])
-        self.assertEqual(gr.node['4'], {'color': '#72cdf4', 'node_type': 'DerivedParameterNode'})
+        self.assertEqual(gr.node['4'], {'node_type': 'DerivedParameterNode'})
         # Root
         self.assertEqual(list(gr.successors('root')), ['2','4']) # only the two requested are linked
-        self.assertEqual(gr.node['root'], {'color': '#ffffff'})
+        self.assertEqual(gr.node['root'], {})
 
     def test_dependency(self):
         requested = ['P7', 'P8']
