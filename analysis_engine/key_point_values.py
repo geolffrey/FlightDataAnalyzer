@@ -18738,20 +18738,19 @@ class TakeoffConfigurationWarningDuration(KeyPointValueNode):
     def can_operate(cls, available, manufacturer=A('Manufacturer')):
         if manufacturer and manufacturer.value == 'Airbus':
             return False
-        return all_of(('Takeoff Configuration Warning', 'Movement Start', 'Liftoff'), available)
+        return all_of(['Takeoff Configuration Warning', 'Mobile'], available)
 
     def derive(self, takeoff_warn=M('Takeoff Configuration Warning'),
-               movement_starts=KTI('Movement Start'),
-               liftoffs=KTI('Liftoff')):
-        if not liftoffs:
-            return
-        liftoff_index = liftoffs.get_first().index
-        movement_start = movement_starts.get_previous(liftoff_index)
+               mobile=S('Mobile'),
+               airborne=S('Airborne')):
+        slices = mobile.get_slices()
+        if airborne is not None:
+            slices = slices_and_not(slices, airborne.get_slices())
+
         self.create_kpvs_where(
             takeoff_warn.array == 'Warning',
             takeoff_warn.hz,
-            phase=slice(movement_start.index if movement_start else None,
-                        liftoff_index),
+            phase=slices,
         )
 
 
@@ -18762,18 +18761,21 @@ class TakeoffConfigurationFlapWarningDuration(KeyPointValueNode):
 
     units = ut.SECOND
 
+    @classmethod
+    def can_operate(cls, available):
+        return all_of(('Takeoff Configuration Flap Warning', 'Mobile'), available)
+
     def derive(self, takeoff_warn=M('Takeoff Configuration Flap Warning'),
-               movement_starts=S('Movement Start'),
-               liftoffs=S('Liftoff')):
-        if not liftoffs:
-            return
-        liftoff_index = liftoffs.get_first().index
-        movement_start = movement_starts.get_previous(liftoff_index)
+               mobile=S('Mobile'),
+               airborne=S('Airborne')):
+        slices = mobile.get_slices()
+        if airborne is not None:
+            slices = slices_and_not(slices, airborne.get_slices())
+
         self.create_kpvs_where(
             takeoff_warn.array == 'Warning',
             takeoff_warn.hz,
-            phase=[slice(movement_start.index if movement_start else None,
-                         liftoff_index)],
+            phase=slices,
         )
 
 
@@ -18784,19 +18786,22 @@ class TakeoffConfigurationParkingBrakeWarningDuration(KeyPointValueNode):
 
     units = ut.SECOND
 
+    @classmethod
+    def can_operate(cls, available):
+        return all_of(('Takeoff Configuration Parking Brake Warning', 'Mobile'), available)
+
     def derive(self,
                takeoff_warn=M('Takeoff Configuration Parking Brake Warning'),
-               movement_starts=S('Movement Start'),
-               liftoffs=S('Liftoff')):
-        if not liftoffs:
-            return
-        liftoff_index = liftoffs.get_first().index
-        movement_start = movement_starts.get_previous(liftoff_index)
+               mobile=S('Mobile'),
+               airborne=S('Airborne')):
+        slices = mobile.get_slices()
+        if airborne is not None:
+            slices = slices_and_not(slices, airborne.get_slices())
+
         self.create_kpvs_where(
             takeoff_warn.array == 'Warning',
             takeoff_warn.hz,
-            phase=[slice(movement_start.index if movement_start else None,
-                         liftoff_index)],
+            phase=slices,
         )
 
 
@@ -18807,19 +18812,22 @@ class TakeoffConfigurationSpoilerWarningDuration(KeyPointValueNode):
 
     units = ut.SECOND
 
+    @classmethod
+    def can_operate(cls, available):
+        return all_of(('Takeoff Configuration Spoiler Warning', 'Mobile'), available)
+
     def derive(self,
                takeoff_warn=M('Takeoff Configuration Spoiler Warning'),
-               movement_starts=S('Movement Start'),
-               liftoffs=S('Liftoff')):
-        if not liftoffs:
-            return
-        liftoff_index = liftoffs.get_first().index
-        movement_start = movement_starts.get_previous(liftoff_index)
+               mobile=S('Mobile'),
+               airborne=S('Airborne')):
+        slices = mobile.get_slices()
+        if airborne is not None:
+            slices = slices_and_not(slices, airborne.get_slices())
+
         self.create_kpvs_where(
             takeoff_warn.array == 'Warning',
             takeoff_warn.hz,
-            phase=[slice(movement_start.index if movement_start else None,
-                         liftoff_index)],
+            phase=slices,
         )
 
 
@@ -18830,19 +18838,22 @@ class TakeoffConfigurationStabilizerWarningDuration(KeyPointValueNode):
 
     units = ut.SECOND
 
+    @classmethod
+    def can_operate(cls, available):
+        return all_of(('Takeoff Configuration Stabilizer Warning', 'Mobile'), available)
+
     def derive(self,
                takeoff_warn=M('Takeoff Configuration Stabilizer Warning'),
-               movement_starts=S('Movement Start'),
-               liftoffs=S('Liftoff')):
-        if not liftoffs:
-            return
-        liftoff_index = liftoffs.get_first().index
-        movement_start = movement_starts.get_previous(liftoff_index)
+               mobile=S('Mobile'),
+               airborne=S('Airborne')):
+        slices = mobile.get_slices()
+        if airborne is not None:
+            slices = slices_and_not(slices, airborne.get_slices())
+
         self.create_kpvs_where(
             takeoff_warn.array == 'Warning',
             takeoff_warn.hz,
-            phase=[slice(movement_start.index if movement_start else None,
-                         liftoff_index)],
+            phase=slices,
         )
 
 

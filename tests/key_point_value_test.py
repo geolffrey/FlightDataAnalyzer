@@ -21593,16 +21593,18 @@ class TestTakeoffConfigurationWarningDuration(unittest.TestCase):
             manufacturer=A('Manufacturer', 'Airbus')), [])
         self.assertEqual(self.node_class.get_operational_combinations(
             manufacturer=A('Manufacturer', 'Boeing')),
-                         [('Takeoff Configuration Warning', 'Movement Start', 'Liftoff')])
+                         [('Takeoff Configuration Warning', 'Mobile'),
+                          ('Takeoff Configuration Warning', 'Mobile', 'Airborne'),
+                         ])
 
     def test_derive(self):
         node = self.node_class()
         takeoff_warn = M('Takeoff Configuration Warning',
                          np.ma.array([1,0,0,1,1,0,0,0,0,1,1]),
                          values_mapping={1: 'Warning', 0: '-'})
-        movement_starts = KTI('Liftoff', items=[KeyTimeInstance(2, 'Movement Start')])
-        liftoffs = KTI('Liftoff', items=[KeyTimeInstance(5, 'Liftoff')])
-        node.derive(takeoff_warn, movement_starts, liftoffs)
+        mobile = buildsection('Mobile', 1, 10)
+        airborne = buildsection('Airborne', 8, 10)
+        node.derive(takeoff_warn, mobile, airborne)
         self.assertEqual(len(node), 1)
         self.assertEqual(node[0].index, 3)
         self.assertEqual(node[0].value, 2)
@@ -21611,16 +21613,19 @@ class TestTakeoffConfigurationWarningDuration(unittest.TestCase):
 class TestTakeoffConfigurationFlapWarningDuration(unittest.TestCase, NodeTest):
     def setUp(self):
         self.node_class = TakeoffConfigurationFlapWarningDuration
-        self.operational_combinations = [('Takeoff Configuration Flap Warning', 'Movement Start', 'Liftoff')]
+        self.operational_combinations = [
+            ('Takeoff Configuration Flap Warning', 'Mobile'),
+            ('Takeoff Configuration Flap Warning', 'Mobile', 'Airborne'),
+        ]
 
     def test_derive(self):
         node = self.node_class()
         takeoff_warn = M('Takeoff Configuration Flap Warning',
                          np.ma.array([1,0,0,1,1,0,0,0,0,1,1]),
                          values_mapping={1: 'Warning', 0: '-'})
-        movement_starts = KTI('Liftoff', items=[KeyTimeInstance(2, 'Movement Start')])
-        liftoffs = KTI('Liftoff', items=[KeyTimeInstance(5, 'Liftoff')])
-        node.derive(takeoff_warn, movement_starts, liftoffs)
+        mobile = buildsection('Mobile', 1, 10)
+        airborne = buildsection('Airborne', 8, 10)
+        node.derive(takeoff_warn, mobile, airborne)
         self.assertEqual(len(node), 1)
         self.assertEqual(node[0].index, 3)
         self.assertEqual(node[0].value, 2)
@@ -21629,16 +21634,19 @@ class TestTakeoffConfigurationFlapWarningDuration(unittest.TestCase, NodeTest):
 class TestTakeoffConfigurationParkingBrakeWarningDuration(unittest.TestCase, NodeTest):
     def setUp(self):
         self.node_class = TakeoffConfigurationParkingBrakeWarningDuration
-        self.operational_combinations = [('Takeoff Configuration Parking Brake Warning', 'Movement Start', 'Liftoff')]
+        self.operational_combinations = [
+            ('Takeoff Configuration Parking Brake Warning', 'Mobile'),
+            ('Takeoff Configuration Parking Brake Warning', 'Mobile', 'Airborne'),
+        ]
 
     def test_derive(self):
         node = self.node_class()
         takeoff_warn = M('Takeoff Configuration Parking Brake Warning',
                          np.ma.array([1,0,0,1,1,0,0,0,0,1,1]),
                          values_mapping={1: 'Warning', 0: '-'})
-        movement_starts = KTI('Liftoff', items=[KeyTimeInstance(2, 'Movement Start')])
-        liftoffs = KTI('Liftoff', items=[KeyTimeInstance(5, 'Liftoff')])
-        node.derive(takeoff_warn, movement_starts, liftoffs)
+        mobile = buildsection('Mobile', 1, 10)
+        airborne = buildsection('Airborne', 8, 10)
+        node.derive(takeoff_warn, mobile, airborne)
         self.assertEqual(len(node), 1)
         self.assertEqual(node[0].index, 3)
         self.assertEqual(node[0].value, 2)
@@ -21647,16 +21655,19 @@ class TestTakeoffConfigurationParkingBrakeWarningDuration(unittest.TestCase, Nod
 class TestTakeoffConfigurationSpoilerWarningDuration(unittest.TestCase, NodeTest):
     def setUp(self):
         self.node_class = TakeoffConfigurationSpoilerWarningDuration
-        self.operational_combinations = [('Takeoff Configuration Spoiler Warning', 'Movement Start', 'Liftoff')]
+        self.operational_combinations = [
+            ('Takeoff Configuration Spoiler Warning', 'Mobile'),
+            ('Takeoff Configuration Spoiler Warning', 'Mobile', 'Airborne'),
+        ]
 
     def test_derive(self):
         node = self.node_class()
         takeoff_warn = M('Takeoff Configuration Spoiler Warning',
                          np.ma.array([1,0,0,1,1,0,0,0,0,1,1]),
                          values_mapping={1: 'Warning', 0: '-'})
-        movement_starts = KTI('Liftoff', items=[KeyTimeInstance(2, 'Movement Start')])
-        liftoffs = KTI('Liftoff', items=[KeyTimeInstance(5, 'Liftoff')])
-        node.derive(takeoff_warn, movement_starts, liftoffs)
+        mobile = buildsection('Mobile', 1, 10)
+        airborne = buildsection('Airborne', 8, 10)
+        node.derive(takeoff_warn, mobile, airborne)
         self.assertEqual(len(node), 1)
         self.assertEqual(node[0].index, 3)
         self.assertEqual(node[0].value, 2)
@@ -21665,16 +21676,19 @@ class TestTakeoffConfigurationSpoilerWarningDuration(unittest.TestCase, NodeTest
 class TestTakeoffConfigurationStabilizerWarningDuration(unittest.TestCase, NodeTest):
     def setUp(self):
         self.node_class = TakeoffConfigurationStabilizerWarningDuration
-        self.operational_combinations = [('Takeoff Configuration Stabilizer Warning', 'Movement Start', 'Liftoff')]
+        self.operational_combinations = [
+            ('Takeoff Configuration Stabilizer Warning', 'Mobile'),
+            ('Takeoff Configuration Stabilizer Warning', 'Mobile', 'Airborne'),
+        ]
 
     def test_derive(self):
         node = self.node_class()
         takeoff_warn = M('Takeoff Configuration Stabilizer Warning',
                          np.ma.array([1,0,0,1,1,0,0,0,0,1,1]),
                          values_mapping={1: 'Warning', 0: '-'})
-        movement_starts = KTI('Liftoff', items=[KeyTimeInstance(2, 'Movement Start')])
-        liftoffs = KTI('Liftoff', items=[KeyTimeInstance(5, 'Liftoff')])
-        node.derive(takeoff_warn, movement_starts, liftoffs)
+        mobile = buildsection('Mobile', 1, 10)
+        airborne = buildsection('Airborne', 8, 10)
+        node.derive(takeoff_warn, mobile, airborne)
         self.assertEqual(len(node), 1)
         self.assertEqual(node[0].index, 3)
         self.assertEqual(node[0].value, 2)
