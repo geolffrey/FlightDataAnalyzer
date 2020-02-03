@@ -13160,11 +13160,14 @@ class EngRunningDuration(KeyPointValueNode):
     Measure the duration each engine was running for. Will create multiple
     measurements for each time the engine was running. If you have more than
     one measurement, this implies engine run-ups.
+
+    An additional KPV  Eng (*) Running Duration is created , which allows
+    to monitor engine durations when the engine number is not important.
     '''
 
     units = ut.SECOND
-    NAME_FORMAT = 'Eng (%(engnum)d) Running Duration'
-    NAME_VALUES = {'engnum': [1, 2, 3, 4]}
+    NAME_FORMAT = 'Eng (%(engnum)s) Running Duration'
+    NAME_VALUES = {'engnum': [1, 2, 3, 4, '*']}
 
     @classmethod
     def can_operate(cls, available):
@@ -13175,14 +13178,16 @@ class EngRunningDuration(KeyPointValueNode):
         for engnum, eng in enumerate([eng1, eng2, eng3, eng4], start=1):
             if eng is None:
                 continue
-            # remove gaps in data shorter than 10s
+            # remove gaps in data shorter than 30s
             array = nearest_neighbour_mask_repair(
-                eng.array, repair_gap_size=10 * self.frequency)
+                eng.array, repair_gap_size=30 * self.frequency)
             # min 4s duration
             slices = runs_of_ones(
                 array == 'Running', min_samples=4 * self.frequency)
             self.create_kpvs_from_slice_durations(slices, self.frequency,
                                                   mark='start', engnum=engnum)
+            self.create_kpvs_from_slice_durations(slices, self.frequency,
+                                                  mark='start', engnum='*')
 
 
 class EngStartTimeMax(KeyPointValueNode):
