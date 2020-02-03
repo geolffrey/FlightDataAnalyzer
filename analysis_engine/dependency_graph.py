@@ -294,71 +294,36 @@ def dependencies3(di_graph, root, node_mgr, dependency_tree_log=False):
 
 
 def graph_nodes(node_mgr):
-    """
-    :param node_mgr:
-    :type node_mgr: NodeManager
-    """
-    # gr_all will contain all nodes
-    gr_all = nx.DiGraph()
-    # create nodes without attributes now as you can only add attributes once
-    # (limitation of add_node_attribute())
-    gr_all.add_nodes_from(node_mgr.hdf_keys, node_type='HDFNode')
-    derived_minus_lfl = {k: v for k, v in node_mgr.derived_nodes.items() if k not in node_mgr.hdf_keys}
-    derived_nodes = []
-    for name, node in derived_minus_lfl.items():
-        node_info = (name, {'node_type': node.__base__.__name__})
-        derived_nodes.append(node_info)
-    gr_all.add_nodes_from(derived_nodes)
+    derived_only = {k: v for k, v in node_mgr.derived_nodes.items() if k not in node_mgr.hdf_keys}
 
-    # build list of dependencies
-    derived_deps = set()  # list of derived dependencies
-    for node_name, node_obj in six.iteritems(derived_minus_lfl):
-        derived_deps.update(node_obj.get_dependency_names())
-        # Create edges between node and its dependencies
-        edges = []
-        for (n, dep) in enumerate(node_obj.get_dependency_names()):
-            edges.append((node_name, dep, {'order':n}))
-        gr_all.add_edges_from(edges)
+    graph = nx.DiGraph()
+    graph.add_node('root')  # Add a top-level root node to attach required nodes to.
+    graph.add_nodes_from(node_mgr.hdf_keys, node_type='HDFNode')  # Add available raw parameter nodes.
+    graph.add_nodes_from((name, {'node_type': node.__base__.__name__}) for name, node in derived_only.items())
 
-    # add root - the top level application dependency structure based on required nodes
-    gr_all.add_node('root')
-    root_edges = []
-    for node_req in node_mgr.requested:
-        # Add all requested nodes to the root
-        root_edges.append(('root', node_req))
+    graph.add_edges_from(('root', node) for node in node_mgr.requested)  # Attach requested nodes to the root.
 
-    gr_all.add_edges_from(root_edges)
+    derived_deps = set()
+    for name, node in derived_only.items():
+        x = node.get_dependency_names()
+        derived_deps.update(x)
+        graph.add_edges_from((name, dep, {'order': n}) for n, dep in enumerate(x))  # Attach node to dependencies.
 
-    #TODO: Split this up into the following lists of nodes
-    # * LFL used
-    # * LFL unused
-    # * Derived used
-    # * Derived not operational
-    # * Derived not used -- coz not referenced by a dependency kpv etc therefore not part of the spanning tree
-
-    # Note: It's hard to tell whether a missing dependency is a mistyped
-    # reference to another derived parameter or a parameter not available on
-    # this LFL
-    # Set of all derived and LFL Nodes.
-    ##available_nodes = set(node_mgr.derived_nodes.keys()).union(set(node_mgr.hdf_keys))
     available_nodes = set(node_mgr.keys())
-    # Missing dependencies.
-    missing_derived_dep = list(derived_deps - available_nodes)
-    # Missing dependencies which are requested.
-    missing_requested = list(set(node_mgr.requested) - available_nodes)
+    missing_derived_deps = derived_deps - available_nodes
+    missing_requested = set(node_mgr.requested) - available_nodes
 
-    if missing_derived_dep:
-        logger.warning("Found %s dependencies which don't exist in LFL or Node modules.", len(missing_derived_dep))
-        logger.debug("The missing dependencies: %s", missing_derived_dep)
+    if missing_derived_deps:
+        logger.warning("Found %s dependencies which don't exist in LFL or Node modules.", len(missing_derived_deps))
+        logger.debug('The missing dependencies: %s', sorted(missing_derived_deps))
+
     if missing_requested:
-        raise ValueError("Missing requested parameters: %s" % missing_requested)
+        raise ValueError('Missing requested parameters: %s' % sorted(missing_requested))
 
-    # Add missing nodes to graph so it shows everything. These should all be
-    # RAW parameters missing from the LFL unless something has gone wrong with
-    # the derived_nodes dict!
-    gr_all.add_nodes_from(missing_derived_dep)
+    # Add missing nodes to graph so it shows everything. These should all be raw parameters missing from the LFL.
+    graph.add_nodes_from(missing_derived_deps)
 
-    return gr_all
+    return graph
 
 
 def dependency_order(node_mgr, raise_inoperable_requested=False, dependency_tree_log=False):
