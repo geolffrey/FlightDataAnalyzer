@@ -16,7 +16,6 @@ from analysis_engine.node import (DerivedParameterNode, Node, NodeManager, P)
 from analysis_engine.dependency_graph import (
     dependency_order,
     graph_nodes,
-    graph_adjacencies,
     indent_tree,
     process_order,
 )
@@ -727,83 +726,6 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
             'FDR Landing Runway', 'Mobile', 'Approach'
         ]
         self.assert_order_maintained(order, expected_order)
-
-
-
-class TestGraphAdjacencies(unittest.TestCase):
-    def test_graph_adjacencies(self):
-        g = nx.DiGraph()
-        g.add_node('a', color='blue', label='a1')
-        g.add_nodes_from(['b', 'c', 'd'])
-        g.add_node('root', color='red')
-        g.add_edge('root', 'a')
-        g.add_edge('root', 'd')
-        g.add_edge('a', 'b')
-        g.add_edge('a', 'c')
-        g.add_edge('d', 'c')
-        res = graph_adjacencies(g)
-        exp = [
-        {
-            'id': 'root',
-            'name': 'root',
-            'data': {
-                'color': 'red',
-                },
-            'adjacencies': [
-                {
-                    'nodeTo': 'a',
-                    'data': {},
-                    },
-                {
-                    'nodeTo': 'd',
-                    'data': {},
-                    },
-                ],
-            },
-        {
-            'id': 'a',
-            'name': 'a1',
-            'data': {
-                'color': 'blue',
-                },
-            'adjacencies': [
-                {
-                    'nodeTo': 'b',
-                    'data': {},
-                    },
-                {
-                    'nodeTo': 'c',
-                    'data': {},
-                    },
-                ],
-            },
-        {
-            'id': 'b',
-            'name': 'b',
-            'data': {},
-            'adjacencies': [
-                ],
-            },
-        {
-            'id': 'c',
-            'name': 'c',
-            'data': {},
-            'adjacencies': [
-                ],
-            },
-        {
-            'id': 'd',
-            'name': 'd',
-            'data': {},
-            'adjacencies': [
-                {
-                    'nodeTo': 'c',
-                    'data': {},
-                    }
-                ],
-            },
-        ]
-        self.assertEqual(list(flatten(exp)), list(flatten(res)))
 
 
 if __name__ == '__main__':

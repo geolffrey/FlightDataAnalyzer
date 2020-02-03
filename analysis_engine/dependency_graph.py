@@ -307,27 +307,6 @@ def dependencies3(di_graph, root, node_mgr, dependency_tree_log=False):
     return ordering, tree_path
 
 
-def graph_adjacencies(graph):
-    '''
-    Create a dictionary of each nodes adjacencies within the graph. Useful for
-    JIT javascript presentation of the tree.
-
-    :param graph: Dependency tree graph
-    :type graph: nx.Graph
-    :returns: Restructured graph
-    '''
-    data = []
-    for n,nbrdict in graph.adjacency():
-        # build the dict for this node
-        d = dict(id=n, name=graph.node[n].get('label', n), data=graph.node[n])
-        adj = []
-        for nbr, nbrd in nbrdict.items():
-            adj.append(dict(nodeTo=nbr, data=nbrd))
-        d['adjacencies'] = adj
-        data.append(d)
-    return data
-
-
 def graph_nodes(node_mgr):
     """
     :param node_mgr:
