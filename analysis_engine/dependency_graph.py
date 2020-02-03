@@ -1,20 +1,15 @@
 from __future__ import print_function
 
-import os
 import logging
 import networkx as nx # pip install networkx or /opt/epd/bin/easy_install networkx
 import six
 import copy
 
-from collections import deque, Counter
+from collections import deque
 from itertools import chain
 
 
 logger = logging.getLogger(__name__)
-
-CALCULATE_NODE_LAST = [
-    '2 Deg Pitch To 35 Ft Duration',
-]
 
 """
 TODO:
