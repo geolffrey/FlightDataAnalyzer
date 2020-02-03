@@ -17,7 +17,6 @@ from analysis_engine.dependency_graph import (
     dependency_order,
     graph_nodes,
     indent_tree,
-    process_order,
 )
 from analysis_engine.utils import get_derived_nodes
 from analysis_engine import settings
@@ -155,8 +154,7 @@ class TestDependencyGraph(unittest.TestCase):
         required = ['a', 'c']
         mgr = NodeManager({'Start Datetime': datetime.now()}, 10, nodes, nodes,
                           required, {}, {}, {})
-        _graph = graph_nodes(mgr)
-        gr_all, gr_st, order = process_order(_graph, mgr)
+        order, _ = dependency_order(mgr)
         self.assertEqual(set(required) - set(order), set())
 
     @unittest.skip("Ignoring as graph_nodes does nothing with required nodes")
@@ -227,10 +225,9 @@ class TestDependencyGraph(unittest.TestCase):
         requested = ['P7', 'P8']
         mgr = NodeManager({'Start Datetime': datetime.now()}, 10, self.lfl_params, requested, [],
                           self.derived_nodes, {}, {})
-        gr = graph_nodes(mgr)
-        gr_all, gr_st, order = process_order(gr, mgr)
+        order, _ = dependency_order(mgr)
 
-        self.assertEqual(len(gr_st), 11)
+        self.assertEqual(len(order), 10)
         pos = order.index
         self.assertTrue(pos('P8') > pos('Raw5'))
         self.assertTrue(pos('P7') > pos('P4'))
@@ -272,10 +269,9 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
                      ]
         mgr = NodeManager({'Start Datetime': datetime.now()}, 10, self.lfl_params + ['Floating'],
                           requested, [], self.derived_nodes, {}, {})
-        gr = graph_nodes(mgr)
-        gr_all, gr_st, order = process_order(gr, mgr)
+        order, _ = dependency_order(mgr)
 
-        self.assertEqual(len(gr_st), 11)
+        self.assertEqual(len(order), 10)
         pos = order.index
         self.assertTrue(pos('P8') > pos('Raw5'))
         self.assertTrue(pos('P7') > pos('P4'))
@@ -336,11 +332,8 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         lfl_params = ['Raw1', 'Raw2']
 
         segment_info = {'Start Datetime': datetime.now(), 'Segment Type': 'START_AND_STOP'}
-        mgr = NodeManager(segment_info, 10, lfl_params,
-                          requested, [], derived_nodes, {}, {})
-        gr = graph_nodes(mgr)
-        gr_all, gr_st, order = process_order(gr, mgr)
-        self.assertEqual(len(gr_st), 7)
+        mgr = NodeManager(segment_info, 10, lfl_params, requested, [], derived_nodes, {}, {})
+        order, _ = dependency_order(mgr)
         self.assertListEqual(order, ['Raw1', 'P1', 'P3', 'Raw2', 'P2', 'P0'])
 
     def test_sample_parameter_module(self):
@@ -419,7 +412,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         node_mgr = NodeManager(
             segment_info, 10, lfl_params,
             pre_processing_requested, [], pre_processing_nodes, aircraft_info, {})
-        process_order, gr_st = dependency_order(node_mgr)
+        order, _ = dependency_order(node_mgr)
 
 
         if aircraft_info['Aircraft Type'] == 'helicopter':
@@ -431,10 +424,10 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         if requested == []:
             # Use all derived nodes if requested is empty
             requested = [p for p in derived_nodes.keys() if p not in lfl_params]
-        node_mgr= NodeManager(segment_info, 10, lfl_params + process_order,
+        node_mgr= NodeManager(segment_info, 10, lfl_params + order,
                               requested, [], derived_nodes, aircraft_info, {})
-        order, gr_st = dependency_order(node_mgr)
-        return order, gr_st
+        order, _ = dependency_order(node_mgr)
+        return order
 
     def test_avoiding_circular_dependency_gear_up_selected(self):
         lfl_params = [
@@ -452,7 +445,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         ]
         requested = ['Gear Up Selection',]
         aircraft_info = {'Aircraft Type': 'aeroplane',}
-        order, graph = self._get_dependency_order(requested, aircraft_info, lfl_params)
+        order = self._get_dependency_order(requested, aircraft_info, lfl_params)
         expected_order = [
             'Gear Down', 'Gear (*) Red Warning', 'Gear On Ground',
             'Gear Down In Transit', 'Gear Up In Transit', 'Gear In Transit',
@@ -469,7 +462,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
             'Precise Positioning': False,
             'Frame': 'dummy_LFL'  # Needed for Altitude STD Smoothed, although not needed in derive method!
         }
-        order, graph = self._get_dependency_order(requested, aircraft_info, lfl_params)
+        order = self._get_dependency_order(requested, aircraft_info, lfl_params)
         expected_order = [
             'Heading', 'Heading Continuous', 'Altitude STD', 'Airspeed', 'Fast',
             'Altitude STD Smoothed', 'Altitude AAL', 'Altitude AAL For Flight Phases',
@@ -492,7 +485,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
             'Precise Positioning': False,
             'Frame': 'dummy_LFL'  # Needed for Altitude STD Smoothed, although not needed in derive method!
         }
-        order, _ = self._get_dependency_order(requested, aircraft_info, lfl_params)
+        order = self._get_dependency_order(requested, aircraft_info, lfl_params)
         expected_order = [
             'Longitude Prepared', 'Latitude Prepared', 'Heading', 'Heading Continuous',
             'Airspeed', 'ILS Localizer', 'Latitude', 'Longitude', 'Altitude STD', 'Fast',
@@ -523,7 +516,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
             'Precise Positioning': False,
             'Frame': 'dummy_LFL'  # Needed for Altitude STD Smoothed, although not needed in derive method!
         }
-        order, _ = self._get_dependency_order(requested, aircraft_info, lfl_params)
+        order = self._get_dependency_order(requested, aircraft_info, lfl_params)
 
         expected_order = [
             'Longitude Prepared', 'Latitude Prepared', 'Heading', 'Heading Continuous',
@@ -546,8 +539,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
             'Precise Positioning': False,
             'Frame': 'dummy_LFL'  # Needed for Altitude STD Smoothed, although not needed in derive method!
         }
-        self._get_dependency_order(requested, aircraft_info, lfl_params)
-        order, _ = self._get_dependency_order(requested, aircraft_info, lfl_params)
+        order = self._get_dependency_order(requested, aircraft_info, lfl_params)
 
         expected_order = [
             'Altitude Radio', 'Airspeed', 'Altitude STD', 'Altitude STD Smoothed',
@@ -567,7 +559,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         ]
         requested = ['Approach Information',]
         aircraft_info = {'Aircraft Type': 'helicopter', 'Precise Positioning': False}
-        order, _ = self._get_dependency_order(requested, aircraft_info, lfl_params)
+        order = self._get_dependency_order(requested, aircraft_info, lfl_params)
 
         expected_order = [
             'Altitude Radio', 'Airspeed', 'Altitude STD', 'Gear (L) On Ground',
@@ -584,7 +576,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         lfl_params = []#['Altitude STD', 'Airspeed', 'Heading'] # Core parameters
         aircraft_info = {'Aircraft Type': 'aeroplane',}
         requested = []
-        order, _ = self._get_dependency_order(requested, aircraft_info, lfl_params)
+        order = self._get_dependency_order(requested, aircraft_info, lfl_params)
 
         expected = [
             'HDF Duration', 'Grounded', 'Eng Start', 'FDR Analysis Datetime',
@@ -650,7 +642,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
     def test_avoiding_all_circular_dependencies_with_recorded_lfls(self):
         aircraft_info, lfl_params = self._example_recorded_parameters()
         requested = []
-        order, _ = self._get_dependency_order(requested, aircraft_info, lfl_params)
+        order = self._get_dependency_order(requested, aircraft_info, lfl_params)
 
         with open(Path(test_data_path) / 'dependency_graph_example_recorded_excpected.yaml') as f:
             expected = yaml.load(f, Loader=yaml.FullLoader)
@@ -665,7 +657,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         # order doesn't do that again
         aircraft_info, lfl_params = self._example_recorded_parameters()
         requested = []
-        order, _ = self._get_dependency_order(requested, aircraft_info, lfl_params)
+        order = self._get_dependency_order(requested, aircraft_info, lfl_params)
         self.assertIn('Acceleration Normal Offset', order)
         self.assertIn('Acceleration Normal Offset Removed', order)
         self.assertLess(order.index('Acceleration Normal Offset'),
@@ -678,7 +670,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         # order doesn't do that again
         aircraft_info, lfl_params = self._example_recorded_parameters()
         requested = []
-        order, _ = self._get_dependency_order(requested, aircraft_info, lfl_params)
+        order = self._get_dependency_order(requested, aircraft_info, lfl_params)
         self.assertIn('Acceleration Lateral Offset', order)
         self.assertIn('Acceleration Lateral Offset Removed', order)
         self.assertLess(order.index('Acceleration Lateral Offset'),
@@ -693,7 +685,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         # 'Magnetic Variation From Runway' created before 'Heading True'.
         aircraft_info, lfl_params = self._example_recorded_parameters()
         requested = []
-        order, _ = self._get_dependency_order(requested, aircraft_info, lfl_params)
+        order = self._get_dependency_order(requested, aircraft_info, lfl_params)
         self.assertIn('Heading True', order)
         self.assertIn('Magnetic Variation From Runway', order)
         self.assertIn('Magnetic Variation', order)
@@ -712,7 +704,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
             'Precise Positioning': False,
             'Frame': 'dummy_LFL'  # Needed for Altitude STD Smoothed, although not needed in derive method!
         }
-        order, _ = self._get_dependency_order(requested, aircraft_info, lfl_params)
+        order = self._get_dependency_order(requested, aircraft_info, lfl_params)
 
         expected_order = [
             'Altitude STD', 'Airspeed', 'Fast', 'Altitude STD Smoothed', 'Altitude AAL',

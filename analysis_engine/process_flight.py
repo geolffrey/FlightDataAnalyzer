@@ -711,10 +711,9 @@ def pre_process_parameters(hdf, segment_info, param_names, required,
         segment_info, hdf.duration, param_names,
         requested, required, pre_processing_nodes, aircraft_info,
         achieved_flight_record)
-    process_order, gr_st = dependency_order(node_mgr, dependency_tree_log=dependency_tree_log)
+    process_order, _ = dependency_order(node_mgr, dependency_tree_log=dependency_tree_log)
 
-    ktis, kpvs, sections, approaches, flight_attrs = \
-        derive_parameters(hdf, node_mgr, process_order, force=force)
+    derive_parameters(hdf, node_mgr, process_order, force=force)
 
 
 def main():

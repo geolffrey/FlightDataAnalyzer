@@ -394,16 +394,19 @@ def graph_nodes(node_mgr):
     return gr_all
 
 
-def process_order(gr_all, node_mgr, raise_inoperable_requested=False,
-                  dependency_tree_log=False):
+def dependency_order(node_mgr, raise_inoperable_requested=False, dependency_tree_log=False):
     """
-    :param gr_all:
-    :type gr_all: nx.DiGraph
+    Main method for retrieving processing order of nodes.
+
     :param node_mgr:
     :type node_mgr: NodeManager
-    :returns:
-    :rtype:
+    :param draw: Will draw the graph. Green nodes are available LFL params, Blue are operational derived, Black are not requested derived, Red are active top level requested params, Grey are inactive params. Edges are labelled with processing order.
+    :type draw: boolean
+    :returns: List of Nodes determining the order for processing and the spanning tree graph.
+    :rtype: (list of strings, dict)
     """
+    gr_all = graph_nodes(node_mgr)
+
     process_order, tree_path = dependencies3(
         gr_all, 'root', node_mgr, dependency_tree_log=dependency_tree_log)
     logger.debug("Processing order of %d nodes is: %s", len(process_order), process_order)
@@ -445,23 +448,4 @@ def process_order(gr_all, node_mgr, raise_inoperable_requested=False,
         raise RequiredNodesMissing(
             "Required nodes missing: %s" % ', '.join(required_missing))
 
-    return gr_all, gr_st, process_order[:-1] # exclude 'root'
-
-
-def dependency_order(node_mgr, raise_inoperable_requested=False, dependency_tree_log=False):
-    """
-    Main method for retrieving processing order of nodes.
-
-    :param node_mgr:
-    :type node_mgr: NodeManager
-    :param draw: Will draw the graph. Green nodes are available LFL params, Blue are operational derived, Black are not requested derived, Red are active top level requested params, Grey are inactive params. Edges are labelled with processing order.
-    :type draw: boolean
-    :returns: List of Nodes determining the order for processing and the spanning tree graph.
-    :rtype: (list of strings, dict)
-    """
-    _graph = graph_nodes(node_mgr)
-    gr_all, gr_st, order = process_order(_graph, node_mgr,
-                                         raise_inoperable_requested=raise_inoperable_requested,
-                                         dependency_tree_log=dependency_tree_log)
-
-    return order, gr_st
+    return process_order[:-1], gr_st  # exclude 'root'
