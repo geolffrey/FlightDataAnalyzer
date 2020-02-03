@@ -650,7 +650,7 @@ def process_flight(segment_info, tail_number, aircraft_info={}, achieved_flight_
             process_order = [r for r in requested if r in requested_subset]
         else:
             # calculate dependency tree
-            process_order, gr_st = dependency_order(node_mgr, draw=False, dependency_tree_log=dependency_tree_log)
+            process_order, gr_st = dependency_order(node_mgr, dependency_tree_log=dependency_tree_log)
             if settings.CACHE_PARAMETER_MIN_USAGE:
                 # find params used more than CACHE_PARAMETER_MIN_USAGE
                 for node in gr_st.nodes():
@@ -711,7 +711,7 @@ def pre_process_parameters(hdf, segment_info, param_names, required,
         segment_info, hdf.duration, param_names,
         requested, required, pre_processing_nodes, aircraft_info,
         achieved_flight_record)
-    process_order, gr_st = dependency_order(node_mgr, draw=False, dependency_tree_log=dependency_tree_log)
+    process_order, gr_st = dependency_order(node_mgr, dependency_tree_log=dependency_tree_log)
 
     ktis, kpvs, sections, approaches, flight_attrs = \
         derive_parameters(hdf, node_mgr, process_order, force=force)

@@ -221,8 +221,6 @@ class TestDependencyGraph(unittest.TestCase):
         self.assertEqual(list(gr.edges('4')), [('4','DepFour')])
         self.assertEqual(gr.node['4'], {'color': '#72cdf4', 'node_type': 'DerivedParameterNode'})
         # Root
-        from analysis_engine.dependency_graph import draw_graph
-        draw_graph(gr, 'test_graph_nodes_with_duplicate_key_in_lfl_and_derived')
         self.assertEqual(list(gr.successors('root')), ['2','4']) # only the two requested are linked
         self.assertEqual(gr.node['root'], {'color': '#ffffff'})
 
@@ -363,7 +361,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         derived = get_derived_nodes([import_module('sample_derived_parameters')])
         nodes = NodeManager({'Start Datetime': datetime.now()}, 10, lfl_params,
                             requested, [], derived, {}, {})
-        order, _ = dependency_order(nodes, draw=False)
+        order, _ = dependency_order(nodes)
         pos = order.index
         self.assertTrue(len(order))
         self.assertNotIn('Moment Of Takeoff', order)  # not available
@@ -384,7 +382,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         derived = get_derived_nodes([import_module('sample_derived_parameters')])
         mgr = NodeManager({'Start Datetime': datetime.now()}, 10, lfl_params, requested, [],
                           derived, {}, {})
-        self.assertRaises(ValueError, dependency_order, mgr, draw=False)
+        self.assertRaises(ValueError, dependency_order, mgr)
 
     def test_avoiding_possible_circular_dependency(self):
         # Possible circular dependency which can be avoided:
@@ -398,7 +396,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         }
         mgr = NodeManager(segment_info, 10, lfl_params, requested, [],
                           derived, {}, {})
-        order, _ = dependency_order(mgr, draw=False)
+        order, _ = dependency_order(mgr)
         # As Gear Selected Down depends upon Gear Down
 
         expected_order = [
@@ -409,8 +407,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
 
         # try a bigger cyclic dependency on top of the above one
 
-    def _get_dependency_order(self, requested, aircraft_info, lfl_params,
-                              draw=False, segment_info={}):
+    def _get_dependency_order(self, requested, aircraft_info, lfl_params, segment_info={}):
         if not segment_info:
             segment_info = {
                 'Start Datetime': datetime.now(),
@@ -423,7 +420,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         node_mgr = NodeManager(
             segment_info, 10, lfl_params,
             pre_processing_requested, [], pre_processing_nodes, aircraft_info, {})
-        process_order, gr_st = dependency_order(node_mgr, draw=draw)
+        process_order, gr_st = dependency_order(node_mgr)
 
 
         if aircraft_info['Aircraft Type'] == 'helicopter':
@@ -437,7 +434,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
             requested = [p for p in derived_nodes.keys() if p not in lfl_params]
         node_mgr= NodeManager(segment_info, 10, lfl_params + process_order,
                               requested, [], derived_nodes, aircraft_info, {})
-        order, gr_st = dependency_order(node_mgr, draw=draw)
+        order, gr_st = dependency_order(node_mgr)
         return order, gr_st
 
     def test_avoiding_circular_dependency_gear_up_selected(self):

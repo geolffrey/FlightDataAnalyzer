@@ -1,7 +1,6 @@
 from __future__ import print_function
 
 import os
-import sys
 import logging
 import networkx as nx # pip install networkx or /opt/epd/bin/easy_install networkx
 import six
@@ -21,7 +20,6 @@ from analysis_engine.node import (
 )
 
 logger = logging.getLogger(__name__)
-not_windows = sys.platform not in ('win32', 'win64') # False for Windows :-(
 
 CALCULATE_NODE_LAST = [
     '2 Deg Pitch To 35 Ft Duration',
@@ -309,48 +307,6 @@ def dependencies3(di_graph, root, node_mgr, dependency_tree_log=False):
     return ordering, tree_path
 
 
-def draw_graph(graph, name, horizontal=False):
-    """
-    Draws a graph to file with label and filename taken from name argument.
-
-    Note: Graphviz binaries cannot be easily installed on Windows (you must
-    build it from source), therefore you shouldn't bother trying to
-    draw_graph unless you've done so!
-
-    :param graph: Dependency graph to draw
-    :type graph: nx.DiGraph
-    :param name: Name of graph being drawn. Added to filename: graph_[name].ps
-    :type name: String
-    :param horizontal: Draw graph from left to right. Default: False (top to bottom)
-    :type horizontal: Boolean
-    """
-    # hint: change filename extension to change type (.png .pdf .ps)
-    file_path = 'graph_%s.ps' % name.lower().replace(' ', '_')
-    # TODO: Set the number of pages #page="8.5,11";
-    # Trying to get matplotlib to install nicely
-    # Warning: pyplot does not render the graphs well!
-    ##import matplotlib.pyplot as plt
-    ##nx.draw(graph)
-    ##plt.show()
-    ##plt.savefig(file_path)
-    try:
-        ##import pygraphviz as pgv
-        # sudo apt-get install graphviz libgraphviz-dev
-        # pip install pygraphviz
-        #Note: nx.nx_agraph.to_agraph performs pygraphviz import
-        if horizontal:
-            # set layout left to right before converting all nodes to new format
-            graph.graph['graph'] = {'rankdir' : 'LR'}
-        G = nx.nx_agraph.to_agraph(graph)
-    except ImportError:
-        logger.exception("Unable to import pygraphviz to draw graph '%s'", name)
-        return
-    G.graph_attr['label'] = name
-    G.layout(prog='dot')
-    G.draw(file_path)
-    logger.debug("Dependency tree drawn: %s", os.path.abspath(file_path))
-
-
 def graph_adjacencies(graph):
     '''
     Create a dictionary of each nodes adjacencies within the graph. Useful for
@@ -513,22 +469,7 @@ def process_order(gr_all, node_mgr, raise_inoperable_requested=False,
     return gr_all, gr_st, process_order[:-1] # exclude 'root'
 
 
-
-
-def remove_floating_nodes(graph):
-    """
-    Remove all nodes which aren't referenced within the dependency tree
-    """
-    nodes = list(graph)
-    for node in nodes:
-        if not graph.predecessors(node) and not graph.successors(node):
-            graph.remove_node(node)
-    return graph
-
-
-def dependency_order(node_mgr, draw=not_windows,
-                     raise_inoperable_requested=False,
-                     dependency_tree_log=False):
+def dependency_order(node_mgr, raise_inoperable_requested=False, dependency_tree_log=False):
     """
     Main method for retrieving processing order of nodes.
 
@@ -544,14 +485,4 @@ def dependency_order(node_mgr, draw=not_windows,
                                          raise_inoperable_requested=raise_inoperable_requested,
                                          dependency_tree_log=dependency_tree_log)
 
-    if draw:
-        from json import dumps
-        logger.debug("JSON Graph Representation:\n%s", dumps(graph_adjacencies(gr_st), indent=2))
-        draw_graph(gr_st, 'Active Nodes in Spanning Tree')
-        # reduce number of nodes by removing floating ones
-        gr_all = remove_floating_nodes(gr_all)
-        draw_graph(gr_all, 'Dependency Tree')
-
     return order, gr_st
-
-
