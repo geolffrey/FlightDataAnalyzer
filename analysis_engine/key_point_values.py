@@ -6645,6 +6645,30 @@ class QNHDifferenceDuringApproach(KeyPointValueNode):
             self.create_kpv(index, qnh_error)
 
 
+class QNHDifferenceDuringTakeoff(KeyPointValueNode):
+
+    name = 'QNH Difference During Takeoff'
+    units = ut.MILLIBAR
+
+    def derive(self, alt_qnh=P('Altitude QNH'),
+               alt_aal=P('Altitude AAL'),
+               takeoffs=S('Takeoff'),
+               to_runway=A('FDR Takeoff Runway')):
+
+        for takeoff in takeoffs:
+            qnh_ref = alt2press(0)
+            index = takeoff.slice.start
+
+            final_alt = alt_aal.array[int(index)]
+            rwy_elevation = to_runway.value['start']['elevation']
+            ref = rwy_elevation + final_alt
+            alt_qnh_lo = alt_qnh.array[int(index)]
+            diff = alt_qnh_lo - ref
+            qnh_error = qnh_ref - alt2press(diff)
+
+            self.create_kpv(index, qnh_error)
+
+
 class BaroCorrectionMinus1013Above20000FtDuringLevelFlightMax(KeyPointValueNode):
     '''
     Maximum difference between Baro Correction and 1013 hPa (absolute value) for

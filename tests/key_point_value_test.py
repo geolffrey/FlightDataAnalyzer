@@ -598,6 +598,7 @@ from analysis_engine.key_point_values import (
     PitchRateWhileAirborneMax,
     PitchTakeoffMax,
     QNHDifferenceDuringApproach,
+    QNHDifferenceDuringTakeoff,
     RateOfClimb35To1000FtMin,
     RateOfClimb35ToClimbAccelerationStartMin,
     RateOfClimbBelow10000FtMax,
@@ -8355,6 +8356,36 @@ class TestQNHDifferenceDuringApproach(unittest.TestCase):
         # Second approach had only 5 ft diff. Almost 0 mBar difference
         self.assertAlmostEqual(node[1].value, 0, delta=0.2)
         self.assertAlmostEqual(node[1].index, 6 + 1/3., delta=0.01)
+
+
+class TestQNHDifferenceDuringTakeoff(unittest.TestCase):
+    def setUp(self):
+        self.node_class = QNHDifferenceDuringTakeoff
+
+    def test_attributes(self):
+        node = self.node_class()
+        self.assertEqual(node.units, 'mb')
+        self.assertEqual(node.name, 'QNH Difference During Takeoff')
+
+    def test_derive(self):
+        alt_qnh = P(name='Altitude QNH',
+                    array=np.ma.array([1216, 1236, 1256, 1276, 1296, 1326]))
+
+        alt_aal = P('Altitude AAL',
+                    array=np.ma.array([0, 20, 40, 60, 80, 110]))
+
+        takeoff = buildsection('Takeoff', 0, 6)
+
+        to_runway = A('FDR Takeoff Runway',
+                     {'end': {'elevation': 1181},
+                      'start': {'elevation': 1276},
+                     })
+
+        node = self.node_class()
+        node.derive(alt_qnh, alt_aal, takeoff, to_runway)
+
+        self.assertAlmostEqual(node[0].value, -2.20, delta=0.2)
+        self.assertEqual(node[0].index, 0)
 
 
 class TestBaroCorrectionMinus1013Above20000FtMax(unittest.TestCase, NodeTest):
