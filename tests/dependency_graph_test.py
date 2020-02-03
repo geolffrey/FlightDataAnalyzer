@@ -14,7 +14,6 @@ from datetime import datetime
 
 from analysis_engine.node import (DerivedParameterNode, Node, NodeManager, P)
 from analysis_engine.dependency_graph import (
-    any_predecessors_in_requested,
     dependency_order,
     graph_nodes,
     graph_adjacencies,
@@ -168,37 +167,6 @@ class TestDependencyGraph(unittest.TestCase):
         mgr = NodeManager({'Start Datetime': datetime.now()}, 10, nodes, nodes,
                           required, {}, {}, {})
         self.assertRaises(ValueError, graph_nodes, mgr)
-
-    def test_graph_predecessors(self):
-        edges = [('a', 'b'), ('b', 'c1'), ('b', 'c2'), ('b', 'c3'), ('c2', 'd'),
-                 ('x', 'y'), ('y', 'z')]
-        gr = nx.DiGraph(edges)
-        # all requested
-        req = ['a', 'b', 'c1', 'c2', 'c3']
-        self.assertTrue(any_predecessors_in_requested('b', req, gr))
-        self.assertEqual(any_predecessors_in_requested('b', req, gr), 'a') # finds 'a'
-        self.assertTrue(any_predecessors_in_requested('c3', req, gr))
-        self.assertEqual(any_predecessors_in_requested('c3', req, gr), 'b') # finds 'b' just above
-        # no predecessors returns False
-        self.assertFalse(any_predecessors_in_requested('a', req, gr))
-        self.assertEqual(any_predecessors_in_requested('a', req, gr), False)
-        self.assertFalse(any_predecessors_in_requested('x', req, gr))
-        self.assertFalse(any_predecessors_in_requested('y', req, gr))
-        # only requested half way down ('b')
-        req = ['b', 'y']
-        self.assertFalse(any_predecessors_in_requested('a', req, gr))
-        self.assertEqual(any_predecessors_in_requested('a', req, gr), False)
-        # 'b' is requested, but NONE of its predecessors are requested!
-        self.assertFalse(any_predecessors_in_requested('b', req, gr))
-        # 'c1' is not requested, but 'b' is requested
-        self.assertTrue(any_predecessors_in_requested('c1', req, gr))
-        self.assertEqual(any_predecessors_in_requested('c1', req, gr), 'b')
-        # 'd' must pass through 'c2' then find 'b' in requested
-        self.assertTrue(any_predecessors_in_requested('d', req, gr))
-        self.assertEqual(any_predecessors_in_requested('d', req, gr), 'b')
-        # 'x' is not requested, and although 'y' is it has no predecessors available
-        self.assertFalse(any_predecessors_in_requested('x', req, gr))
-        self.assertFalse(any_predecessors_in_requested('y', req, gr))
 
     def test_graph_nodes_using_sample_tree(self):
         requested = ['P7', 'P8']

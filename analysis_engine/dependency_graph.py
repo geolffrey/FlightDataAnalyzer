@@ -351,32 +351,6 @@ def draw_graph(graph, name, horizontal=False):
     logger.debug("Dependency tree drawn: %s", os.path.abspath(file_path))
 
 
-def any_predecessors_in_requested(node_name, requested, graph):
-    '''
-    Recursively move towards the start of the tree (those which depend upon
-    this node) searching for a node predecessor that's within the list of
-    requested nodes.
-
-    If the node itself has been requested, and none of its predecessors are
-    requested, the result is "False".
-
-    :param node_name: Name of the node to recurse down the graph
-    :type node_name: String / object
-    :param requested: List of nodes requested
-    :type requested: List of Strings/objects
-    :param graph: Directed graph to recurse across links
-    :type graph: nx.DiGraph
-    '''
-    for predecessor in graph.predecessors(node_name):
-        if predecessor in requested:
-            return predecessor
-        else:
-            # recurse this predecessor's path
-            return any_predecessors_in_requested(predecessor, requested, graph)
-    else:
-        return False
-
-
 def graph_adjacencies(graph):
     '''
     Create a dictionary of each nodes adjacencies within the graph. Useful for
