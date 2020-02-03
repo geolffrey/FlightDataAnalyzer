@@ -4384,7 +4384,10 @@ class TestRotorSpeedWhileAirborneMax(unittest.TestCase):
     def test_can_operate(self):
         self.assertEqual(self.node_class.get_operational_combinations(ac_type=aeroplane), [])
         opts = self.node_class.get_operational_combinations(ac_type=helicopter)
-        self.assertEqual(opts, [('Nr', 'Airborne', 'Autorotation')])
+        self.assertEqual(opts, [
+            ('Nr', 'Airborne'),
+            ('Nr', 'Airborne', 'Autorotation'),
+        ])
 
     def test_derive(self):
         x = np.linspace(0, 10, 200)
@@ -4412,6 +4415,20 @@ class TestRotorSpeedWhileAirborneMax(unittest.TestCase):
         self.assertEqual(node[0].index, 135)
         self.assertAlmostEqual(node[0].value, 100.480, places=3)
 
+    def test_derive_no_autorotation(self):
+        x = np.linspace(0, 10, 200)
+        rotor = P('Rotor', array=np.ma.array(np.sin(x)+100))
+        name = 'Airborne'
+        section = Section(name, slice(115, 152), 115, 152)
+        airborne = SectionNode(name, items=[section])
+
+        node = self.node_class()
+        node.derive(rotor, airborne, None)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 151)
+        self.assertAlmostEqual(node[0].value, 100.965, places=3)
+
 
 class TestRotorSpeedWhileAirborneMin(unittest.TestCase):
 
@@ -4421,7 +4438,10 @@ class TestRotorSpeedWhileAirborneMin(unittest.TestCase):
     def test_can_operate(self):
         self.assertEqual(self.node_class.get_operational_combinations(ac_type=aeroplane), [])
         opts = self.node_class.get_operational_combinations(ac_type=helicopter)
-        self.assertEqual(opts, [('Nr', 'Airborne', 'Autorotation')])
+        self.assertEqual(opts, [
+            ('Nr', 'Airborne'),
+            ('Nr', 'Airborne', 'Autorotation'),
+        ])
 
     def test_derive(self):
         x = np.linspace(0, 10, 200)
@@ -4448,6 +4468,21 @@ class TestRotorSpeedWhileAirborneMin(unittest.TestCase):
         self.assertEqual(len(node), 1)
         self.assertEqual(node[0].index, 114)
         self.assertAlmostEqual(node[0].value, 99.473, places=3)
+
+    def test_derive(self):
+        x = np.linspace(0, 10, 200)
+        rotor = P('Rotor', array=np.ma.array(np.sin(x)+100))
+        name = 'Airborne'
+        section = Section(name, slice(115, 152), 115, 152)
+        airborne = SectionNode(name, items=[section])
+
+        node = self.node_class()
+        node.derive(rotor, airborne, None)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 115)
+        self.assertAlmostEqual(node[0].value, 99.517, places=3)
+
 
 class TestRotorSpeedWithRotorBrakeAppliedMax(unittest.TestCase):
 
@@ -4519,7 +4554,10 @@ class TestRotorSpeedDuringMaximumContinuousPowerMin(unittest.TestCase):
     def test_can_operate(self):
         self.assertEqual(self.node_class.get_operational_combinations(ac_type=aeroplane), [])
         opts = self.node_class.get_operational_combinations(ac_type=helicopter)
-        self.assertEqual(opts, [('Nr', 'Maximum Continuous Power', 'Autorotation')])
+        self.assertEqual(opts, [
+            ('Nr', 'Maximum Continuous Power'),
+            ('Nr', 'Maximum Continuous Power', 'Autorotation'),
+        ])
 
     def test_derive(self):
         x = np.linspace(0, 10, 200)
@@ -4546,6 +4584,20 @@ class TestRotorSpeedDuringMaximumContinuousPowerMin(unittest.TestCase):
         self.assertEqual(len(node), 1)
         self.assertEqual(node[0].index, 114)
         self.assertAlmostEqual(node[0].value, 99.473, places=3)
+
+    def test_derive(self):
+        x = np.linspace(0, 10, 200)
+        rotor = P('Rotor', array=np.ma.array(np.sin(x)+100))
+        name = 'Maximum Continuous Power'
+        section = Section(name, slice(115, 152), 115, 152)
+        mcp = SectionNode(name, items=[section])
+
+        node = self.node_class()
+        node.derive(rotor, mcp, None)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 115)
+        self.assertAlmostEqual(node[0].value, 99.517, places=3)
 
 
 class TestRotorSpeed36To49Duration(unittest.TestCase):

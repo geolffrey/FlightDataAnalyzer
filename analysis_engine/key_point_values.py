@@ -19429,6 +19429,10 @@ class GrossWeightAtTouchdown(KeyPointValueNode):
 
     units = ut.KG
 
+    @classmethod
+    def can_operate(cls, available):
+        return all_of(('Gross Weight Smoothed', 'Touchdown'), available)
+
     def derive(self, gw=P('Gross Weight Smoothed'),
                touchdowns=KTI('Touchdown'),
                touch_and_go=KTI('Touch And Go')):
@@ -19442,6 +19446,8 @@ class GrossWeightAtTouchdown(KeyPointValueNode):
             self.warning("KPV '%s' will not be created because '%s' array "
                          "could not be repaired.", self.name, gw.name)
             return
+
+        touch_and_go = touch_and_go or []
         self.create_kpvs_at_ktis(array, (touchdowns+touch_and_go))
 
 

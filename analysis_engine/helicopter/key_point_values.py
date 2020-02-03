@@ -1826,12 +1826,16 @@ class RotorSpeedWhileAirborneMax(KeyPointValueNode):
 
     units = ut.PERCENT
 
-    can_operate = helicopter_only
+    @classmethod
+    def can_operate(cls, available, ac_type=A('Aircraft Type')):
+        return ac_type == helicopter and all_of(('Nr', 'Airborne'), available)
 
     def derive(self, nr=P('Nr'), airborne=S('Airborne'), autorotation=S('Autorotation')):
+        slices = airborne.get_slices()
+        if autorotation is not None:
+            slices = slices_and_not(slices, autorotation.get_slices())
         self.create_kpv_from_slices(nr.array,
-                                    slices_and_not(airborne.get_slices(),
-                                                  autorotation.get_slices()),
+                                    slices,
                                     max_value)
 
 
@@ -1843,12 +1847,16 @@ class RotorSpeedWhileAirborneMin(KeyPointValueNode):
 
     units = ut.PERCENT
 
-    can_operate = helicopter_only
+    @classmethod
+    def can_operate(cls, available, ac_type=A('Aircraft Type')):
+        return ac_type == helicopter and all_of(('Nr', 'Airborne'), available)
 
     def derive(self, nr=P('Nr'), airborne=S('Airborne'), autorotation=S('Autorotation')):
+        slices = airborne.get_slices()
+        if autorotation is not None:
+            slices = slices_and_not(slices, autorotation.get_slices())
         self.create_kpv_from_slices(nr.array,
-                                    slices_and_not(airborne.get_slices(),
-                                                   autorotation.get_slices()),
+                                    slices,
                                     min_value)
 
 
@@ -1892,12 +1900,16 @@ class RotorSpeedDuringMaximumContinuousPowerMin(KeyPointValueNode):
 
     units = ut.PERCENT
 
-    can_operate = helicopter_only
+    @classmethod
+    def can_operate(cls, available, ac_type=A('Aircraft Type')):
+        return ac_type == helicopter and all_of(('Nr', 'Maximum Continuous Power'), available)
 
     def derive(self, nr=P('Nr'), mcp=S('Maximum Continuous Power'), autorotation=S('Autorotation')):
+        slices = mcp.get_slices()
+        if autorotation is not None:
+            slices = slices_and_not(slices, autorotation.get_slices())
         self.create_kpv_from_slices(nr.array,
-                                    slices_and_not(mcp.get_slices(),
-                                                   autorotation.get_slices()),
+                                    slices,
                                     min_value)
 
 

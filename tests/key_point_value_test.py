@@ -22131,7 +22131,10 @@ class TestGrossWeightAtTouchdown(unittest.TestCase, NodeTest):
 
     def setUp(self):
         self.node_class = GrossWeightAtTouchdown
-        self.operational_combinations = [('Gross Weight Smoothed', 'Touchdown', 'Touch And Go')]
+        self.operational_combinations = [
+            ('Gross Weight Smoothed', 'Touchdown', 'Touch And Go'),
+            ('Gross Weight Smoothed', 'Touchdown'),
+        ]
         self.gw = P(name='Gross Weight Smoothed', array=np.ma.array((1, 2, 3)))
         self.touchdowns = KTI(name='Touchdown', items=[
             KeyTimeInstance(name='Touchdown', index=2),
@@ -22160,6 +22163,15 @@ class TestGrossWeightAtTouchdown(unittest.TestCase, NodeTest):
         node.derive(self.gw, self.touch_and_go)
         self.assertEqual(node, KPV(name=name, items=[
             KeyPointValue(name=name, index=1, value=2),
+        ]))
+
+    def test_derive_no_touch_and_go(self):
+        # Helicopters don't have a Touch And Go KTI
+        name = self.node_class.get_name()
+        node = self.node_class()
+        node.derive(self.gw, self.touchdowns, None)
+        self.assertEqual(node, KPV(name=name, items=[
+            KeyPointValue(name=name, index=2, value=3),
         ]))
 
 
