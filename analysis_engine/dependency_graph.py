@@ -1,15 +1,11 @@
-from __future__ import print_function
-
-import logging
-import networkx as nx # pip install networkx or /opt/epd/bin/easy_install networkx
-import six
 import copy
+import logging
+import types
 
-from collections import deque
-from itertools import chain
-
+import networkx as nx
 
 logger = logging.getLogger(__name__)
+
 
 """
 TODO:
@@ -101,8 +97,7 @@ def ordered_tree_to_file(tree_path, name='ordered_tree_path.txt'):
         f.writelines(format_ordered_tree(tree_path))
 
 
-def indent_tree(graph, node, level=0, space='  ', delim='- ', label=True,
-                recurse_active=True):
+def indent_tree(graph, node, level=0, space='  ', delim='- ', label=True, recurse_active=True):
     '''
     Small tool to assist representing a tree on the console.
 
@@ -153,7 +148,7 @@ def indent_tree(graph, node, level=0, space='  ', delim='- ', label=True,
             level_rows.extend(sub_level)
         return level_rows
 
-    path = deque()  # current branch path
+    path = []  # current branch path
     return recurse_tree(node, level)
 
 
@@ -166,7 +161,84 @@ def print_tree(graph, node='root', **kwargs):
     print('\n'.join(indent_tree(graph, node, **kwargs)))
 
 
-def dependencies3(di_graph, root, node_mgr, dependency_tree_log=False):
+def traverse_tree(state, node_mgr, graph, node, dependency_tree_log=False):
+    """
+    Begin the recursion at this node's position in the dependency tree
+
+    Returns True if this node dependencies are satisfied. False otherwise.
+    """
+    state.path.append(node)
+
+    if node in state.active_nodes:
+        return True  # Node already found to be operational.
+
+    # order the successors based on the order in the derive method.
+    ordered_successors = [
+        name
+        for (name, d) in sorted(
+            graph[node].items(), key=lambda a: (a[1].get('order', False), a[0])
+        )
+        if name not in state.inop_nodes
+    ]
+
+    # Optimization: check if node can be derived with potential dependencies.
+    # Because of this, we must have all required nodes connected to the root,
+    # as we might not visit all dependencies.
+    if not node_mgr.operational(node, ordered_successors):
+        state.inop_nodes.add(node)
+        return False
+
+    if node in state.path[:-1]:
+        # Start of circular dependency.
+        # There might still be a chance to derive this node based on its remaining
+        # successors. Try again with subset of successors (ignore those in path)
+        ordered_successors = [name for name in ordered_successors if name not in state.path]
+
+        if not node_mgr.operational(node, ordered_successors):
+            # Unfortunately the remaining successors do not allow this node to
+            # be derived. Back track.
+            # Optimization
+            # Find the cycle within the current path
+            last_path = list(state.path)
+            start = last_path.index(node)
+            stop = len(last_path) - 1  # Because we appear also at the end
+            cycle = tuple(last_path[start:stop])
+            if cycle in state.cycles:
+                # If we've seen this cycle before, its parameters will never work
+                state.inop_nodes.update(cycle)
+            else:
+                state.cycles.add(cycle)
+
+            if dependency_tree_log:
+                state.tree_path.append(list(state.path) + ['CIRCULAR'])
+            logger.debug("Circular dependency avoided at node '%s'. Branch path: %s", node, state.path)
+            return False
+
+    operating_dependencies = set()  # operating nodes of current node's available dependencies
+    for dependency in ordered_successors:
+        # recurse to find out if the dependency is available
+        if traverse_tree(state, node_mgr, graph, dependency, dependency_tree_log=dependency_tree_log):
+            operating_dependencies.add(dependency)
+        # each time traverse_tree returns, remove node from visited path
+        state.path.pop()
+
+    if node_mgr.operational(node, operating_dependencies):
+        # node will work at this level with the operating dependencies
+        if node not in state.active_nodes:
+            state.active_nodes.add(node)
+            state.order.append(node)  # What about skipping nodes in node_mgr.hdf_keys (they don't derive)
+
+        if dependency_tree_log and node not in node_mgr.hdf_keys:
+            state.tree_path.append(list(state.path))
+
+        return True
+    else:
+        if dependency_tree_log:
+            state.tree_path.append(list(state.path) + ['NOT OPERATIONAL'])
+        return False
+
+
+def dependencies3(graph, root, node_mgr, dependency_tree_log=False):
     '''
     Performs a Depth First Search down each dependency node in the tree
     (di_graph) until each branch's dependencies are best satisfied.
@@ -185,8 +257,8 @@ def dependencies3(di_graph, root, node_mgr, dependency_tree_log=False):
     Heading -> Heading True + Magnetic Variation
     Heading True -> Heading - Magnetic Variation
 
-    :param di_graph: Directed graph of all nodes and their dependencies.
-    :type di_graph: nx.DiGraph
+    :param graph: Directed graph of all nodes and their dependencies.
+    :type graph: nx.DiGraph
     :param root: Root node to start traversing from, usually named 'root'
     :type root: String
     :param node_mgr: Node manager which can assess whether nodes are
@@ -196,101 +268,24 @@ def dependencies3(di_graph, root, node_mgr, dependency_tree_log=False):
     :dependency_tree_log: If True, will populate `tree_path` for visualization of the
                           graph traversal.
     '''
-    def traverse_tree(node):
-        """
-        Begin the recursion at this node's position in the dependency tree
-
-        Returns True if this node dependencies are satisfied. False otherwise.
-        """
-        path.append(node)
-
-        if node in active_nodes:
-            # node already discovered operational
-            return True
-
-        # order the successors based on the order in the derive method.
-        ordered_successors = [
-            name
-            for (name, d) in sorted(
-                di_graph[node].items(), key=lambda a: (a[1].get("order", False), a[0])
-            )
-            if name not in inop_nodes
-        ]
-
-        # Optimization: check if node can be derived with potential dependencies.
-        # Because of this, we must have all required nodes connected to the root,
-        # as we might not visit all dependencies.
-        if not node_mgr.operational(node, ordered_successors):
-            inop_nodes.add(node)
-            return False
-
-        if node in path[:-1]:
-            # Start of circular dependency.
-            # There might still be a chance to derive this node based on its remaining
-            # successors. Try again with subset of successors (ignore those in path)
-            ordered_successors = [
-                name for name in ordered_successors
-                if name not in path
-            ]
-
-            if not node_mgr.operational(node, ordered_successors):
-                # Unfortunately the remaining successors do not allow this node to
-                # be derived. Back track.
-                # Optimization
-                # Find the cycle within the current path
-                last_path = list(path)
-                start = last_path.index(node)
-                stop = len(last_path) - 1  # Because we appear also at the end
-                cycle = tuple(last_path[start:stop])
-                if cycle in cycles:
-                    # If we've seen this cycle before, its parameters will never work
-                    inop_nodes.update(cycle)
-                else:
-                    cycles.add(cycle)
-
-                if dependency_tree_log:
-                    tree_path.append(list(path) + ['CIRCULAR',])
-                logger.debug("Circular dependency avoided at node '%s'. Branch path: %s", node, path)
-                return False
-
-        operating_dependencies = set()  # operating nodes of current node's available dependencies
-        for dependency in ordered_successors:
-            # recurse to find out if the dependency is available
-            if traverse_tree(dependency):
-                operating_dependencies.add(dependency)
-            # each time traverse_tree returns, remove node from visited path
-            path.pop()
-
-        if node_mgr.operational(node, operating_dependencies):
-            # node will work at this level with the operating dependencies
-            if node not in active_nodes:
-                active_nodes.add(node)
-                ordering.append(node)  # What about skipping nodes in node_mgr.hdf_keys (they don't derive)
-
-            if node not in node_mgr.hdf_keys and dependency_tree_log:
-                tree_path.append(list(path))
-
-            return True
-        else:
-            if dependency_tree_log:
-                tree_path.append(list(path) + ['NOT OPERATIONAL',])
-            return False
-
-    ordering = []
-    path = []  # current branch path
-    active_nodes = set(              # operational nodes visited for fast lookup
-        chain.from_iterable((
-            node_mgr.aircraft_info,
-            node_mgr.achieved_flight_record,
-            node_mgr.segment_info
-        ))
+    state = types.SimpleNamespace(
+        active_nodes={  # operational nodes visited for fast lookup
+            # XXX: 'HDF Duration',
+            *node_mgr.aircraft_info,
+            *node_mgr.achieved_flight_record,
+            # XXX: *node_mgr.hdf_keys,
+            *node_mgr.segment_info,
+        },
+        inop_nodes=set(),  # non operational nodes due to insatisfied dependencies
+        cycles=set(),  # set of cycles already seen
+        order=[],
+        path=[],  # current branch path
+        tree_path=[],  # For viewing the tree in which nodes are added to path
     )
-    inop_nodes = set()  # non operational nodes due to insatisfied dependencies
-    tree_path = []  # For viewing the tree in which nodes are added to path
-    cycles = set()  # set of cycles already seen
-    traverse_tree(root)  # start recursion
-    logger.debug(f"Inop nodes: {inop_nodes}")
-    return ordering, tree_path
+
+    traverse_tree(state, node_mgr, graph, root, dependency_tree_log=dependency_tree_log)  # start recursion
+    logger.debug(f"Inop nodes: {state.inop_nodes}")
+    return state.order, state.tree_path
 
 
 def graph_nodes(node_mgr):
@@ -339,27 +334,25 @@ def dependency_order(node_mgr, raise_inoperable_requested=False, dependency_tree
     """
     gr_all = graph_nodes(node_mgr)
 
-    process_order, tree_path = dependencies3(
-        gr_all, 'root', node_mgr, dependency_tree_log=dependency_tree_log)
-    logger.debug("Processing order of %d nodes is: %s", len(process_order), process_order)
+    order, tree_path = dependencies3(gr_all, 'root', node_mgr, dependency_tree_log=dependency_tree_log)
+    logger.debug("Processing order of %d nodes is: %s", len(order), order)
     if dependency_tree_log:
         ordered_tree_to_file(tree_path, name=dependency_tree_log)
-    for n, node in enumerate(process_order):
+    for n, node in enumerate(order):
         gr_all.node[node]['label'] = '%d: %s' % (n, node)
         gr_all.node[node]['active'] = True
 
-    inactive_nodes = set(gr_all.nodes()) - set(process_order)
-    logger.debug("Inactive nodes: %s", list(sorted(inactive_nodes)))
+    inactive_nodes = set(gr_all.nodes()) - set(order)
+    logger.debug("Inactive nodes: %s", sorted(inactive_nodes))
     gr_st = gr_all.copy()
     gr_st.remove_nodes_from(inactive_nodes)
 
     for node in inactive_nodes:
         # add attributes to the node to reflect it's inactivity
         gr_all.node[node]['active'] = False
-        inactive_edges = gr_all.in_edges(node)
-        gr_all.add_edges_from(inactive_edges)
+        gr_all.add_edges_from(gr_all.in_edges(node))
 
-    inoperable_requested = list(set(node_mgr.requested) - set(process_order))
+    inoperable_requested = set(node_mgr.requested) - set(order)
     if inoperable_requested:
         logger.warning("Found %s inoperable requested parameters.", len(inoperable_requested))
         if logging.NOTSET < logger.getEffectiveLevel() <= logging.DEBUG:
@@ -370,13 +363,12 @@ def dependency_order(node_mgr, raise_inoperable_requested=False, dependency_tree
                 if tree:
                     items.append('------- INOPERABLE -------')
                     items.extend(tree)
-            logger.debug('\n'+'\n'.join(items))
+            logger.debug('\n' + '\n'.join(items))
         if raise_inoperable_requested:
             raise InoperableDependencies(inoperable_requested)
 
-    required_missing = set(node_mgr.required) - set(process_order)
+    required_missing = set(node_mgr.required) - set(order)
     if required_missing:
-        raise RequiredNodesMissing(
-            "Required nodes missing: %s" % ', '.join(required_missing))
+        raise RequiredNodesMissing("Required nodes missing: %s" % ', '.join(required_missing))
 
-    return process_order[:-1], gr_st  # exclude 'root'
+    return order[:-1], gr_st  # exclude 'root'
