@@ -2480,12 +2480,14 @@ class NodeManager(object):
         :returns: Ordered list of all Node names stored within the manager.
         :rtype: list of str
         """
-        return sorted(list(set(['HDF Duration']
-                               + list(self.hdf_keys)
-                               + list(self.derived_nodes.keys())
-                               + list(self.aircraft_info.keys())
-                               + list(self.achieved_flight_record.keys())
-                               + list(self.segment_info.keys()))))
+        return sorted({
+            'HDF Duration',
+            *self.hdf_keys,
+            *self.derived_nodes,
+            *self.aircraft_info,
+            *self.achieved_flight_record,
+            *self.segment_info,
+        })
 
     def get_attribute(self, name):
         """
