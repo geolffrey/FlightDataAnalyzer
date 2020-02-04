@@ -1,14 +1,10 @@
 from __future__ import print_function
 
 import importlib.machinery
-import os
 from pathlib import Path
-import networkx as nx
-import six
 import unittest
 import yaml
 import types
-from collections.abc import Iterable
 
 from datetime import datetime
 
@@ -22,16 +18,6 @@ from analysis_engine.utils import get_derived_nodes
 from analysis_engine import settings
 
 test_data_path = Path(__file__).parent / 'test_data'
-
-def flatten(l):
-    "Flatten an iterable of many levels of depth (generator)"
-    for el in l:
-        if isinstance(el, Iterable) and not isinstance(el, six.string_types):
-            for sub in sorted(flatten(el)):
-                yield sub
-        else:
-            yield el
-
 
 def import_module(module_name):
     path = Path(__file__).resolve().parent / ('%s.py' % module_name)
