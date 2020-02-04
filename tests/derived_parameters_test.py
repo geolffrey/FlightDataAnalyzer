@@ -2235,6 +2235,7 @@ class TestAltitudeRadio(unittest.TestCase):
                    fast=fast, family=A('Family', 'A330'))
         self.assertEqual(len(rad.array), 40)
 
+    @unittest.skip('Code for this test no longer used')
     def test_altitude_radio_with_diversion(self):
         alt_rad = AltitudeRadio()
         alt_baro = Parameter(
@@ -2266,6 +2267,7 @@ class TestAltitudeRadio(unittest.TestCase):
         self.assertEqual(alt_rad.offset, 0.0)
         self.assertEqual(alt_rad.frequency, 4.0)
 
+    @unittest.skip('Test data not available')
     def test_altitude_radio_b737_no_overflow(self):
         source_A = load(os.path.join(test_data_path, 'radio_737_test_source_A.nod'))
         source_B = load(os.path.join(test_data_path, 'radio_737_test_source_B.nod'))
