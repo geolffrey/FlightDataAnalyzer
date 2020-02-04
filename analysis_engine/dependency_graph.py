@@ -270,7 +270,7 @@ def dependencies3(graph, root, node_mgr, dependency_tree_log=False):
     '''
     state = types.SimpleNamespace(
         active_nodes={  # operational nodes visited for fast lookup
-            # XXX: 'HDF Duration',
+            'HDF Duration',
             *node_mgr.aircraft_info,
             *node_mgr.achieved_flight_record,
             # XXX: *node_mgr.hdf_keys,

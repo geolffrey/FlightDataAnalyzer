@@ -467,7 +467,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
             'Heading', 'Heading Continuous', 'Altitude STD', 'Airspeed', 'Fast',
             'Altitude STD Smoothed', 'Altitude AAL', 'Altitude AAL For Flight Phases',
             'Airborne', 'Climb Cruise Descent', 'Takeoff', 'Takeoff Acceleration Start',
-            'Takeoff Roll', 'HDF Duration', 'Grounded', 'Takeoff Runway Heading',
+            'Takeoff Roll', 'Grounded', 'Takeoff Runway Heading',
             'Takeoff Roll Or Rejected Takeoff', 'Heading During Takeoff', 'Mach',
             'Heading Rate', 'Mobile', 'Landing', 'Airspeed True', 'Landing Roll',
             'Heading During Landing', 'Vertical Speed', 'Liftoff',
@@ -491,7 +491,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
             'Airspeed', 'ILS Localizer', 'Latitude', 'Longitude', 'Altitude STD', 'Fast',
             'Altitude STD Smoothed', 'Altitude AAL', 'Altitude AAL For Flight Phases',
             'Airborne', 'Climb Cruise Descent', 'Magnetic Variation', 'Takeoff',
-            'Takeoff Acceleration Start', 'Takeoff Roll', 'HDF Duration', 'Grounded',
+            'Takeoff Acceleration Start', 'Takeoff Roll', 'Grounded',
             'Takeoff Runway Heading', 'Takeoff Roll Or Rejected Takeoff',
             'Heading During Takeoff', 'Mach', 'Heading Rate', 'Mobile', 'Landing',
             'Airspeed True', 'Landing Roll', 'Heading During Landing', 'Vertical Speed',
@@ -579,7 +579,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         order = self._get_dependency_order(requested, aircraft_info, lfl_params)
 
         expected = [
-            'HDF Duration', 'Grounded', 'Eng Start', 'FDR Analysis Datetime',
+            'Grounded', 'Eng Start', 'FDR Analysis Datetime',
             'FDR Takeoff Datetime', 'FDR Flight Type', 'FDR Version'
         ]
         self.assertTrue(set(order) >= set(expected))
@@ -710,7 +710,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
             'Altitude STD', 'Airspeed', 'Fast', 'Altitude STD Smoothed', 'Altitude AAL',
             'Altitude AAL For Flight Phases', 'Airborne', 'Vertical Speed For Flight Phases',
             'Level Flight', 'Heading', 'Heading Continuous', 'Heading Rate', 'Takeoff',
-            'Takeoff Acceleration Start', 'Takeoff Roll', 'HDF Duration', 'Grounded',
+            'Takeoff Acceleration Start', 'Takeoff Roll', 'Grounded',
             'Takeoff Runway Heading', 'Takeoff Roll Or Rejected Takeoff',
             'Heading During Takeoff', 'Mach', 'Landing', 'Airspeed True', 'Landing Roll',
             'Heading During Landing', 'Vertical Speed', 'Liftoff', 'Approach And Landing',
