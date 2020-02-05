@@ -5454,43 +5454,40 @@ def overflow_correction(array, ref=None, fast=None, hz=1):
                                 slices_int(good_slices),
                                 slices_int(fast.get_slices()),
                                 hz)
-
     return array
 
 def align_altitudes(alt_rad, alt_std, good_slices, fast_slices, hz):
     '''
-    This corrects the offset for each section of radio altitude data,
-    using a crude height above ground level estimate.
+    This corrects the offset for each section of radio altitude data, on the basis that the
+    tops of the data will be similar in value.
     '''
-    for fast_slice in fast_slices:
-        # crude altitude aal for this slice only
-        baro = alt_std[fast_slice]
-        if not np.ma.count(baro):
-            continue
-        peak_index = int(np.ma.argmax(baro))
-        baro[:peak_index] -= first_valid_sample(baro).value or 0.0
-        baro[peak_index:] -= last_valid_sample(baro).value or 0.0
-        # fgs = fast and good slice
-        for fgs in slices_and(good_slices, [fast_slice]):
-            # The reference data will be just this piece of baro altitude
-            ref = baro[shift_slice(fgs, -fast_slice.start)]
-            # We want the lower altitudes to be more closely matched
-            peak = min(ALTITUDE_RADIO_MAX_RANGE, np.ma.max(ref))
-            weights = np.ma.masked_outside((peak - ref) / peak, 0.0, 1.0)
-            if not np.ma.count(weights):
-                # This segment was entirely outside the range of interest
-                alt_rad[fgs] = np.ma.masked
-                continue
-            # The average difference, with emphasized weighting is...
-            mean_diff = np.ma.average(baro[shift_slice(fgs, -fast_slice.start)] - alt_rad[fgs],
-                                      weights = weights**2)
-            # and we only adjust by 1k blocks
-            delta = 1024.0 * np.rint(mean_diff / 1024)
-            if delta and np.ma.min(alt_rad[fgs] + delta) >= -20:
-                alt_rad[fgs] += delta
+    d = 1024.0 # we only adjust by 1k blocks
+    idxs, vals = cycle_finder(np.ma.array(alt_rad.data), min_step=1000.0)
+    peaks = [0] + [a for a in idxs[1::2]] + [len(alt_rad) - 2]
+    fast_idxs = [f.start for f in fast_slices]
+    fast_idxs.extend([f.stop for f in fast_slices])
+    top_all = np.ma.max(alt_rad)
+
+    for s in zip(peaks[:-1], peaks[1:]):
+        scope = slice(s[0] + 1, s[1] + 2)
+        bottom_scope = np.ma.min(alt_rad[scope])
+        top_scope = np.ma.max(alt_rad[scope])
+
+        if are_indexes_within_slices(fast_idxs, [scope]) or slices_and_not([scope], fast_slices):
+            # We know the rad alt should read zero at start or end of flight
+            # or when the aircraft is too slow to be airborne
+            delta = d * np.rint(bottom_scope / d)
+            if delta and np.ma.min(alt_rad[scope] - delta) >= -20:
+                # if the lowest point is less than -20, we can safely assume something went wrong, and we don't apply it
+                alt_rad[scope] -= delta
+
+        elif top_scope is not np.ma.masked:
+            # Make the top align with the rest of the data
+            delta = d * np.rint((top_scope - top_all) / d)
+            if delta and np.ma.min(alt_rad[scope] - delta) >= -20:
+                alt_rad[scope] -= delta
 
     return alt_rad
-
 
 def overflow_correction_array(array):
     '''
