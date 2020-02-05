@@ -5462,7 +5462,7 @@ def align_altitudes(alt_rad, alt_std, good_slices, fast_slices, hz):
     tops of the data will be similar in value.
     '''
     d = 1024.0 # we only adjust by 1k blocks
-    idxs, vals = cycle_finder(np.ma.array(alt_rad.data), min_step=1000.0)
+    idxs, vals = cycle_finder(np.ma.array(alt_rad.data), min_step=0.8 * d)
     peaks = [0] + [a for a in idxs[1::2]] + [len(alt_rad) - 2]
     fast_idxs = [f.start for f in fast_slices]
     fast_idxs.extend([f.stop for f in fast_slices])
@@ -5473,7 +5473,8 @@ def align_altitudes(alt_rad, alt_std, good_slices, fast_slices, hz):
         bottom_scope = np.ma.min(alt_rad[scope])
         top_scope = np.ma.max(alt_rad[scope])
 
-        if are_indexes_within_slices(fast_idxs, [scope]) or slices_and_not([scope], fast_slices):
+        if are_indexes_within_slices(fast_idxs, [scope]) or \
+           slices_and_not([scope], fast_slices):
             # We know the rad alt should read zero at start or end of flight
             # or when the aircraft is too slow to be airborne
             delta = d * np.rint(bottom_scope / d)
