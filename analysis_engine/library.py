@@ -3524,6 +3524,20 @@ def is_index_within_slice(index, _slice):
         return _slice.start <= index < _slice.stop
 
 
+def are_indexes_within_slices(indexes, slices):
+    '''
+    :type indexes: list of int or float
+    :type slices: slice list
+    :returns: whether any of the indexes is within any of the slices.
+    :rtype: bool
+    '''
+    for _slice in slices:
+        for index in indexes:
+            if is_index_within_slice(index, _slice):
+                return True
+    return False
+
+
 def is_index_within_slices(index, slices):
     '''
     :type index: int or float
