@@ -5426,7 +5426,7 @@ def overflow_correction(array, ref=None, fast=None, hz=1):
     good_slices = slices_remove_small_gaps(
         slices_remove_small_slices(np.ma.clump_unmasked(array),
                                    time_limit=10, hz=hz),
-        time_limit=5, hz=hz)
+        time_limit=15, hz=hz)
     # Due to aircraft power-up sequences, the first few samples of data is
     # sometimes corrupt.
     if not good_slices:
