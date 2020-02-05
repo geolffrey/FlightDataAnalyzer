@@ -3,7 +3,6 @@ from __future__ import print_function
 import importlib.machinery
 from pathlib import Path
 import unittest
-import yaml
 import types
 
 from datetime import datetime
@@ -63,7 +62,7 @@ class TestDependencyGraph(unittest.TestCase):
         '''
         second_set = set(second)
         filtered_first = [item for item in first if item in second_set]
-        self.assertListEqual(filtered_first, second, msg=msg)
+        self.assertEqual(filtered_first, second, msg=msg)
 
     def setUp(self):
         # nodes found on this aircraft's LFL
@@ -135,22 +134,6 @@ class TestDependencyGraph(unittest.TestCase):
              '    - Raw5 (HDFNode)',
             ])
 
-    def test_required_available(self):
-        nodes = ['a', 'b', 'c']
-        required = ['a', 'c']
-        mgr = NodeManager({'Start Datetime': datetime.now()}, 10, nodes, nodes,
-                          required, {}, {}, {})
-        order, _ = dependency_order(mgr)
-        self.assertEqual(set(required) - set(order), set())
-
-    @unittest.skip("Ignoring as graph_nodes does nothing with required nodes")
-    def test_required_unavailable(self):
-        nodes = ['a', 'b', 'c']
-        required = ['a', 'c', 'd']
-        mgr = NodeManager({'Start Datetime': datetime.now()}, 10, nodes, nodes,
-                          required, {}, {}, {})
-        self.assertRaises(ValueError, graph_nodes, mgr)
-
     def test_graph_nodes_using_sample_tree(self):
         requested = ['P7', 'P8']
         mgr2 = NodeManager({'Start Datetime': datetime.now()}, 10, self.lfl_params, requested, [],
@@ -212,19 +195,7 @@ class TestDependencyGraph(unittest.TestCase):
         mgr = NodeManager({'Start Datetime': datetime.now()}, 10, self.lfl_params, requested, [],
                           self.derived_nodes, {}, {})
         order, _ = dependency_order(mgr)
-
-        self.assertEqual(len(order), 10)
-        pos = order.index
-        self.assertTrue(pos('P8') > pos('Raw5'))
-        self.assertTrue(pos('P7') > pos('P4'))
-        self.assertTrue(pos('P7') > pos('P5'))
-        self.assertTrue(pos('P7') > pos('P6'))
-        self.assertTrue(pos('P6') > pos('Raw3'))
-        self.assertTrue(pos('P5') > pos('Raw3'))
-        self.assertTrue(pos('P5') > pos('Raw4'))
-        self.assertTrue(pos('P4') > pos('Raw1'))
-        self.assertTrue(pos('P4') > pos('Raw2'))
-        self.assertFalse('root' in order) #don't include the root!
+        self.assertEqual(order, ['P4', 'P5', 'P6', 'P7', 'P8'])
 
         """
 # Sample demonstrating which nodes have predecessors, successors and so on:
@@ -256,20 +227,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         mgr = NodeManager({'Start Datetime': datetime.now()}, 10, self.lfl_params + ['Floating'],
                           requested, [], self.derived_nodes, {}, {})
         order, _ = dependency_order(mgr)
-
-        self.assertEqual(len(order), 10)
-        pos = order.index
-        self.assertTrue(pos('P8') > pos('Raw5'))
-        self.assertTrue(pos('P7') > pos('P4'))
-        self.assertTrue(pos('P7') > pos('P5'))
-        self.assertTrue(pos('P7') > pos('P6'))
-        self.assertTrue(pos('P6') > pos('Raw3'))
-        self.assertTrue(pos('P5') > pos('Raw3'))
-        self.assertTrue(pos('P5') > pos('Raw4'))
-        self.assertTrue(pos('P4') > pos('Raw1'))
-        self.assertTrue(pos('P4') > pos('Raw2'))
-        self.assertFalse('Floating' in order)
-        self.assertFalse('root' in order) #don't include the root!
+        self.assertEqual(order, ['P4', 'P5', 'P6', 'P7', 'P8'])
 
     def test_dependency_one_path_circular(self):
         '''Test that if one Node can be created using its 2 dependencies, but one of
@@ -320,7 +278,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         segment_info = {'Start Datetime': datetime.now(), 'Segment Type': 'START_AND_STOP'}
         mgr = NodeManager(segment_info, 10, lfl_params, requested, [], derived_nodes, {}, {})
         order, _ = dependency_order(mgr)
-        self.assertListEqual(order, ['Raw1', 'P1', 'P3', 'Raw2', 'P2', 'P0'])
+        self.assertEqual(order, ['P1', 'P3', 'P2', 'P0'])
 
     def test_sample_parameter_module(self):
         """Tests many options:
@@ -343,10 +301,9 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         pos = order.index
         self.assertTrue(len(order))
         self.assertNotIn('Moment Of Takeoff', order)  # not available
-        self.assertTrue(pos('Vertical Speed') > pos('Pressure Altitude'))
-        self.assertTrue(pos('Slip On Runway') > pos('Groundspeed'))
+        self.assertTrue(pos('Vertical Speed') > pos('Vertical g'))
+        self.assertTrue(pos('Slip On Runway') > pos('Heading Rate'))
         self.assertTrue(pos('Slip On Runway') > pos('Horizontal g Across Track'))
-        self.assertTrue(pos('Horizontal g Across Track') > pos('Roll'))
         self.assertFalse('Mach' in order) # Mach wasn't requested!
         self.assertFalse('Radio Altimeter' in order)
         self.assertEqual(len(nodes.hdf_keys), 12)
@@ -378,8 +335,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         # As Gear Selected Down depends upon Gear Down
 
         expected_order = [
-            'Gear (L) Down', 'Gear Down', 'Gear (L) Red Warning',
-            'Gear Down Selected', 'Airspeed', 'Airspeed At Gear Down Selected'
+            'Gear Down', 'Gear Down Selected', 'Airspeed At Gear Down Selected'
         ]
         self.assert_order_maintained(order, expected_order)
 
@@ -433,7 +389,6 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         aircraft_info = {'Aircraft Type': 'aeroplane',}
         order = self._get_dependency_order(requested, aircraft_info, lfl_params)
         expected_order = [
-            'Gear Down', 'Gear (*) Red Warning', 'Gear On Ground',
             'Gear Down In Transit', 'Gear Up In Transit', 'Gear In Transit',
             'Gear Up Selected', 'Gear Down Selected', 'Gear Up'
         ]
@@ -450,7 +405,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         }
         order = self._get_dependency_order(requested, aircraft_info, lfl_params)
         expected_order = [
-            'Heading', 'Heading Continuous', 'Altitude STD', 'Airspeed', 'Fast',
+            'Heading Continuous', 'Fast',
             'Altitude STD Smoothed', 'Altitude AAL', 'Altitude AAL For Flight Phases',
             'Airborne', 'Climb Cruise Descent', 'Takeoff', 'Takeoff Acceleration Start',
             'Takeoff Roll', 'Grounded', 'Takeoff Runway Heading',
@@ -473,8 +428,8 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         }
         order = self._get_dependency_order(requested, aircraft_info, lfl_params)
         expected_order = [
-            'Longitude Prepared', 'Latitude Prepared', 'Heading', 'Heading Continuous',
-            'Airspeed', 'ILS Localizer', 'Latitude', 'Longitude', 'Altitude STD', 'Fast',
+            'Heading Continuous',
+            'ILS Localizer', 'Fast',
             'Altitude STD Smoothed', 'Altitude AAL', 'Altitude AAL For Flight Phases',
             'Airborne', 'Climb Cruise Descent', 'Magnetic Variation', 'Takeoff',
             'Takeoff Acceleration Start', 'Takeoff Roll', 'Grounded',
@@ -494,8 +449,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         self.assert_order_maintained(order, expected_order)
 
     def test_avoiding_circular_dependency_latitude_smoothed_helicopter(self):
-        lfl_params = [
-            'Altitude STD', 'Airspeed', 'Heading', 'Latitude', 'Longitude']
+        lfl_params = ['Altitude STD', 'Airspeed', 'Heading', 'Latitude', 'Longitude']
         requested = ['Latitude Smoothed',]
         aircraft_info = {
             'Aircraft Type': 'helicopter',
@@ -505,9 +459,9 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         order = self._get_dependency_order(requested, aircraft_info, lfl_params)
 
         expected_order = [
-            'Longitude Prepared', 'Latitude Prepared', 'Heading', 'Heading Continuous',
-            'Airspeed', 'ILS Localizer', 'Altitude STD', 'Altitude STD Smoothed',
-            'Vertical Speed', 'Latitude', 'Longitude', 'Heading Rate', 'Mobile',
+            'Heading Continuous',
+            'ILS Localizer', 'Altitude STD Smoothed',
+            'Vertical Speed', 'Heading Rate', 'Mobile',
             'Off Blocks', 'Latitude Off Blocks', 'Longitude Off Blocks',
             'FDR Takeoff Airport', 'Mach', 'Airspeed True', 'Latitude Smoothed',
             'Longitude Smoothed'
@@ -528,12 +482,12 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         order = self._get_dependency_order(requested, aircraft_info, lfl_params)
 
         expected_order = [
-            'Altitude Radio', 'Airspeed', 'Altitude STD', 'Altitude STD Smoothed',
-            'Gear (L) On Ground', 'Vertical Speed', 'Collective', 'Gear On Ground',
-            'Altitude AGL', 'Heading', 'Heading Continuous', 'Heading Rate',
-            'Latitude Prepared', 'Longitude Prepared', 'Airborne', 'Mobile', 'Landing',
-            'Approach', 'Approach And Landing', 'ILS Localizer', 'Latitude', 'Touchdown',
-            'Latitude At Touchdown', 'Longitude', 'Longitude At Touchdown', 'Altitude ADH',
+            'Altitude STD Smoothed',
+            'Vertical Speed', 'Gear On Ground',
+            'Altitude AGL', 'Heading Continuous', 'Heading Rate',
+            'Airborne', 'Mobile', 'Landing',
+            'Approach', 'Approach And Landing', 'ILS Localizer', 'Touchdown',
+            'Latitude At Touchdown', 'Longitude At Touchdown', 'Altitude ADH',
             'Liftoff', 'Takeoff', 'Approach Information', 'FDR Landing Airport'
         ]
         self.assert_order_maintained(order, expected_order)
@@ -548,11 +502,10 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         order = self._get_dependency_order(requested, aircraft_info, lfl_params)
 
         expected_order = [
-            'Altitude Radio', 'Airspeed', 'Altitude STD', 'Gear (L) On Ground',
-            'Collective', 'Gear On Ground', 'Altitude AGL', 'Heading', 'Heading Continuous',
-            'Heading Rate', 'Latitude Prepared', 'Longitude Prepared', 'Airborne', 'Mobile',
-            'Landing', 'Approach', 'Approach And Landing', 'ILS Localizer', 'Latitude',
-            'Touchdown', 'Latitude At Touchdown', 'Longitude', 'Longitude At Touchdown',
+            'Gear On Ground', 'Heading Continuous',
+            'Heading Rate', 'Airborne', 'Mobile',
+            'Landing', 'Approach', 'Approach And Landing', 'ILS Localizer',
+            'Touchdown', 'Latitude At Touchdown', 'Longitude At Touchdown',
             'Liftoff', 'Takeoff', 'Approach Information'
         ]
         self.assert_order_maintained(order, expected_order)
@@ -608,21 +561,10 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
             'Payload': None,
             'Maximum Landing Weight': None
         }
-        with open(Path(test_data_path) / "dependency_graph_example_recorded_lfl_parameters.yaml") as f:
-            lfl_params = yaml.load(f, Loader=yaml.FullLoader)
+        path = Path(test_data_path) / 'dependency_graph_example_recorded_lfl_parameters.txt'
+        lfl_params = path.read_text().splitlines()
         # Pre-processed order
-        lfl_params = list(set(lfl_params + [
-            'Groundspeed',
-            'Gear (L) Down',
-            'Gear (N) Down',
-            'Gear (R) Down',
-            'Gear Down',
-            'Latitude Prepared',
-            'Longitude Prepared',
-            'Aircraft Type',
-            'Longitude',
-            'Latitude',
-        ]))
+        lfl_params.extend(['Gear Down', 'Latitude Prepared', 'Longitude Prepared', 'Aircraft Type'])
         return aircraft_info, lfl_params
 
     def test_avoiding_all_circular_dependencies_with_recorded_lfls(self):
@@ -630,8 +572,8 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         requested = []
         order = self._get_dependency_order(requested, aircraft_info, lfl_params)
 
-        with open(Path(test_data_path) / 'dependency_graph_example_recorded_excpected.yaml') as f:
-            expected = yaml.load(f, Loader=yaml.FullLoader)
+        path = Path(test_data_path) / 'dependency_graph_example_recorded_expected.txt'
+        expected = path.read_text().splitlines()
 
         self.assert_order_maintained(order, expected)
         self.assertTrue(set(order) >= set(expected))
@@ -693,9 +635,9 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         order = self._get_dependency_order(requested, aircraft_info, lfl_params)
 
         expected_order = [
-            'Altitude STD', 'Airspeed', 'Fast', 'Altitude STD Smoothed', 'Altitude AAL',
+            'Fast', 'Altitude STD Smoothed', 'Altitude AAL',
             'Altitude AAL For Flight Phases', 'Airborne', 'Vertical Speed For Flight Phases',
-            'Level Flight', 'Heading', 'Heading Continuous', 'Heading Rate', 'Takeoff',
+            'Level Flight', 'Heading Continuous', 'Heading Rate', 'Takeoff',
             'Takeoff Acceleration Start', 'Takeoff Roll', 'Grounded',
             'Takeoff Runway Heading', 'Takeoff Roll Or Rejected Takeoff',
             'Heading During Takeoff', 'Mach', 'Landing', 'Airspeed True', 'Landing Roll',

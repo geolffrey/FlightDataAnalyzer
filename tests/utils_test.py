@@ -2,6 +2,7 @@ import unittest
 
 from mock import Mock, patch
 
+from analysis_engine.node import DerivedParameterNode, P, Parameter
 from analysis_engine.utils import (
     derived_trimmer,
     list_derived_parameters,
@@ -20,9 +21,32 @@ class TestTrimmer(unittest.TestCase):
     @patch('analysis_engine.utils.get_derived_nodes')
     @patch('analysis_engine.utils.strip_hdf')
     @patch('analysis_engine.settings.NODE_MODULES')
-    def test_derived_trimmer_mocked(self, node_modules, strip_hdf,
-                                    get_derived_nodes, file_patched):
-        hdf_contents = {'IVV': Mock(), 'DME': Mock(), 'WOW': Mock()}
+    def test_derived_trimmer_mocked(self, node_modules, strip_hdf, get_derived_nodes, file_patched):
+
+        class DerivedIVV(DerivedParameterNode):
+            name = 'Derived IVV'
+            def derive(self, ivv=P('IVV')):
+                pass
+
+        class DerivedDME(DerivedParameterNode):
+            name = 'Derived DME'
+            def derive(self, dme=P('DME')):
+                pass
+
+        class Touchdown(DerivedParameterNode):
+            def derive(self, acc=P('Acceleration Normal')):
+                pass
+
+        class IVV(Parameter):
+            name = 'IVV'
+
+        class DME(Parameter):
+            name = 'DME'
+
+        class WOW(Parameter):
+            name = 'WOW'
+
+        hdf_contents = {'IVV': IVV, 'DME': DME, 'WOW': WOW}
         class hdf_file(dict):
             duration = 10
             def valid_param_names(self):
@@ -33,17 +57,15 @@ class TestTrimmer(unittest.TestCase):
                 return False
         file_patched.return_value = hdf_file()
         strip_hdf.return_value = ['IVV', 'DME']
-        derived_nodes = {'IVV': Mock(), 'DME': Mock(), 'WOW': Mock()}
+        derived_nodes = {'Derived IVV': DerivedIVV, 'Derived DME': DerivedDME, 'Touchdown': Touchdown}
         get_derived_nodes.return_value = derived_nodes
         in_path = 'in.hdf5'
         out_path = 'out.hdf5'
-        dest = derived_trimmer(in_path, ['IVV', 'DME'], out_path)
+        dest = derived_trimmer(in_path, ['Derived IVV', 'Derived DME', 'WOW'], out_path)
         file_patched.assert_called_once_with(in_path)
         get_derived_nodes.assert_called_once_with(node_modules)
-        strip_hdf.assert_called_once_with(
-            in_path, ['IVV', 'DME'], out_path)
+        strip_hdf.assert_called_once_with(in_path, {'DME', 'IVV', 'WOW'}, out_path)
         self.assertEqual(dest, strip_hdf.return_value)
-
 
 
 class TestGetNames(unittest.TestCase):

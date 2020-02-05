@@ -133,10 +133,7 @@ def derive_parameters(hdf, node_mgr, process_order, params=None, force=False):
     duration = hdf.duration
 
     for param_name in process_order:
-        if param_name in node_mgr.hdf_keys:
-            continue
-
-        elif param_name in params:
+        if param_name in params:
             node = params[param_name]
             # populate output already at 1Hz
             if node.node_type is KeyPointValueNode:
@@ -148,12 +145,6 @@ def derive_parameters(hdf, node_mgr, process_order, params=None, force=False):
             elif node.node_type is SectionNode:
                 sections[param_name] = list(node)
             # DerivedParameterNodes are not supported in initial data.
-            continue
-
-        elif node_mgr.get_attribute(param_name) is not None:
-            # add attribute to dictionary of available params
-            ###params[param_name] = node_mgr.get_attribute(param_name)
-            #TODO: optimise with only one call to get_attribute
             continue
 
         #NB raises KeyError if Node is "unknown"

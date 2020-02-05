@@ -195,7 +195,7 @@ Processing Order
 The processing order is established by recursively traversing down the
 DiGraph using Depth First Search.
 
-:py:func:`analysis_engine.dependency_graph.dependencies3`
+:py:func:`analysis_engine.dependency_graph.dependency_order`
 
 As each Node is encountered, if it has dependencies we recurse into each
 dependency to determine whether the level below is operational. If deemed

@@ -2469,7 +2469,7 @@ class NodeManager(object):
         self.required = required
         self.derived_nodes = derived_nodes
         # Caching for derived nodes attributes. {NodeClass: List[Attributes]}
-        self.attributes = {}
+        self._node_attribute_cache = {}
         # Attributes:
         self.aircraft_info = non_empty(aircraft_info)
         self.achieved_flight_record = non_empty(achieved_flight_record)
@@ -2523,40 +2523,20 @@ class NodeManager(object):
         :returns: Result of Operational test on parameter.
         :rtype: bool
         """
-        if name in self.hdf_keys \
-                or self.aircraft_info.get(name) is not None \
-                or self.achieved_flight_record.get(name) is not None \
-                or self.segment_info.get(name) is not None \
-                or name in ('root', 'HDF Duration'):
-            return True
-        elif name in self.derived_nodes:
-            derived_node = self.derived_nodes[name]
-            # NOTE: Raises "Unbound method" here due to can_operate being
-            # overridden without wrapping with @classmethod decorator
-            if derived_node not in self.attributes:
-                attributes = []
-                argspec = inspect.getfullargspec(derived_node.can_operate)
-                if argspec.defaults:
-                    for default in argspec.defaults:
-                        if not isinstance(default, Attribute):
-                            raise TypeError('Only Attributes may be keyword '
-                                            'arguments in can_operate methods.')
-                        attributes.append(self.get_attribute(default.name))
-                # cache argspec for improved performance
-                self.attributes[derived_node] = attributes
+        node = self.derived_nodes[name]
 
-            # can_operate expects attributes.
-            attributes = self.attributes[derived_node]
-            res = derived_node.can_operate(available, *attributes)
-            ##if not res:
-            ##    logger.debug("Derived Node '%s' cannot operate with available nodes: %s",
-            ##                 name, available)
-            ##else:
-                ##logger.debug("Node '%s' derived with available nodes: %s",name, available)
-            return res
-        else:
-            ##logger.debug("Node '%s' is unavailable", name)
-            return False
+        # NOTE: Raises "Unbound method" here due to can_operate being
+        # overridden without wrapping with @classmethod decorator
+
+        # Cache lookup of attributes to pass to .can_operate() for improved performance:
+        if node not in self._node_attribute_cache:
+            attributes = []
+            for default in inspect.getfullargspec(node.can_operate).defaults or ():
+                if not isinstance(default, Attribute):
+                    raise TypeError('Only Attributes may be keyword arguments in can_operate methods.')
+                attributes.append(self.get_attribute(default.name))
+            self._node_attribute_cache[node] = attributes
+        return node.can_operate(available, *self._node_attribute_cache[node])
 
     def node_type(self, node_name):
         '''
