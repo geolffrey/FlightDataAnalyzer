@@ -8379,7 +8379,7 @@ class TestNearestRunway(unittest.TestCase):
     Tests for Nearest Runway
     '''
     airports = yaml.load(open(os.path.join(test_data_path, 'airports.yaml'), 'rb'),
-                         Loader=yaml.FullLoader)
+                         Loader=yaml.Loader)
     _airports = airports['airports']
     _expected = {
         '001': {
