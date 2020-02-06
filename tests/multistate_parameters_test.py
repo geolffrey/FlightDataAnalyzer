@@ -3933,17 +3933,18 @@ class TestTAWSTerrainCaution(unittest.TestCase):
     def test_name(self):
         self.assertEqual(self.node_class.name, 'TAWS Terrain Caution')
 
+
     def test_derive(self):
         terrain_cpt = M(
             name='TAWS Terrain Caution (Capt)',
             array=np.ma.array([0, 0, 1, 1, 0, 0, 0]),
-            values_mapping={0: '-', 1: 'Warning'},
+            values_mapping={0: '-', 1: 'Caution'},
         )
 
         terrain_fo = M(
             name='TAWS Terrain Caution (FO)',
             array=np.ma.array([0, 1, 0, 1, 1, 0, 0]),
-            values_mapping={0: '-', 1: 'Warning'},
+            values_mapping={0: '-', 1: 'Caution'},
         )
         expected = np.ma.array([0, 1, 1, 1, 1, 0, 0])
         node = self.node_class()
