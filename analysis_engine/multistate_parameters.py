@@ -3996,14 +3996,14 @@ class TAWSTerrainCaution(MultistateDerivedParameterNode):
 
     name = 'TAWS Terrain Caution'
     units = None
-    values_mapping = {0: '-', 1: 'Warning'}
+    values_mapping = {0: '-', 1: 'Caution'}
 
     def derive(self, taws_terrain_cpt=M('TAWS Terrain Caution (Capt)'),
                taws_terrain_fo=M('TAWS Terrain Caution (FO)'),):
 
         self.array = vstack_params_where_state(
-            (taws_terrain_cpt, 'Warning'),
-            (taws_terrain_fo, 'Warning'),
+            (taws_terrain_cpt, 'Caution'),
+            (taws_terrain_fo, 'Caution'),
         ).any(axis=0)
 
 

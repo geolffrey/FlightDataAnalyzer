@@ -6661,6 +6661,8 @@ class QNHDifferenceDuringTakeoff(KeyPointValueNode):
             index = takeoff.slice.start
 
             final_alt = alt_aal.array[int(index)]
+            if to_runway.value is None:
+                continue
             rwy_elevation = to_runway.value['start']['elevation']
             ref = rwy_elevation + final_alt
             alt_qnh_lo = alt_qnh.array[int(index)]
@@ -15917,7 +15919,7 @@ class RateOfClimbAtHeightBeforeAltitudeSelected(KeyPointValueNode):
                 index = index_at_value(dist, -altitude, clump)
                 if index is not None:
                     value = value_at_index(vert_spd.array, index)
-                    if value > 0:
+                    if value and value > 0:
                         self.create_kpv(index, value,
                                         replace_values={'altitude': altitude})
 
@@ -16331,8 +16333,12 @@ class RateOfDescentAtHeightBeforeAltitudeSelected(KeyPointValueNode):
         # Mask out the sections of approaches where the missed approach altitude
         # was selected.
         for app in apps:
-            idx, missed_app_clump = [(i, clump) for (i, clump) in enumerate(clumps)
-                                         if slices_overlap(clump, app.slice)][-1]
+            clumps_in_app = [(i, clump) for (i, clump) in enumerate(clumps)
+                             if slices_overlap(clump, app.slice)]
+            if not clumps_in_app:
+                # Altitude Selected completely masked during this approach
+                continue
+            idx, missed_app_clump = clumps_in_app[-1]
             # Mask out the go-around Altitude Selected.
             ignore = slice(missed_app_clump.start, app.slice.stop)
             dist[ignore] = np.ma.masked
@@ -16353,7 +16359,7 @@ class RateOfDescentAtHeightBeforeAltitudeSelected(KeyPointValueNode):
                 index = index_at_value(dist, altitude, clump)
                 if index is not None:
                     value = value_at_index(vert_spd.array, index)
-                    if value < 0:
+                    if value and value < 0:
                         self.create_kpv(index, value,
                                         replace_values={'altitude': altitude})
 

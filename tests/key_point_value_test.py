@@ -8389,6 +8389,22 @@ class TestQNHDifferenceDuringTakeoff(unittest.TestCase):
         self.assertAlmostEqual(node[0].value, -2.20, delta=0.2)
         self.assertEqual(node[0].index, 0)
 
+    def test_missing_takeoff_airport(self):
+        alt_qnh = P(name='Altitude QNH',
+                    array=np.ma.array([1216, 1236, 1256, 1276, 1296, 1326]))
+
+        alt_aal = P('Altitude AAL',
+                    array=np.ma.array([0, 20, 40, 60, 80, 110]))
+
+        takeoff = buildsection('Takeoff', 0, 6)
+
+        to_runway = A('FDR Takeoff Runway', None)
+
+        node = self.node_class()
+        node.derive(alt_qnh, alt_aal, takeoff, to_runway)
+
+        self.assertEqual(len(node), 0)
+
 
 class TestBaroCorrectionMinus1013Above20000FtMax(unittest.TestCase, NodeTest):
     def setUp(self):
@@ -18119,6 +18135,22 @@ class TestRateOfClimbAtHeightBeforeAltitudeSelected(unittest.TestCase):
         expected = KPV('Rate Of Climb At Height Before Altitude Selected', items=[])
         self.assertEqual(node, expected)
 
+    def test_masked_vertical_speed(self):
+        roc_array = np.ma.arange(3000, -100, -100)
+        vert_spd = P('Vertical Speed', roc_array)
+        vert_spd.array[20] = np.ma.masked
+        alt = P('Altitude QNH', array=np.ma.arange(2000, 5100, 100))
+        alt_sel = P('Altitude Selected', array=np.ma.ones(31) * 5000)
+        airborne = buildsection('Airborne', 0, 31)
+        node = self.node_class()
+        node.derive(alt, alt_sel, vert_spd, airborne, None, None, None, None)
+
+        expected = KPV('Rate Of Climb At Height Before Altitude Selected', items=[
+            KeyPointValue(name='Rate Of Climb At 2000 Ft Before Altitude Selected',
+                          index=10,
+                          value=2000),
+        ])
+        self.assertEqual(node, expected)
 
 ##############################################################################
 # Rate of Descent
@@ -18677,6 +18709,39 @@ class TestRateOfDescentAtHeightBeforeAltitudeSelected(unittest.TestCase):
         ])
         self.assertEqual(node, expected)
 
+
+    def test_masked_alt_sel(self):
+        roc_array = np.ma.arange(-3000, 100, 100)
+        vert_spd = P('Vertical Speed', roc_array)
+        alt = P('Altitude QNH', array=np.ma.arange(5000, 1900, -100))
+        alt_sel = P('Altitude Selected', array=np.ma.ones(31) * 2000)
+        alt_sel.array = np.ma.masked
+        airborne = buildsection('Airborne', 10, 31)
+        apps = buildsection('Approach And Landing', 20, 31)
+        node = self.node_class()
+        node.derive(alt, alt_sel, vert_spd, airborne, apps, None, None, None, None)
+
+        expected = KPV('Rate Of Descent At Height Before Altitude Selected', items=[])
+        self.assertEqual(node, expected)
+
+
+    def test_masked_vertical_speed(self):
+        roc_array = np.ma.arange(-3000, 100, 100)
+        vert_spd = P('Vertical Speed', roc_array)
+        vert_spd.array[20] = np.ma.masked
+        alt = P('Altitude QNH', array=np.ma.arange(5000, 1900, -100))
+        alt_sel = P('Altitude Selected', array=np.ma.ones(31) * 2000)
+        airborne = buildsection('Airborne', 0, 31)
+        apps = S('Approach And Landing')
+        node = self.node_class()
+        node.derive(alt, alt_sel, vert_spd, airborne, apps, None, None, None, None)
+
+        expected = KPV('Rate Of Descent At Height Before Altitude Selected', items=[
+            KeyPointValue(name='Rate Of Descent At 2000 Ft Before Altitude Selected',
+                          index=10,
+                          value=-2000),
+        ])
+        self.assertEqual(node, expected)
 
 ##############################################################################
 # Roll
