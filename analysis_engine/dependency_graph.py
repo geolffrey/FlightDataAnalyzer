@@ -170,6 +170,7 @@ def traverse_tree(state, node_mgr, graph, node, dependency_tree_log=False):
     state.path.append(node)
 
     if node in state.active_nodes:
+        state.path.pop()
         return True  # Node already found to be operational.
 
     successors = [name for name in graph[node] if name not in state.inop_nodes]
@@ -179,6 +180,7 @@ def traverse_tree(state, node_mgr, graph, node, dependency_tree_log=False):
     # as we might not visit all dependencies.
     if not successors or not node_mgr.operational(node, successors):
         state.inop_nodes.add(node)
+        state.path.pop()
         return False
 
     if node in state.path[:-1]:
@@ -205,6 +207,7 @@ def traverse_tree(state, node_mgr, graph, node, dependency_tree_log=False):
             if dependency_tree_log:
                 state.tree_path.append(list(state.path) + ['CIRCULAR'])
             logger.debug("Circular dependency avoided at node '%s'. Branch path: %s", node, state.path)
+            state.path.pop()
             return False
 
     operating_dependencies = set()  # operating nodes of current node's available dependencies
@@ -212,8 +215,6 @@ def traverse_tree(state, node_mgr, graph, node, dependency_tree_log=False):
         # recurse to find out if the dependency is available
         if traverse_tree(state, node_mgr, graph, dependency, dependency_tree_log=dependency_tree_log):
             operating_dependencies.add(dependency)
-        # each time traverse_tree returns, remove node from visited path
-        state.path.pop()
 
     if node_mgr.operational(node, operating_dependencies):
         # node will work at this level with the operating dependencies
@@ -222,10 +223,12 @@ def traverse_tree(state, node_mgr, graph, node, dependency_tree_log=False):
             state.order.append(node)
         if dependency_tree_log:
             state.tree_path.append(list(state.path))
+        state.path.pop()
         return True
     else:
         if dependency_tree_log:
             state.tree_path.append(list(state.path) + ['NOT OPERATIONAL'])
+        state.path.pop()
         return False
 
 
@@ -276,6 +279,8 @@ def dependencies3(graph, root, node_mgr, dependency_tree_log=False):
 
     for node in graph[root]:
         traverse_tree(state, node_mgr, graph, node, dependency_tree_log=dependency_tree_log)
+
+    assert not state.path, 'Branch tracking path state not empty!'
 
     return state.order, state.tree_path
 
