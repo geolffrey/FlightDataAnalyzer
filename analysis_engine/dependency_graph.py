@@ -190,9 +190,8 @@ def traverse_tree(state, node_mgr, graph, node, dependency_tree_log=False):
             # be derived. Back track.
             # Optimization
             # Find the cycle within the current path
-            last_path = list(state.path)
-            start = last_path.index(node)
-            cycle = tuple(last_path[start:])
+            start = state.path.index(node)
+            cycle = tuple(state.path[start:])
             if cycle in state.cycles:
                 # If we've seen this cycle before, its parameters will never work
                 state.inop_nodes.update(cycle)
@@ -200,7 +199,7 @@ def traverse_tree(state, node_mgr, graph, node, dependency_tree_log=False):
                 state.cycles.add(cycle)
 
             if dependency_tree_log:
-                state.tree_path.append(list(state.path) + [node, 'CIRCULAR'])
+                state.tree_path.append(state.path + [node, 'CIRCULAR'])
             logger.debug("Circular dependency avoided at node '%s'. Branch path: %s", node, state.path)
             return False
 
@@ -220,11 +219,11 @@ def traverse_tree(state, node_mgr, graph, node, dependency_tree_log=False):
             state.active_nodes.add(node)
             state.order.append(node)
         if dependency_tree_log:
-            state.tree_path.append(list(state.path) + [node])
+            state.tree_path.append(state.path + [node])
         return True
     else:
         if dependency_tree_log:
-            state.tree_path.append(list(state.path) + [node, 'NOT OPERATIONAL'])
+            state.tree_path.append(state.path + [node, 'NOT OPERATIONAL'])
         return False
 
 
