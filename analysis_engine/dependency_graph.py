@@ -327,9 +327,6 @@ def dependency_order(node_mgr, raise_inoperable_requested=False, dependency_tree
     logger.debug("Processing order of %d nodes is: %s", len(order), order)
     if dependency_tree_log:
         ordered_tree_to_file(tree_path, name=dependency_tree_log)
-    for n, node in enumerate(order):
-        gr_all.node[node]['label'] = '%d: %s' % (n, node)
-        gr_all.node[node]['active'] = True
 
     inactive_nodes = set(gr_all.nodes()) - set(order) - set(node_mgr.hdf_keys) - {'root'}
     logger.debug("Inactive nodes: %s", sorted(inactive_nodes))
