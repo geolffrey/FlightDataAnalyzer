@@ -407,7 +407,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         expected_order = [
             'Heading Continuous', 'Fast',
             'Altitude STD Smoothed', 'Altitude AAL', 'Altitude AAL For Flight Phases',
-            'Airborne', 'Climb Cruise Descent', 'Takeoff', 'Takeoff Acceleration Start',
+            'Airborne', 'Takeoff', 'Takeoff Acceleration Start',
             'Takeoff Roll', 'Grounded', 'Takeoff Runway Heading',
             'Takeoff Roll Or Rejected Takeoff', 'Heading During Takeoff', 'Mach',
             'Heading Rate', 'Mobile', 'Landing', 'Airspeed True', 'Landing Roll',
@@ -430,8 +430,8 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         expected_order = [
             'Heading Continuous',
             'ILS Localizer', 'Fast',
-            'Altitude STD Smoothed', 'Altitude AAL', 'Altitude AAL For Flight Phases',
-            'Airborne', 'Climb Cruise Descent', 'Magnetic Variation', 'Takeoff',
+            'Altitude STD Smoothed', 'Altitude AAL', 'Magnetic Variation',
+            'Altitude AAL For Flight Phases', 'Airborne', 'Takeoff',
             'Takeoff Acceleration Start', 'Takeoff Roll', 'Grounded',
             'Takeoff Runway Heading', 'Takeoff Roll Or Rejected Takeoff',
             'Heading During Takeoff', 'Mach', 'Heading Rate', 'Mobile', 'Landing',
