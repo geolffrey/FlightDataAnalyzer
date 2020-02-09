@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-import importlib.machinery
+import importlib.util
 from pathlib import Path
 import unittest
 import types
@@ -19,13 +19,12 @@ from analysis_engine import settings
 test_data_path = Path(__file__).parent / 'test_data'
 
 def import_module(module_name):
+    module_name = Path(module_name)
     path = Path(__file__).resolve().parent / ('%s.py' % module_name)
-    loader = importlib.machinery.SourceFileLoader(
-        'tests.%s' % module_name,
-        str(path)
-    )
-    mod = types.ModuleType(loader.name)
-    loader.exec_module(mod)
+    spec = importlib.util.spec_from_file_location(f"{module_name.name}", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
     return mod
 
 
@@ -280,62 +279,29 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         order, _ = dependency_order(mgr)
         self.assertEqual(order, ['P1', 'P3', 'P2', 'P0'])
 
-    def test_sample_parameter_module(self):
-        """Tests many options:
-        can_operate on SmoothedTrack works with
-        """
-        requested = ['Smoothed Track', 'Moment Of Takeoff', 'Vertical Speed',
-                     'Slip On Runway']
-        lfl_params = ['Indicated Airspeed',
-              'Groundspeed',
-              'Pressure Altitude',
-              'Heading', 'TAT',
-              'Latitude', 'Longitude',
-              'Longitudinal g', 'Lateral g', 'Normal g',
-              'Pitch', 'Roll',
-              ]
-        derived = get_derived_nodes([import_module('sample_derived_parameters')])
-        nodes = NodeManager({'Start Datetime': datetime.now()}, 10, lfl_params,
-                            requested, [], derived, {}, {})
-        order, _ = dependency_order(nodes)
-        pos = order.index
-        self.assertTrue(len(order))
-        self.assertNotIn('Moment Of Takeoff', order)  # not available
-        self.assertTrue(pos('Vertical Speed') > pos('Vertical g'))
-        self.assertTrue(pos('Slip On Runway') > pos('Heading Rate'))
-        self.assertTrue(pos('Slip On Runway') > pos('Horizontal g Across Track'))
-        self.assertFalse('Mach' in order) # Mach wasn't requested!
-        self.assertFalse('Radio Altimeter' in order)
-        self.assertEqual(len(nodes.hdf_keys), 12)
-        self.assertEqual(len(nodes.requested), 4)
-        self.assertEqual(len(nodes.derived_nodes), 13)
-        # remove some hdf params to see inactive nodes
-
     def test_invalid_requirement_raises(self):
         lfl_params = []
-        requested = ['Smoothed Track', 'Moment of Takeoff'] #it's called Moment Of Takeoff
-        derived = get_derived_nodes([import_module('sample_derived_parameters')])
+        requested = ['Moment of Takeoff']
+        node_modules = [import_module(Path('dummy_nodes') / 'derived_parameters')]
+        # go through modules to get derived nodes
+        derived_nodes = get_derived_nodes(node_modules)
         mgr = NodeManager({'Start Datetime': datetime.now()}, 10, lfl_params, requested, [],
-                          derived, {}, {})
+                          derived_nodes, {}, {})
         self.assertRaises(ValueError, dependency_order, mgr)
 
     def test_avoiding_possible_circular_dependency(self):
         # Possible circular dependency which can be avoided:
         # Gear Selected Down depends on Gear Down which depends on Gear Selected Down...!
-        lfl_params = ['Airspeed', 'Gear (L) Down', 'Gear (L) Red Warning']
-        requested = ['Airspeed At Gear Down Selected']
-        derived = get_derived_nodes([import_module('sample_circular_dependency_nodes')])
-        segment_info = {
-            'Start Datetime': datetime.now(),
-            'Segment Type': 'START_AND_STOP',
+        lfl_params = ['Airspeed', 'Gear (L) Down', 'Gear (L) Red Warning', 'Altitude STD']
+        requested = ['Airspeed At Gear Down Selection']
+        aircraft_info = {
+            'Aircraft Type': 'aeroplane',
+            'Frame': 'dummy_LFL'  # Needed for Altitude STD Smoothed, although not needed in derive method!
         }
-        mgr = NodeManager(segment_info, 10, lfl_params, requested, [],
-                          derived, {}, {})
-        order, _ = dependency_order(mgr)
-        # As Gear Selected Down depends upon Gear Down
+        order = self._get_dependency_order(requested, aircraft_info, lfl_params)
 
         expected_order = [
-            'Gear Down', 'Gear Down Selected', 'Airspeed At Gear Down Selected'
+            'Gear Down Selected', 'Airspeed At Gear Down Selection'
         ]
         self.assert_order_maintained(order, expected_order)
 
@@ -348,7 +314,13 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
                 'Segment Type': 'START_AND_STOP',
             }
 
-        pre_processing_nodes = get_derived_nodes(settings.PRE_PROCESSING_MODULE_PATHS)
+        rel_path = Path('dummy_nodes')
+        pre_processing_modules = ['merge_multistate_parameters', 'merge_parameters']
+        node_modules = [
+            import_module(rel_path / 'pre_processing' / f'{mod}')
+            for mod in pre_processing_modules
+        ]
+        pre_processing_nodes = get_derived_nodes(node_modules)
         pre_processing_requested = list(pre_processing_nodes.keys())
 
         node_mgr = NodeManager(
@@ -356,11 +328,23 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
             pre_processing_requested, [], pre_processing_nodes, aircraft_info, {})
         order, _ = dependency_order(node_mgr)
 
-
+        modules = {
+            rel_path: [
+                'derived_parameters', 'flight_phase', 'key_point_values',
+                'key_time_instances', 'approaches', 'multistate_parameters',
+                'flight_attribute'
+            ]
+        }
         if aircraft_info['Aircraft Type'] == 'helicopter':
-            node_modules = settings.NODE_MODULES + settings.NODE_HELICOPTER_MODULE_PATHS
-        else:
-            node_modules = settings.NODE_MODULES
+            modules[rel_path / 'helicopter'] = [
+                'derived_parameters', 'flight_phase', 'key_point_values',
+                'key_time_instances', 'multistate_parameters',
+            ]
+        node_modules = [
+            import_module(path / f'{mod}') for path, mods in modules.items()
+            for mod in mods
+
+        ]
         # go through modules to get derived nodes
         derived_nodes = get_derived_nodes(node_modules)
         if requested == []:
