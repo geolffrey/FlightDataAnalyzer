@@ -578,6 +578,18 @@ class FirstEngStartBeforeLiftoff(KeyTimeInstanceNode):
             self.create_kti(0)
 
 
+class First80KtsDuringTakeoff(KeyTimeInstanceNode):
+    '''
+    Check for the first instance of airspeed reaching 80Kts during takeoff.
+    '''
+    def derive(self, airspeed=P('Airspeed'), takeoffs=S('Takeoff Roll Or Rejected Takeoff')):
+
+        for section in takeoffs.get_slices():
+            airspeed_over_80kts = index_at_value(airspeed.array, 80, section)
+            if airspeed_over_80kts:
+                self.create_kti(airspeed_over_80kts)
+
+
 class LastEngStartBeforeLiftoff(KeyTimeInstanceNode):
     '''
     Check for the last engine start before liftoff. The index will be the last

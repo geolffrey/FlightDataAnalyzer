@@ -583,6 +583,20 @@ class AccelerationLongitudinalDuringLandingMin(KeyPointValueNode):
         self.create_kpv_from_slices(acc_lon.array, landing, min_value)
 
 
+class AccelerationLongitudinalOffsetRemovedAt80Kts(KeyPointValueNode):
+    '''
+    Longitudinal acceleration with offset removed at 80kts during takeoff.
+    '''
+
+    units = ut.G
+
+    def derive(self,
+               acc_lon=P('Acceleration Longitudinal Offset Removed'),
+               first_80kts_takeoffs=KTI('First 80 Kts During Takeoff')):
+
+        self.create_kpvs_at_ktis(acc_lon.array, first_80kts_takeoffs)
+
+
 class AccelerationLongitudinalWhileAirborneMax(KeyPointValueNode):
     '''
     Maximum longitudinal acceleration recorded while airborne.
@@ -20187,6 +20201,18 @@ class MachMinusMMOMax(KeyPointValueNode):
 
 ########################################
 # Aircraft Energy
+
+class KineticEnergyAt80Kts(KeyPointValueNode):
+    '''
+    Kinetic energy at measured at 80kts during takeoff.
+    '''
+
+    units = ut.MJ
+
+    def derive(self, kinetic_energy=P('Kinetic Energy'),
+               first_80kts_takeoffs=KTI('First 80 Kts During Takeoff')):
+
+        self.create_kpvs_at_ktis(kinetic_energy.array, first_80kts_takeoffs)
 
 
 class KineticEnergyAtRunwayTurnoff(KeyPointValueNode):

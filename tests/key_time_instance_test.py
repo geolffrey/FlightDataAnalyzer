@@ -37,6 +37,7 @@ from analysis_engine.key_time_instances import (
     EngStop,
     EnterHold,
     ExitHold,
+    First80KtsDuringTakeoff,
     FirstEngFuelFlowStart,
     FirstEngStartBeforeLiftoff,
     LastEngStartBeforeLiftoff,
@@ -1260,6 +1261,38 @@ class TestFirstEngStartBeforeLiftoff(unittest.TestCase):
         node.derive(eng_starts, eng_count, liftoffs)
         self.assertEqual(len(node), 1)
         self.assertEqual(node[0].index, 60)
+
+class TestFirst80KtsDuringTakeoff(unittest.TestCase):
+
+    def setUp(self):
+        self.node_class = First80KtsDuringTakeoff
+
+    def test_can_operate(self):
+        combinations = self.node_class.get_operational_combinations()
+        self.assertEqual(combinations,
+                         [('Airspeed', 'Takeoff Roll Or Rejected Takeoff'),])
+
+    def test_derive(self):
+        aspd = P('Airspeed', np.ma.arange(20, 120, 10))
+        takeoff = buildsection('Takeoff Roll Or Rejected Takeoff', 1, 10)
+
+        node = self.node_class()
+        node.derive(aspd, takeoff)
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 6)
+
+    def test_derive_multiple(self):
+        aspd = P('Airspeed', np.ma.concatenate((np.ma.arange(20, 120, 10),
+                                                np.ma.arange(120, 20, -10),
+                                                np.ma.arange(20, 120, 10))))
+
+        takeoffs = buildsections('Takeoff Roll Or Rejected Takeoff', [1, 10], [20, 30])
+
+        node = self.node_class()
+        node.derive(aspd, takeoffs)
+        self.assertEqual(len(node), 2)
+        self.assertEqual(node[0].index, 6)
+        self.assertEqual(node[1].index, 26)
 
 
 class TestLastEngStartBeforeLiftoff(unittest.TestCase):

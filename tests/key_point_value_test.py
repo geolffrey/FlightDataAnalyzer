@@ -63,6 +63,7 @@ from analysis_engine.key_point_values import (
     AccelerationLongitudinalDuringLandingMin,
     AccelerationLongitudinalDuringTakeoffMax,
     AccelerationLongitudinalOffset,
+    AccelerationLongitudinalOffsetRemovedAt80Kts,
     AccelerationNormal20FtTo5FtMax,
     AccelerationNormalAboveLimitWithFlapDownWhileAirborne,
     AccelerationNormalAboveWeightLowLimitAtTouchdown,
@@ -506,6 +507,7 @@ from analysis_engine.key_point_values import (
     ILSLocalizerNotEstablishedHighestAltitude1000To200Ft,
     ILSLocalizerNotEstablishedHighestAltitude500To200Ft,
     IsolationValveOpenAtLiftoff,
+    KineticEnergyAt80Kts,
     KineticEnergyAtRunwayTurnoff,
     LandingConfigurationGearWarningDuration,
     LandingConfigurationSpeedbrakeCautionDuration,
@@ -1591,6 +1593,49 @@ class TestAccelerationLongitudinalDuringLandingMin(unittest.TestCase, CreateKPVF
     @unittest.skip('Test Not Implemented')
     def test_derive(self):
         self.assertTrue(False, msg='Test Not Implemented')
+
+
+class TestAccelerationLongitudinalOffsetRemovedAt80Kts(unittest.TestCase,
+                                                       NodeTest):
+
+    def setUp(self):
+        self.node_class = AccelerationLongitudinalOffsetRemovedAt80Kts
+        self.array = -0.1 + np.ma.sin(np.arange(0, 3.14*2, 0.04))
+
+    def test_can_operate(self):
+        combinations = self.node_class.get_operational_combinations()
+        self.assertEqual(combinations,
+                         [('Acceleration Longitudinal Offset Removed', 'First 80 Kts During Takeoff'),])
+
+    def test_derive(self):
+        accel_long = P('Acceleration Longitudinal Offset Removed', array=self.array)
+
+        first_80_kts = KTI('First 80 Kts During Takeoff', items=[
+            KeyTimeInstance(15),
+        ])
+
+        node = self.node_class()
+        node.derive(accel_long, first_80_kts)
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 15)
+        self.assertAlmostEqual(node[0].value, 0.4646424, places=6)
+
+    def test_derive_multiple(self):
+        accel_long = P('Acceleration Longitudinal Offset Removed',
+                       array=np.ma.concatenate((self.array, self.array)))
+
+        first_80_kts = KTI('First 80 Kts During Takeoff', items=[
+            KeyTimeInstance(15),
+            KeyTimeInstance(65),
+        ])
+
+        node = self.node_class()
+        node.derive(accel_long, first_80_kts)
+        self.assertEqual(len(node), 2)
+        self.assertEqual(node[0].index, 15)
+        self.assertAlmostEqual(node[0].value, 0.4646424, places=6)
+        self.assertEqual(node[1].index, 65)
+        self.assertAlmostEqual(node[1].value, 0.4155013, places=6)
 
 
 class TestAccelerationLongitudinalWhileAirborneMax(unittest.TestCase,
@@ -23128,6 +23173,48 @@ class TestMachMinusMMOMax(unittest.TestCase, NodeTest):
 
 ########################################
 # Aircraft Energy
+
+class TestKineticEnergyAt80Kts(unittest.TestCase):
+
+    def setUp(self):
+        self.node_class = KineticEnergyAt80Kts
+        self.array = np.ma.array([0, 10, 20, 30, 40, 50, 60, 70, 80, 70, 60, 50, 40, 30, 20, 10,
+                                  0, 10, 20, 30, 40, 50, 60, 70, 80])
+
+    def test_can_operate(self):
+        combinations = self.node_class.get_operational_combinations()
+        self.assertEqual(combinations,
+                         [('Kinetic Energy', 'First 80 Kts During Takeoff'),])
+
+
+    def test_derive(self):
+        kinetic_energy = P('Kinetic Energy', array=self.array)
+
+        first_80_kts = KTI('First 80 Kts During Takeoff', items=[
+            KeyTimeInstance(8),
+        ])
+
+        node = self.node_class()
+        node.derive(kinetic_energy, first_80_kts)
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 8)
+        self.assertEqual(node[0].value, 80)
+
+    def test_derive_multiple(self):
+        kinetic_energy = P('Kinetic Energy', array=self.array)
+
+        first_80_kts = KTI('First 80 Kts During Takeoff', items=[
+            KeyTimeInstance(8),
+            KeyTimeInstance(22),
+        ])
+
+        node = self.node_class()
+        node.derive(kinetic_energy, first_80_kts)
+        self.assertEqual(len(node), 2)
+        self.assertEqual(node[0].index, 8)
+        self.assertEqual(node[0].value, 80)
+        self.assertEqual(node[1].index, 22)
+        self.assertEqual(node[1].value, 60)
 
 
 class TestKineticEnergyAtRunwayTurnoff(unittest.TestCase):
