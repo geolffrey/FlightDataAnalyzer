@@ -855,6 +855,7 @@ class TestAirspeedTrue(unittest.TestCase):
         # essential !
         self.assertEqual(np.ma.count(tas.array), 40)
 
+    @unittest.skip('Acceleration Forward is not reliable. Need fixing Acceleration Longitudinal Offset Removed first')
     def test_tas_no_gs_extensions(self):
         # With no groundspeed available, the true airspeed is an integration
         # of acceleration from the ends of the available data. The array

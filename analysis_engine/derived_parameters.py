@@ -389,14 +389,16 @@ class AirspeedTrue(DerivedParameterNode):
                         if gspd:
                             wind = tas_0 - gspd.array[tix]
                             tas_from_airspeed[scope] = gspd.array[scope] + wind
-                        elif acc_fwd:
-                            tas_from_airspeed[scope] = \
-                                integrate(acc_fwd.array[scope],
-                                          acc_fwd.frequency,
-                                          initial_value=tas_0,
-                                          scale=scale,
-                                          extend=True,
-                                          direction='backwards')
+                        # Acceleration Forward is not reliable. Need fixing Acceleration
+                        # Longitudinal Offset Removed first
+                        #elif acc_fwd:
+                            #tas_from_airspeed[scope] = \
+                                #integrate(acc_fwd.array[scope],
+                                          #acc_fwd.frequency,
+                                          #initial_value=tas_0,
+                                          #scale=scale,
+                                          #extend=True,
+                                          #direction='backwards')
 
         if lands:
             # Then see if we can do the same for the landing phase:
@@ -409,38 +411,42 @@ class AirspeedTrue(DerivedParameterNode):
                         if gspd:
                             wind = tas_0 - gspd.array[tix]
                             tas_from_airspeed[scope] = gspd.array[scope] + wind
-                        elif acc_fwd:
-                            tas_from_airspeed[scope] = \
-                                integrate(acc_fwd.array[scope],
-                                          acc_fwd.frequency,
-                                          initial_value=tas_0,
-                                          extend=True,
-                                          scale=scale)
+                        # Acceleration Forward is not reliable. Need fixing Acceleration
+                        # Longitudinal Offset Removed first
+                        #elif acc_fwd:
+                            #tas_from_airspeed[scope] = \
+                                #integrate(acc_fwd.array[scope],
+                                          #acc_fwd.frequency,
+                                          #initial_value=tas_0,
+                                          #extend=True,
+                                          #scale=scale)
 
-        if rtos and acc_fwd:
-            for rto in rtos:
-                for tas_valid in tas_valids:
-                    tix = tas_valid.start
-                    if is_index_within_slice(tix, rto.slice):
-                        tas_0 = tas_from_airspeed[tix]
-                        scope = slice(rto.slice.start, tix)
-                        tas_from_airspeed[scope] = \
-                            integrate(acc_fwd.array[scope],
-                                      acc_fwd.frequency,
-                                      initial_value=tas_0,
-                                      scale=scale,
-                                      extend=True,
-                                      direction='backwards')
-                    tix = tas_valid.stop - 1
-                    if is_index_within_slice(tix, rto.slice):
-                        tas_0 = tas_from_airspeed[tix]
-                        scope = slice(tix + 1, rto.slice.stop)
-                        tas_from_airspeed[scope] = \
-                            integrate(acc_fwd.array[scope],
-                                      acc_fwd.frequency,
-                                      initial_value=tas_0,
-                                      extend=True,
-                                      scale=scale)
+        # Acceleration Forward is not reliable. Need fixing Acceleration
+        # Longitudinal Offset Removed first
+        #if rtos and acc_fwd:
+            #for rto in rtos:
+                #for tas_valid in tas_valids:
+                    #tix = tas_valid.start
+                    #if is_index_within_slice(tix, rto.slice):
+                        #tas_0 = tas_from_airspeed[tix]
+                        #scope = slice(rto.slice.start, tix)
+                        #tas_from_airspeed[scope] = \
+                            #integrate(acc_fwd.array[scope],
+                                      #acc_fwd.frequency,
+                                      #initial_value=tas_0,
+                                      #scale=scale,
+                                      #extend=True,
+                                      #direction='backwards')
+                    #tix = tas_valid.stop - 1
+                    #if is_index_within_slice(tix, rto.slice):
+                        #tas_0 = tas_from_airspeed[tix]
+                        #scope = slice(tix + 1, rto.slice.stop)
+                        #tas_from_airspeed[scope] = \
+                            #integrate(acc_fwd.array[scope],
+                                      #acc_fwd.frequency,
+                                      #initial_value=tas_0,
+                                      #extend=True,
+                                      #scale=scale)
 
         self.array = tas_from_airspeed
 
