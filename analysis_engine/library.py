@@ -5494,6 +5494,10 @@ def overflow_correction_array(array):
     '''
     Overflow correction based on power of two jumps only.
     '''
+    ##import matplotlib.pyplot as plt
+    ##plt.plot(array.data)
+    ##plt.plot(array)
+
     keep_mask = np.ma.getmaskarray(array).copy()
     array.mask = False
     midpoint = len(array) // 2
@@ -5522,7 +5526,15 @@ def overflow_correction_array(array):
     for index in np.flatnonzero(steps != 0):
         hide_steps[index-1:index+2] = 1
 
-    return np.ma.array(data=array, mask=np.logical_and(keep_mask, hide_steps == 0))
+    result = np.ma.array(data=array, mask=np.logical_and(keep_mask, hide_steps == 0))
+
+    ##plt.plot(result.data)
+    ##plt.plot(result)
+    ##plt.show()
+    ##plt.clf()
+    ##plt.close()
+
+    return result
 
 
 def peak_curvature(array, _slice=slice(None), curve_sense='Concave',

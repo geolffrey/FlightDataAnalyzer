@@ -5,6 +5,7 @@ from __future__ import print_function
 import geomag
 import numpy as np
 import six
+import os
 
 from copy import deepcopy
 from datetime import date
@@ -893,15 +894,17 @@ class AltitudeAAL(DerivedParameterNode):
                 if alt_idxs[-1]+1 != quick.stop and np.ma.count(alt_std.array[alt_idxs[-1]+1:quick.stop]) > (quick.stop - alt_idxs[-1]+1)/2:
                     alt_aal[alt_idxs[-1]+1:quick.stop] = 0.0
 
-        '''
-        # Quick visual check of the altitude aal.
+        # Visual check of the altitude aal.
+        if alt_rad:
             import matplotlib.pyplot as plt
             plt.plot(alt_aal, 'b-')
             plt.plot(alt_std.array, 'y-')
-        if alt_rad:
             plt.plot(alt_rad.array, 'r-')
-        plt.show()
-        '''
+            filename = 'Alt_AAL_plot-%s' % os.path.basename(self._h.file_path) if getattr(self, '_h', None) else 'Plot_AAL'
+            plt.savefig('C:\\Temp\\AAL_plots\\' + filename + '.png')
+            plt.clf()
+            plt.close()
+
 
         self.array = alt_aal
 
@@ -1045,6 +1048,23 @@ class AltitudeRadio(DerivedParameterNode):
             # (a wide tolerance ensures we don't react to normal levels of noise between altimeters).
             self.array = blend_parameters(osources, offset=self.offset, frequency=self.frequency, small_slice_duration=10,
                                           mode='cubic', validity='all_but_one', tolerance=500.0)
+
+
+            import matplotlib.pyplot as plt
+            plt.ylim(top=10000)
+            for s in osources:
+                plt.plot(s.array.data)
+                plt.plot(s.array)
+            filename = 'Alt_Alt_Rad_plot-%s_sources' % os.path.basename(self._h.file_path) if getattr(self, '_h', None) else 'Plot_Alt_Rad'
+            plt.savefig('C:\\Temp\\Alt_Rad_plots\\' + filename + '.png')
+            plt.clf()
+            plt.ylim(top=10000)
+            plt.plot(self.array.data, 'b-')
+            plt.plot(self.array, 'r-')
+            filename = 'Alt_Alt_Rad_plot-%s' % os.path.basename(self._h.file_path) if getattr(self, '_h', None) else 'Plot_Alt_Rad'
+            plt.savefig('C:\\Temp\\Alt_Rad_plots\\' + filename + '.png')
+            plt.clf()
+            plt.close()
 
             self.array = np.ma.masked_greater(self.array, ALTITUDE_RADIO_MAX_RANGE)
 
