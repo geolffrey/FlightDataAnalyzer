@@ -1677,7 +1677,17 @@ class GearDownInTransit(MultistateDerivedParameterNode):
         # create slices indicating Gear Extending
         if gear_position:
             transits = runs_of_ones(nearest_neighbour_mask_repair(gear_position.array) == 'In Transit')
-            runs = [transit for transit in transits if gear_position.array[transit.start-1] == 'Up']
+            transits = [transit for transit in transits if gear_position.array[transit.start-1] == 'Up']
+            if gear_down:
+                # Find Gear Down within a reasonable range and extend up to there
+                duration = fallback or 20 * self.frequency
+                for transit in transits:
+                    for gear_down_edge in gear_downs:
+                        if transit.start < gear_down_edge < transit.stop + duration:
+                            transit = slice(transit.start, math.ceil(gear_down_edge))
+                        runs.append(transit)
+            else:
+                runs = transits
 
         elif gear_down and (gear_in_transit or gear_red):
             param, state = (gear_in_transit, 'In Transit') if gear_in_transit else (gear_red, 'Warning')
@@ -1875,7 +1885,17 @@ class GearUpInTransit(MultistateDerivedParameterNode):
         # create slices indicating Gear Retracting
         if gear_position:
             transits = runs_of_ones(nearest_neighbour_mask_repair(gear_position.array) == 'In Transit')
-            runs = [transit for transit in transits if gear_position.array[transit.start-1] == 'Down']
+            transits = [transit for transit in transits if gear_position.array[transit.start-1] == 'Down']
+            if gear_up:
+                # Find Gear Up within a reasonable range and extend up to there
+                duration = fallback or 20 * self.frequency
+                for transit in transits:
+                    for gear_up_edge in gear_ups:
+                        if transit.start < gear_up_edge < transit.stop + duration:
+                            transit = slice(transit.start, math.ceil(gear_up_edge))
+                        runs.append(transit)
+            else:
+                runs = transits
 
         elif gear_up and (gear_in_transit or gear_red):
             param, state = (gear_in_transit, 'In Transit') if gear_in_transit else (gear_red, 'Warning')

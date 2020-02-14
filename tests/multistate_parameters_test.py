@@ -4569,6 +4569,33 @@ class TestGearUpInTransit(unittest.TestCase):
         self.assertEqual(node.values_mapping, self.values_mapping)
 
     @patch('analysis_engine.multistate_parameters.at')
+    def test_derive__gear_position_low_sample_rate(self, at):
+        '''Gear Position low sample rate combined with Gear Up high sample rate,
+        The Gear Up In Transit should extend up to the moment Gear is Up.
+        '''
+        at.get_gear_transition_times.return_value = (15, 15)
+        # Gear Up changed to Up - following Gear In Transit
+        gear_pos = M(
+            'Gear Position',
+            array=np.ma.array([3, 2, 1]),
+            values_mapping={0: '-', 1: 'Up', 2: 'In Transit', 3: 'Down'},
+            frequency=0.25
+        )
+        gear_up = M(
+            'Gear Up',
+            array=np.ma.array([0]*8 + [1]*4),
+            values_mapping={0: 'Down', 1: 'Up'},
+            frequency=1
+        )
+        node = self.node_class()
+        node.get_derived(
+            (None, gear_up, None, None, None, gear_pos, self.airborne,
+             self.model, self.series, self.family)
+        )
+
+        self.assertEqual(node.array[7], 'Retracting')
+
+    @patch('analysis_engine.multistate_parameters.at')
     def test_derive__up_sel_red_warn(self, at):
         at.get_gear_transition_times.return_value = (10, 10)  # patch transition time to be 10 seconds
         # Gear Up Selected changed to Up + transition time
@@ -4834,6 +4861,33 @@ class TestGearDownInTransit(unittest.TestCase):
 
         np.testing.assert_array_equal(node.array, self.expected_short.array)
         self.assertEqual(node.values_mapping, self.values_mapping)
+
+    @patch('analysis_engine.multistate_parameters.at')
+    def test_derive__gear_position_low_sample_rate(self, at):
+        '''Gear Position low sample rate combined with Gear Down high sample rate,
+        The Gear Down In Transit should extend up to the moment Gear is Down.
+        '''
+        at.get_gear_transition_times.return_value = (15, 15)
+        # Gear Up changed to Up - following Gear In Transit
+        gear_pos = M(
+            'Gear Position',
+            array=np.ma.array([1, 2, 3]),
+            values_mapping={0: '-', 1: 'Up', 2: 'In Transit', 3: 'Down'},
+            frequency=0.25
+        )
+        gear_down = M(
+            'Gear Down',
+            array=np.ma.array([1]*8 + [0]*4),
+            values_mapping={0: 'Down', 1: 'Up'},
+            frequency=1
+        )
+        node = self.node_class()
+        node.get_derived(
+            (gear_down, None, None, None, None, gear_pos, self.airborne,
+             self.model, self.series, self.family)
+        )
+
+        self.assertEqual(node.array[7], 'Extending')
 
     @patch('analysis_engine.multistate_parameters.at')
     def test_derive__down_sel_red_warning(self, at):
