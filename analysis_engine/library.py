@@ -5504,41 +5504,15 @@ def overflow_correction_array(array):
     # value changes by half this amount. Hence jumps more than half a power lower than 2**10.
     # We want to correct the step, hence the change of sign in the resulting array.
     steps = -np.ma.where(abs_jump > 900.0, 2**np.rint(np.ma.log2(abs_jump)) * np.sign(jump), 0)
-    for check in np.ma.nonzero(steps):
-        if len(check) == 0:
-            continue
-        index = check[0]
-        if index >= len(steps)-1:
-            continue
-        if steps[index] == -steps[index+1]:
-            steps[index:index+2] = 0.0
+    max_step = np.ma.max(np.ma.abs(steps))
+    if not max_step: # Nothing to do, so return unchanged
+        return array
 
-    biggest_step_up = np.ma.max(steps)
-    biggest_step_down = np.ma.min(steps)
+    for index in np.ma.nonzero(steps)[0]:
+        if abs(steps[index]) < max_step:
+            steps[index] = 0.0
 
-    # Only fix things that need fixing
-    delta = None
-    if biggest_step_up or biggest_step_down:
-        # Compute and apply the correction
-        biggest_step = max(abs(x) for x in (biggest_step_up, biggest_step_down) if x is not None)
-        steps = np.ma.where(abs(steps) >= biggest_step / 4, steps, 0.0)
-        # Climb data has positive changes for most samples...
-        dy = np.average(np.sign(np.ma.ediff1d(array)))
-        if dy > 0.0:
-            array += np.ma.cumsum(steps)
-            delta = 1024.0 * np.rint((np.min(array[:midpoint]) + 20) / 1024)
-        elif dy < 0.0:
-            # Roll the steps array to account for the reversal of direction
-            # compared to the original ediff1d computation.
-            array[::-1] -= np.cumsum(np.roll(steps[::-1], 1))
-            delta = 1024.0 * np.rint((np.min(array[midpoint:]) + 20) / 1024)
-        else:
-            # Rare case of perfectly balanced changes; make no changes.
-            pass
-
-    if delta:
-        # Adjust the data by offsetting by this delta.
-        array -= delta
+    array += np.ma.cumsum(steps)
 
     # Where there was a jump, the original data was masked, which we no longer
     # need. The mask may have been assigned to the exact point of the change or
