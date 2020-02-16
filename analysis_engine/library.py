@@ -5405,7 +5405,7 @@ def offset_select(mode, param_list):
     raise ValueError ("offset_select called with unrecognised mode")
 
 
-def overflow_correction(array, ref=None, fast=None, hz=1):
+def overflow_correction(test_array, param, flight_phases, hz=1):
     '''
     Overflow Correction postprocessing procedure. Used only on Altitude Radio
     signals.
@@ -5422,98 +5422,88 @@ def overflow_correction(array, ref=None, fast=None, hz=1):
     :param hz: array sample rate
     :type hz: float
     '''
-    array = array.astype(np.float64)  # int32 not supported
-    good_slices = slices_remove_small_gaps(
+    try:
+        phases = flight_phases.get('Airborne')
+        air_phases = phases.get_aligned(param).get_slices()
+    except:
+        # Default to scan all the data
+        air_phases = [slice(0, len(array) + 1)]
+
+    array = overflow_correction_array(test_array)
+    good_slices = slices_int(slices_remove_small_gaps(
         slices_remove_small_slices(np.ma.clump_unmasked(array),
                                    time_limit=10, hz=hz),
-        time_limit=15, hz=hz)
-    # Due to aircraft power-up sequences, the first few samples of data is
-    # sometimes corrupt.
+        time_limit=15, hz=hz))
     if not good_slices:
         return array
 
+    # Due to aircraft power-up sequences, the first few samples of data is
+    # sometimes corrupt.
     end = good_slices[0].stop
     begin = min(good_slices[0].start + 4, end - 1)
     good_slices[0] = slice(begin, end)
 
-    if not fast:
-        # The first time we use this algorithm we don't have speed information
-        for good_slice in slices_int(good_slices):
-            if np.ma.ptp(array[good_slice]) > 20.0:
-                array[good_slice] = overflow_correction_array(array[good_slice])
-            else:
-                if abs(np.ma.average(array[good_slice])) > 100.0:
-                    array[good_slice] = np.ma.masked
-    else:
-        # The second time our challenge is to make sure the segments are
-        # adjusted correctly
+    d = 2048.0 # we only adjust by 2k blocks
+    fast_idxs = [f.start for f in air_phases]
+    fast_idxs.extend([f.stop for f in air_phases])
+    top_all = np.ma.max(array)
 
-        # array = pin_to_ground(array, good_slices, fast.get_slices(), hz)
-        array = align_altitudes(array,
-                                ref,
-                                slices_int(good_slices),
-                                slices_int(fast.get_slices()),
-                                hz)
+    for good_slice in good_slices:
+        top = np.ma.max(array[good_slice])
+
+        if are_indexes_within_slices(fast_idxs, [good_slice]):
+            # We know the rad alt should read zero at liftoff or touchdown
+            # Find the index within this good slice
+            for f in fast_idxs:
+                if good_slice.start < f < good_slice.stop:
+                    break
+
+            delta = d * np.rint(array[int(f)] / d)
+            if delta and np.ma.min(array[good_slice] - delta) >= -20:
+                # if the lowest point is less than -20, we can safely assume something went wrong,
+                # so we don't apply it, otherwise make the adjustment
+                array[good_slice] -= delta
+
+        elif slices_and_not([good_slice], air_phases):
+            # Rad alt should read zero when the aircraft is too slow to be airborne
+            delta = d * np.rint(np.ma.median(array[good_slice]) / d)
+            if delta and np.ma.min(array[good_slice] - delta) >= -20:
+                array[good_slice] -= delta
+
+        elif np.ma.ptp(array[good_slice]) < 20.0 or top is np.ma.masked:
+            # This data comes from an airborne phase so should vary and should not be masked.
+            # If it is in variant or masked, we can best ignore the whole block.
+            array[good_slice] = np.ma.masked
+
+        else:
+            # An airborne period where we can make the top align with the rest of the data
+            delta = d * np.rint((top - top_all) / d)
+            if delta and np.ma.min(array[good_slice] - delta) >= -20:
+                array[good_slice] -= delta
+
     return array
-
-def align_altitudes(alt_rad, alt_std, good_slices, fast_slices, hz):
-    '''
-    This corrects the offset for each section of radio altitude data, on the basis that the
-    tops of the data will be similar in value.
-    '''
-    d = 1024.0 # we only adjust by 1k blocks
-    idxs, vals = cycle_finder(np.ma.array(alt_rad.data), min_step=0.8 * d)
-    peaks = [0] + [a for a in idxs[1::2]] + [len(alt_rad) - 2]
-    fast_idxs = [f.start for f in fast_slices]
-    fast_idxs.extend([f.stop for f in fast_slices])
-    top_all = np.ma.max(alt_rad)
-
-    for s in zip(peaks[:-1], peaks[1:]):
-        scope = slice(s[0] + 1, s[1] + 2)
-        bottom_scope = np.ma.min(alt_rad[scope])
-        top_scope = np.ma.max(alt_rad[scope])
-
-        if are_indexes_within_slices(fast_idxs, [scope]) or \
-           slices_and_not([scope], fast_slices):
-            # We know the rad alt should read zero at start or end of flight
-            # or when the aircraft is too slow to be airborne
-            delta = d * np.rint(bottom_scope / d)
-            if delta and np.ma.min(alt_rad[scope] - delta) >= -20:
-                # if the lowest point is less than -20, we can safely assume something went wrong, and we don't apply it
-                alt_rad[scope] -= delta
-
-        elif top_scope is not np.ma.masked:
-            # Make the top align with the rest of the data
-            delta = d * np.rint((top_scope - top_all) / d)
-            if delta and np.ma.min(alt_rad[scope] - delta) >= -20:
-                alt_rad[scope] -= delta
-
-    return alt_rad
 
 def overflow_correction_array(array):
     '''
     Overflow correction based on power of two jumps only.
     '''
-    ##import matplotlib.pyplot as plt
-    ##plt.plot(array.data)
-    ##plt.plot(array)
-
     keep_mask = np.ma.getmaskarray(array).copy()
     array.mask = False
-    midpoint = len(array) // 2
     jump = np.ma.ediff1d(array, to_begin=0.0)
     abs_jump = np.ma.abs(jump)
 
-    # Most radio altimeters are scaled to overflow at 2048ft, but occasionally the signed
+    # Most radio altimeters are scaled to overflow at 4096 or 2048ft, but occasionally the signed
     # value changes by half this amount. Hence jumps more than half a power lower than 2**10.
     # We want to correct the step, hence the change of sign in the resulting array.
     steps = -np.ma.where(abs_jump > 900.0, 2**np.rint(np.ma.log2(abs_jump)) * np.sign(jump), 0)
     max_step = np.ma.max(np.ma.abs(steps))
-    if not max_step: # Nothing to do, so return unchanged
+
+    ## Is 2k the right limit, or is 1k needed?
+    if max_step < 2048: # Nothing to do, so return unchanged
         return array
 
     for index in np.ma.nonzero(steps)[0]:
-        if abs(steps[index]) < max_step:
+        if abs(steps[index]) < max_step / 2:
             steps[index] = 0.0
 
     array += np.ma.cumsum(steps)
@@ -5527,12 +5517,6 @@ def overflow_correction_array(array):
         hide_steps[index-1:index+2] = 1
 
     result = np.ma.array(data=array, mask=np.logical_and(keep_mask, hide_steps == 0))
-
-    ##plt.plot(result.data)
-    ##plt.plot(result)
-    ##plt.show()
-    ##plt.clf()
-    ##plt.close()
 
     return result
 

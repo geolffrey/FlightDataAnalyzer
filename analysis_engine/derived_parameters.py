@@ -1037,47 +1037,46 @@ class AltitudeRadio(DerivedParameterNode):
             # signal.
             if np.ma.ptp(source.array) > 10.0:
                 osources.append(source)
+            else:
+                # Get ready to provide a null response if needed
+                out_len = int(len(source.array) * self.frequency / source.frequency)
 
-        if osources:
+        if not osources:
+            self.array = np_ma_masked_zeros(out_len)
+
+        elif len(osources) == 1:
+            # A single altimeter, so nothing to blend, but we still have to align to the required frequency
+            self.array = blend_parameters(osources, offset=self.offset, frequency=self.frequency, small_slice_duration=10)
+
+        else:
             # Blend parameters was written around the Boeing 737NG frames where three sources
             # are available with different sample rates and latency. Some airbus aircraft
             # have three altimeters but one of the sensors can give signals that appear to be
-            # valid in the cruise, hence the alternative validity level. Finally, the overflow
-            # correction algorithms can be out of step, giving differences of the order of
-            # 1,000ft between two sensors. The tolerance threshold ensures these are rejected
-            # (a wide tolerance ensures we don't react to normal levels of noise between altimeters).
+            # valid in the cruise, hence the alternative validity level.
             self.array = blend_parameters(osources, offset=self.offset, frequency=self.frequency, small_slice_duration=10,
                                           mode='cubic', validity='all_but_one', tolerance=500.0)
 
+        import matplotlib.pyplot as plt
+        plt.ylim(top=10000)
+        for s in osources:
+            plt.plot(s.array.data)
+            plt.plot(s.array)
+        filename = 'Alt_Alt_Rad_plot-%s_sources' % os.path.basename(self._h.file_path) if getattr(self, '_h', None) else 'Plot_Alt_Rad'
+        plt.savefig('C:\\Temp\\Alt_Rad_plots\\' + filename + '.png')
+        plt.clf()
+        plt.ylim(top=10000)
+        plt.plot(self.array.data, 'b-')
+        plt.plot(self.array, 'r-')
+        filename = 'Alt_Alt_Rad_plot-%s' % os.path.basename(self._h.file_path) if getattr(self, '_h', None) else 'Plot_Alt_Rad'
+        plt.savefig('C:\\Temp\\Alt_Rad_plots\\' + filename + '.png')
+        plt.clf()
+        plt.close()
 
-            import matplotlib.pyplot as plt
-            plt.ylim(top=10000)
-            for s in osources:
-                plt.plot(s.array.data)
-                plt.plot(s.array)
-            filename = 'Alt_Alt_Rad_plot-%s_sources' % os.path.basename(self._h.file_path) if getattr(self, '_h', None) else 'Plot_Alt_Rad'
-            plt.savefig('C:\\Temp\\Alt_Rad_plots\\' + filename + '.png')
-            plt.clf()
-            plt.ylim(top=10000)
-            plt.plot(self.array.data, 'b-')
-            plt.plot(self.array, 'r-')
-            filename = 'Alt_Alt_Rad_plot-%s' % os.path.basename(self._h.file_path) if getattr(self, '_h', None) else 'Plot_Alt_Rad'
-            plt.savefig('C:\\Temp\\Alt_Rad_plots\\' + filename + '.png')
-            plt.clf()
-            plt.close()
+        # self.array = np.ma.masked_greater(self.array, ALTITUDE_RADIO_MAX_RANGE)
 
-            self.array = np.ma.masked_greater(self.array, ALTITUDE_RADIO_MAX_RANGE)
-
-            # For aircraft where the antennae are placed well away from the main
-            # gear, and especially where it is aft of the main gear, compensation
-            # is necessary.
-
-            #TODO: Implement this type of correction on other types and embed
-            #coefficients in a database table.
-        else:
-            samples = int(len(alt_std.array) * self.frequency / alt_std.frequency)
-            self.array=np_ma_masked_zeros(samples)
-
+        # For aircraft where the antennae are placed well away from the main
+        # gear, and especially where it is aft of the main gear, compensation
+        # is necessary.
         if family and family.value in ['CL-600'] and pitch:
             assert pitch.frequency == 4.0
             # There is no alignment process for this small correction term,

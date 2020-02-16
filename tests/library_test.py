@@ -43,6 +43,7 @@ from analysis_engine.library import (
     any_one_of,
     air_track,
     align,
+    align_altitudes,
     align_slice,
     align_slices,
     average_value,
@@ -5125,7 +5126,7 @@ class TestOverflowCorrection(unittest.TestCase):
         first_pass = overflow_correction(radioA.array, None, None)
         resA = overflow_correction(first_pass, alt_baro, fast)
         sects = np.ma.clump_unmasked(resA)
-        self.assertEqual(len(sects), 4)
+        self.assertEqual(len(sects), 5)
         self.assertGreater(resA.max(), 5000)
         self.assertEqual(resA.min(), -2)
 
@@ -5193,6 +5194,41 @@ class TestOverflowCorrectionArray(unittest.TestCase):
                                           np.ma.array(data=array.data,
                                                       mask=expected_mask)
                                           )
+
+class TestAlignAltitudes(unittest.TestCase):
+    def test_basic(self):
+        array = np.ma.concatenate([np.zeros(30),
+                                   np.arange(0, 1000, 100),
+                                   np.arange(1000, 0, -100),
+                                   np.zeros(30)])
+        air_phases = [slice(25, 45)]
+        good_slices = [slice(2,18), slice(23, 39), slice(43, 55), slice(62, 79)]
+        result = align_altitudes(array, air_phases, good_slices)
+        ma_test.assert_masked_array_equal(array, result)
+
+    def test_offset(self):
+        array = np.ma.concatenate([np.zeros(30),
+                                   np.arange(0, 1000, 100),
+                                   np.arange(1000, 0, -100),
+                                   np.zeros(30)])
+        air_phases = [slice(25, 45)]
+        good_slices = [slice(2,18), slice(23, 39), slice(43, 55), slice(62, 79)]
+        for i in range(4):
+            shifted_array = array
+            shifted_array[good_slices[i]] += 2048
+            result = align_altitudes(shifted_array, air_phases, good_slices)
+            ma_test.assert_masked_array_equal(array, result)
+
+    def test_offset_at_altitude(self):
+        array = np.ma.concatenate([np.zeros(30),
+                                   np.arange(0, 1000, 100),
+                                   np.ones(20) * -20.0,
+                                   np.arange(1000, 0, -100),
+                                   np.zeros(30)])
+        air_phases = [slice(25, 65)]
+        good_slices = [slice(2,18), slice(23, 39), slice(42, 58), slice(63, 75), slice(82, 99)]
+        result = align_altitudes(array, air_phases, good_slices)
+        self.assertGreater(result[50], 1000.0)
 
 
 class TestPeakCurvature(unittest.TestCase):
@@ -8954,7 +8990,7 @@ class TestFindClimbCruiseDescent(unittest.TestCase):
 
 class TestMaintainAltitude(unittest.TestCase):
     def test_stay_within_50_ft(self):
-        altitude = np.ma.concatenate((        
+        altitude = np.ma.concatenate((
             np.ma.arange(1000, 2000, 100),
             np.ones(30) * 2000,
             np.ma.arange(2000, 3000, 100),
@@ -8967,4 +9003,4 @@ class TestMaintainAltitude(unittest.TestCase):
         altitude = np.ma.arange(1000, 4000, 100)
         target = np.ma.ones(30) * 2000
         distance = altitude - target
-        self.assertFalse(maintain_altitude(distance))        
+        self.assertFalse(maintain_altitude(distance))
