@@ -16327,6 +16327,8 @@ class RateOfDescentAtHeightBeforeAltitudeSelected(KeyPointValueNode):
         alt_sel_change_slices = runs_of_ones(alt_sel_change, min_samples)
         dist = mask_outside_slices(dist, alt_sel_change_slices)
         clumps = np.ma.clump_unmasked(dist)
+        if not clumps:
+            return
 
         # Mask out the sections of approaches where the missed approach altitude
         # was selected.
