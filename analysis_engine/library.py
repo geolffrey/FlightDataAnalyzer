@@ -5443,7 +5443,7 @@ def overflow_correction(test_array, param, flight_phases, hz=1):
     begin = min(good_slices[0].start + 4, end - 1)
     good_slices[0] = slice(begin, end)
 
-    d = 2048.0 # we only adjust by 2k blocks
+    d = 1024.0 # See A340-300-SLM data frame
     fast_idxs = [f.start for f in air_phases]
     fast_idxs.extend([f.stop for f in air_phases])
     top_all = np.ma.max(array)
@@ -5498,12 +5498,12 @@ def overflow_correction_array(array):
     steps = -np.ma.where(abs_jump > 900.0, 2**np.rint(np.ma.log2(abs_jump)) * np.sign(jump), 0)
     max_step = np.ma.max(np.ma.abs(steps))
 
-    ## Is 2k the right limit, or is 1k needed?
-    if max_step < 2048: # Nothing to do, so return unchanged
+    # See A340-300-SLM which overflows at 1024 ft
+    if max_step < 1024: # Nothing to do, so return unchanged
         return array
 
     for index in np.ma.nonzero(steps)[0]:
-        if abs(steps[index]) < max_step / 2:
+        if abs(steps[index]) < max_step:
             steps[index] = 0.0
 
     array += np.ma.cumsum(steps)
