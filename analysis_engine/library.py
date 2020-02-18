@@ -5497,7 +5497,7 @@ def overflow_correction_array(array, oflow):
     steps = -np.ma.where(abs_jump > oflow * 0.9, 2**np.rint(np.ma.log2(abs_jump)) * np.sign(jump), 0)
     max_step = np.ma.max(np.ma.abs(steps))
     if max_step < oflow: # Nothing to do, so return unchanged
-        return array
+        return np.ma.array(data=array, mask=keep_mask)
     for index in np.ma.nonzero(steps)[0]:
         if abs(steps[index]) < max_step:
             steps[index] = 0.0
