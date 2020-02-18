@@ -43,7 +43,6 @@ from analysis_engine.library import (
     any_one_of,
     air_track,
     align,
-    align_altitudes,
     align_slice,
     align_slices,
     average_value,
@@ -5103,13 +5102,11 @@ class TestOffsetSelect(unittest.TestCase):
 
 class TestOverflowCorrection(unittest.TestCase):
     '''
-    Overflow correction is applied in two stages, once in validation and
-    once in derived parameters, hence the double call, first without fast
-    and then with.
+    This is applied to rad alt signals only during
+
     '''
     def test_overflow_correction_a320(self):
-        fast = S(items=[Section('Fast', slice(336, 5397), 336, 5397),
-                        Section('Fast', slice(5859, 11520), 5859, 11520)])
+        fast = [slice(336, 5397), slice(5859, 11520)]
         radioA = load(os.path.join(
             test_data_path, 'A320_Altitude_Radio_A_overflow.nod'))
         alt_baro = np.ma.concatenate([
@@ -5123,8 +5120,7 @@ class TestOverflowCorrection(unittest.TestCase):
             np.arange(10000, 0, -40),
             np.zeros(170)])
 
-        first_pass = overflow_correction(radioA.array, None, None)
-        resA = overflow_correction(first_pass, alt_baro, fast)
+        resA = overflow_correction(radioA.array, radioA, fast)
         sects = np.ma.clump_unmasked(resA)
         self.assertEqual(len(sects), 5)
         self.assertGreater(resA.max(), 5000)
@@ -5132,25 +5128,17 @@ class TestOverflowCorrection(unittest.TestCase):
 
         radioB = load(os.path.join(
             test_data_path, 'A320_Altitude_Radio_B_overflow.nod'))
-        first_pass = overflow_correction(radioB.array, None, None)
-        resB = overflow_correction(first_pass, alt_baro, fast)
+        resB = overflow_correction(radioB.array, radioB, fast)
         sects = np.ma.clump_unmasked(resB)
         self.assertEqual(len(sects), 5)
         self.assertGreater(resB.max(), 5000)
         self.assertEqual(resB.min(), -2)
 
     def test_overflow_correction_a340(self):
-        fast = S(items=[Section('Fast', slice(2000, 6500), 2000, 6500)])
+        fast = [slice(1020, 34400)]
         radioA = load(os.path.join(
             test_data_path, 'A340_Altitude_Radio_A_overflow.nod'))
-        alt_baro = np.ma.concatenate([
-            np.zeros(2292),
-            np.arange(0, 10000, 60),
-            np.ones(3640) * 10000,
-            np.arange(10000, 0, -40),
-            np.zeros(275)]).astype(np.float64)
-        first_pass = overflow_correction(radioA.array, None, None)
-        resA = overflow_correction(first_pass, alt_baro, fast)
+        resA = overflow_correction(radioA.array, radioA, fast)
         sects = np.ma.clump_unmasked(resA)
         # 1 section for climb, one for descent
         self.assertEqual(len(sects), 2)
@@ -5159,8 +5147,7 @@ class TestOverflowCorrection(unittest.TestCase):
 
         radioB = load(os.path.join(
             test_data_path, 'A340_Altitude_Radio_B_overflow.nod'))
-        first_pass = overflow_correction(radioB.array, None, None)
-        resB = overflow_correction(first_pass, alt_baro, fast)
+        resB = load(radioB.array, radioB, fast)
         sects = np.ma.clump_unmasked(resB)
         # 1 section for climb, one for descent
         self.assertEqual(len(sects), 2)
@@ -5194,41 +5181,6 @@ class TestOverflowCorrectionArray(unittest.TestCase):
                                           np.ma.array(data=array.data,
                                                       mask=expected_mask)
                                           )
-
-class TestAlignAltitudes(unittest.TestCase):
-    def test_basic(self):
-        array = np.ma.concatenate([np.zeros(30),
-                                   np.arange(0, 1000, 100),
-                                   np.arange(1000, 0, -100),
-                                   np.zeros(30)])
-        air_phases = [slice(25, 45)]
-        good_slices = [slice(2,18), slice(23, 39), slice(43, 55), slice(62, 79)]
-        result = align_altitudes(array, air_phases, good_slices)
-        ma_test.assert_masked_array_equal(array, result)
-
-    def test_offset(self):
-        array = np.ma.concatenate([np.zeros(30),
-                                   np.arange(0, 1000, 100),
-                                   np.arange(1000, 0, -100),
-                                   np.zeros(30)])
-        air_phases = [slice(25, 45)]
-        good_slices = [slice(2,18), slice(23, 39), slice(43, 55), slice(62, 79)]
-        for i in range(4):
-            shifted_array = array
-            shifted_array[good_slices[i]] += 2048
-            result = align_altitudes(shifted_array, air_phases, good_slices)
-            ma_test.assert_masked_array_equal(array, result)
-
-    def test_offset_at_altitude(self):
-        array = np.ma.concatenate([np.zeros(30),
-                                   np.arange(0, 1000, 100),
-                                   np.ones(20) * -20.0,
-                                   np.arange(1000, 0, -100),
-                                   np.zeros(30)])
-        air_phases = [slice(25, 65)]
-        good_slices = [slice(2,18), slice(23, 39), slice(42, 58), slice(63, 75), slice(82, 99)]
-        result = align_altitudes(array, air_phases, good_slices)
-        self.assertGreater(result[50], 1000.0)
 
 
 class TestPeakCurvature(unittest.TestCase):

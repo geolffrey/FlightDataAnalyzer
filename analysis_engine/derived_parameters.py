@@ -79,7 +79,6 @@ from analysis_engine.library import (
     np_ma_masked_zeros_like,
     np_ma_zeros_like,
     offset_select,
-    overflow_correction,
     peak_curvature,
     press2alt,
     power_floor,
@@ -1025,11 +1024,6 @@ class AltitudeRadio(DerivedParameterNode):
         for source in sources:
             if source is None:
                 continue
-            ### correct for overflow, aligning the fast slice to each source
-            ##aligned_fast = fast.get_aligned(source)
-            ##source.array = np.ma.masked_invalid(
-                ##overflow_correction(source.array, align(alt_std, source),fast=aligned_fast, hz=source.frequency)
-            ##)
 
             # Some data frames reference altimeters which are optionally
             # recorded. It is impractical to maintain the LFL patching
@@ -1071,8 +1065,6 @@ class AltitudeRadio(DerivedParameterNode):
         plt.savefig('C:\\Temp\\Alt_Rad_plots\\' + filename + '.png')
         plt.clf()
         plt.close()
-
-        # self.array = np.ma.masked_greater(self.array, ALTITUDE_RADIO_MAX_RANGE)
 
         # For aircraft where the antennae are placed well away from the main
         # gear, and especially where it is aft of the main gear, compensation
