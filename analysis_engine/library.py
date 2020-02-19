@@ -34,7 +34,6 @@ from flightdatautilities.numpy_utils import (
 )
 
 from analysis_engine.settings import (
-    ALTITUDE_RADIO_MAX_RANGE,
     BUMP_HALF_WIDTH,
     HYSTERESIS_FPALT_CCD,
     ILS_CAPTURE,
@@ -42,6 +41,7 @@ from analysis_engine.settings import (
     ILS_ESTABLISHED_DURATION,
     ILS_LOC_SPREAD,
     ILS_GS_SPREAD,
+    ALTITUDE_RADIO_MIN_OVERFLOW,
     REPAIR_DURATION,
     RUNWAY_HEADING_TOLERANCE,
     RUNWAY_ILSFREQ_TOLERANCE,
@@ -5405,30 +5405,25 @@ def offset_select(mode, param_list):
     raise ValueError ("offset_select called with unrecognised mode")
 
 
-def overflow_correction(test_array, param, air_phases, hz=1):
+def overflow_correction(test_array, param, air_slices):
     '''
-    Overflow Correction postprocessing procedure. Used only on Altitude Radio
-    signals.
-
-    This can be used to remove overflows and to tidy up the resulting data,
-    which may still be offset following the removal of overflow jumps.
+    Overflow Correction, used only on Altitude Radio signals.
+    This is used to correct for data overflows and to tidy up the resulting data,
+    in case there are offsets following the removal of overflow jumps.
 
     :param test_array: array of data from a single radio altimeter, with arinc masking
     :type test_array: Numpy array
-    :param:
-    :param fast: flight phases
-    :type fast: Section
-    :param hz: array sample rate
-    :type hz: float
+    :param: The 'Altitude Radio (*)' parameter
+    :type param: flight data parameter
+    :param air_slices: airborne periods
+    :type air_slices: List of slices
     '''
-    # Most radio altimeters are scaled to overflow at 4096 or 2048ft, but some
-    # A340s have a resolution of 0.5ft and overflow at 1024ft increments.
-    oflow = 1024.0
+    oflow = ALTITUDE_RADIO_MIN_OVERFLOW
     array = overflow_correction_array(test_array, oflow)
     good_slices = slices_int(slices_remove_small_gaps(
         slices_remove_small_slices(np.ma.clump_unmasked(array),
-                                   time_limit=10, hz=hz),
-        time_limit=15, hz=hz))
+                                   time_limit=10, hz=param.frequency),
+        time_limit=15, hz=param.frequency))
     if not good_slices:
         return array
 
@@ -5438,8 +5433,8 @@ def overflow_correction(test_array, param, air_phases, hz=1):
     begin = min(good_slices[0].start + 4, end - 1)
     good_slices[0] = slice(begin, end)
     # Build a list of liftoff and touchdown indexes
-    fast_idxs = [f.start for f in air_phases]
-    fast_idxs.extend([f.stop for f in air_phases])
+    fast_idxs = [f.start for f in air_slices]
+    fast_idxs.extend([f.stop for f in air_slices])
     # If there is only one good_slice, we want the landing to take priority
     fast_idxs = sorted(fast_idxs, reverse=True)
     # Find the highest point in all this data
@@ -5462,7 +5457,7 @@ def overflow_correction(test_array, param, air_phases, hz=1):
                 # so we don't apply it, otherwise make the adjustment
                 array[good_slice] -= delta
 
-        elif slices_and_not([good_slice], air_phases):
+        elif slices_and_not([good_slice], air_slices):
             # Rad alt should read zero when the aircraft is too slow to be airborne
             delta = oflow * np.rint(np.ma.median(array[good_slice]) / oflow)
             if delta and np.ma.min(array[good_slice] - delta) >= -20:

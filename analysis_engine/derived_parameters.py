@@ -116,7 +116,6 @@ from analysis_engine.library import (
 from analysis_engine.settings import (
     AIRSPEED_THRESHOLD,
     ALTITUDE_RADIO_OFFSET_LIMIT,
-    ALTITUDE_RADIO_MAX_RANGE,
     ALTITUDE_AAL_TRANS_ALT,
     ALTITUDE_AGL_SMOOTHING,
     ALTITUDE_AGL_TRANS_ALT,
