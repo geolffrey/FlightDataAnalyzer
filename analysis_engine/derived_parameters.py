@@ -892,18 +892,6 @@ class AltitudeAAL(DerivedParameterNode):
                 if alt_idxs[-1]+1 != quick.stop and np.ma.count(alt_std.array[alt_idxs[-1]+1:quick.stop]) > (quick.stop - alt_idxs[-1]+1)/2:
                     alt_aal[alt_idxs[-1]+1:quick.stop] = 0.0
 
-        # Visual check of the altitude aal.
-        if alt_rad:
-            import matplotlib.pyplot as plt
-            plt.plot(alt_aal, 'b-')
-            plt.plot(alt_std.array, 'y-')
-            plt.plot(alt_rad.array, 'r-')
-            filename = 'Alt_AAL_plot-%s' % os.path.basename(self._h.file_path) if getattr(self, '_h', None) else 'Plot_AAL'
-            plt.savefig('C:\\Temp\\AAL_plots\\' + filename + '.png')
-            plt.clf()
-            plt.close()
-
-
         self.array = alt_aal
 
 
@@ -1023,7 +1011,6 @@ class AltitudeRadio(DerivedParameterNode):
         for source in sources:
             if source is None:
                 continue
-
             # Some data frames reference altimeters which are optionally
             # recorded. It is impractical to maintain the LFL patching
             # required, so we only manage altimeters with a significant
@@ -1036,11 +1023,9 @@ class AltitudeRadio(DerivedParameterNode):
 
         if not osources:
             self.array = np_ma_masked_zeros(out_len)
-
         elif len(osources) == 1:
             # A single altimeter, so nothing to blend, but we still have to align to the required frequency
             self.array = blend_parameters(osources, offset=self.offset, frequency=self.frequency, small_slice_duration=10)
-
         else:
             # Blend parameters was written around the Boeing 737NG frames where three sources
             # are available with different sample rates and latency. Some airbus aircraft
@@ -1048,22 +1033,6 @@ class AltitudeRadio(DerivedParameterNode):
             # valid in the cruise, hence the alternative validity level.
             self.array = blend_parameters(osources, offset=self.offset, frequency=self.frequency, small_slice_duration=10,
                                           mode='cubic', validity='all_but_one', tolerance=500.0)
-
-        import matplotlib.pyplot as plt
-        plt.ylim(top=10000)
-        for s in osources:
-            plt.plot(s.array.data)
-            plt.plot(s.array)
-        filename = 'Alt_Alt_Rad_plot-%s_sources' % os.path.basename(self._h.file_path) if getattr(self, '_h', None) else 'Plot_Alt_Rad'
-        plt.savefig('C:\\Temp\\Alt_Rad_plots\\' + filename + '.png')
-        plt.clf()
-        plt.ylim(top=10000)
-        plt.plot(self.array.data, 'b-')
-        plt.plot(self.array, 'r-')
-        filename = 'Alt_Alt_Rad_plot-%s' % os.path.basename(self._h.file_path) if getattr(self, '_h', None) else 'Plot_Alt_Rad'
-        plt.savefig('C:\\Temp\\Alt_Rad_plots\\' + filename + '.png')
-        plt.clf()
-        plt.close()
 
         # For aircraft where the antennae are placed well away from the main
         # gear, and especially where it is aft of the main gear, compensation
@@ -1103,7 +1072,6 @@ class AltitudeRadioOffsetRemoved(DerivedParameterNode):
         offset = np.ma.median(smoothed)
         if 0 < offset < ALTITUDE_RADIO_OFFSET_LIMIT:
             self.array = alt_rad.array - offset
-
 
 
 class AltitudeSTDSmoothed(DerivedParameterNode):
