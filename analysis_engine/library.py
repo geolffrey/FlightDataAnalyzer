@@ -5440,7 +5440,8 @@ def overflow_correction(test_array, param, air_phases, hz=1):
     # Build a list of liftoff and touchdown indexes
     fast_idxs = [f.start for f in air_phases]
     fast_idxs.extend([f.stop for f in air_phases])
-    fast_idxs.sort()
+    # If there is only one good_slice, we want the landing to take priority
+    fast_idxs = sorted(fast_idxs, reverse=True)
     # Find the highest point in all this data
     top_all = np.ma.max(array)
 
