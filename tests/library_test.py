@@ -5105,7 +5105,7 @@ class TestOverflowCorrection(unittest.TestCase):
     This is applied to rad alt signals only during cleansing
     '''
     def test_overflow_correction_basic(self):
-        fast = [slice(30, 100)]
+        air_slices = [slice(30, 100)]
         alt = [0]*30 + \
             list(range(0, 2000, 100)) + \
             [2000]*30 + \
@@ -5119,7 +5119,7 @@ class TestOverflowCorrection(unittest.TestCase):
 
         # Check of core correction process
         alt_radio = P('Altitude Radio (A)', rad_alt, frequency=0.25)
-        result = overflow_correction(alt_radio.array, alt_radio, fast, hz=0.25)
+        result = overflow_correction(alt_radio.array, alt_radio, air_slices)
         self.assertEqual(result[50], 2000.0)
         self.assertTrue(np.ma.is_masked(result[65]))
 
@@ -5130,30 +5130,29 @@ class TestOverflowCorrection(unittest.TestCase):
         rad_alt = np.ma.copy(save_rad_alt)
         rad_alt[18:52] += 2048
         alt_radio = P('Altitude Radio (A)', rad_alt, frequency=0.25)
-        result = overflow_correction(alt_radio.array, alt_radio, fast, hz=0.25)
+        result = overflow_correction(alt_radio.array, alt_radio, air_slices)
         self.assertEqual(result[31], 100.0)
 
         # Shifted data at landing
         rad_alt = np.ma.copy(save_rad_alt)
         rad_alt[78:112] += 4096
         alt_radio = P('Altitude Radio (A)', rad_alt, frequency=0.25)
-        result = overflow_correction(alt_radio.array, alt_radio, fast, hz=0.25)
+        result = overflow_correction(alt_radio.array, alt_radio, air_slices)
         self.assertEqual(result[99], 100.0)
 
         # Shifted data in cruise
         rad_alt = np.ma.copy(save_rad_alt)
         rad_alt[54:78] -= 1024
         alt_radio = P('Altitude Radio (A)', rad_alt, frequency=0.25)
-        result = overflow_correction(alt_radio.array, alt_radio, fast, hz=0.25)
+        result = overflow_correction(alt_radio.array, alt_radio, air_slices)
         self.assertEqual(result[65], 2000.0)
 
 
-
     def test_overflow_correction_a320(self):
-        fast = [slice(336, 5397), slice(5859, 11520)]
+        air_slices = [slice(336, 5397), slice(5859, 11520)]
         radioA = load(os.path.join(
             test_data_path, 'A320_Altitude_Radio_A_overflow.nod'))
-        resA = overflow_correction(radioA.array, radioA, fast)
+        resA = overflow_correction(radioA.array, radioA, air_slices)
         sects = np.ma.clump_unmasked(resA)
         self.assertEqual(len(sects), 5)
         self.assertGreater(resA.max(), 5000)
@@ -5161,17 +5160,17 @@ class TestOverflowCorrection(unittest.TestCase):
 
         radioB = load(os.path.join(
             test_data_path, 'A320_Altitude_Radio_B_overflow.nod'))
-        resB = overflow_correction(radioB.array, radioB, fast)
+        resB = overflow_correction(radioB.array, radioB, air_slices)
         sects = np.ma.clump_unmasked(resB)
         self.assertEqual(len(sects), 5)
         self.assertGreater(resB.max(), 5000)
         self.assertEqual(resB.min(), -2)
 
     def test_overflow_correction_a340(self):
-        fast = [slice(1020, 34400)]
+        air_slices = [slice(1020, 34400)]
         radioA = load(os.path.join(
             test_data_path, 'A340_Altitude_Radio_A_overflow.nod'))
-        resA = overflow_correction(radioA.array, radioA, fast)
+        resA = overflow_correction(radioA.array, radioA, air_slices)
         sects = np.ma.clump_unmasked(resA)
         # 1 section for climb, one for descent
         self.assertEqual(len(sects), 2)
@@ -5180,7 +5179,7 @@ class TestOverflowCorrection(unittest.TestCase):
 
         radioB = load(os.path.join(
             test_data_path, 'A340_Altitude_Radio_B_overflow.nod'))
-        resB = overflow_correction(radioB.array, radioB, fast)
+        resB = overflow_correction(radioB.array, radioB, air_slices)
         sects = np.ma.clump_unmasked(resB)
         # 1 section for climb, one for descent
         # - and a third covers the ARINC429 data which is no longer masked
