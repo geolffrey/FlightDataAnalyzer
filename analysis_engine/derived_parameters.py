@@ -115,6 +115,7 @@ from analysis_engine.library import (
 
 from analysis_engine.settings import (
     AIRSPEED_THRESHOLD,
+    ALTITUDE_RADIO_MAX_RANGE,
     ALTITUDE_RADIO_OFFSET_LIMIT,
     ALTITUDE_AAL_TRANS_ALT,
     ALTITUDE_AGL_SMOOTHING,
@@ -1033,7 +1034,9 @@ class AltitudeRadio(DerivedParameterNode):
             self.array = blend_parameters(osources, offset=self.offset, frequency=self.frequency, small_slice_duration=10,
                                           mode='cubic', validity='all_but_one', tolerance=500.0)
 
-        # self.array = np.ma.masked_greater(self.array, ALTITUDE_RADIO_MAX_RANGE)
+        # Apply limit to the radio altitude signal, which (due to overflow correction and cubic splines
+        # interpoloation) can be much greater than the raw converted data range.
+        self.array = np.ma.masked_greater(self.array, ALTITUDE_RADIO_MAX_RANGE)
 
         # For aircraft where the antennae are placed well away from the main
         # gear, and especially where it is aft of the main gear, compensation
