@@ -5215,6 +5215,19 @@ class TestOverflowCorrectionArray(unittest.TestCase):
                                                       mask=expected_mask)
                                           )
 
+    def test_level_changes(self):
+        '''
+        Data from actual flight case
+        '''
+        array = np.ma.zeros(20500)
+        indexes = [1001, 1085, 9413, 15230, 20079, 20108, 20306]
+        jumps = [-4086.0, -4032.0, 1029.0, -2955.0, 1895.0, 4010.0, 4063.0]
+        for n, index in enumerate(indexes):
+            array[index] = jumps[n]
+        np.ma.cumsum(array)
+        result = overflow_correction_array(array, 1024.0)
+        self.assertEqual(result[-1], 0.0)
+
 
 class TestPeakCurvature(unittest.TestCase):
     # Also known as the "Truck and Trailer" algorithm, this detects the peak

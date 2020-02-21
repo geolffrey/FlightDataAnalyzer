@@ -5495,7 +5495,7 @@ def overflow_correction_array(array, oflow):
     if max_step < oflow: # Nothing to do, so return unchanged
         return np.ma.array(data=array, mask=keep_mask)
     for index in np.ma.nonzero(steps)[0]:
-        if abs(steps[index]) < max_step:
+        if abs(jump[index]) < max_step * 0.9:
             steps[index] = 0.0
 
     # This applies the accumulated step changes in one line
