@@ -14,7 +14,7 @@ from flightdatautilities import aircrafttables as at, dateext, units as ut
 from hdfaccess.parameter import MappedArray
 
 from analysis_engine.node import (
-    A, M, P, S, helicopter, MultistateDerivedParameterNode
+    A, M, P, S, helicopter, MultistateDerivedParameterNode, derived_param_from_hdf
 )
 
 from analysis_engine.library import (
@@ -1653,6 +1653,8 @@ class GearDownInTransit(MultistateDerivedParameterNode):
                airborne=S('Airborne'),
                model=A('Model'), series=A('Series'), family=A('Family')):
 
+        # Extend Airborne slices to make sure we don't miss any Gear parameters at liftoff
+        airborne = slices_extend(airborne.get_slices(), 1)
         gear_sels = gear_ups = gear_downs = runs = []
         self.array = np_ma_zeros_like(first_valid_parameter(gear_down, gear_up, gear_down_sel, gear_position).array, dtype=int)
 
@@ -1753,7 +1755,7 @@ class GearDownInTransit(MultistateDerivedParameterNode):
                     gear_downs = find_edges_on_state_change(
                         'Down',
                         nearest_neighbour_mask_repair(gear_up.array),
-                        phase=slices_extend(airborne.get_slices(), 1))  # Extend Airborne slices by 1 sample for low freq Gear Down
+                        phase=airborne)
                     gear_moving_downs = [
                         slice(
                             max(gear_down_edge - duration, 0),
@@ -1849,6 +1851,8 @@ class GearUpInTransit(MultistateDerivedParameterNode):
                airborne=S('Airborne'),
                model=A('Model'), series=A('Series'), family=A('Family')):
 
+        # Extend Airborne slices to make sure we don't miss any Gear parameters at liftoff
+        airborne = slices_extend(airborne.get_slices(), 1)
         gear_sels = gear_ups = gear_downs = runs = []
         self.array = np_ma_zeros_like(first_valid_parameter(gear_down, gear_up, gear_up_sel, gear_position).array, dtype=int)
 
@@ -1921,7 +1925,7 @@ class GearUpInTransit(MultistateDerivedParameterNode):
             param, state = (gear_in_transit, 'In Transit') if gear_in_transit else (gear_red, 'Warning')
             transits = find_edges_on_state_change(state, nearest_neighbour_mask_repair(param.array), change='leaving', phase=airborne)
             for start in gear_sels:
-                stop = min([x for x in transits if x > start] or (None,))
+                stop = min([x for x in transits if x >= start] or (None,))
                 if stop is not None:
                     _slice = slice(int(math.ceil(start)), stop+1)
                     if family and family.value == 'B737 Classic' and retract_duration and slice_duration(_slice, self.frequency) > retract_duration:
@@ -1952,7 +1956,7 @@ class GearUpInTransit(MultistateDerivedParameterNode):
                 gear_ups = find_edges_on_state_change(
                     'Up',
                     nearest_neighbour_mask_repair(gear_down.array),
-                    phase=slices_extend(airborne.get_slices(), 1)  # Extend Airborne slices by 1 sample for low freq Gear Down
+                    phase=airborne
                 )
                 gear_moving_ups = [
                     slice(
@@ -1982,7 +1986,8 @@ class GearUpInTransit(MultistateDerivedParameterNode):
 
         elif gear_down and gear_up:
             for start, stop in zip(gear_downs, gear_ups):
-                runs.append(slice(math.ceil(start), stop+1))
+                # Ceil also stop in case gear_down and gear_up are offset by 0.5 sec
+                runs.append(slice(math.ceil(start), math.ceil(stop)+1))
 
         elif gear_up and fallback:
             for stop in gear_ups:
@@ -2126,7 +2131,7 @@ class GearUpSelected(MultistateDerivedParameterNode):
     for us establishing transitions from 'Gear Down' with the assocaited Red
     Warnings.
     '''
-    align_frequency = 1
+    align = False
     units = None
     values_mapping = {
         0: 'Down',
@@ -2136,20 +2141,55 @@ class GearUpSelected(MultistateDerivedParameterNode):
     @classmethod
     def can_operate(cls, available):
         return all_of(('Gear Up', 'Gear Up In Transit'), available) or \
-               all_of(('Gear Down', 'Gear Down In Transit'), available)
+               all_of(('Gear Down', 'Gear Down In Transit'), available) or \
+               'Gear Down Selected' in available
 
     def derive(self,
                gear_up=M('Gear Up'),
                gear_up_transit=M('Gear Up In Transit'),
                gear_down=M('Gear Down'),
-               gear_down_transit=M('Gear Down In Transit')):
+               gear_down_transit=M('Gear Down In Transit'),
+               gear_down_sel=M('Gear Down Selected')):
+
+        if gear_down_sel:
+            self.frequency = gear_down_sel.frequency
+            self.offset = gear_down_sel.offset
+            if gear_down_sel.frequency >= 1:
+                # Use Gear Down Sel if the sample rate is sufficient
+                self.array = 1 - (gear_down_sel.array == 'Down')
+                return
+            else:
+                self.array = np_ma_masked_zeros_like(gear_down_sel.array)
 
         if gear_up and gear_up_transit:
+            gear_up, gear_up_transit = self._align_params(gear_up, gear_up_transit)
             self.array = (gear_up.array == 'Up') | \
                 (gear_up_transit.array == 'Retracting')
-        if gear_down and gear_down_transit:
+        elif gear_down and gear_down_transit:
+            gear_down, gear_down_transit = self._align_params(gear_down, gear_down_transit)
             self.array = 1 - ((gear_down.array == 'Down') | \
                               (gear_down_transit.array == 'Extending'))
+
+    def _align_params(self, *args):
+        '''
+        Align the parameters to 1 Hz.
+
+        This has the same effect as align_frequency = 1.
+        This is a generator, using the parameters found in args and yielding the
+        aligned parameters.
+        '''
+
+        self.frequency = 1
+        self.offset = args[0].offset
+
+        for arg in args:
+            try:
+                aligned_arg = arg.get_aligned(self)
+            except AttributeError:
+                # If parameter came from an HDF, it's missing get_aligned
+                arg = derived_param_from_hdf(arg, cache=self._cache)
+                aligned_arg = arg.get_aligned(self)
+            yield aligned_arg
 
 
 class Gear_RedWarning(MultistateDerivedParameterNode):

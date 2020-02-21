@@ -2081,12 +2081,13 @@ def find_edges_on_state_change(state, array, change='entering', phase=None, min_
         '''
         min_samples of 3 means 3 or more samples must be in the state for it to be returned.
         '''
-        length = len(array[slices_int(_slice)])
+        _slice = slices_int(_slice)
+        length = len(array[_slice])
         # The offset allows for phase slices and puts the transition midway
         # between the two conditions as this is the most probable time that
         # the change took place.
         offset = _slice.start - 0.5
-        state_periods = runs_of_ones(array[slices_int(_slice)] == state)
+        state_periods = runs_of_ones(array[_slice] == state)
         # ignore small periods where slice is in state, then remove small
         # gaps where slices are not in state
         # we are taking 1 away from min_samples here as

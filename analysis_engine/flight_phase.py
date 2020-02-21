@@ -1223,18 +1223,14 @@ class Grounded(FlightPhaseNode):
         self.create_sections(slices_and_not([all_data], air.get_slices()))
 
     def derive(self,
-               ac_type=A('Aircraft Type'),
-               # aircraft
-               speed=P('Airspeed'),
-               hdf_duration=A('HDF Duration'),
-               # helicopter
                airspeed=P('Airspeed'),
-               # shared
-               air=S('Airborne')):
+               air=S('Airborne'),
+               ac_type=A('Aircraft Type'),
+               hdf_duration=A('HDF Duration')):
         if ac_type == helicopter:
             self._derive_helicopter(air, airspeed)
         else:
-            self._derive_aircraft(speed, hdf_duration, air)
+            self._derive_aircraft(airspeed, hdf_duration, air)
 
 
 class Taxiing(FlightPhaseNode):

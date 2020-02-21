@@ -195,7 +195,7 @@ Processing Order
 The processing order is established by recursively traversing down the
 DiGraph using Depth First Search.
 
-:py:func:`analysis_engine.dependency_graph.dependencies3`
+:py:func:`analysis_engine.dependency_graph.dependency_order`
 
 As each Node is encountered, if it has dependencies we recurse into each
 dependency to determine whether the level below is operational. If deemed
@@ -249,12 +249,6 @@ starting node can be selected, providing the ability to print subsets of the
 tree.
 
 :py:func:`~analysis_engine.dependency_graph.print_tree`
-
-**draw_graph()** - This requires `pygraphviz` and therefore `Graphviz` to be
-installed.
-
-:py:func:`analysis_engine.dependency_graph.draw_graph`
-
 
 The `FlightDataParameterTree` tool can also be used to visualise the
 dependency tree. This can be easier to understand when your tree is quite

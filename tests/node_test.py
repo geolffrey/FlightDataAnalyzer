@@ -6,7 +6,7 @@ import os
 import unittest
 
 from datetime import datetime
-from inspect import ArgSpec
+from inspect import FullArgSpec
 from random import shuffle
 
 from analysis_engine.library import min_value, max_value, average_value
@@ -421,47 +421,44 @@ class TestFlightAttributeNode(unittest.TestCase):
         self.assertFalse(bool(attr))
 
 class TestNodeManager(unittest.TestCase):
-    @mock.patch('analysis_engine.node.inspect.getargspec')
-    def test_operational(self, getargspec):
-        argspec = mock.Mock()
-        argspec.defaults = []
-        getargspec.return_value = argspec
-        mock_node = mock.Mock('can_operate') # operable node
-        mock_node.can_operate = mock.Mock(return_value=True)
-        mock_inop = mock.Mock('can_operate') # inoperable node
-        mock_inop.can_operate = mock.Mock(return_value=False)
+    def setUp(self):
+        self.mock_node = mock.Mock('can_operate') # operable node
+        self.mock_node.can_operate = mock.Mock(return_value=True)
+        self.mock_inop = mock.Mock('can_operate') # inoperable node
+        self.mock_inop.can_operate = mock.Mock(return_value=False)
         aci = {'n':1, 'o':2, 'p':3, 'u': None}
         afr = {'l':4, 'm':5, 'v': None}
-        mgr = NodeManager(
+        self.mgr = NodeManager(
             {}, 10, ['a', 'b', 'c', 'x'], ['a', 'x'], ['a', 'b'],
-            {'x': mock_inop, # note: derived node is not operational, but is already available in LFL - so this should return true!
-             'y': mock_node, 'z': mock_inop}, aci, afr)
-        self.assertTrue(mgr.operational('a', []))
-        self.assertTrue(mgr.operational('b', []))
-        self.assertTrue(mgr.operational('c', []))
+            {'x': self.mock_inop, # note: derived node is not operational, but is already available in LFL - so this should return true!
+             'y': self.mock_node, 'z': self.mock_inop}, aci, afr)
+
+    @staticmethod
+    def _mock_signature(args, defaults):
+        return FullArgSpec(
+            args=args, varargs=None, varkw=None, defaults=defaults,
+            kwonlyargs=None, kwonlydefaults=None, annotations=None,
+        )
+
+    def test_operational(self):
         # to ensure that if an lfl param is available, it's can_operate
         # returns True rather than calling the Derived node which may not
         # have all it's dependencies set. 'x' should return from the LFL!
-        self.assertTrue(mgr.operational('x', []))
-        self.assertTrue(mgr.operational('y', ['a']))
-        self.assertTrue(mgr.operational('l', ['a'])) # achieved flight record
-        self.assertTrue(mgr.operational('n', ['a'])) # aircraft info
-        self.assertFalse(mgr.operational('v', ['a'])) # achieved flight record
-        self.assertFalse(mgr.operational('u', ['a'])) # aircraft info
-        self.assertFalse(mgr.operational('z', ['a', 'b']))
-        getargspec.return_value = argspec
-        self.assertEqual(mgr.keys(),
-                         ['HDF Duration'] +
-                         list('abclmnopxyz'))
-        getargspec.return_value = ArgSpec(
-            args=['cls', 'available', 'x'], varargs=None, keywords=None,
-            defaults=(Attribute('o', None),))
-        self.assertTrue(mgr.operational('y', ['o']))
-        mock_node.can_operate.assert_called_with(['o'], Attribute('o', 2))
-        getargspec.return_value = ArgSpec(
-            args=['cls', 'available', 'x'], varargs=None, keywords=None,
-            defaults=(DerivedParameterNode('o'),))
-        self.assertRaises(TypeError, mgr.operational, 'y', Attribute('o', 2))
+        self.assertTrue(self.mgr.operational('y', ['a']))
+        self.assertFalse(self.mgr.operational('z', ['a', 'b']))
+        self.assertEqual(self.mgr.keys(), ['HDF Duration', *'abclmnopxyz'])
+
+    @mock.patch('analysis_engine.node.inspect.getfullargspec')
+    def test_operational_with_attribute(self, getfullargspec):
+        getfullargspec.return_value = self._mock_signature(['cls', 'available'], [Attribute('o', None)])
+        self.assertTrue(self.mgr.operational('y', ['o']))
+        self.mock_node.can_operate.assert_called_with(['o'], Attribute('o', 2))
+
+    @mock.patch('analysis_engine.node.inspect.getfullargspec')
+    def test_operational_with_wrong_attribute_type(self, getfullargspec):
+        getfullargspec.return_value = self._mock_signature(['cls', 'available'], [DerivedParameterNode('o', None)])
+        self.assertRaises(TypeError, self.mgr.operational, 'y', Attribute('o', 2))
+        self.mock_node.can_operate.assert_not_called()
 
     def test_get_attribute(self):
         aci = {'a': 'a_value', 'b': None}
@@ -502,7 +499,6 @@ class TestNodeManager(unittest.TestCase):
         start_dt = mgr.get_attribute('Start Datetime')
         self.assertEqual(start_dt.name, 'Start Datetime')
         self.assertEqual(start_dt.value, segment_info['Start Datetime'])
-        self.assertTrue(mgr.operational('Start Datetime', []))
 
 
 class TestPowerset(unittest.TestCase):

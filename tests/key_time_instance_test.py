@@ -420,6 +420,7 @@ class TestClimbThrustDerateDeselected(unittest.TestCase):
         ac_family = A('Family', 'B787')
         expected = ('AT Climb 1 Derate', 'AT Climb 2 Derate')
         self.assertTrue(ClimbThrustDerateDeselected.can_operate(expected, ac_family=ac_family))
+        self.assertFalse(ClimbThrustDerateDeselected.can_operate(expected, ac_family=None))
 
     def test_derive_basic(self):
         values_mapping = {0: 'Not Latched', 1: 'Latched'}

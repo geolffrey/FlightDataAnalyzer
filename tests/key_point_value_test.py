@@ -2335,6 +2335,7 @@ class TestLoadFactorThresholdAtTouchdown(unittest.TestCase):
             ['B737-MAX-8', 'N/A', 'N/A', 70003],
 
             ['N/A', 'N/A', 'N/A', None],
+            [None, None, None, None]
         ]
         for aircraft in ac_variations:
             self._test_landing_weight(*aircraft)
@@ -2352,6 +2353,12 @@ class TestLoadFactorThresholdAtTouchdown(unittest.TestCase):
             model=self.model, series=self.series, mods=self.mods)
         self.assertEqual(len(opts), 1)
         self.assertEqual(opts, self.operational_combinations)
+
+    def test_can_operate_with_none_attributes(self):
+        opts = self.node_class.get_operational_combinations(
+            model=self.model, series=self.series, mods=self.mods)
+        self.assertEqual(len(opts), 1)
+        self.assertFalse(self.node_class.can_operate(opts, None, None, None))
 
     def _call_derive(self, roll_value, land_vert_acc, gw_kpv=[], gw=None):
         node = self.node_class()
@@ -10664,6 +10671,11 @@ class TestEngGasTempOverThresholdDuration(unittest.TestCase):
         self.assertFalse(self.node_class.can_operate(nodes, **kwargs))
 
     @patch('analysis_engine.key_point_values.at')
+    def test_can_operate_with_none_attributes(self, lookup_table):
+        nodes = ('Eng (1) Gas Temp', 'Takeoff 5 Min Rating')
+        self.assertFalse(self.node_class.can_operate(nodes, None, None, None))
+
+    @patch('analysis_engine.key_point_values.at')
     def test_derive(self, lookup_table):
 
         lookup_table.get_engine_map.return_value = self.engine_thresholds
@@ -10715,6 +10727,11 @@ class TestEngN1OverThresholdDuration(unittest.TestCase):
         # No lookup table found
         lookup_table.get_engine_map.side_effect = KeyError("No engine threshods for 'PW100', series 'PW124B', type '[]' mods.")
         self.assertFalse(self.node_class.can_operate(nodes, **kwargs))
+
+    @patch('analysis_engine.key_point_values.at')
+    def test_can_operate_with_none_attributes(self, lookup_table):
+        nodes = ('Eng (1) N1', 'Takeoff 5 Min Rating')
+        self.assertFalse(self.node_class.can_operate(nodes, None, None, None))
 
     @patch('analysis_engine.key_point_values.at')
     def test_derive(self, lookup_table):
@@ -10773,6 +10790,11 @@ class TestEngN2OverThresholdDuration(unittest.TestCase):
         self.assertFalse(self.node_class.can_operate(nodes, **kwargs))
 
     @patch('analysis_engine.key_point_values.at')
+    def test_can_operate_with_none_attributes(self, lookup_table):
+        nodes = ('Eng (1) N2', 'Takeoff 5 Min Rating')
+        self.assertFalse(self.node_class.can_operate(nodes, None, None, None))
+
+    @patch('analysis_engine.key_point_values.at')
     def test_derive(self, lookup_table):
 
         lookup_table.get_engine_map.return_value = self.engine_thresholds
@@ -10827,6 +10849,11 @@ class TestEngNpOverThresholdDuration(unittest.TestCase):
         # No lookup table found
         lookup_table.get_engine_map.side_effect = KeyError("No engine threshods for 'PW100', series 'PW124B', type '[]' mods.")
         self.assertFalse(self.node_class.can_operate(nodes, **kwargs))
+
+    @patch('analysis_engine.key_point_values.at')
+    def test_can_operate_with_none_attributes(self, lookup_table):
+        nodes = ('Eng (1) Np', 'Takeoff 5 Min Rating')
+        self.assertFalse(self.node_class.can_operate(nodes, None, None, None))
 
     @patch('analysis_engine.key_point_values.at')
     def test_derive(self, lookup_table):
@@ -12121,6 +12148,8 @@ class TestAPUFireWarningDuration(unittest.TestCase):
         bottles = ('Fire APU Single Bottle System', 'Fire APU Dual Bottle System')
         self.assertTrue(simple in opts)
         self.assertTrue(bottles in opts)
+
+        self.assertTrue(self.node_class.can_operate(simple + bottles))
 
     def test_derive_basic(self):
         values_mapping = {

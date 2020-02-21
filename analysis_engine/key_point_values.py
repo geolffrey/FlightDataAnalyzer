@@ -916,6 +916,8 @@ class LoadFactorThresholdAtTouchdown(KeyPointValueNode):
         B767-400     (ER)           None                                 158757
         Return the weight in KG when match is found else None
         '''
+        if None in (series, model, mods):
+            return None
         re_series = re.match(r'^B7[365]7-[2346789][05][0E]', series)
         if not re_series and series != 'B737-MAX-8':
             return None
@@ -974,6 +976,8 @@ class LoadFactorThresholdAtTouchdown(KeyPointValueNode):
     @classmethod
     def can_operate(cls, available, model=A('Model'), series=A('Series'),
                     mods=A('Modifications')):
+        if None in (model, series, mods):
+            return False
         ac_weight = cls.get_landing_weight(series.value, model.value,
                                            mods.value)
         return ac_weight and all_deps(cls, available)
@@ -9714,6 +9718,8 @@ class EngGasTempOverThresholdDuration(KeyPointValueNode):
     def can_operate(cls, available, eng_series=A('Engine Series'), eng_type=A('Engine Type'), mods=A('Modifications')):
         try:
             at.get_engine_map(eng_series.value, eng_type.value, mods.value)
+        except AttributeError:
+            return False
         except KeyError:
             cls.warning("No engine thresholds available for '%s', '%s', '%s'.",
                         eng_series.value, eng_type.value, mods.value)
@@ -9788,6 +9794,8 @@ class EngN1OverThresholdDuration(KeyPointValueNode):
     def can_operate(cls, available, eng_series=A('Engine Series'), eng_type=A('Engine Type'), mods=A('Modifications')):
         try:
             at.get_engine_map(eng_series.value, eng_type.value, mods.value)
+        except AttributeError:
+            return False
         except KeyError:
             cls.warning("No engine thresholds available for '%s', '%s', '%s'.",
                         eng_series.value, eng_type.value, mods.value)
@@ -9860,6 +9868,8 @@ class EngN2OverThresholdDuration(KeyPointValueNode):
     def can_operate(cls, available, eng_series=A('Engine Series'), eng_type=A('Engine Type'), mods=A('Modifications')):
         try:
             at.get_engine_map(eng_series.value, eng_type.value, mods.value)
+        except AttributeError:
+            return False
         except KeyError:
             cls.warning("No engine thresholds available for '%s', '%s', '%s'.",
                         eng_series.value, eng_type.value, mods.value)
@@ -9932,6 +9942,8 @@ class EngNpOverThresholdDuration(KeyPointValueNode):
     def can_operate(cls, available, eng_series=A('Engine Series'), eng_type=A('Engine Type'), mods=A('Modifications')):
         try:
             at.get_engine_map(eng_series.value, eng_type.value, mods.value)
+        except AttributeError:
+            return False
         except KeyError:
             cls.warning("No engine thresholds available for '%s', '%s', '%s'.",
                         eng_series.value, eng_type.value, mods.value)
@@ -10719,9 +10731,14 @@ class APUFireWarningDuration(KeyPointValueNode):
 
     @classmethod
     def can_operate(cls, available):
-        return ('APU Fire',) in [available] or \
-               ('Fire APU Single Bottle System',
-                'Fire APU Dual Bottle System') in [available]
+        return any_of(
+            (
+                "APU Fire",
+                "Fire APU Single Bottle System",
+                "Fire APU Dual Bottle System",
+            ),
+            available,
+        )
 
     def derive(self, fire=M('APU Fire'),
                single_bottle=M('Fire APU Single Bottle System'),
