@@ -189,6 +189,8 @@ ALTITUDE_AAL_LAG_TC = 3.0
 # climbing above 15000 ft and below 10000 ft.
 ALTITUDE_FOR_CLB_CRU_DSC = 12500
 
+# The maximum signal range we accommodate.
+ALTITUDE_RADIO_MAX_RANGE = 5000.0 # ft
 # The smallest radio altimeter overflow step which will be corrected.
 # Most radio altimeters are scaled to overflow at 4096 or 2048ft, but some
 # A340s have a resolution of 0.5ft and overflow at 11 bits = 1024ft increments.

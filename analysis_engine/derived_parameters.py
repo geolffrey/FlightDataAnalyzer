@@ -1033,6 +1033,8 @@ class AltitudeRadio(DerivedParameterNode):
             self.array = blend_parameters(osources, offset=self.offset, frequency=self.frequency, small_slice_duration=10,
                                           mode='cubic', validity='all_but_one', tolerance=500.0)
 
+        # self.array = np.ma.masked_greater(self.array, ALTITUDE_RADIO_MAX_RANGE)
+
         # For aircraft where the antennae are placed well away from the main
         # gear, and especially where it is aft of the main gear, compensation
         # is necessary.
