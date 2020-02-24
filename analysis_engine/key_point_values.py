@@ -15917,7 +15917,7 @@ class RateOfClimbAtHeightBeforeAltitudeSelected(KeyPointValueNode):
                 index = index_at_value(dist, -altitude, clump)
                 if index is not None:
                     value = value_at_index(vert_spd.array, index)
-                    if value > 0:
+                    if value and value > 0:
                         self.create_kpv(index, value,
                                         replace_values={'altitude': altitude})
 
@@ -16355,7 +16355,7 @@ class RateOfDescentAtHeightBeforeAltitudeSelected(KeyPointValueNode):
                 index = index_at_value(dist, altitude, clump)
                 if index is not None:
                     value = value_at_index(vert_spd.array, index)
-                    if value < 0:
+                    if value and value < 0:
                         self.create_kpv(index, value,
                                         replace_values={'altitude': altitude})
 
