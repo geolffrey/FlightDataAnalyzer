@@ -5485,15 +5485,13 @@ def overflow_correction_array(array, oflow):
     :param oflow: lowest power of 2 overflow to be corrected
     :type oflow: float
     '''
-    keep_mask = np.ma.getmaskarray(array).copy()
-    array.mask = False
     jump = np.ma.ediff1d(array, to_begin=0.0)
     abs_jump = np.ma.abs(jump)
-
     steps = -np.ma.where(abs_jump > oflow * 0.9, 2**np.rint(np.ma.log2(abs_jump)) * np.sign(jump), 0)
     max_step = np.ma.max(np.ma.abs(steps))
+
     if max_step < oflow: # Nothing to do, so return unchanged
-        return np.ma.array(data=array, mask=keep_mask)
+        return array
     for index in np.ma.nonzero(steps)[0]:
         if abs(jump[index]) < max_step * 0.9:
             steps[index] = 0.0
@@ -5501,17 +5499,7 @@ def overflow_correction_array(array, oflow):
     # This applies the accumulated step changes in one line
     array += np.ma.cumsum(steps)
 
-    # Where there was a jump, the original data was masked for rate of change,
-    # which we no longer need. The mask may have been assigned to the exact
-    # point of the change or possibly a sample earlier or later.
-    # Therefore the masking across steps is hidden for the step +/- 1 index.
-    hide_steps = np.zeros_like(array)
-    for index in np.flatnonzero(steps != 0):
-        hide_steps[index-1:index+2] = 1
-
-    result = np.ma.array(data=array, mask=np.logical_and(keep_mask, hide_steps == 0))
-
-    return result
+    return array
 
 
 def peak_curvature(array, _slice=slice(None), curve_sense='Concave',
