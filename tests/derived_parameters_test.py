@@ -2102,8 +2102,14 @@ class TestAltitudeRadio(unittest.TestCase):
                         Section('Fast', slice(5859, 11520), 5859, 11520)])
         radioA = load(os.path.join(
             test_data_path, 'A320_Altitude_Radio_A_overflow.nod'))
+        for n in [371, 5092, 5298, 5894, 11240, 11452]:
+            radioA.array.mask[n] = False
         radioB = load(os.path.join(
             test_data_path, 'A320_Altitude_Radio_B_overflow.nod'))
+        for n in range(433, 447):
+            radioB.array.mask[n] = False
+        for n in [371, 435, 446, 5296, 5297, 5893, 11317, 11451]:
+            radioB.array.mask[n] = False
         radioA.array = overflow_correction(radioA.array, radioA, fast.get_slices())
         radioB.array = overflow_correction(radioB.array, radioB, fast.get_slices())
         radioA.array = np.ma.masked_greater(radioA.array, 5000.0)
@@ -2163,12 +2169,14 @@ class TestAltitudeRadio(unittest.TestCase):
         fast = buildsection('Fast', 480, 31032)
         radioA = load(os.path.join(
             test_data_path, 'A330_AltitudeRadio_A_overflow_8191.nod'))
+        for n in [648, 649, 30710, 30711]:
+            radioA.array.mask[n] = False
         radioB = load(os.path.join(
             test_data_path, 'A330_AltitudeRadio_B_overflow_8191.nod'))
+        for n in range(649, 30711):
+            radioB.array.mask[n] = False
         radioA.array = overflow_correction(radioA.array, radioA, fast.get_slices())
         radioB.array = overflow_correction(radioB.array, radioB, fast.get_slices())
-        radioA.array = np.ma.masked_greater(radioA.array, 5000.0)
-        radioB.array = np.ma.masked_greater(radioA.array, 5000.0)
         rad = AltitudeRadio()
         rad.derive(radioA, radioB, None, None, None, None, None, None,
                    None, family=A('Family', 'A330'))
@@ -2178,8 +2186,8 @@ class TestAltitudeRadio(unittest.TestCase):
         self.assertLess(sects[1].start, 2000)
         self.assertGreater(sects[1].stop, 2500)
         self.assertAlmostEqual(rad.array[2708], 4997, places=0)
-        self.assertEqual(sects[2].start, 122509)
-        self.assertAlmostEqual(rad.array[122509], 4981, places=0)
+        self.assertEqual(sects[2].start, 122508)
+        self.assertAlmostEqual(rad.array[122508], 4994, places=0)
 
     def test_altitude_radio_CL_600(self):
         alt_rad = AltitudeRadio()

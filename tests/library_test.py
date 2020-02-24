@@ -5111,7 +5111,7 @@ class TestOverflowCorrection(unittest.TestCase):
             [2000]*30 + \
             list(range(2000, 0, -100))+ \
             [0]*30
-        hide = [0]*10 + [1]*10 + [0]*30 + [1]*10 + [0]*10 + [1]*10 + \
+        hide = [0]*10 + [1]*10 + [0]*31 + [1]*9 + [0]*10 + [1]*10 + \
             [0]*30 + [1]*10 + [0]*10
         rad_alt = np.ma.array(data=alt, mask=hide, dtype=np.float)
         rad_alt = np.ma.mod(rad_alt, 1024)
@@ -5152,6 +5152,8 @@ class TestOverflowCorrection(unittest.TestCase):
         air_slices = [slice(336, 5397), slice(5859, 11520)]
         radioA = load(os.path.join(
             test_data_path, 'A320_Altitude_Radio_A_overflow.nod'))
+        for n in [371, 5092, 5298, 5894, 11240, 11452]:
+            radioA.array.mask[n] = False
         resA = overflow_correction(radioA.array, radioA, air_slices)
         sects = np.ma.clump_unmasked(resA)
         self.assertEqual(len(sects), 5)
@@ -5160,9 +5162,13 @@ class TestOverflowCorrection(unittest.TestCase):
 
         radioB = load(os.path.join(
             test_data_path, 'A320_Altitude_Radio_B_overflow.nod'))
+        for n in range(433, 447):
+            radioB.array.mask[n] = False
+        for n in [371, 435, 446, 5296, 5297, 5893, 11317, 11451]:
+            radioB.array.mask[n] = False
         resB = overflow_correction(radioB.array, radioB, air_slices)
         sects = np.ma.clump_unmasked(resB)
-        self.assertEqual(len(sects), 5)
+        self.assertEqual(len(sects), 4)
         self.assertGreater(resB.max(), 5000)
         self.assertEqual(resB.min(), -2)
 
@@ -5170,20 +5176,24 @@ class TestOverflowCorrection(unittest.TestCase):
         air_slices = [slice(1020, 34400)]
         radioA = load(os.path.join(
             test_data_path, 'A340_Altitude_Radio_A_overflow.nod'))
+        for n in [2349, 2350, 6148, 6149]:
+            radioA.array.mask[n] = False
         resA = overflow_correction(radioA.array, radioA, air_slices)
         sects = np.ma.clump_unmasked(resA)
         # 1 section for climb, one for descent
         self.assertEqual(len(sects), 2)
         self.assertGreater(resA.max(), 7500)
-        self.assertEqual(resA.min(), 1)
+        self.assertEqual(resA.min(), 0)
 
         radioB = load(os.path.join(
             test_data_path, 'A340_Altitude_Radio_B_overflow.nod'))
+        for n in [2349, 2350, 6147, 6148]:
+            radioB.array.mask[n] = False
         resB = overflow_correction(radioB.array, radioB, air_slices)
         sects = np.ma.clump_unmasked(resB)
         # 1 section for climb, one for descent
         # - and a third covers the ARINC429 data which is no longer masked
-        self.assertEqual(len(sects), 3)
+        self.assertEqual(len(sects), 2)
         self.assertGreater(resB.max(), 7500)
         self.assertEqual(resB.min(), 0)
 
