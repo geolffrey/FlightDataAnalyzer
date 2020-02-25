@@ -5021,7 +5021,8 @@ class ThrustReversersDeployedDuringFlightDuration(KeyPointValueNode):
 class ThrustReversersCancelToEngStopDuration(KeyPointValueNode):
     '''
     Measure the duration (secs) between the thrust reversers being cancelled and
-    the engines being shutdown.
+    either the first instance of fuel flow stop after touchdown
+    or the engines being shutdown.
 
     The scope is limited to the engine running period to avoid spurious
     indications of thrust reverser operation while the engine is not running,
@@ -5030,27 +5031,34 @@ class ThrustReversersCancelToEngStopDuration(KeyPointValueNode):
 
     units = ut.SECOND
 
+    @classmethod
+    def can_operate(cls, available):
+        return all_of(('Thrust Reversers', 'Eng Start'), available) and \
+               any_of(('Eng Stop', 'First Fuel Flow Stop After Touchdown'), available)
+
     def derive(self, tr=M('Thrust Reversers'),
                eng_starts=KTI('Eng Start'),
-               eng_stops=KTI('Eng Stop')):
+               eng_stops=KTI('Eng Stop'),
+               fuel_flow_stop=KTI('First Fuel Flow Stop After Touchdown')):
         try:
             start = eng_starts.get_first().index
         except AttributeError:
             start = 0
-        try:
-            stop = eng_stops.get_last().index
-        except AttributeError:
-            # If engine did not stop, there is no period between thrust
-            # reversers being cancelled and the engine stop
+
+        stop_kti = fuel_flow_stop if fuel_flow_stop else eng_stops
+        if not stop_kti:
             return
+
+        stop = stop_kti.get_last().index
+
         cancels = find_edges_on_state_change(
             'Deployed', tr.array[slices_int(start, stop)], change='leaving')
         if cancels:
             # TRs were cancelled before engine stopped
             cancel_index = cancels[-1] + start
-            eng_stop_index = eng_stops.get_next(cancel_index).index
-            self.create_kpv(eng_stop_index,
-                            (eng_stop_index - cancel_index) / self.frequency)
+            stop_index = stop_kti.get_next(cancel_index).index
+            self.create_kpv(stop_index,
+                            (stop_index - cancel_index) / self.frequency)
 
 
 class TouchdownToThrustReversersDeployedDuration(KeyPointValueNode):

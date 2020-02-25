@@ -6359,9 +6359,32 @@ class TestThrustReversersCancelToEngStopDuration(unittest.TestCase, NodeTest):
 
     def setUp(self):
         self.node_class = ThrustReversersCancelToEngStopDuration
-        self.operational_combinations = [('Thrust Reversers', 'Eng Start', 'Eng Stop')]
+        self.operational_combinations = [('Thrust Reversers', 'Eng Start', 'Eng Stop'),
+                                         ('Thrust Reversers', 'Eng Start',
+                                          'Eng Stop', 'First Fuel Flow Stop After Touchdown'),
+                                         ('Thrust Reversers', 'Eng Start', 'First Fuel Flow Stop After Touchdown')]
 
-    def test_derive(self):
+    def test_derive_fuel_flow_stop(self):
+        thrust_reversers = load(os.path.join(
+            test_data_path,
+            'ThrustReversersCancelToEngStopDuration_ThrustReversers_1.nod'))
+        eng_start = KTI('Eng Start', items=[
+            KeyTimeInstance(10, 'Eng Start'),
+        ])
+        eng_stop = load(os.path.join(
+            test_data_path,
+            'ThrustReversersCancelToEngStopDuration_EngStop_1.nod'))
+
+        fuel_flow = KTI('First Fuel Flow Stop After Touchdown', items=[
+            KeyTimeInstance(2910.60546875, 'First Fuel Flow Stop After Touchdown'),
+        ])
+
+        node = ThrustReversersCancelToEngStopDuration()
+        node.derive(thrust_reversers, eng_start, eng_stop, fuel_flow)
+        self.assertEqual(node, [KeyPointValue(2910.60546875, 257.10546875,
+                                'Thrust Reversers Cancel To Eng Stop Duration')])
+
+    def test_derive_eng_stop(self):
         thrust_reversers = load(os.path.join(
             test_data_path,
             'ThrustReversersCancelToEngStopDuration_ThrustReversers_1.nod'))
@@ -6373,7 +6396,8 @@ class TestThrustReversersCancelToEngStopDuration(unittest.TestCase, NodeTest):
             'ThrustReversersCancelToEngStopDuration_EngStop_1.nod'))
         node = ThrustReversersCancelToEngStopDuration()
         node.derive(thrust_reversers, eng_start, eng_stop)
-        self.assertEqual(node, [KeyPointValue(2920.60546875, 267.10546875, 'Thrust Reversers Cancel To Eng Stop Duration')])
+        self.assertEqual(node, [KeyPointValue(2920.60546875, 267.10546875,
+                                'Thrust Reversers Cancel To Eng Stop Duration')])
 
 
 class TestTouchdownToThrustReversersDeployedDuration(unittest.TestCase, NodeTest):

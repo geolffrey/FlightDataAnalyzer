@@ -2178,6 +2178,28 @@ class LastEngFuelFlowStop(KeyTimeInstanceNode):
             self.create_kti(ix)
 
 
+class FirstFuelFlowStopAfterTouchdown(KeyTimeInstanceNode):
+    '''
+    First instance of fuel flow stopping after touchdown.
+    '''
+
+    @classmethod
+    def can_operate(cls, available):
+        return all_of(('Eng (*) Fuel Flow Min', 'Touchdown'), available)
+
+    def derive(self, fuel_flow=P('Eng (*) Fuel Flow Min'), touchdowns=KTI('Touchdown')):
+
+        touchdown = int(touchdowns.get_last().index)
+        fuel_flow_post_tdwn = fuel_flow.array[touchdown:]
+
+        if fuel_flow_post_tdwn.any():
+            index = index_at_value(fuel_flow_post_tdwn, 0.0)
+        else:
+            return
+
+        if index:
+            self.create_kti(index + touchdown)
+
 class DistanceFromLocationMixin(object):
 
     def calculate(
