@@ -131,63 +131,63 @@ class AOAAbnormalOperation(MultistateDerivedParameterNode):
             self.array[(aoa_correction.array == 'Yes').filled(False)] = aoa_correction.name
 
 
-class APEngaged(MultistateDerivedParameterNode):
-    '''
-    Determines if *any* of the "AP (*) Engaged" parameters are recording the
-    state of Engaged.
+# class APEngaged(MultistateDerivedParameterNode):
+#     '''
+#     Determines if *any* of the "AP (*) Engaged" parameters are recording the
+#     state of Engaged.
+#
+#     This is a discrete with only the Engaged state.
+#     '''
+#
+#     name = 'AP Engaged'
+#     units = None
+#     values_mapping = {0: '-', 1: 'Engaged'}
+#
+#     @classmethod
+#     def can_operate(cls, available):
+#         return any_of(cls.get_dependency_names(), available)
+#
+#     def derive(self,
+#                ap1=M('AP (1) Engaged'),
+#                ap2=M('AP (2) Engaged'),
+#                ap3=M('AP (3) Engaged')):
+#
+#         stacked = vstack_params_where_state(
+#             (ap1, 'Engaged'),
+#             (ap2, 'Engaged'),
+#             (ap3, 'Engaged'),
+#         )
+#         self.array = stacked.any(axis=0)
+#         self.array.mask = stacked.mask.any(axis=0)
 
-    This is a discrete with only the Engaged state.
-    '''
 
-    name = 'AP Engaged'
-    units = None
-    values_mapping = {0: '-', 1: 'Engaged'}
-
-    @classmethod
-    def can_operate(cls, available):
-        return any_of(cls.get_dependency_names(), available)
-
-    def derive(self,
-               ap1=M('AP (1) Engaged'),
-               ap2=M('AP (2) Engaged'),
-               ap3=M('AP (3) Engaged')):
-
-        stacked = vstack_params_where_state(
-            (ap1, 'Engaged'),
-            (ap2, 'Engaged'),
-            (ap3, 'Engaged'),
-        )
-        self.array = stacked.any(axis=0)
-        self.array.mask = stacked.mask.any(axis=0)
-
-
-class APChannelsEngaged(MultistateDerivedParameterNode):
-    '''
-    Assess the number of autopilot systems engaged.
-
-    Airbus and Boeing = 1 autopilot at a time except when "Land" mode
-    selected when 2 (Dual) or 3 (Triple) can be engaged. Airbus favours only
-    2 APs, Boeing is happier with 3 though some older types may only have 2.
-    '''
-    name = 'AP Channels Engaged'
-    units = None
-    values_mapping = {0: '-', 1: 'Single', 2: 'Dual', 3: 'Triple'}
-
-    @classmethod
-    def can_operate(cls, available):
-        return len(available) >= 2
-
-    def derive(self,
-               ap1=M('AP (1) Engaged'),
-               ap2=M('AP (2) Engaged'),
-               ap3=M('AP (3) Engaged')):
-        stacked = vstack_params_where_state(
-            (ap1, 'Engaged'),
-            (ap2, 'Engaged'),
-            (ap3, 'Engaged'),
-        )
-        self.array = stacked.sum(axis=0)
-        self.offset = offset_select('mean', [ap1, ap2, ap3])
+# class APChannelsEngaged(MultistateDerivedParameterNode):
+#     '''
+#     Assess the number of autopilot systems engaged.
+#
+#     Airbus and Boeing = 1 autopilot at a time except when "Land" mode
+#     selected when 2 (Dual) or 3 (Triple) can be engaged. Airbus favours only
+#     2 APs, Boeing is happier with 3 though some older types may only have 2.
+#     '''
+#     name = 'AP Channels Engaged'
+#     units = None
+#     values_mapping = {0: '-', 1: 'Single', 2: 'Dual', 3: 'Triple'}
+#
+#     @classmethod
+#     def can_operate(cls, available):
+#         return len(available) >= 2
+#
+#     def derive(self,
+#                ap1=M('AP (1) Engaged'),
+#                ap2=M('AP (2) Engaged'),
+#                ap3=M('AP (3) Engaged')):
+#         stacked = vstack_params_where_state(
+#             (ap1, 'Engaged'),
+#             (ap2, 'Engaged'),
+#             (ap3, 'Engaged'),
+#         )
+#         self.array = stacked.sum(axis=0)
+#         self.offset = offset_select('mean', [ap1, ap2, ap3])
 
 
 class APLateralMode(MultistateDerivedParameterNode):
@@ -3761,114 +3761,114 @@ class StickShaker(MultistateDerivedParameterNode):
 """
 
 
-class ThrustReversers(MultistateDerivedParameterNode):
-    '''
-    A single parameter with multi-state mapping as below.
-    '''
-
-    # We are interested in all stowed, all deployed or any other combination.
-    # The mapping "In Transit" is used for anything other than the fully
-    # established conditions, so for example one locked and the other not is
-    # still treated as in transit.
-    units = None
-    values_mapping = {0: 'Stowed', 1: 'In Transit', 2: 'Deployed'}
-
-    @classmethod
-    def can_operate(cls, available):
-        return any_of((
-            'Eng (1) Thrust Reverser (L) Deployed',
-            'Eng (1) Thrust Reverser (R) Deployed',
-            'Eng (2) Thrust Reverser (L) Deployed',
-            'Eng (2) Thrust Reverser (R) Deployed',
-            'Eng (3) Thrust Reverser (L) Deployed',
-            'Eng (3) Thrust Reverser (R) Deployed',
-            'Eng (4) Thrust Reverser (L) Deployed',
-            'Eng (4) Thrust Reverser (R) Deployed',
-        ), available) or any_of((
-            'Eng (1) Thrust Reverser Deployed',
-            'Eng (2) Thrust Reverser Deployed',
-            'Eng (3) Thrust Reverser Deployed',
-            'Eng (4) Thrust Reverser Deployed',
-        ), available) or any_of((
-            'Eng (1) Thrust Reverser',
-            'Eng (2) Thrust Reverser',
-            'Eng (3) Thrust Reverser',
-            'Eng (4) Thrust Reverser',
-        ), available)
-
-    def derive(self,
-               e1_dep_all=M('Eng (1) Thrust Reverser Deployed'),
-               e1_dep_lft=M('Eng (1) Thrust Reverser (L) Deployed'),
-               e1_dep_rgt=M('Eng (1) Thrust Reverser (R) Deployed'),
-               e1_ulk_all=M('Eng (1) Thrust Reverser Unlocked'),
-               e1_ulk_lft=M('Eng (1) Thrust Reverser (L) Unlocked'),
-               e1_ulk_rgt=M('Eng (1) Thrust Reverser (R) Unlocked'),
-               e1_tst_all=M('Eng (1) Thrust Reverser In Transit'),
-               e2_dep_all=M('Eng (2) Thrust Reverser Deployed'),
-               e2_dep_lft=M('Eng (2) Thrust Reverser (L) Deployed'),
-               e2_dep_rgt=M('Eng (2) Thrust Reverser (R) Deployed'),
-               e2_ulk_all=M('Eng (2) Thrust Reverser Unlocked'),
-               e2_ulk_lft=M('Eng (2) Thrust Reverser (L) Unlocked'),
-               e2_ulk_rgt=M('Eng (2) Thrust Reverser (R) Unlocked'),
-               e2_tst_all=M('Eng (2) Thrust Reverser In Transit'),
-               e3_dep_all=M('Eng (3) Thrust Reverser Deployed'),
-               e3_dep_lft=M('Eng (3) Thrust Reverser (L) Deployed'),
-               e3_dep_rgt=M('Eng (3) Thrust Reverser (R) Deployed'),
-               e3_ulk_all=M('Eng (3) Thrust Reverser Unlocked'),
-               e3_ulk_lft=M('Eng (3) Thrust Reverser (L) Unlocked'),
-               e3_ulk_rgt=M('Eng (3) Thrust Reverser (R) Unlocked'),
-               e3_tst_all=M('Eng (3) Thrust Reverser In Transit'),
-               e4_dep_all=M('Eng (4) Thrust Reverser Deployed'),
-               e4_dep_lft=M('Eng (4) Thrust Reverser (L) Deployed'),
-               e4_dep_rgt=M('Eng (4) Thrust Reverser (R) Deployed'),
-               e4_ulk_all=M('Eng (4) Thrust Reverser Unlocked'),
-               e4_ulk_lft=M('Eng (4) Thrust Reverser (L) Unlocked'),
-               e4_ulk_rgt=M('Eng (4) Thrust Reverser (R) Unlocked'),
-               e4_tst_all=M('Eng (4) Thrust Reverser In Transit'),
-               e1_status=M('Eng (1) Thrust Reverser'),
-               e2_status=M('Eng (2) Thrust Reverser'),
-               e3_status=M('Eng (3) Thrust Reverser'),
-               e4_status=M('Eng (4) Thrust Reverser')):
-
-        deployed_params = (e1_dep_all, e1_dep_lft, e1_dep_rgt, e2_dep_all,
-                           e2_dep_lft, e2_dep_rgt, e3_dep_all, e3_dep_lft,
-                           e3_dep_rgt, e4_dep_all, e4_dep_lft, e4_dep_rgt,
-                           e1_status, e2_status, e3_status, e4_status)
-
-        deployed_stack = vstack_params_where_state(*[(d, 'Deployed') for d in deployed_params])
-
-        unlocked_params = (e1_ulk_all, e1_ulk_lft, e1_ulk_rgt, e2_ulk_all,
-                           e2_ulk_lft, e2_ulk_rgt, e3_ulk_all, e3_ulk_lft,
-                           e3_ulk_rgt, e4_ulk_all, e4_ulk_lft, e4_ulk_rgt)
-
-        array = np_ma_zeros_like(deployed_stack[0], dtype=np.short)
-        stacks = [deployed_stack]
-
-        if any(unlocked_params):
-            unlocked_stack = vstack_params_where_state(*[(p, 'Unlocked') for p in unlocked_params])
-            array = np.ma.where(unlocked_stack.any(axis=0), 1, array)
-            stacks.append(unlocked_stack)
-
-        array = np.ma.where(deployed_stack.any(axis=0), 1, array)
-        array = np.ma.where(deployed_stack.all(axis=0), 2, array)
-
-        # update with any transit params
-        if any((e1_tst_all, e2_tst_all, e3_tst_all, e4_tst_all)):
-            transit_stack = vstack_params_where_state(
-                (e1_tst_all, 'In Transit'), (e2_tst_all, 'In Transit'),
-                (e3_tst_all, 'In Transit'), (e4_tst_all, 'In Transit'),
-                (e1_status, 'In Transit'), (e2_status, 'In Transit'),
-                (e3_status, 'In Transit'), (e4_status, 'In Transit'),
-            )
-            array = np.ma.where(transit_stack.any(axis=0), 1, array)
-            stacks.append(transit_stack)
-
-        mask_stack = np.ma.concatenate(stacks, axis=0)
-
-        # mask indexes with greater than 50% masked values
-        mask = np.ma.where(mask_stack.mask.sum(axis=0).astype(float) / len(mask_stack) * 100 > 50, 1, 0)
-        self.array = array
-        self.array.mask = mask
+# class ThrustReversers(MultistateDerivedParameterNode):
+#     '''
+#     A single parameter with multi-state mapping as below.
+#     '''
+#
+#     # We are interested in all stowed, all deployed or any other combination.
+#     # The mapping "In Transit" is used for anything other than the fully
+#     # established conditions, so for example one locked and the other not is
+#     # still treated as in transit.
+#     units = None
+#     values_mapping = {0: 'Stowed', 1: 'In Transit', 2: 'Deployed'}
+#
+#     @classmethod
+#     def can_operate(cls, available):
+#         return any_of((
+#             'Eng (1) Thrust Reverser (L) Deployed',
+#             'Eng (1) Thrust Reverser (R) Deployed',
+#             'Eng (2) Thrust Reverser (L) Deployed',
+#             'Eng (2) Thrust Reverser (R) Deployed',
+#             'Eng (3) Thrust Reverser (L) Deployed',
+#             'Eng (3) Thrust Reverser (R) Deployed',
+#             'Eng (4) Thrust Reverser (L) Deployed',
+#             'Eng (4) Thrust Reverser (R) Deployed',
+#         ), available) or any_of((
+#             'Eng (1) Thrust Reverser Deployed',
+#             'Eng (2) Thrust Reverser Deployed',
+#             'Eng (3) Thrust Reverser Deployed',
+#             'Eng (4) Thrust Reverser Deployed',
+#         ), available) or any_of((
+#             'Eng (1) Thrust Reverser',
+#             'Eng (2) Thrust Reverser',
+#             'Eng (3) Thrust Reverser',
+#             'Eng (4) Thrust Reverser',
+#         ), available)
+#
+#     def derive(self,
+#                e1_dep_all=M('Eng (1) Thrust Reverser Deployed'),
+#                e1_dep_lft=M('Eng (1) Thrust Reverser (L) Deployed'),
+#                e1_dep_rgt=M('Eng (1) Thrust Reverser (R) Deployed'),
+#                e1_ulk_all=M('Eng (1) Thrust Reverser Unlocked'),
+#                e1_ulk_lft=M('Eng (1) Thrust Reverser (L) Unlocked'),
+#                e1_ulk_rgt=M('Eng (1) Thrust Reverser (R) Unlocked'),
+#                e1_tst_all=M('Eng (1) Thrust Reverser In Transit'),
+#                e2_dep_all=M('Eng (2) Thrust Reverser Deployed'),
+#                e2_dep_lft=M('Eng (2) Thrust Reverser (L) Deployed'),
+#                e2_dep_rgt=M('Eng (2) Thrust Reverser (R) Deployed'),
+#                e2_ulk_all=M('Eng (2) Thrust Reverser Unlocked'),
+#                e2_ulk_lft=M('Eng (2) Thrust Reverser (L) Unlocked'),
+#                e2_ulk_rgt=M('Eng (2) Thrust Reverser (R) Unlocked'),
+#                e2_tst_all=M('Eng (2) Thrust Reverser In Transit'),
+#                e3_dep_all=M('Eng (3) Thrust Reverser Deployed'),
+#                e3_dep_lft=M('Eng (3) Thrust Reverser (L) Deployed'),
+#                e3_dep_rgt=M('Eng (3) Thrust Reverser (R) Deployed'),
+#                e3_ulk_all=M('Eng (3) Thrust Reverser Unlocked'),
+#                e3_ulk_lft=M('Eng (3) Thrust Reverser (L) Unlocked'),
+#                e3_ulk_rgt=M('Eng (3) Thrust Reverser (R) Unlocked'),
+#                e3_tst_all=M('Eng (3) Thrust Reverser In Transit'),
+#                e4_dep_all=M('Eng (4) Thrust Reverser Deployed'),
+#                e4_dep_lft=M('Eng (4) Thrust Reverser (L) Deployed'),
+#                e4_dep_rgt=M('Eng (4) Thrust Reverser (R) Deployed'),
+#                e4_ulk_all=M('Eng (4) Thrust Reverser Unlocked'),
+#                e4_ulk_lft=M('Eng (4) Thrust Reverser (L) Unlocked'),
+#                e4_ulk_rgt=M('Eng (4) Thrust Reverser (R) Unlocked'),
+#                e4_tst_all=M('Eng (4) Thrust Reverser In Transit'),
+#                e1_status=M('Eng (1) Thrust Reverser'),
+#                e2_status=M('Eng (2) Thrust Reverser'),
+#                e3_status=M('Eng (3) Thrust Reverser'),
+#                e4_status=M('Eng (4) Thrust Reverser')):
+#
+#         deployed_params = (e1_dep_all, e1_dep_lft, e1_dep_rgt, e2_dep_all,
+#                            e2_dep_lft, e2_dep_rgt, e3_dep_all, e3_dep_lft,
+#                            e3_dep_rgt, e4_dep_all, e4_dep_lft, e4_dep_rgt,
+#                            e1_status, e2_status, e3_status, e4_status)
+#
+#         deployed_stack = vstack_params_where_state(*[(d, 'Deployed') for d in deployed_params])
+#
+#         unlocked_params = (e1_ulk_all, e1_ulk_lft, e1_ulk_rgt, e2_ulk_all,
+#                            e2_ulk_lft, e2_ulk_rgt, e3_ulk_all, e3_ulk_lft,
+#                            e3_ulk_rgt, e4_ulk_all, e4_ulk_lft, e4_ulk_rgt)
+#
+#         array = np_ma_zeros_like(deployed_stack[0], dtype=np.short)
+#         stacks = [deployed_stack]
+#
+#         if any(unlocked_params):
+#             unlocked_stack = vstack_params_where_state(*[(p, 'Unlocked') for p in unlocked_params])
+#             array = np.ma.where(unlocked_stack.any(axis=0), 1, array)
+#             stacks.append(unlocked_stack)
+#
+#         array = np.ma.where(deployed_stack.any(axis=0), 1, array)
+#         array = np.ma.where(deployed_stack.all(axis=0), 2, array)
+#
+#         # update with any transit params
+#         if any((e1_tst_all, e2_tst_all, e3_tst_all, e4_tst_all)):
+#             transit_stack = vstack_params_where_state(
+#                 (e1_tst_all, 'In Transit'), (e2_tst_all, 'In Transit'),
+#                 (e3_tst_all, 'In Transit'), (e4_tst_all, 'In Transit'),
+#                 (e1_status, 'In Transit'), (e2_status, 'In Transit'),
+#                 (e3_status, 'In Transit'), (e4_status, 'In Transit'),
+#             )
+#             array = np.ma.where(transit_stack.any(axis=0), 1, array)
+#             stacks.append(transit_stack)
+#
+#         mask_stack = np.ma.concatenate(stacks, axis=0)
+#
+#         # mask indexes with greater than 50% masked values
+#         mask = np.ma.where(mask_stack.mask.sum(axis=0).astype(float) / len(mask_stack) * 100 > 50, 1, 0)
+#         self.array = array
+#         self.array.mask = mask
 
 
 class ThrustReversersEffective(MultistateDerivedParameterNode):

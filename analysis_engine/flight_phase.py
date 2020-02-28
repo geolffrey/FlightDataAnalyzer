@@ -437,35 +437,35 @@ class Approach(FlightPhaseNode):
             self._derive_aircraft(alt_aal, level_flights, landings)
 
 
-class BouncedLanding(FlightPhaseNode):
-    '''
-    Bounced landing, defined as from first moment on ground to the final moment on the ground.
-
-    Note: Airborne includes rejection of short segments, so the bounced period is within
-    an airborne phase.
-    '''
-
-    @classmethod
-    def can_operate(cls, available, ac_type=A('Aircraft Type')):
-        return ac_type == aeroplane and \
-               all_of(('Altitude AAL For Flight Phases', 'Airborne'), available)
-
-    def derive(self, alt_aal=P('Altitude AAL For Flight Phases'),
-               airs=S('Airborne'), gog=P('Gear On Ground')):
-        gnds = np.ma.clump_masked(np.ma.masked_less(alt_aal.array,
-                                                    BOUNCED_LANDING_THRESHOLD))
-        if gog:
-            gnds = slices_or(gnds, runs_of_ones(gog.array == 'Ground'))
-
-        for air in airs:
-            for gnd in gnds:
-                if not is_slice_within_slice(gnd, air.slice):
-                    continue
-                dt = (air.slice.stop - gnd.stop) / alt_aal.frequency
-                if dt > BOUNCED_MAXIMUM_DURATION or \
-                   dt <= 0.0:
-                    continue
-                self.create_phase(slice(gnd.stop, air.slice.stop - 1))
+# class BouncedLanding(FlightPhaseNode):
+#     '''
+#     Bounced landing, defined as from first moment on ground to the final moment on the ground.
+#
+#     Note: Airborne includes rejection of short segments, so the bounced period is within
+#     an airborne phase.
+#     '''
+#
+#     @classmethod
+#     def can_operate(cls, available, ac_type=A('Aircraft Type')):
+#         return ac_type == aeroplane and \
+#                all_of(('Altitude AAL For Flight Phases', 'Airborne'), available)
+#
+#     def derive(self, alt_aal=P('Altitude AAL For Flight Phases'),
+#                airs=S('Airborne'), gog=P('Gear On Ground')):
+#         gnds = np.ma.clump_masked(np.ma.masked_less(alt_aal.array,
+#                                                     BOUNCED_LANDING_THRESHOLD))
+#         if gog:
+#             gnds = slices_or(gnds, runs_of_ones(gog.array == 'Ground'))
+#
+#         for air in airs:
+#             for gnd in gnds:
+#                 if not is_slice_within_slice(gnd, air.slice):
+#                     continue
+#                 dt = (air.slice.stop - gnd.stop) / alt_aal.frequency
+#                 if dt > BOUNCED_MAXIMUM_DURATION or \
+#                    dt <= 0.0:
+#                     continue
+#                 self.create_phase(slice(gnd.stop, air.slice.stop - 1))
 
 
 class ClimbCruiseDescent(FlightPhaseNode):

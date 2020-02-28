@@ -1240,178 +1240,178 @@ class TakeoffPeakAcceleration(KeyTimeInstanceNode):
                 self.create_kti(index)
 
 
-class Liftoff(KeyTimeInstanceNode):
-    '''
-    The point of liftoff is computed by working out all the available
-    indications of liftoff and taking the second of these, on the assumption
-    that the first indication may not be valid.
-
-    The five indications used are:
-
-    (a) the inertial vertical speed indicates a rate of climb (we cannot use
-    barometric rate of climb as the aircraft is in ground effect and
-    transient changes of pressure field as the aircraft rotates cause an
-    indicated descent just prior to lift)
-
-    (b) a normal acceleration of greater than 1.2g
-
-    (c) radio altimeter indications greater than zero (see http://www.flightdatacommunity.com/looking-closely-at-radio-altimeters/)
-
-    (d) altitude above airfield greater than zero. This is computed from the
-    available height sources, so will work off the pressure altitude only if no
-    radio altimeter is available.
-
-    (e) change in the gear on ground (weight oon wheels) switch status where
-    available.
-
-    In the case where the gear on ground signal switches first, we use this.
-    However it is common for this to switch at the end of the oleo extension
-    which is why it commonly operates after other indications.
-
-    For a more descriptive explanation of the second of many technique, refer to
-    http://www.flightdatacommunity.com/when-does-the-aircraft-land/
-    '''
-
-    @classmethod
-    def can_operate(cls, available, seg_type=A('Segment Type')):
-        if seg_type and seg_type.value in ('GROUND_ONLY', 'NO_MOVEMENT', 'MID_FLIGHT', 'STOP_ONLY'):
-            return False
-        return 'Airborne' in available
-
-    def derive(self,
-               vert_spd=P('Vertical Speed Inertial'),
-               acc_norm=P('Acceleration Normal Offset Removed'),
-               vert_spd_baro=P('Vertical Speed'),
-               alt_rad=P('Altitude Radio Offset Removed'),
-               gog=M('Gear On Ground'),
-               airs=S('Airborne'),
-               frame=A('Frame'),
-               ac_type=A('Aircraft Type')):
-
-        if ac_type and ac_type.value == 'helicopter':
-            for air in airs:
-                self.create_kti(air.start_edge)
-            return
-
-        for air in airs:
-            index_acc = index_vs = index_rad = index_gog = index_lift = None
-            index_air = air.start_edge
-            if index_air is None:
-                continue
-            back_6 = (air.slice.start - 6.0 * self.frequency)
-            if back_6 < 0:
-                # unlikely to have lifted off within 3 seconds of data start
-                # STOP ONLY slice without a liftoff in this Airborne section
-                continue
-            on_6 = (air.slice.start + 6.0 * self.frequency) + 1  # For indexing
-            to_scan = slice(back_6, on_6)
-
-            if vert_spd:
-                index_vs = index_at_value(
-                    vert_spd.array, VERTICAL_SPEED_FOR_LIFTOFF, to_scan)
-            elif vert_spd_baro:
-                # Fallback to pressure rate of climb
-                index_vs = index_at_value(vert_spd_baro.array,
-                                          VERTICAL_SPEED_FOR_LIFTOFF,
-                                          to_scan)
-                # and try to augment this with another measure
-                if acc_norm:
-                    idx = np.ma.argmax(acc_norm.array[slices_int(to_scan)])
-                    if acc_norm.array[slices_int(to_scan)][idx] > 1.2:
-                        index_acc = idx + back_6
-
-            if alt_rad:
-                index_rad = index_at_value(alt_rad.array, 0.0, slice(on_6, back_6,-1))
-
-            if gog:
-                # Try using Gear On Ground switch
-                edges = find_edges_on_state_change(
-                    'Ground', gog.array[slices_int(to_scan)], change='leaving')
-                if edges:
-                    # use the last liftoff point
-                    index = edges[-1] + back_6
-                    # Check we were within 5ft of the ground when the switch triggered.
-                    if alt_rad is None:
-                        index_gog = index
-                    elif alt_rad.array[int(index)] < 5.0 or \
-                            alt_rad.array[int(index)] is np.ma.masked:
-                        index_gog = index
-                    else:
-                        index_gog = None
-
-            # We pick the second  recorded indication for the point of liftoff.
-            index_list = sorted_valid_list([index_air,
-                                            index_vs,
-                                            index_acc,
-                                            index_gog,
-                                            index_rad])
-
-            if len(index_list) > 1:
-                index_lift = sorted(index_list)[1]
-            else:
-                index_lift = index_list[0]
-            # but in any case, if we have a gear on ground signal which goes
-            # off first, adopt that.
-            if index_gog and index_gog < index_lift:
-                index_lift = index_gog
-
-            self.create_kti(index_lift)
-
-            '''
-            # Plotting process to view the results in an easy manner.
-            import matplotlib.pyplot as plt
-            name = 'Liftoff Plot %s, %d' %(frame.value, index_air)
-            print(name)
-            dt_pre = 5
-            hz = self.frequency
-            timebase=np.linspace(-dt_pre*hz, dt_pre*hz, 2*dt_pre*hz+1)
-            plot_period = slice(int(floor(air.slice.start-dt_pre*hz)), int(floor(air.slice.start-dt_pre*hz+len(timebase))))
-            plt.figure()
-            plt.plot(0, 13.0,'vb', markersize=8)
-            if vert_spd:
-                plt.plot(timebase, np.ma.masked_greater(vert_spd.array[plot_period],600.0)/20.0, 'o-g')
-            else:
-                #plt.plot(timebase, np.ma.masked_greater(vert_spd_baro.array[plot_period],600.0)/20.0, 'o-c')
-                if acc_norm:
-                    plt.plot(timebase, acc_norm.array[plot_period]*10.0, 'o-c')
-                if index_acc:
-                    plt.plot(index_acc-air.slice.start, 15.0,'vc', markersize=8)
-
-            if index_vs:
-                plt.plot(index_vs-air.slice.start, 15,'vg', markersize=8)
-
-            if alt_rad:
-                plt.plot(timebase, np.ma.masked_greater(alt_rad.array[plot_period],30.0), 'o-r')
-            if index_rad:
-                plt.plot(index_rad-air.slice.start, 17.0,'vr', markersize=8)
-
-            if gog:
-                plt.plot(timebase, gog.array[plot_period]*10, 'o-k')
-            if index_gog:
-                plt.plot(index_gog-air.slice.start, 19.0,'vk', markersize=8)
-
-            if vert_spd_baro:
-                plt.plot(timebase, np.ma.masked_greater(vert_spd_baro.array[plot_period]/20.0, 30.0), 'o-b')
-
-            if index_lift:
-                plt.plot(index_lift-air.slice.start, -5.0,'^m', markersize=14)
-
-            plt.title(name)
-            plt.grid()
-            plt.ylim(-10,30)
-            filename = name
-            print(name)
-            # Two lines to quickly make this work.
-            import os
-            WORKING_DIR = tempfile.gettempdir()
-            output_dir = os.path.join(WORKING_DIR, 'Liftoff_graphs')
-            if not os.path.exists(output_dir):
-                os.mkdir(output_dir)
-            plt.savefig(os.path.join(output_dir, filename + '.png'))
-            plt.show()
-            plt.clf()
-            plt.close()
-            '''
+# class Liftoff(KeyTimeInstanceNode):
+#     '''
+#     The point of liftoff is computed by working out all the available
+#     indications of liftoff and taking the second of these, on the assumption
+#     that the first indication may not be valid.
+#
+#     The five indications used are:
+#
+#     (a) the inertial vertical speed indicates a rate of climb (we cannot use
+#     barometric rate of climb as the aircraft is in ground effect and
+#     transient changes of pressure field as the aircraft rotates cause an
+#     indicated descent just prior to lift)
+#
+#     (b) a normal acceleration of greater than 1.2g
+#
+#     (c) radio altimeter indications greater than zero (see http://www.flightdatacommunity.com/looking-closely-at-radio-altimeters/)
+#
+#     (d) altitude above airfield greater than zero. This is computed from the
+#     available height sources, so will work off the pressure altitude only if no
+#     radio altimeter is available.
+#
+#     (e) change in the gear on ground (weight oon wheels) switch status where
+#     available.
+#
+#     In the case where the gear on ground signal switches first, we use this.
+#     However it is common for this to switch at the end of the oleo extension
+#     which is why it commonly operates after other indications.
+#
+#     For a more descriptive explanation of the second of many technique, refer to
+#     http://www.flightdatacommunity.com/when-does-the-aircraft-land/
+#     '''
+#
+#     @classmethod
+#     def can_operate(cls, available, seg_type=A('Segment Type')):
+#         if seg_type and seg_type.value in ('GROUND_ONLY', 'NO_MOVEMENT', 'MID_FLIGHT', 'STOP_ONLY'):
+#             return False
+#         return 'Airborne' in available
+#
+#     def derive(self,
+#                vert_spd=P('Vertical Speed Inertial'),
+#                acc_norm=P('Acceleration Normal Offset Removed'),
+#                vert_spd_baro=P('Vertical Speed'),
+#                alt_rad=P('Altitude Radio Offset Removed'),
+#                gog=M('Gear On Ground'),
+#                airs=S('Airborne'),
+#                frame=A('Frame'),
+#                ac_type=A('Aircraft Type')):
+#
+#         if ac_type and ac_type.value == 'helicopter':
+#             for air in airs:
+#                 self.create_kti(air.start_edge)
+#             return
+#
+#         for air in airs:
+#             index_acc = index_vs = index_rad = index_gog = index_lift = None
+#             index_air = air.start_edge
+#             if index_air is None:
+#                 continue
+#             back_6 = (air.slice.start - 6.0 * self.frequency)
+#             if back_6 < 0:
+#                 # unlikely to have lifted off within 3 seconds of data start
+#                 # STOP ONLY slice without a liftoff in this Airborne section
+#                 continue
+#             on_6 = (air.slice.start + 6.0 * self.frequency) + 1  # For indexing
+#             to_scan = slice(back_6, on_6)
+#
+#             if vert_spd:
+#                 index_vs = index_at_value(
+#                     vert_spd.array, VERTICAL_SPEED_FOR_LIFTOFF, to_scan)
+#             elif vert_spd_baro:
+#                 # Fallback to pressure rate of climb
+#                 index_vs = index_at_value(vert_spd_baro.array,
+#                                           VERTICAL_SPEED_FOR_LIFTOFF,
+#                                           to_scan)
+#                 # and try to augment this with another measure
+#                 if acc_norm:
+#                     idx = np.ma.argmax(acc_norm.array[slices_int(to_scan)])
+#                     if acc_norm.array[slices_int(to_scan)][idx] > 1.2:
+#                         index_acc = idx + back_6
+#
+#             if alt_rad:
+#                 index_rad = index_at_value(alt_rad.array, 0.0, slice(on_6, back_6,-1))
+#
+#             if gog:
+#                 # Try using Gear On Ground switch
+#                 edges = find_edges_on_state_change(
+#                     'Ground', gog.array[slices_int(to_scan)], change='leaving')
+#                 if edges:
+#                     # use the last liftoff point
+#                     index = edges[-1] + back_6
+#                     # Check we were within 5ft of the ground when the switch triggered.
+#                     if alt_rad is None:
+#                         index_gog = index
+#                     elif alt_rad.array[int(index)] < 5.0 or \
+#                             alt_rad.array[int(index)] is np.ma.masked:
+#                         index_gog = index
+#                     else:
+#                         index_gog = None
+#
+#             # We pick the second  recorded indication for the point of liftoff.
+#             index_list = sorted_valid_list([index_air,
+#                                             index_vs,
+#                                             index_acc,
+#                                             index_gog,
+#                                             index_rad])
+#
+#             if len(index_list) > 1:
+#                 index_lift = sorted(index_list)[1]
+#             else:
+#                 index_lift = index_list[0]
+#             # but in any case, if we have a gear on ground signal which goes
+#             # off first, adopt that.
+#             if index_gog and index_gog < index_lift:
+#                 index_lift = index_gog
+#
+#             self.create_kti(index_lift)
+#
+#             '''
+#             # Plotting process to view the results in an easy manner.
+#             import matplotlib.pyplot as plt
+#             name = 'Liftoff Plot %s, %d' %(frame.value, index_air)
+#             print(name)
+#             dt_pre = 5
+#             hz = self.frequency
+#             timebase=np.linspace(-dt_pre*hz, dt_pre*hz, 2*dt_pre*hz+1)
+#             plot_period = slice(int(floor(air.slice.start-dt_pre*hz)), int(floor(air.slice.start-dt_pre*hz+len(timebase))))
+#             plt.figure()
+#             plt.plot(0, 13.0,'vb', markersize=8)
+#             if vert_spd:
+#                 plt.plot(timebase, np.ma.masked_greater(vert_spd.array[plot_period],600.0)/20.0, 'o-g')
+#             else:
+#                 #plt.plot(timebase, np.ma.masked_greater(vert_spd_baro.array[plot_period],600.0)/20.0, 'o-c')
+#                 if acc_norm:
+#                     plt.plot(timebase, acc_norm.array[plot_period]*10.0, 'o-c')
+#                 if index_acc:
+#                     plt.plot(index_acc-air.slice.start, 15.0,'vc', markersize=8)
+#
+#             if index_vs:
+#                 plt.plot(index_vs-air.slice.start, 15,'vg', markersize=8)
+#
+#             if alt_rad:
+#                 plt.plot(timebase, np.ma.masked_greater(alt_rad.array[plot_period],30.0), 'o-r')
+#             if index_rad:
+#                 plt.plot(index_rad-air.slice.start, 17.0,'vr', markersize=8)
+#
+#             if gog:
+#                 plt.plot(timebase, gog.array[plot_period]*10, 'o-k')
+#             if index_gog:
+#                 plt.plot(index_gog-air.slice.start, 19.0,'vk', markersize=8)
+#
+#             if vert_spd_baro:
+#                 plt.plot(timebase, np.ma.masked_greater(vert_spd_baro.array[plot_period]/20.0, 30.0), 'o-b')
+#
+#             if index_lift:
+#                 plt.plot(index_lift-air.slice.start, -5.0,'^m', markersize=14)
+#
+#             plt.title(name)
+#             plt.grid()
+#             plt.ylim(-10,30)
+#             filename = name
+#             print(name)
+#             # Two lines to quickly make this work.
+#             import os
+#             WORKING_DIR = tempfile.gettempdir()
+#             output_dir = os.path.join(WORKING_DIR, 'Liftoff_graphs')
+#             if not os.path.exists(output_dir):
+#                 os.mkdir(output_dir)
+#             plt.savefig(os.path.join(output_dir, filename + '.png'))
+#             plt.show()
+#             plt.clf()
+#             plt.close()
+#             '''
 
 
 class LowestAltitudeDuringApproach(KeyTimeInstanceNode):
@@ -1476,270 +1476,270 @@ class TouchAndGo(KeyTimeInstanceNode):
                 ga_index += 1
 
 
-class Touchdown(KeyTimeInstanceNode):
-    '''
-    Touchdown is notoriously difficult to identify precisely, and a
-    suggestion from a Boeing engineer was to add a longitudinal acceleration
-    term as there is always an instantaneous drag when the mainwheels touch.
-
-    This was added in the form of three triggers, one detecting the short dip
-    in Ax, a second for the point of onset of deceleration and a third for
-    braking deceleration.
-
-    So, we look for the weight on wheels switch if this is the first indication,
-    or the second indication of:
-    * Zero feet AAL (normally derived from the radio altimeter)
-    * Sudden rise in normal acceleration bumping the ground
-    * Significant product of two samples of normal acceleration (correlating to a sudden drop in descent rate)
-    * A transient reduction in longitudinal acceleration as the wheels first spin up
-    * A large reduction in longitudinal acceleration when braking action starts
-
-    http://www.flightdatacommunity.com/when-does-the-aircraft-land/
-    '''
-    # List the minimum acceptable parameters here
-
-    @classmethod
-    def can_operate(cls, available, ac_type=A('Aircraft Type'), seg_type=A('Segment Type')):
-        # if we have 'Acceleration Longitudinal' hold off until
-        # 'Acceleration Longitudinal Offset Removed' can be processed
-        if 'Acceleration Longitudinal' in available and \
-           'Acceleration Longitudinal Offset Removed' not in available:
-            return False
-        if ac_type and ac_type.value == 'helicopter':
-            return 'Airborne' in available
-        elif seg_type and seg_type.value in ('GROUND_ONLY', 'NO_MOVEMENT', 'MID_FLIGHT', 'START_ONLY'):
-            return False
-        else:
-            return all_of(('Altitude AAL', 'Landing'), available)
-
-    def derive(self, acc_norm=P('Acceleration Normal'),
-               acc_long=P('Acceleration Longitudinal Offset Removed'),
-               alt=P('Altitude AAL'),
-               alt_rad=P('Altitude Radio'),
-               gog=M('Gear On Ground'),
-               lands=S('Landing'),
-               flap=P('Flap'),
-               manufacturer=A('Manufacturer'),
-               family=A('Family'),
-               # helicopter
-               airs=S('Airborne'),
-               ac_type=A('Aircraft Type'),
-               # Only used in can_operate
-               accel=P('Acceleration Longitudinal')):
-        if ac_type and ac_type.value == 'helicopter':
-            for air in airs:
-                self.create_kti(air.stop_edge)
-            return
-
-        # The preamble here checks that the landing we are looking at is
-        # genuine, it's not just because the data stopped in mid-flight. We
-        # reduce the scope of the search for touchdown to avoid triggering in
-        # mid-cruise, and it avoids problems for aircraft where the gear
-        # signal changes state on raising the gear (OK, if they do a gear-up
-        # landing it won't work, but this will be the least of the problems).
-
-        dt_pre = 10.0  # Seconds to scan before estimate.
-        dt_post = 3.0  # Seconds to scan after estimate.
-        hz = alt.frequency
-
-        for land in lands:
-
-            # initialise within loop as we dont want to carry indexes into the next landing
-            index_gog = index_wheel_touch = index_brake = index_decel = None
-            index_dax = index_z = index_az = index_daz = None
-            peak_ax = peak_az = delta = 0.0
-
-            # We have to have an altitude signal, so this forms an initial
-            # estimate of the touchdown point.
-            index_alt = index_at_value(alt.array, 0.0, land.slice)
-
-            if gog:
-                # Try using Gear On Ground switch
-                edges = find_edges_on_state_change(
-                    'Ground', gog.array[land.slice])
-                if edges:
-                    # use the first contact with ground as touchdown point
-                    # (i.e. we ignore bounces)
-                    index = edges[0] + land.slice.start
-                    # Check we were within 10ft of the ground when the switch triggered.
-                    if not alt or alt.array[int(index)] < 10.0:
-                        index_gog = index
-
-            if manufacturer and manufacturer.value == 'Saab' and \
-               family and family.value == '2000':
-                # This covers aircraft with automatic flap retraction on
-                # landing but no gear on ground signal. The Saab 2000 is a
-                # case in point.
-                land_flap = np.ma.array(data=flap.array.data[land.slice],
-                                        mask=flap.array.mask[land.slice])
-                flap_change_idx = index_at_value(land_flap, land_flap[0] - 1)
-                if flap_change_idx:
-                    index_gog = int(flap_change_idx) + land.slice.start
-
-            index_ref = min([x for x in (index_alt, index_gog) if x is not None])
-
-            # With an estimate from the height and perhaps gear switch, set
-            # up a period to scan across for accelerometer based
-            # indications...
-            period_end = int(ceil(index_ref + dt_post * hz))
-            period_start = max(floor(index_ref - dt_pre * hz), 0)
-            if alt_rad:
-                # only look for 5ft altitude if Radio Altitude is recorded,
-                # due to Altitude STD accuracy and ground effect.
-                alt_rad_start = index_at_value(alt.array, 5, _slice=slice(period_end, period_start, -1))
-                if alt_rad_start is not None:
-                    period_start = alt_rad_start
-            period = slice(period_start, period_end)
-
-            if acc_long:
-                drag = np.ma.copy(acc_long.array[slices_int(period)])
-                drag = np.ma.where(drag > 0.0, 0.0, drag)
-
-                # Look for inital wheel contact where there is a sudden spike in Ax.
-
-                touch = np_ma_masked_zeros_like(drag)
-                for i in range(2, len(touch)-2):
-                    # Looking for a downward pointing "V" shape over half the
-                    # Az sample rate. This is a common feature at the point
-                    # of wheel touch.
-                    touch[i-2] = max(0.0,drag[i-2]-drag[i]) * max(0.0,drag[i+2]-drag[i])
-                peak_ax = np.max(touch)
-                # Only use this if the value was significant.
-                if peak_ax>0.0005:
-                    ix_ax2 = np.argmax(touch)
-                    ix_ax = ix_ax2
-                    # See if this was the second of a pair, with the first a little smaller.
-                    if np.ma.count(touch[:ix_ax2]) > 0:
-                        # I have some valid data to scan
-                        ix_ax1 = np.argmax(touch[:ix_ax2])
-                        if touch[ix_ax1] > peak_ax*0.2:
-                            # This earlier touch was a better guess.
-                            peak_ax = touch[ix_ax1]
-                            ix_ax = ix_ax1
-
-                    index_wheel_touch = ix_ax+1+period.start
-
-                # Look for the onset of braking
-                index_brake = np.ma.argmin(rate_of_change_array(drag, hz))
-                if index_brake:
-                    index_brake += period.start
-
-                # Look for substantial deceleration
-
-                index_decel = index_at_value(drag, -0.1)
-                if index_decel:
-                    index_decel += period.start
-
-            if acc_norm:
-                lift = acc_norm.array[slices_int(period)]
-                mean = np.mean(lift)
-                lift = np.ma.masked_less(lift-mean, 0.0)
-                bump = np_ma_masked_zeros_like(lift)
-
-                # A firm touchdown is typified by at least two large Az samples.
-                for i in range(1, len(bump)-1):
-                    bump[i-1]=lift[i]*lift[i+1]
-                peak_az = np.max(bump)
-                if peak_az > 0.1:
-                    index_az = np.argmax(bump)+period.start
-                else:
-                    # In the absence of a clear touchdown, contact can be
-                    # indicated by an increase in g of more than 0.075
-                    for i in range(0, len(lift)-1):
-                        if lift[i] and lift[i+1]:
-                            delta=lift[i+1]-lift[i]
-                            if delta > 0.075:
-                                index_daz = i+1+period.start
-                                break
-
-            # Pick the first of the two normal accelerometer measures to
-            # avoid triggering a touchdown from a single faulty sensor:
-            index_z_list = [x for x in (index_az, index_daz) if x is not None]
-            if index_z_list:
-                index_z = min(index_z_list)
-
-            # ...then collect the valid estimates of the touchdown point...
-            index_list = sorted_valid_list([index_alt,
-                                            index_gog,
-                                            index_wheel_touch,
-                                            index_brake,
-                                            index_decel,
-                                            index_dax,
-                                            index_z])
-
-            # ...to find the best estimate...
-            # If we have lots of measures, bias towards the earlier ones.
-            #index_tdn = np.median(index_list[:4])
-            if len(index_list) == 0:
-                # No clue where the aircraft landed. Give up.
-                return
-            elif len(index_list) == 1:
-                # Only one identifier - pick this
-                index_tdn = index_list[0]
-            else:
-                # Normal selection is just the second one!
-                index_tdn = index_list[1]
-                # ensure detected touchdown point is not after Gear on Ground indicates on ground
-                if index_gog:
-                    index_tdn = min(index_tdn, index_gog)
-
-            # self.create_kti(index_tdn)
-            self.info("Touchdown: Selected index: %s @ %sHz. Complete list (index_alt: %s, "\
-                      "index_gog: %s, index_wheel_touch: %s,  index_brake: %s, "\
-                      "index_decel: %s, index_dax: %s, index_z: %s)",
-                      index_tdn, self.frequency, index_alt, index_gog, index_wheel_touch,
-                      index_brake, index_decel, index_dax, index_z)
-            self.create_kti(index_tdn)
-
-            '''
-            # Plotting process to view the results in an easy manner.
-            import matplotlib.pyplot as plt
-            import os
-            name = 'Touchdown with values Ax=%.4f, Az=%.4f and dAz=%.4f' %(peak_ax, peak_az, delta)
-            self.info(name)
-            tz_offset = index_ref - period.start
-            timebase=np.linspace(-tz_offset, dt_post*hz, tz_offset+(dt_post*hz)+1)
-            plot_period = slice(int(floor(index_ref-tz_offset)), int(floor(index_ref-tz_offset+len(timebase))))
-            plt.figure()
-            if alt:
-                plt.plot(timebase, alt.array[plot_period], 'o-r')
-            if acc_long:
-                plt.plot(timebase, acc_long.array[plot_period]*100, 'o-m')
-            if acc_norm:
-                plt.plot(timebase, acc_norm.array[plot_period]*10, 'o-g')
-            if gog:
-                plt.plot(timebase, gog.array[plot_period]*10, 'o-k')
-            if index_gog:
-                plt.plot(index_gog-index_ref, 2.0,'ok', markersize=8)
-            if index_brake:
-                plt.plot(index_brake-index_ref, 2.5,'oy', markersize=8)
-            if index_wheel_touch:
-                plt.plot(index_wheel_touch-index_ref, 3.0,'om', markersize=8)
-            if index_decel:
-                plt.plot(index_decel-index_ref, 3.0,'oc', markersize=8)
-            if index_az:
-                plt.plot(index_az-index_ref, 4.0,'og', markersize=8)
-            if index_dax:
-                plt.plot(index_dax-index_ref, 5.5,'dm', markersize=8)
-            if index_daz:
-                plt.plot(index_daz-index_ref, 5.0,'dg', markersize=8)
-            if index_alt:
-                plt.plot(index_alt-index_ref, 1.0,'or', markersize=8)
-            if index_tdn:
-                plt.plot(index_tdn-index_ref, -2.0,'db', markersize=10)
-            plt.title(name)
-            plt.grid()
-            filename = 'One-ax-Touchdown-%s' % os.path.basename(self._h.file_path) if getattr(self, '_h', None) else 'Plot'
-            print(name)
-            WORKING_DIR = 'C:\\Temp'
-            output_dir = os.path.join(WORKING_DIR, 'Touchdown_graphs')
-            if not os.path.exists(output_dir):
-                os.mkdir(output_dir)
-            plt.savefig(os.path.join(output_dir, filename + '.png'))
-            #plt.show()
-            plt.clf()
-            plt.close()
-            '''
+# class Touchdown(KeyTimeInstanceNode):
+#     '''
+#     Touchdown is notoriously difficult to identify precisely, and a
+#     suggestion from a Boeing engineer was to add a longitudinal acceleration
+#     term as there is always an instantaneous drag when the mainwheels touch.
+#
+#     This was added in the form of three triggers, one detecting the short dip
+#     in Ax, a second for the point of onset of deceleration and a third for
+#     braking deceleration.
+#
+#     So, we look for the weight on wheels switch if this is the first indication,
+#     or the second indication of:
+#     * Zero feet AAL (normally derived from the radio altimeter)
+#     * Sudden rise in normal acceleration bumping the ground
+#     * Significant product of two samples of normal acceleration (correlating to a sudden drop in descent rate)
+#     * A transient reduction in longitudinal acceleration as the wheels first spin up
+#     * A large reduction in longitudinal acceleration when braking action starts
+#
+#     http://www.flightdatacommunity.com/when-does-the-aircraft-land/
+#     '''
+#     # List the minimum acceptable parameters here
+#
+#     @classmethod
+#     def can_operate(cls, available, ac_type=A('Aircraft Type'), seg_type=A('Segment Type')):
+#         # if we have 'Acceleration Longitudinal' hold off until
+#         # 'Acceleration Longitudinal Offset Removed' can be processed
+#         if 'Acceleration Longitudinal' in available and \
+#            'Acceleration Longitudinal Offset Removed' not in available:
+#             return False
+#         if ac_type and ac_type.value == 'helicopter':
+#             return 'Airborne' in available
+#         elif seg_type and seg_type.value in ('GROUND_ONLY', 'NO_MOVEMENT', 'MID_FLIGHT', 'START_ONLY'):
+#             return False
+#         else:
+#             return all_of(('Altitude AAL', 'Landing'), available)
+#
+#     def derive(self, acc_norm=P('Acceleration Normal'),
+#                acc_long=P('Acceleration Longitudinal Offset Removed'),
+#                alt=P('Altitude AAL'),
+#                alt_rad=P('Altitude Radio'),
+#                gog=M('Gear On Ground'),
+#                lands=S('Landing'),
+#                flap=P('Flap'),
+#                manufacturer=A('Manufacturer'),
+#                family=A('Family'),
+#                # helicopter
+#                airs=S('Airborne'),
+#                ac_type=A('Aircraft Type'),
+#                # Only used in can_operate
+#                accel=P('Acceleration Longitudinal')):
+#         if ac_type and ac_type.value == 'helicopter':
+#             for air in airs:
+#                 self.create_kti(air.stop_edge)
+#             return
+#
+#         # The preamble here checks that the landing we are looking at is
+#         # genuine, it's not just because the data stopped in mid-flight. We
+#         # reduce the scope of the search for touchdown to avoid triggering in
+#         # mid-cruise, and it avoids problems for aircraft where the gear
+#         # signal changes state on raising the gear (OK, if they do a gear-up
+#         # landing it won't work, but this will be the least of the problems).
+#
+#         dt_pre = 10.0  # Seconds to scan before estimate.
+#         dt_post = 3.0  # Seconds to scan after estimate.
+#         hz = alt.frequency
+#
+#         for land in lands:
+#
+#             # initialise within loop as we dont want to carry indexes into the next landing
+#             index_gog = index_wheel_touch = index_brake = index_decel = None
+#             index_dax = index_z = index_az = index_daz = None
+#             peak_ax = peak_az = delta = 0.0
+#
+#             # We have to have an altitude signal, so this forms an initial
+#             # estimate of the touchdown point.
+#             index_alt = index_at_value(alt.array, 0.0, land.slice)
+#
+#             if gog:
+#                 # Try using Gear On Ground switch
+#                 edges = find_edges_on_state_change(
+#                     'Ground', gog.array[land.slice])
+#                 if edges:
+#                     # use the first contact with ground as touchdown point
+#                     # (i.e. we ignore bounces)
+#                     index = edges[0] + land.slice.start
+#                     # Check we were within 10ft of the ground when the switch triggered.
+#                     if not alt or alt.array[int(index)] < 10.0:
+#                         index_gog = index
+#
+#             if manufacturer and manufacturer.value == 'Saab' and \
+#                family and family.value == '2000':
+#                 # This covers aircraft with automatic flap retraction on
+#                 # landing but no gear on ground signal. The Saab 2000 is a
+#                 # case in point.
+#                 land_flap = np.ma.array(data=flap.array.data[land.slice],
+#                                         mask=flap.array.mask[land.slice])
+#                 flap_change_idx = index_at_value(land_flap, land_flap[0] - 1)
+#                 if flap_change_idx:
+#                     index_gog = int(flap_change_idx) + land.slice.start
+#
+#             index_ref = min([x for x in (index_alt, index_gog) if x is not None])
+#
+#             # With an estimate from the height and perhaps gear switch, set
+#             # up a period to scan across for accelerometer based
+#             # indications...
+#             period_end = int(ceil(index_ref + dt_post * hz))
+#             period_start = max(floor(index_ref - dt_pre * hz), 0)
+#             if alt_rad:
+#                 # only look for 5ft altitude if Radio Altitude is recorded,
+#                 # due to Altitude STD accuracy and ground effect.
+#                 alt_rad_start = index_at_value(alt.array, 5, _slice=slice(period_end, period_start, -1))
+#                 if alt_rad_start is not None:
+#                     period_start = alt_rad_start
+#             period = slice(period_start, period_end)
+#
+#             if acc_long:
+#                 drag = np.ma.copy(acc_long.array[slices_int(period)])
+#                 drag = np.ma.where(drag > 0.0, 0.0, drag)
+#
+#                 # Look for inital wheel contact where there is a sudden spike in Ax.
+#
+#                 touch = np_ma_masked_zeros_like(drag)
+#                 for i in range(2, len(touch)-2):
+#                     # Looking for a downward pointing "V" shape over half the
+#                     # Az sample rate. This is a common feature at the point
+#                     # of wheel touch.
+#                     touch[i-2] = max(0.0,drag[i-2]-drag[i]) * max(0.0,drag[i+2]-drag[i])
+#                 peak_ax = np.max(touch)
+#                 # Only use this if the value was significant.
+#                 if peak_ax>0.0005:
+#                     ix_ax2 = np.argmax(touch)
+#                     ix_ax = ix_ax2
+#                     # See if this was the second of a pair, with the first a little smaller.
+#                     if np.ma.count(touch[:ix_ax2]) > 0:
+#                         # I have some valid data to scan
+#                         ix_ax1 = np.argmax(touch[:ix_ax2])
+#                         if touch[ix_ax1] > peak_ax*0.2:
+#                             # This earlier touch was a better guess.
+#                             peak_ax = touch[ix_ax1]
+#                             ix_ax = ix_ax1
+#
+#                     index_wheel_touch = ix_ax+1+period.start
+#
+#                 # Look for the onset of braking
+#                 index_brake = np.ma.argmin(rate_of_change_array(drag, hz))
+#                 if index_brake:
+#                     index_brake += period.start
+#
+#                 # Look for substantial deceleration
+#
+#                 index_decel = index_at_value(drag, -0.1)
+#                 if index_decel:
+#                     index_decel += period.start
+#
+#             if acc_norm:
+#                 lift = acc_norm.array[slices_int(period)]
+#                 mean = np.mean(lift)
+#                 lift = np.ma.masked_less(lift-mean, 0.0)
+#                 bump = np_ma_masked_zeros_like(lift)
+#
+#                 # A firm touchdown is typified by at least two large Az samples.
+#                 for i in range(1, len(bump)-1):
+#                     bump[i-1]=lift[i]*lift[i+1]
+#                 peak_az = np.max(bump)
+#                 if peak_az > 0.1:
+#                     index_az = np.argmax(bump)+period.start
+#                 else:
+#                     # In the absence of a clear touchdown, contact can be
+#                     # indicated by an increase in g of more than 0.075
+#                     for i in range(0, len(lift)-1):
+#                         if lift[i] and lift[i+1]:
+#                             delta=lift[i+1]-lift[i]
+#                             if delta > 0.075:
+#                                 index_daz = i+1+period.start
+#                                 break
+#
+#             # Pick the first of the two normal accelerometer measures to
+#             # avoid triggering a touchdown from a single faulty sensor:
+#             index_z_list = [x for x in (index_az, index_daz) if x is not None]
+#             if index_z_list:
+#                 index_z = min(index_z_list)
+#
+#             # ...then collect the valid estimates of the touchdown point...
+#             index_list = sorted_valid_list([index_alt,
+#                                             index_gog,
+#                                             index_wheel_touch,
+#                                             index_brake,
+#                                             index_decel,
+#                                             index_dax,
+#                                             index_z])
+#
+#             # ...to find the best estimate...
+#             # If we have lots of measures, bias towards the earlier ones.
+#             #index_tdn = np.median(index_list[:4])
+#             if len(index_list) == 0:
+#                 # No clue where the aircraft landed. Give up.
+#                 return
+#             elif len(index_list) == 1:
+#                 # Only one identifier - pick this
+#                 index_tdn = index_list[0]
+#             else:
+#                 # Normal selection is just the second one!
+#                 index_tdn = index_list[1]
+#                 # ensure detected touchdown point is not after Gear on Ground indicates on ground
+#                 if index_gog:
+#                     index_tdn = min(index_tdn, index_gog)
+#
+#             # self.create_kti(index_tdn)
+#             self.info("Touchdown: Selected index: %s @ %sHz. Complete list (index_alt: %s, "\
+#                       "index_gog: %s, index_wheel_touch: %s,  index_brake: %s, "\
+#                       "index_decel: %s, index_dax: %s, index_z: %s)",
+#                       index_tdn, self.frequency, index_alt, index_gog, index_wheel_touch,
+#                       index_brake, index_decel, index_dax, index_z)
+#             self.create_kti(index_tdn)
+#
+#             '''
+#             # Plotting process to view the results in an easy manner.
+#             import matplotlib.pyplot as plt
+#             import os
+#             name = 'Touchdown with values Ax=%.4f, Az=%.4f and dAz=%.4f' %(peak_ax, peak_az, delta)
+#             self.info(name)
+#             tz_offset = index_ref - period.start
+#             timebase=np.linspace(-tz_offset, dt_post*hz, tz_offset+(dt_post*hz)+1)
+#             plot_period = slice(int(floor(index_ref-tz_offset)), int(floor(index_ref-tz_offset+len(timebase))))
+#             plt.figure()
+#             if alt:
+#                 plt.plot(timebase, alt.array[plot_period], 'o-r')
+#             if acc_long:
+#                 plt.plot(timebase, acc_long.array[plot_period]*100, 'o-m')
+#             if acc_norm:
+#                 plt.plot(timebase, acc_norm.array[plot_period]*10, 'o-g')
+#             if gog:
+#                 plt.plot(timebase, gog.array[plot_period]*10, 'o-k')
+#             if index_gog:
+#                 plt.plot(index_gog-index_ref, 2.0,'ok', markersize=8)
+#             if index_brake:
+#                 plt.plot(index_brake-index_ref, 2.5,'oy', markersize=8)
+#             if index_wheel_touch:
+#                 plt.plot(index_wheel_touch-index_ref, 3.0,'om', markersize=8)
+#             if index_decel:
+#                 plt.plot(index_decel-index_ref, 3.0,'oc', markersize=8)
+#             if index_az:
+#                 plt.plot(index_az-index_ref, 4.0,'og', markersize=8)
+#             if index_dax:
+#                 plt.plot(index_dax-index_ref, 5.5,'dm', markersize=8)
+#             if index_daz:
+#                 plt.plot(index_daz-index_ref, 5.0,'dg', markersize=8)
+#             if index_alt:
+#                 plt.plot(index_alt-index_ref, 1.0,'or', markersize=8)
+#             if index_tdn:
+#                 plt.plot(index_tdn-index_ref, -2.0,'db', markersize=10)
+#             plt.title(name)
+#             plt.grid()
+#             filename = 'One-ax-Touchdown-%s' % os.path.basename(self._h.file_path) if getattr(self, '_h', None) else 'Plot'
+#             print(name)
+#             WORKING_DIR = 'C:\\Temp'
+#             output_dir = os.path.join(WORKING_DIR, 'Touchdown_graphs')
+#             if not os.path.exists(output_dir):
+#                 os.mkdir(output_dir)
+#             plt.savefig(os.path.join(output_dir, filename + '.png'))
+#             #plt.show()
+#             plt.clf()
+#             plt.close()
+#             '''
 
 
 class OffshoreTouchdown(KeyTimeInstanceNode):
