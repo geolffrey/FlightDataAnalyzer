@@ -5419,7 +5419,7 @@ def overflow_correction(test_array, param, air_slices):
     :type air_slices: List of slices
     '''
     oflow = ALTITUDE_RADIO_MIN_OVERFLOW
-    array = overflow_correction_array(test_array, oflow)
+    array = overflow_correction_array(test_array.astype(type(oflow)), oflow)
     good_slices = slices_int(slices_remove_small_gaps(
         slices_remove_small_slices(np.ma.clump_unmasked(array),
                                    time_limit=10, hz=param.frequency),
