@@ -21,7 +21,7 @@ from datetime import datetime
 from math import sqrt
 from mock import patch
 from numpy.ma.testutils import assert_array_almost_equal, assert_array_equal, assert_array_less, assert_equal
-from time import clock
+from time import process_time
 
 from analysis_engine.flight_attribute import LandingRunway
 
@@ -2192,11 +2192,11 @@ class TestCalculateTimebase(unittest.TestCase):
 class TestConvertTwoDigitToFourDigitYear(unittest.TestCase):
     def test_convert_two_digit_to_four_digit_year(self):
         # WARNING - this test will fail next year(!)
-        self.assertEquals(convert_two_digit_to_four_digit_year(99, '2012'), 1999)
-        self.assertEquals(convert_two_digit_to_four_digit_year(13, '2012'), 1913)
-        self.assertEquals(convert_two_digit_to_four_digit_year(12, '2012'), 2012) # will break next year
-        self.assertEquals(convert_two_digit_to_four_digit_year(11, '2012'), 2011)
-        self.assertEquals(convert_two_digit_to_four_digit_year(1, '2012'), 2001)
+        self.assertEqual(convert_two_digit_to_four_digit_year(99, '2012'), 1999)
+        self.assertEqual(convert_two_digit_to_four_digit_year(13, '2012'), 1913)
+        self.assertEqual(convert_two_digit_to_four_digit_year(12, '2012'), 2012) # will break next year
+        self.assertEqual(convert_two_digit_to_four_digit_year(11, '2012'), 2011)
+        self.assertEqual(convert_two_digit_to_four_digit_year(1, '2012'), 2001)
 
 
 class TestCoReg(unittest.TestCase):
@@ -2971,7 +2971,7 @@ class TestFirstOrderLag(unittest.TestCase):
         result = first_order_lag (array, 1.0, 1.0, gain = 10.0)
         # With a short time constant and more samples, the end result will
         # reach the input level (1.0) multiplied by the gain.
-        self.assertAlmostEquals(result.data[-1], 10.0)
+        self.assertAlmostEqual(result.data[-1], 10.0)
 
     def test_firstorderlag_stability_check(self):
         array = np.ma.ones(4)
@@ -3031,7 +3031,7 @@ class TestFirstOrderWashout(unittest.TestCase):
                                       initial_value = 0.0)
         # With a short time constant and more samples, the end result will
         # reach the input level (1.0) multiplied by the gain.
-        self.assertAlmostEquals(result.data[0], 6.6666667)
+        self.assertAlmostEqual(result.data[0], 6.6666667)
 
     def test_firstorderwashout_stability_check(self):
         array = np.ma.ones(4)
@@ -3261,7 +3261,7 @@ class TestGroundTrackPrecise(unittest.TestCase):
                                           1.0)
         self.assertLess(np.min(la), -.0002)
         self.assertGreater(np.max(la), +0.002)
-        self.assertAlmostEquals(np.min(lo), 0.0)
+        self.assertAlmostEqual(np.min(lo), 0.0)
         self.assertGreater(np.max(lo), -.001)
 
     def test_ppgt_dublin(self):
@@ -3450,32 +3450,32 @@ class TestIndexAtValue(unittest.TestCase):
 
     def test_index_at_value_basic(self):
         array = np.ma.arange(4)
-        self.assertEquals(index_at_value(array, 1.5, slice(0, 3)), 1.5)
+        self.assertEqual(index_at_value(array, 1.5, slice(0, 3)), 1.5)
 
     def test_index_at_value_no_slice(self):
         array = np.ma.arange(4)
-        self.assertEquals(index_at_value(array, 1.5), 1.5)
-        self.assertEquals(index_at_value(array, 1.5, slice(None, None, None)), 1.5)
+        self.assertEqual(index_at_value(array, 1.5), 1.5)
+        self.assertEqual(index_at_value(array, 1.5, slice(None, None, None)), 1.5)
 
     def test_index_at_value_backwards(self):
         array = np.ma.arange(8)
-        self.assertEquals(index_at_value(array, 3.2, slice(6, 2, -1)), 3.2)
+        self.assertEqual(index_at_value(array, 3.2, slice(6, 2, -1)), 3.2)
 
     def test_index_at_value_backwards_with_negative_values_a(self):
         array = np.ma.arange(8)*(-1.0)
-        self.assertEquals(index_at_value(array, -3.2, slice(6, 2, -1)), 3.2)
+        self.assertEqual(index_at_value(array, -3.2, slice(6, 2, -1)), 3.2)
 
     def test_index_at_value_backwards_with_negative_values_b(self):
         array = np.ma.arange(8)-10
-        self.assertEquals(index_at_value(array, -5.2, slice(6, 2, -1)), 4.8)
+        self.assertEqual(index_at_value(array, -5.2, slice(6, 2, -1)), 4.8)
 
     def test_index_at_value_right_at_start(self):
         array = np.ma.arange(4)
-        self.assertEquals(index_at_value(array, 1.0, slice(1, 3)), 1.0)
+        self.assertEqual(index_at_value(array, 1.0, slice(1, 3)), 1.0)
 
     def test_index_at_value_right_at_end(self):
         array = np.ma.arange(4)
-        self.assertEquals(index_at_value(array, 3.0, slice(1, 4)), 3.0)
+        self.assertEqual(index_at_value(array, 3.0, slice(1, 4)), 3.0)
 
     #==================================================================
     # Indexing from the end of the array results in an array length
@@ -3483,43 +3483,43 @@ class TestIndexAtValue(unittest.TestCase):
     # with array[:end:-1] construct, but using slices appears insoluble.
     def test_index_at_value_backwards_from_end_minus_one(self):
         array = np.ma.arange(8)
-        self.assertEquals(index_at_value(array, 7, slice(8, 3, -1)), 7)
+        self.assertEqual(index_at_value(array, 7, slice(8, 3, -1)), 7)
     #==================================================================
 
     def test_index_at_value_backwards_to_start(self):
         array = np.ma.arange(8)
-        self.assertEquals(index_at_value(array, 0, slice(5, 0, -1)), 0)
+        self.assertEqual(index_at_value(array, 0, slice(5, 0, -1)), 0)
 
     def test_index_at_value_backwards_floating_point_end(self):
         array = np.ma.arange(4)
-        self.assertEquals(index_at_value(array, 1.0, slice(3.4, 0.5, -1)), 1.0)
+        self.assertEqual(index_at_value(array, 1.0, slice(3.4, 0.5, -1)), 1.0)
 
     def test_index_at_value_forwards_floating_point_end(self):
         array = np.ma.arange(4)
-        self.assertEquals(index_at_value(array, 3.0, slice(0.6, 3.5)), 3.0)
+        self.assertEqual(index_at_value(array, 3.0, slice(0.6, 3.5)), 3.0)
 
     def test_index_at_value_threshold_not_crossed(self):
         array = np.ma.arange(4)
-        self.assertEquals(index_at_value(array, 7.5, slice(0, 3)), None)
+        self.assertEqual(index_at_value(array, 7.5, slice(0, 3)), None)
 
     def test_index_at_value_threshold_closing(self):
         array = np.ma.arange(4)
-        self.assertEquals(index_at_value(array, 99, slice(1, None), endpoint='closing'), 3)
+        self.assertEqual(index_at_value(array, 99, slice(1, None), endpoint='closing'), 3)
 
     def test_index_at_value_threshold_closing_backwards(self):
         array = 6-np.ma.arange(6)
         # array [6,5,4,3,2,1] with slice(None, 4, -1) = [1] which is index 5.
-        self.assertEquals(index_at_value(array, 99, slice(None, 4, -1), endpoint='closing'), 5)
+        self.assertEqual(index_at_value(array, 99, slice(None, 4, -1), endpoint='closing'), 5)
 
     def test_index_at_value_masked(self):
         array = np.ma.arange(4)
         array[1] = np.ma.masked
-        self.assertEquals(index_at_value(array, 1.5, slice(0, 3)), None)
+        self.assertEqual(index_at_value(array, 1.5, slice(0, 3)), None)
 
     def test_index_at_value_nan(self):
         array = np.ma.arange(4, dtype=np.float64)
         array[1] = np.NaN
-        self.assertEquals(index_at_value(array, 1.5, slice(0, 3)), None)
+        self.assertEqual(index_at_value(array, 1.5, slice(0, 3)), None)
 
     def test_index_at_value_slice_too_small(self):
         '''
@@ -3558,19 +3558,19 @@ class TestIndexAtValue(unittest.TestCase):
 
     def test_index_at_value_nearest(self):
         array = np.ma.array([0,1,2,1,2,3,2,1])
-        self.assertEquals(index_at_value(array, 3.1, slice(1, 8), endpoint='nearest'), 5.0)
+        self.assertEqual(index_at_value(array, 3.1, slice(1, 8), endpoint='nearest'), 5.0)
         # For comparison...
-        self.assertEquals(index_at_value(array, 3.1, slice(1, 8), endpoint='exact'), None)
-        self.assertEquals(index_at_value(array, 3.1, slice(1, 8), endpoint='closing'), 2.0)
+        self.assertEqual(index_at_value(array, 3.1, slice(1, 8), endpoint='exact'), None)
+        self.assertEqual(index_at_value(array, 3.1, slice(1, 8), endpoint='closing'), 2.0)
 
     def test_index_at_value_closing(self):
         array = np.ma.array([0,1,2,2,2,2,2,2])
-        self.assertEquals(index_at_value(array, 3.1, slice(0, 8), endpoint='first_closing'), 2)
-        self.assertEquals(index_at_value(array, 3.1, slice(0, 8), endpoint='closing'), 7)
+        self.assertEqual(index_at_value(array, 3.1, slice(0, 8), endpoint='first_closing'), 2)
+        self.assertEqual(index_at_value(array, 3.1, slice(0, 8), endpoint='closing'), 7)
 
     def test_index_at_value_nearest_backwards(self):
         array = np.ma.array([0,1,2,3,2,1,2,1])
-        self.assertEquals(index_at_value(array, 3.1, slice(7, 0, -1), endpoint='nearest'), 3.0)
+        self.assertEqual(index_at_value(array, 3.1, slice(7, 0, -1), endpoint='nearest'), 3.0)
 
     def test_index_at_value_all_masked(self):
         array = np.ma.array(data=[1.,2.,3.],mask=[1,1,1])
@@ -7529,9 +7529,9 @@ class TestSmoothTrack(unittest.TestCase):
         lon = np.ma.arange(10000, dtype=float)
         lon = lon%27
         lat = np.ma.zeros(10000, dtype=float)
-        start = clock()
+        start = process_time()
         lat_s, lon_s, cost = smooth_track(lat, lon, None, 0.25)
-        end = clock()
+        end = process_time()
         self.assertLess(end-start, 1.0)
 
 
@@ -7738,41 +7738,41 @@ class TestValueAtTime(unittest.TestCase):
 
     def test_value_at_time_basic(self):
         array = np.ma.arange(4)
-        self.assertEquals (value_at_time(array, 1, 0.0, 2.5), 2.5)
+        self.assertEqual (value_at_time(array, 1, 0.0, 2.5), 2.5)
 
     def test_value_at_time_right_at_start_of_data(self):
         array = np.ma.arange(4) + 22.3
-        self.assertEquals (value_at_time(array, 1, 0.0, 0.0), 22.3)
+        self.assertEqual (value_at_time(array, 1, 0.0, 0.0), 22.3)
 
     def test_value_at_time_right_at_end_of_data(self):
         array = np.ma.arange(4) + 22.3
-        self.assertEquals (value_at_time(array, 1.0, 0.0, 3.0), 25.3)
+        self.assertEqual (value_at_time(array, 1.0, 0.0, 3.0), 25.3)
 
     def test_value_at_time_assertion_just_below_range(self):
         array = np.ma.arange(4)+7.0
         # Note: Frequency and offset selected to go more than one sample period below bottom of range.
-        self.assertEquals (value_at_time(array, 1, 0.1, 0.0), 7.0)
+        self.assertEqual (value_at_time(array, 1, 0.1, 0.0), 7.0)
 
     def test_value_at_time_with_lower_value_masked(self):
         array = np.ma.arange(4) + 7.4
         array[1] = np.ma.masked
-        self.assertEquals (value_at_time(array, 2.0, 0.2, 1.0), 9.4)
+        self.assertEqual (value_at_time(array, 2.0, 0.2, 1.0), 9.4)
 
     def test_value_at_time_with_higher_value_masked(self):
         array = np.ma.arange(4) + 7.4
         array[2] = np.ma.masked
-        self.assertEquals (value_at_time(array, 2.0, 0.2, 1.0), 8.4)
+        self.assertEqual (value_at_time(array, 2.0, 0.2, 1.0), 8.4)
 
     def test_value_at_time_with_neither_value_masked(self):
         array = np.ma.arange(4) + 7.4
         array[3] = np.ma.masked
-        self.assertEquals (value_at_time(array, 2.0, 0.2, 1.0), 9.0)
+        self.assertEqual (value_at_time(array, 2.0, 0.2, 1.0), 9.0)
 
     def test_value_at_time_with_both_values_masked(self):
         array = np.ma.arange(4) + 7.4
         array[1] = np.ma.masked
         array[2] = np.ma.masked
-        self.assertEquals (value_at_time(array, 2.0, 0.2, 1.0), None)
+        self.assertEqual (value_at_time(array, 2.0, 0.2, 1.0), None)
 
 
 class TestValueAtDatetime(unittest.TestCase):
@@ -7799,43 +7799,43 @@ class TestValueAtIndex(unittest.TestCase):
 
     def test_value_at_index_basic(self):
         array = np.ma.arange(4)
-        self.assertEquals(value_at_index(array, 1.5), 1.5)
+        self.assertEqual(value_at_index(array, 1.5), 1.5)
 
     def test_value_at_index_basic_list(self):
         array = list(range(4))
-        self.assertEquals(value_at_index(array, 1.5), 1.5)
+        self.assertEqual(value_at_index(array, 1.5), 1.5)
 
     def test_value_at_index_just_above_range(self):
         array = np.ma.arange(4)
-        self.assertEquals(value_at_index(array, 3.7), 3.0)
+        self.assertEqual(value_at_index(array, 3.7), 3.0)
 
     def test_value_at_index_just_below_range(self):
         array = np.ma.arange(4)
-        self.assertEquals(value_at_index(array, -0.5), 0.0)
+        self.assertEqual(value_at_index(array, -0.5), 0.0)
 
     def test_value_at_index_masked(self):
         array = np.ma.arange(4)
         array[2] = np.ma.masked
-        self.assertEquals(value_at_index(array, 2), None)
+        self.assertEqual(value_at_index(array, 2), None)
 
     def test_value_at_index_non_interpolated(self):
         array = np.ma.arange(4)
         for x in (2.00, 2.25):
-            self.assertEquals(value_at_index(array, x, interpolate=False), 2)
+            self.assertEqual(value_at_index(array, x, interpolate=False), 2)
         for x in (2.50, 2.75, 3.00):
-            self.assertEquals(value_at_index(array, x, interpolate=False), 3)
+            self.assertEqual(value_at_index(array, x, interpolate=False), 3)
 
     def test_value_at_index_masked_non_interpolated(self):
         array = np.ma.arange(4)
         array[2] = np.ma.masked
         for x in (2.00, 2.25, 2.50, 2.75, 3.00):
             expected = None if x == 2.00 else 3
-            self.assertEquals(value_at_index(array, x, interpolate=False), expected)
+            self.assertEqual(value_at_index(array, x, interpolate=False), expected)
         array = np.ma.arange(4)
         array[3] = np.ma.masked
         for x in (2.00, 2.25, 2.50, 2.75, 3.00):
             expected = None if x == 3.00 else 2
-            self.assertEquals(value_at_index(array, x, interpolate=False), expected)
+            self.assertEqual(value_at_index(array, x, interpolate=False), expected)
 
 
 class TestVstackParams(unittest.TestCase):
@@ -8004,7 +8004,7 @@ class TestCas2Dp(unittest.TestCase):
 class TestCasAlt2Mach(unittest.TestCase):
     def test_cas_alt2mach(self):
         cas = np.ma.array(data=[300.0, 300, 300, 300], mask=[0,1,0,0])
-        alt_ft = np.ma.array(data=[0, 0, 0,30000.0], mask = [0,0,1,0])
+        alt_ft = np.ma.array(data=[0, 0, 0, 30000.0], mask=[0,0,1,0])
         result = cas_alt2mach(cas, alt_ft)
         expected = np.ma.array(data=[0.4535, 99, 99, 0.79],mask=[0,1,1,0])
         ma_test.assert_masked_array_approx_equal(result[:3], expected[:3], decimal=4)
@@ -8601,7 +8601,7 @@ class TestNearestRunway(unittest.TestCase):
         '''
         Test finding nearest runway with invalid magnetic heading.
         '''
-        self.assertRaisesRegexp(Exception,
+        self.assertRaisesRegex(Exception,
                                 self._expected['008'],
                                 callableObj=nearest_runway, args=[self._airports['001'], 'ABC'])
 
@@ -8609,7 +8609,7 @@ class TestNearestRunway(unittest.TestCase):
         '''
         Test finding nearest runway with positive overflowed magnetic heading.
         '''
-        self.assertRaisesRegexp(Exception,
+        self.assertRaisesRegex(Exception,
                                 self._expected['008'],
                                 callableObj=nearest_runway, args=[self._airports['001'], 361])
 
@@ -8617,7 +8617,7 @@ class TestNearestRunway(unittest.TestCase):
         '''
         Test finding nearest runway with negative overflowed magnetic heading.
         '''
-        self.assertRaisesRegexp(Exception,
+        self.assertRaisesRegex(Exception,
                                 self._expected['008'],
                                 callableObj=nearest_runway, args=[self._airports['001'], -1])
 
@@ -8625,7 +8625,7 @@ class TestNearestRunway(unittest.TestCase):
         '''
         Test finding nearest runway without a magnetic heading.
         '''
-        self.assertRaisesRegexp(Exception,
+        self.assertRaisesRegex(Exception,
                                 self._expected['006'],
                                 callableObj=nearest_runway, args=[self._airports['001'], None])
 
@@ -8640,7 +8640,7 @@ class TestNearestRunway(unittest.TestCase):
         '''
         Test finding nearest runway with invalid latitude.
         '''
-        self.assertRaisesRegexp(Exception,
+        self.assertRaisesRegex(Exception,
                                 self._expected['010'],
                                 callableObj=nearest_runway,
                                 args=[self._airports['001'], 270.5],
@@ -8650,7 +8650,7 @@ class TestNearestRunway(unittest.TestCase):
         '''
         Test finding nearest runway with positive overflowed latitude.
         '''
-        self.assertRaisesRegexp(Exception,
+        self.assertRaisesRegex(Exception,
                                 self._expected['012'],
                                 callableObj=nearest_runway,
                                 args=[self._airports['001'], 270.5],
@@ -8660,7 +8660,7 @@ class TestNearestRunway(unittest.TestCase):
         '''
         Test finding nearest runway with negative overflowed latitude.
         '''
-        self.assertRaisesRegexp(Exception,
+        self.assertRaisesRegex(Exception,
                                 self._expected['012'],
                                 callableObj=nearest_runway,
                                 args=[self._airports['001'], 270.5],
@@ -8670,7 +8670,7 @@ class TestNearestRunway(unittest.TestCase):
         '''
         Test finding nearest runway with invalid longitude.
         '''
-        self.assertRaisesRegexp(Exception,
+        self.assertRaisesRegex(Exception,
                                 self._expected['011'],
                                 callableObj=nearest_runway,
                                 args=[self._airports['001'], 270.5],
@@ -8680,7 +8680,7 @@ class TestNearestRunway(unittest.TestCase):
         '''
         Test finding nearest runway with positive overflowed longitude.
         '''
-        self.assertRaisesRegexp(Exception,
+        self.assertRaisesRegex(Exception,
                                 self._expected['013'],
                                 callableObj=nearest_runway,
                                 args=[self._airports['001'], 270.5],
@@ -8690,7 +8690,7 @@ class TestNearestRunway(unittest.TestCase):
         '''
         Test finding nearest runway with negative overflowed longitude.
         '''
-        self.assertRaisesRegexp(Exception,
+        self.assertRaisesRegex(Exception,
                                 self._expected['013'],
                                 callableObj=nearest_runway,
                                 args=[self._airports['001'], 270.5],
@@ -8700,7 +8700,7 @@ class TestNearestRunway(unittest.TestCase):
         '''
         Test finding nearest runway with one coordinate.
         '''
-        self.assertRaisesRegexp(Exception,
+        self.assertRaisesRegex(Exception,
                                 self._expected['009'],
                                 callableObj=nearest_runway,
                                 args=[self._airports['001'], 270.5],
@@ -8710,7 +8710,7 @@ class TestNearestRunway(unittest.TestCase):
         '''
         Test finding nearest runway with unknown magnetic heading.
         '''
-        self.assertRaisesRegexp(Exception,
+        self.assertRaisesRegex(Exception,
                                 self._expected['014'] % 180.0,
                                 callableObj=nearest_runway,
                                 args=[self._airports['001'], 180.0],
@@ -8734,7 +8734,7 @@ class TestNearestRunway(unittest.TestCase):
         '''
         Test finding nearest runway with invalid localizer frequency.
         '''
-        self.assertRaisesRegexp(Exception,
+        self.assertRaisesRegex(Exception,
                                 self._expected['015'],
                                 callableObj=nearest_runway,
                                 args=[self._airports['001'], 270.5],
@@ -8744,7 +8744,7 @@ class TestNearestRunway(unittest.TestCase):
         '''
         Test finding nearest runway with out-of-range localizer frequency.
         '''
-        self.assertRaisesRegexp(Exception,
+        self.assertRaisesRegex(Exception,
                                 self._expected['016'],
                                 callableObj=nearest_runway,
                                 args=[self._airports['001'], 270.5],
@@ -8754,7 +8754,7 @@ class TestNearestRunway(unittest.TestCase):
         '''
         Test finding nearest runway with out-of-range localizer frequency.
         '''
-        self.assertRaisesRegexp(Exception,
+        self.assertRaisesRegex(Exception,
                                 self._expected['016'],
                                 callableObj=nearest_runway,
                                 args=[self._airports['001'], 270.5],
@@ -8846,34 +8846,34 @@ class TestMaxMaintainedValue(unittest.TestCase):
     def test_example_max_maintained_value(self):
         arrays = np.ma.array([1,2,3,4,3,4,3,4,3,2,5,2])
         index, value = max_maintained_value(arrays, 5, 1)
-        self.assertEquals(index, 2)
-        self.assertEquals(value, 3)
+        self.assertEqual(index, 2)
+        self.assertEqual(value, 3)
 
     def test_short_down_spike(self):
         arrays = np.ma.array([1, 8, 8, 8, 1, 8, 1, 7, 7, 7, 7, 7, 9])
         index, value = max_maintained_value(arrays, 5, 1)
-        self.assertEquals(index, 7)
-        self.assertEquals(value, 7)
+        self.assertEqual(index, 7)
+        self.assertEqual(value, 7)
 
     def test_all_masked(self):
         arrays = np.ma.array([1, 8, 8, 8, 1, 8, 1, 7, 7, 7, 7, 7, 9], mask=True)
         index, value = max_maintained_value(arrays, 5, 1)
-        self.assertEquals(index, None)
-        self.assertEquals(value, None)
+        self.assertEqual(index, None)
+        self.assertEqual(value, None)
 
     def test_partly_masked(self):
         arrays = np.ma.array([1, 7, 7, 7, 7, 7, 9, 1, 8, 8, 8, 1, 8])
         arrays[1:3] = np.ma.masked
         index, value = max_maintained_value(arrays, 5, 1)
-        self.assertEquals(index, 3)
-        self.assertEquals(value, 1)
+        self.assertEqual(index, 3)
+        self.assertEqual(value, 1)
 
     def test_slice_outside_array(self):
         arrays = np.ma.array([1,2,3,4,3,4,3,4,3,2,5,2])
         arrays[2] = np.ma.masked
         index, value = max_maintained_value(arrays, 5, 1, slice(100, 200))
-        self.assertEquals(index, None)
-        self.assertEquals(value, None)
+        self.assertEqual(index, None)
+        self.assertEqual(value, None)
 
     def test_max_maintained_value(self):
         eng_torq_max=load(os.path.join(test_data_path,

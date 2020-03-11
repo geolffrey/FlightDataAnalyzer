@@ -22562,7 +22562,7 @@ class TestGrossWeightConditionalAtTouchdown(unittest.TestCase):
 
         self.assertEqual(len(node), 1)
         self.assertEqual(node[0].index, 7999.125)
-        self.assertAlmostEquals(node[0].value, 9256.64, 2)
+        self.assertAlmostEqual(node[0].value, 9256.64, 2)
 
     def test_derive_tdwn_idx_rounding_2(self):
         weight = KPV(name='Gross Weight At Touchdown', items=[
@@ -22583,7 +22583,7 @@ class TestGrossWeightConditionalAtTouchdown(unittest.TestCase):
 
         self.assertEqual(len(node), 1)
         self.assertEqual(node[0].index, 8454.125)
-        self.assertAlmostEquals(node[0].value, 61687.72, 2)
+        self.assertAlmostEqual(node[0].value, 61687.72, 2)
 
 
 class TestGrossWeightDelta60SecondsInFlightMax(unittest.TestCase):

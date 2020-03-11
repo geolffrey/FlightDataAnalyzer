@@ -160,10 +160,8 @@ def get_param_kwarg_names(method):
     :returns: Ordered list of default values of keyword arguments
     :rtype: list
     """
-    try:
-        args, varargs, varkw, defaults = inspect.getargspec(method)
-    except AttributeError:
-        args, varargs, varkw, defaults = inspect.getfullargspec(method)[:4]
+    args, varargs, varkw, defaults = inspect.getfullargspec(method)[:4]
+
     if not defaults or args[:-len(defaults)] != ['self'] or varargs:
         raise ValueError("Node '%s' must have kwargs, must accept at least one "
                          "kwarg and not any args other than 'self'. args:'%s' "
@@ -1813,7 +1811,7 @@ class KeyPointValueNode(FormattedNameNode):
         # happen.
         if value is np.ma.masked:
             msg = "'%s' cannot create KPV at index '%s': Value is masked."
-            logger.warn(msg, self.name, index)
+            logger.warning(msg, self.name, index)
             return
 
         value = float(value)

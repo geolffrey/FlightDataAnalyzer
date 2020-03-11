@@ -3247,14 +3247,14 @@ class TestPitchBelow5FtMax(unittest.TestCase):
 
     def test_attributes(self):
         node = self.node_class()
-        self.assertEquals(node.name, 'Pitch Below 5 Ft Max')
-        self.assertEquals(node.units, ut.DEGREE)
+        self.assertEqual(node.name, 'Pitch Below 5 Ft Max')
+        self.assertEqual(node.units, ut.DEGREE)
 
     def test_can_operate(self):
-        self.assertEquals(self.node_class.get_operational_combinations(
+        self.assertEqual(self.node_class.get_operational_combinations(
             ac_type=aeroplane), [])
         opts = self.node_class.get_operational_combinations(ac_type=helicopter)
-        self.assertEquals(len(opts), 1)
+        self.assertEqual(len(opts), 1)
         self.assertIn('Pitch',opts[0])
         self.assertIn('Altitude AGL', opts[0])
         self.assertIn('Airborne', opts[0])
@@ -3278,14 +3278,14 @@ class TestPitch5To10FtMax(unittest.TestCase):
 
     def test_attributes(self):
         node = self.node_class()
-        self.assertEquals(node.name, 'Pitch 5 To 10 Ft Max')
-        self.assertEquals(node.units, ut.DEGREE)
+        self.assertEqual(node.name, 'Pitch 5 To 10 Ft Max')
+        self.assertEqual(node.units, ut.DEGREE)
 
     def test_can_operate(self):
-        self.assertEquals(self.node_class.get_operational_combinations(
+        self.assertEqual(self.node_class.get_operational_combinations(
             ac_type=aeroplane), [])
         opts = self.node_class.get_operational_combinations(ac_type=helicopter)
-        self.assertEquals(len(opts), 1)
+        self.assertEqual(len(opts), 1)
         self.assertIn('Pitch',opts[0])
         self.assertIn('Altitude AGL', opts[0])
         self.assertIn('Airborne', opts[0])
@@ -3313,14 +3313,14 @@ class TestPitch10To5FtMax(unittest.TestCase):
 
     def test_attributes(self):
         node = self.node_class()
-        self.assertEquals(node.name, 'Pitch 10 To 5 Ft Max')
-        self.assertEquals(node.units, ut.DEGREE)
+        self.assertEqual(node.name, 'Pitch 10 To 5 Ft Max')
+        self.assertEqual(node.units, ut.DEGREE)
 
     def test_can_operate(self):
-        self.assertEquals(self.node_class.get_operational_combinations(
+        self.assertEqual(self.node_class.get_operational_combinations(
             ac_type=aeroplane), [])
         opts = self.node_class.get_operational_combinations(ac_type=helicopter)
-        self.assertEquals(len(opts), 1)
+        self.assertEqual(len(opts), 1)
         self.assertIn('Pitch',opts[0])
         self.assertIn('Altitude AGL', opts[0])
         self.assertIn('Airborne', opts[0])

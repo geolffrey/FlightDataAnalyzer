@@ -605,7 +605,7 @@ def bearing_and_distance(lat1, lon1, lat2, lon2):
         return None, None
     brg, dist = bearings_and_distances(np.ma.array(lat2), np.ma.array(lon2),
                                        {'latitude':lat1, 'longitude':lon1})
-    return np.asscalar(brg), np.asscalar(dist)
+    return brg.item(), dist.item()
 
 
 def bearings_and_distances(latitudes, longitudes, reference):
@@ -978,7 +978,7 @@ def coreg(y, indep_var=None, force_zero=False):
     """
     n = len(y)
     if n < 2:
-        logger.warn('Function coreg called with data of length %s' % n)
+        logger.warning('Function coreg called with data of length %s' % n)
     if indep_var is None:
         x = np.ma.arange(n, dtype=np.float64)
     else:
@@ -3294,7 +3294,7 @@ def interpolate(array, extrapolate=True):
     last = len(array)
     if len(blocks)==1:
         if blocks[0].start == 0 and blocks[0].stop == last:
-            logger.warn('No unmasked data to interpolate')
+            logger.warning('No unmasked data to interpolate')
             return np_ma_zeros_like(array)
 
     for block in blocks:
@@ -7321,7 +7321,7 @@ def smooth_track(lat, lon, ac_type, hz):
         cost = smooth_track_cost_function(lat_s, lon_s, lat, lon, ac_type, hz)
 
     if cost>0.1:
-        logger.warn("Smooth Track Cost Function closed with cost %f.3",cost)
+        logger.warning("Smooth Track Cost Function closed with cost %f.3",cost)
 
     return lat_last, lon_last, cost_0
 

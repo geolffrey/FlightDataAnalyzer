@@ -48,7 +48,7 @@ from analysis_engine.test_utils import buildsection
 test_data_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                               'test_data')
 
-airports = yaml.load(open(os.path.join(test_data_path, 'airports.yaml'), 'rb'))
+airports = yaml.load(open(os.path.join(test_data_path, 'airports.yaml'), 'rb'), Loader=yaml.FullLoader)
 
 
 def setUpModule():

@@ -760,7 +760,7 @@ class TestAirspeedSelectedForApproaches(unittest.TestCase):
         fast = buildsection('Fast', 0, 9)
         p = self.node_class(frequency=1 / 64.)
         p.derive(airspd, fast)
-        self.assertEquals(len(p.array), 640)
+        self.assertEqual(len(p.array), 640)
         self.assertTrue(p.array[1], 1)
 
     def test_derive__superframe_change_after_fast(self):
@@ -774,7 +774,7 @@ class TestAirspeedSelectedForApproaches(unittest.TestCase):
         fast.frequency = 1 / 64.
         node = self.node_class(frequency=1 / 64.)
         node.derive(airspd, fast)
-        self.assertEquals(len(node.array), 5760)
+        self.assertEqual(len(node.array), 5760)
         final_approach_values = node.array[4992:5184]
         self.assertEqual(len(np.unique(final_approach_values)), 1)
         self.assertEqual(np.unique(final_approach_values)[0], 135)
@@ -3744,7 +3744,7 @@ class TestFuelQtyAux(unittest.TestCase):
         self.assertIn(('Fuel Qty (Aux) (1)', 'Fuel Qty (Aux) (2)'), opts)
         self.assertIn(('Fuel Qty (Aux) (1)',), opts)
         self.assertIn(('Fuel Qty (Aux) (2)',), opts)
-        self.assertEquals(len(opts), 3)
+        self.assertEqual(len(opts), 3)
 
     def test_derive(self):
         fq1 = P('Fuel Qty (Aux) (1)', np.ma.array([40,30,20,10]))
@@ -6079,7 +6079,7 @@ class TestLatitudePrepared(unittest.TestCase):
             hdg_mag, None, tas, gspd, alt_aal, lat_lift, lon_lift, lat_land, lon_land
         )
         air_track.assert_not_called()
-        self.assertFalse(node.array)
+        self.assertFalse(node.array > 0)
 
 
 class TestLatitudeSmoothed(unittest.TestCase):
@@ -6174,7 +6174,7 @@ class TestLongitudePrepared(unittest.TestCase):
             hdg_mag, None, tas, gspd, alt_aal, lat_lift, lon_lift, lat_land, lon_land
         )
         air_track.assert_not_called()
-        self.assertFalse(node.array)
+        self.assertFalse(node.array > 0)
 
 
 class TestLongitudeSmoothed(unittest.TestCase):
@@ -7509,7 +7509,7 @@ class TestGrossWeight(unittest.TestCase):
         gw = GrossWeight()
         gw.derive(zfw, fuel_qty, None, None, None, None, None, None, None)
 
-        self.assertEquals(len(gw.array), 60)
+        self.assertEqual(len(gw.array), 60)
         self.assertEqual(gw.array[4], (10000-(4*100)+17400))
 
         # check fuel quantity decrease at liftoff by 90%
