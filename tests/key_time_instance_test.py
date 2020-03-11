@@ -37,6 +37,7 @@ from analysis_engine.key_time_instances import (
     EngStop,
     EnterHold,
     ExitHold,
+    FirstAirspeedDuringLanding,
     FirstEngFuelFlowStart,
     FirstEngStartBeforeLiftoff,
     LastEngStartBeforeLiftoff,
@@ -2973,3 +2974,83 @@ class TestLastEngFuelFlowStop(unittest.TestCase):
         leffs = LastEngFuelFlowStop()
         leffs.derive(ff)
         self.assertEqual(leffs[0].index, 13)
+
+
+class TestFirstAirspeedDuringLanding(unittest.TestCase, NodeTest):
+    def setUp(self):
+        self.node_class = FirstAirspeedDuringLanding
+        self.operational_combinations = [
+            ('Groundspeed', 'Landing'),
+            ('Airspeed True', 'Landing'),
+            ('Airspeed', 'Landing'),
+        ]
+
+    def test_gspd_only_source(self):
+        gspd = P('Groundspeed', array=np.ma.arange(97.5, 47.5, -5))
+        ldg = buildsection('Landing', 2, 10)
+        node = self.node_class()
+        node.derive(gspd, None, None, ldg)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].name, 'First 60 Kt During Landing')
+        self.assertEqual(node[0].index, 7.5)
+
+    def test_gspd_masked(self):
+        gspd = P('Groundspeed', array=np.ma.arange(97.5, 47.5, -5))
+        gspd.array[7] = np.ma.masked
+        aspd_true = P('Airspeed True', array=np.ma.arange(97.5, 47.5, -5))
+        ldg = buildsection('Landing', 2, 10)
+        node = self.node_class()
+        node.derive(gspd, aspd_true, None, ldg)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].name, 'First 60 Kt During Landing')
+        self.assertEqual(node[0].index, 7.5)
+
+    def test_gspd_and_airspd_true_masked(self):
+        gspd = P('Groundspeed', array=np.ma.arange(97.5, 47.5, -5))
+        gspd.array[7] = np.ma.masked
+        aspd_true = P('Airspeed True', array=np.ma.arange(97.5, 47.5, -5))
+        aspd_true.array[7] = np.ma.masked
+        aspd = P('Airspeed', array=np.ma.arange(97.5, 47.5, -5))
+        ldg = buildsection('Landing', 2, 10)
+        node = self.node_class()
+        node.derive(gspd, aspd_true, aspd, ldg)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].name, 'First 60 Kt During Landing')
+        self.assertEqual(node[0].index, 7.5)
+
+    def test_gspd_has_priority(self):
+        gspd = P('Groundspeed', array=np.ma.arange(97.5, 47.5, -5))
+        aspd_true = P('Airspeed True', array=np.ma.arange(107.5, 57.5, -5))
+        aspd = P('Airspeed', array=np.ma.arange(87.5, 37.5, -5))
+        ldg = buildsection('Landing', 2, 10)
+        node = self.node_class()
+        node.derive(gspd, aspd_true, aspd, ldg)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].name, 'First 60 Kt During Landing')
+        self.assertEqual(node[0].index, 7.5)
+
+    def test_multiple_60_kts_in_one_landing_phase(self):
+        gspd = P('Groundspeed', array=np.tile(np.ma.arange(97.5, 47.5, -5), 2))
+        ldg = buildsection('Landing', 2, 10)
+        node = self.node_class()
+        node.derive(gspd, None, None, ldg)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].name, 'First 60 Kt During Landing')
+        self.assertEqual(node[0].index, 7.5)
+
+    def test_multiple_landing_phases(self):
+        gspd = P('Groundspeed', array=np.tile(np.ma.arange(97.5, 47.5, -5), 2))
+        ldg = buildsections('Landing', (2, 10), (12, 20))
+        node = self.node_class()
+        node.derive(gspd, None, None, ldg)
+
+        self.assertEqual(len(node), 2)
+        self.assertEqual(node[0].name, 'First 60 Kt During Landing')
+        self.assertEqual(node[0].index, 7.5)
+        self.assertEqual(node[1].name, 'First 60 Kt During Landing')
+        self.assertEqual(node[1].index, 17.5)

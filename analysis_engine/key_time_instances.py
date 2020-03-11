@@ -2576,3 +2576,39 @@ class DistanceFromThreshold(KeyTimeInstanceNode, DistanceFromLocationMixin):
                 rwy.value['start']['latitude'],
                 rwy.value['start']['longitude'],
                 lat, lon, distance, direction='backward', _slice=airs[0].slice)
+
+
+class FirstAirspeedDuringLanding(KeyTimeInstanceNode):
+    '''
+    Indicates when airspeed was first reached during landing.
+
+    We use in preference Groundspeed, Airspeed True and finally Airspeed
+    '''
+
+    NAME_FORMAT = 'First %(airspeed)s Kt During Landing'
+    NAME_VALUES = {'airspeed': [60]}
+
+    @classmethod
+    def can_operate(cls, available):
+        spd =  any_of(('Groundspeed', 'Airspeed True', 'Airspeed'), available)
+        return 'Landing' in available and spd
+
+    def derive(self,
+               gspd=P('Groundspeed'),
+               aspd_true=P('Airspeed True'),
+               aspd=P('Airspeed'),
+               ldgs=S('Landing')):
+
+        spds = [spd for spd in (gspd, aspd_true, aspd) if spd is not None]
+        for ldg in ldgs:
+            for target_spd in self.NAME_VALUES['airspeed']:
+                idxs = (
+                    index_at_value(spd.array, target_spd, _slice=ldg.slice)
+                    for spd in spds
+                )
+                idx = next(
+                    (idx for idx in idxs if idx is not None),
+                    None
+                )
+                if idx is not None:
+                    self.create_kti(idx, airspeed=target_spd)
