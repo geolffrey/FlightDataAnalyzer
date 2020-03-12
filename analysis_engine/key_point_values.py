@@ -7814,6 +7814,84 @@ class DistanceFromTouchdownToRunwayEnd(KeyPointValueNode):
         self.create_kpv(tdwns.get_last().index, distance_to_tdn)
 
 
+class DistanceFromRunwayStartTo60Kts(KeyPointValueNode):
+    '''
+    Finds the distance from the runway start location to the point where the aircraft
+    reached 60 kts.
+    This only operates for the last landing, and previous touch and goes will
+    not be recorded.
+    '''
+
+    can_operate = aeroplane_only
+    units = ut.METER
+
+    def derive(self, lat=P('Latitude Smoothed'),
+               lon=P('Longitude Smoothed'),
+               spd_ldgs=KTI('First Airspeed During Landing'),
+               rwy=A('FDR Landing Runway')):
+
+        if ambiguous_runway(rwy):
+            return
+
+        spd_60_ldg = spd_ldgs.get_last(name='First 60 Kt During Landing')
+        if not spd_60_ldg:
+            return
+
+        lat_60_kt = value_at_index(lat.array, spd_60_ldg.index)
+        lon_60_kt = value_at_index(lon.array, spd_60_ldg.index)
+
+        if None in (lat_60_kt, lon_60_kt):
+            return
+
+        distance_to_start = runway_distance_from_end(rwy.value, point='start')
+        distance_to_60_kt = runway_distance_from_end(rwy.value, lat_60_kt, lon_60_kt)
+
+        distance_start_60_kt = distance_to_start - distance_to_60_kt
+        self.create_kpv(spd_60_ldg.index, distance_start_60_kt)
+
+
+class DistanceFromTouchdownTo60Kts(KeyPointValueNode):
+    '''
+    Finds the distance from touchdown to the point where the aircraft
+    reached 60 kts.
+    This only operates for the last landing, and previous touch and goes will
+    not be recorded.
+    '''
+
+    can_operate = aeroplane_only
+    units = ut.METER
+
+    def derive(self, lat=P('Latitude Smoothed'),
+               lon=P('Longitude Smoothed'),
+               spd_ldgs=KTI('First Airspeed During Landing'),
+               lat_tdn=KPV('Latitude Smoothed At Touchdown'),
+               lon_tdn=KPV('Longitude Smoothed At Touchdown'),
+               rwy=A('FDR Landing Runway')):
+
+        if ambiguous_runway(rwy):
+            return
+
+        spd_60_ldg = spd_ldgs.get_last(name='First 60 Kt During Landing')
+        if not spd_60_ldg:
+            return
+
+        lat_60_kt = value_at_index(lat.array, spd_60_ldg.index)
+        lon_60_kt = value_at_index(lon.array, spd_60_ldg.index)
+
+        if None in (lat_60_kt, lon_60_kt):
+            return
+
+        distance_to_touchdown = runway_distance_from_end(
+            rwy.value,
+            lat_tdn.get_last().value,
+            lon_tdn.get_last().value
+        )
+        distance_to_60_kt = runway_distance_from_end(rwy.value, lat_60_kt, lon_60_kt)
+
+        distance_touchdown_to_60_kt = distance_to_touchdown - distance_to_60_kt
+        self.create_kpv(spd_60_ldg.index, distance_touchdown_to_60_kt)
+
+
 class DecelerationFromTouchdownToStopOnRunway(KeyPointValueNode):
     '''
     This determines the average level of deceleration required to stop the

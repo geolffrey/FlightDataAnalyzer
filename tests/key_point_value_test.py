@@ -268,6 +268,8 @@ from analysis_engine.key_point_values import (
     DirectLawDuration,
     DistanceFromRunwayCentrelineAtTouchdown,
     DistanceFromRunwayCentrelineFromTouchdownTo60KtMax,
+    DistanceFromRunwayStartTo60Kts,
+    DistanceFromTouchdownTo60Kts,
     DistanceTravelledDuringTurnback,
     DistanceTravelledFollowingDiversion,
     DualInputAbove200FtDuration,
@@ -11279,6 +11281,56 @@ class TestDistanceFromTouchdownToRunwayEnd(unittest.TestCase):
     @unittest.skip('Test Not Implemented')
     def test_derive(self):
         self.assertTrue(False, msg='Test not implemented.')
+
+
+class TestDistanceFromRunwayStartTo60Kts(unittest.TestCase):
+    def test_derive(self):
+        lat = P('Latitude Smoothed', np.ma.ones(50))
+        lon = P('Longitude Smoothed', np.ma.arange(1, 1.001, 0.001/50))
+        spd_ldgs = FirstAirspeedDuringLanding('First Airspeed During Landing', items=[
+            KeyTimeInstance(index=40, name='First 60 Kt During Landing')
+        ])
+        runway = {
+            'identifier': 'EGXX',
+            'start': {'latitude': 1, 'longitude': 1},
+            'end': {'latitude': 1, 'longitude': 1.001},
+        }
+        rwy = A('FDR Landing Runway', value=runway)
+        node = DistanceFromRunwayStartTo60Kts()
+        node.derive(lat, lon, spd_ldgs, rwy)
+
+        self.assertEqual(len(node), 1)
+        self.assertAlmostEqual(node[0].index, 40)
+        # Haversine distance between 1 and 1.001 is 111.2 meters
+        self.assertAlmostEqual(node[0].value, 111.2 * 4/5, places=1)
+
+
+class TestDistanceFromTouchdownTo60Kts(unittest.TestCase):
+    def test_derive(self):
+        lat = P('Latitude Smoothed', np.ma.ones(50))
+        lon = P('Longitude Smoothed', np.ma.arange(1, 1.001, 0.001/50))
+        spd_ldgs = FirstAirspeedDuringLanding('First Airspeed During Landing', items=[
+            KeyTimeInstance(index=40, name='First 60 Kt During Landing')
+        ])
+        lat_tdn = KPV('Latitude Smoothed At Touchdown', items=[
+            KeyPointValue(index=10, value=1)
+        ])
+        lon_tdn = KPV('Longitude Smoothed At Touchdown', items=[
+            KeyPointValue(index=10, value=1.0002)
+        ])
+        runway = {
+            'identifier': 'EGXX',
+            'start': {'latitude': 1, 'longitude': 1},
+            'end': {'latitude': 1, 'longitude': 1.001},
+        }
+        rwy = A('FDR Landing Runway', value=runway)
+        node = DistanceFromTouchdownTo60Kts()
+        node.derive(lat, lon, spd_ldgs, lat_tdn, lon_tdn, rwy)
+
+        self.assertEqual(len(node), 1)
+        self.assertAlmostEqual(node[0].index, 40)
+        # Haversine distance between 1 and 1.001 is 111.2 meters
+        self.assertAlmostEqual(node[0].value, 111.2 * 3/5, places=1)
 
 
 class TestDistancePastGlideslopeAntennaToTouchdown(unittest.TestCase):
