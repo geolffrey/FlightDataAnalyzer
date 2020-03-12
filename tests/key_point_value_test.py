@@ -784,6 +784,7 @@ from analysis_engine.key_time_instances import (
     AltitudeWhenDescending,
     AltitudeBeforeLevelFlightWhenClimbing,
     AltitudeBeforeLevelFlightWhenDescending,
+    FirstAirspeedDuringLanding,
     EngStart,
     EngStop,
     DistanceFromThreshold
@@ -23980,13 +23981,27 @@ class TestTouchdownTo60KtsDuration(unittest.TestCase, NodeTest):
     def setUp(self):
         self.node_class = TouchdownTo60KtsDuration
         self.operational_combinations = [
-            ('Airspeed', 'Touchdown'),
-            ('Airspeed', 'Groundspeed', 'Touchdown'),
+            ('First Airspeed During Landing', 'Touchdown'),
         ]
 
-    @unittest.skip('Test Not Implemented')
     def test_derive(self):
-        self.assertTrue(False, msg='Test not implemented.')
+        tdwns = KTI('Touchdown', items=[
+            KeyTimeInstance(name='Touchdown', index=5),
+            KeyTimeInstance(name='Touchdown', index=8),
+            KeyTimeInstance(name='Touchdown', index=15),
+        ])
+        spd_ldgs = FirstAirspeedDuringLanding(items=[
+            KeyTimeInstance(name='First 60 Kt During Landing', index=10),
+            KeyTimeInstance(name='First 60 Kt During Landing', index=22),
+        ])
+        node = self.node_class()
+        node.derive(tdwns, spd_ldgs)
+
+        self.assertEqual(len(node), 2)
+        self.assertEqual(node[0].index, 10)
+        self.assertEqual(node[0].value, 2)
+        self.assertEqual(node[1].index, 22)
+        self.assertEqual(node[1].value, 7)
 
 
 class TestTouchdownToPitch2DegreesAbovePitchAt60KtsDuration(unittest.TestCase):

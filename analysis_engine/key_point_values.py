@@ -19979,31 +19979,18 @@ class TouchdownToElevatorDownDuration(KeyPointValueNode):
 
 class TouchdownTo60KtsDuration(KeyPointValueNode):
     '''
-    Time between the point of touchdown and aircraft reaching 60kts IAS.
+    Time between the point of touchdown and aircraft reaching 60kts.
     '''
 
     units = ut.SECOND
 
-    @classmethod
-    def can_operate(cls, available):
-        return all_of(('Airspeed', 'Touchdown'), available)
-
     def derive(self,
-               airspeed=P('Airspeed'),
-               groundspeed=P('Groundspeed'),
-               tdwns=KTI('Touchdown')):
-        if groundspeed:
-            speed = groundspeed.array
-            freq = groundspeed.frequency
-        else:
-            speed = airspeed.array
-            freq = airspeed.frequency
+               tdwns=KTI('Touchdown'),
+               spd_ldgs=KTI('First Airspeed During Landing')):
+        spd_60_ldgs = spd_ldgs.get(name='First 60 Kt During Landing')
+        slices = slices_from_ktis(tdwns, spd_60_ldgs)
+        self.create_kpvs_from_slice_durations(slices, self.frequency, mark='end')
 
-        for tdwn in tdwns:
-            index_60kt = index_at_value(speed, 60.0, slice(tdwn.index, None))
-            if index_60kt:
-                t__60kt = (index_60kt - tdwn.index) / freq
-                self.create_kpv(index_60kt, t__60kt)
 
 class TouchdownToPitch2DegreesAbovePitchAt60KtsDuration(KeyPointValueNode):
     '''
