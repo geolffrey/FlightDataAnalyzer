@@ -35,6 +35,7 @@ from analysis_engine.library import (
     slices_above,
     slices_below,
     slices_between,
+    slices_from_ktis,
     slices_from_to,
     slices_remove_small_gaps,
     value_at_index,
@@ -2037,7 +2038,7 @@ class KeyPointValueNode(FormattedNameNode):
         :param kti_2: End KTIs
         :type kti_2: KTI Node or List
         '''
-        slices = [slice(a.index, b.index + 1) for a, b in zip(kti_1, kti_2)]
+        slices = slices_from_ktis(kti_1, kti_2)
         self.create_kpvs_within_slices(array, slices, function)
         return
 

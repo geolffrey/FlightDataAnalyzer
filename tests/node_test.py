@@ -1270,6 +1270,24 @@ class TestKeyPointValueNode(unittest.TestCase):
                          [KeyPointValue(index=4, value=6, name='Kpv'),
                           KeyPointValue(index=8, value=10, name='Kpv')])
 
+    def test_create_kpvs_between_ktis_weird_order(self):
+        knode = self.knode
+        param = P('Param', np.ma.arange(30)+2)
+        kti_1 = KTI(items=[KeyTimeInstance(10, 'KTI_1'),
+                           KeyTimeInstance(5, 'KTI_1'),
+                           KeyTimeInstance(2, 'KTI_1'),
+                           KeyTimeInstance(13, 'KTI_1')])
+        kti_2 = KTI(items=[KeyTimeInstance(27, 'KTI_2'),
+                           KeyTimeInstance(18, 'KTI_2'),
+                           KeyTimeInstance(8, 'KTI_2'),
+                           KeyTimeInstance(-3, 'KTI_2'),
+                           KeyTimeInstance(20, 'KTI_2')])
+        knode.create_kpvs_between_ktis(param.array, kti_1, kti_2, max_value)
+        self.assertEqual(len(knode), 2)
+        self.assertEqual(list(knode),
+                         [KeyPointValue(index=8, value=10, name='Kpv'),
+                          KeyPointValue(index=18, value=20, name='Kpv')])
+
 
     def test_create_kpvs_at_ktis_suppressed_zeros(self):
         knode = self.knode
