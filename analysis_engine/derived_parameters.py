@@ -5,6 +5,7 @@ from __future__ import print_function
 import geomag
 import numpy as np
 import six
+import os
 
 from copy import deepcopy
 from datetime import date
@@ -78,7 +79,6 @@ from analysis_engine.library import (
     np_ma_masked_zeros_like,
     np_ma_zeros_like,
     offset_select,
-    overflow_correction,
     peak_curvature,
     press2alt,
     power_floor,
@@ -115,8 +115,8 @@ from analysis_engine.library import (
 
 from analysis_engine.settings import (
     AIRSPEED_THRESHOLD,
-    ALTITUDE_RADIO_OFFSET_LIMIT,
     ALTITUDE_RADIO_MAX_RANGE,
+    ALTITUDE_RADIO_OFFSET_LIMIT,
     ALTITUDE_AAL_TRANS_ALT,
     ALTITUDE_AGL_SMOOTHING,
     ALTITUDE_AGL_TRANS_ALT,
@@ -893,16 +893,6 @@ class AltitudeAAL(DerivedParameterNode):
                 if alt_idxs[-1]+1 != quick.stop and np.ma.count(alt_std.array[alt_idxs[-1]+1:quick.stop]) > (quick.stop - alt_idxs[-1]+1)/2:
                     alt_aal[alt_idxs[-1]+1:quick.stop] = 0.0
 
-        '''
-        # Quick visual check of the altitude aal.
-            import matplotlib.pyplot as plt
-            plt.plot(alt_aal, 'b-')
-            plt.plot(alt_std.array, 'y-')
-        if alt_rad:
-            plt.plot(alt_rad.array, 'r-')
-        plt.show()
-        '''
-
         self.array = alt_aal
 
 
@@ -992,9 +982,9 @@ class AltitudeRadio(DerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        alt_rads = [n for n in cls.get_dependency_names() if n.startswith('Altitude Radio')]
-        return ('Fast' in available) and any_of(alt_rads, available)
 
+        alt_rads = [n for n in cls.get_dependency_names() if n.startswith('Altitude Radio')]
+        return any_of(alt_rads, available)
 
     def derive(self,
                source_A=P('Altitude Radio (A)'),
@@ -1005,9 +995,7 @@ class AltitudeRadio(DerivedParameterNode):
                source_efis=P('Altitude Radio (EFIS)'),
                source_efis_L=P('Altitude Radio (EFIS) (L)'),
                source_efis_R=P('Altitude Radio (EFIS) (R)'),
-               alt_std=P('Altitude STD'),
                pitch=P('Pitch'),
-               fast=S('Fast'),
                family=A('Family')):
 
         # Reminder: If you add parameters here, they need limits adding in the
@@ -1019,72 +1007,40 @@ class AltitudeRadio(DerivedParameterNode):
         self.offset = 0.0
         self.frequency = 4.0
 
-
-        def get_climb_cruise_descent():
-            '''
-            Create a crude ClimbCruiseDescent replacing Airborne phase by Fast.
-            We cannot use ClimbCruiseDescent as it would create a circular dependency
-            which would prevent AltitudeAAL to use AltitudeRadio.
-            AltitudeAAL -> AltitudeRadio -> ClimbCruiseDescent ->
-            Airborne -> AltitudeAALForFlightPhases -> AltitudeAAL
-
-            This generator will return a list of slices representing a
-            climb-cruise-descent per fast section.
-            '''
-            for quick in fast:
-                try:
-                    alts = repair_mask(alt_std.array[quick.slice], repair_duration=None)
-                except:
-                    # Short segments may be wholly masked. We ignore these.
-                    continue
-
-                section_slices = find_climb_cruise_descent(alts)
-                section_slices = shift_slices(section_slices, quick.slice.start or 0)
-                yield section_slices
-
-        ccd = list(itertools.chain.from_iterable(get_climb_cruise_descent()))
-
         osources = []
         for source in sources:
             if source is None:
                 continue
-            # correct for overflow, aligning the fast slice to each source
-            source.array = overflow_correction(source.array,
-                                               align(alt_std, source),
-                                               fast=fast.get_aligned(source),
-                                               hz=source.frequency,
-                                               ccd=ccd)
-
             # Some data frames reference altimeters which are optionally
             # recorded. It is impractical to maintain the LFL patching
             # required, so we only manage altimeters with a significant
             # signal.
             if np.ma.ptp(source.array) > 10.0:
                 osources.append(source)
+            else:
+                # Get ready to provide a null response if needed
+                out_len = int(len(source.array) * self.frequency / source.frequency)
 
-        if osources:
+        if not osources:
+            self.array = np_ma_masked_zeros(out_len)
+        elif len(osources) == 1:
+            # A single altimeter, so nothing to blend, but we still have to align to the required frequency
+            self.array = blend_parameters(osources, offset=self.offset, frequency=self.frequency, small_slice_duration=10)
+        else:
             # Blend parameters was written around the Boeing 737NG frames where three sources
             # are available with different sample rates and latency. Some airbus aircraft
             # have three altimeters but one of the sensors can give signals that appear to be
-            # valid in the cruise, hence the alternative validity level. Finally, the overflow
-            # correction algorithms can be out of step, giving differences of the order of
-            # 1,000ft between two sensors. The tolerance threshold ensures these are rejected
-            # (a wide tolerance ensures we don't react to normal levels of noise between altimeters).
+            # valid in the cruise, hence the alternative validity level.
             self.array = blend_parameters(osources, offset=self.offset, frequency=self.frequency, small_slice_duration=10,
                                           mode='cubic', validity='all_but_one', tolerance=500.0)
 
-            self.array = np.ma.masked_greater(self.array, ALTITUDE_RADIO_MAX_RANGE)
+        # Apply limit to the radio altitude signal, which (due to overflow correction and cubic splines
+        # interpoloation) can be much greater than the raw converted data range.
+        self.array = np.ma.masked_greater(self.array, ALTITUDE_RADIO_MAX_RANGE)
 
-            # For aircraft where the antennae are placed well away from the main
-            # gear, and especially where it is aft of the main gear, compensation
-            # is necessary.
-
-            #TODO: Implement this type of correction on other types and embed
-            #coefficients in a database table.
-        else:
-            samples = int(len(alt_std.array) * self.frequency / alt_std.frequency)
-            self.array=np_ma_masked_zeros(samples)
-
+        # For aircraft where the antennae are placed well away from the main
+        # gear, and especially where it is aft of the main gear, compensation
+        # is necessary.
         if family and family.value in ['CL-600'] and pitch:
             assert pitch.frequency == 4.0
             # There is no alignment process for this small correction term,
@@ -1120,7 +1076,6 @@ class AltitudeRadioOffsetRemoved(DerivedParameterNode):
         offset = np.ma.median(smoothed)
         if 0 < offset < ALTITUDE_RADIO_OFFSET_LIMIT:
             self.array = alt_rad.array - offset
-
 
 
 class AltitudeSTDSmoothed(DerivedParameterNode):

@@ -5108,54 +5108,83 @@ class TestOffsetSelect(unittest.TestCase):
 
 class TestOverflowCorrection(unittest.TestCase):
     '''
-    Overflow correction is applied in two stages, once in validation and
-    once in derived parameters, hence the double call, first without fast
-    and then with.
+    This is applied to rad alt signals only during cleansing
     '''
+    def test_overflow_correction_basic(self):
+        air_slices = [slice(30, 100)]
+        alt = [0]*30 + \
+            list(range(0, 2000, 100)) + \
+            [2000]*30 + \
+            list(range(2000, 0, -100))+ \
+            [0]*30
+        hide = [0]*10 + [1]*10 + [0]*31 + [1]*9 + [0]*10 + [1]*10 + \
+            [0]*30 + [1]*10 + [0]*10
+        rad_alt = np.ma.array(data=alt, mask=hide, dtype=np.float)
+        rad_alt = np.ma.mod(rad_alt, 1024)
+        save_rad_alt = np.ma.copy(rad_alt)
+
+        # Check of core correction process
+        alt_radio = P('Altitude Radio (A)', rad_alt, frequency=0.25)
+        result = overflow_correction(alt_radio.array, alt_radio, air_slices)
+        self.assertEqual(result[50], 2000.0)
+        self.assertTrue(np.ma.is_masked(result[65]))
+
+        # To ensure cruise peak to peak condition is satisfied from now onwards
+        save_rad_alt[62] += 25
+
+        # Shifted data at takeoff
+        rad_alt = np.ma.copy(save_rad_alt)
+        rad_alt[18:52] += 2048
+        alt_radio = P('Altitude Radio (A)', rad_alt, frequency=0.25)
+        result = overflow_correction(alt_radio.array, alt_radio, air_slices)
+        self.assertEqual(result[31], 100.0)
+
+        # Shifted data at landing
+        rad_alt = np.ma.copy(save_rad_alt)
+        rad_alt[78:112] += 4096
+        alt_radio = P('Altitude Radio (A)', rad_alt, frequency=0.25)
+        result = overflow_correction(alt_radio.array, alt_radio, air_slices)
+        self.assertEqual(result[99], 100.0)
+
+        # Shifted data in cruise
+        rad_alt = np.ma.copy(save_rad_alt)
+        rad_alt[54:78] -= 1024
+        alt_radio = P('Altitude Radio (A)', rad_alt, frequency=0.25)
+        result = overflow_correction(alt_radio.array, alt_radio, air_slices)
+        self.assertEqual(result[65], 2000.0)
+
+
     def test_overflow_correction_a320(self):
-        fast = S(items=[Section('Fast', slice(336, 5397), 336, 5397),
-                        Section('Fast', slice(5859, 11520), 5859, 11520)])
+        air_slices = [slice(336, 5397), slice(5859, 11520)]
         radioA = load(os.path.join(
             test_data_path, 'A320_Altitude_Radio_A_overflow.nod'))
-        alt_baro = np.ma.concatenate([
-            np.zeros(346),
-            np.arange(0, 10000, 60),
-            np.ones(4622) * 10000,
-            np.arange(10000, 0, -40),
-            np.zeros(488),
-            np.arange(0, 10000, 60),
-            np.ones(5220) * 10000,
-            np.arange(10000, 0, -40),
-            np.zeros(170)])
-
-        first_pass = overflow_correction(radioA.array, None, None)
-        resA = overflow_correction(first_pass, alt_baro, fast)
+        for n in [371, 5092, 5298, 5894, 11240, 11452]:
+            radioA.array.mask[n] = False
+        resA = overflow_correction(radioA.array, radioA, air_slices)
         sects = np.ma.clump_unmasked(resA)
-        self.assertEqual(len(sects), 4)
+        self.assertEqual(len(sects), 5)
         self.assertGreater(resA.max(), 5000)
         self.assertEqual(resA.min(), -2)
 
         radioB = load(os.path.join(
             test_data_path, 'A320_Altitude_Radio_B_overflow.nod'))
-        first_pass = overflow_correction(radioB.array, None, None)
-        resB = overflow_correction(first_pass, alt_baro, fast)
+        for n in range(433, 447):
+            radioB.array.mask[n] = False
+        for n in [371, 435, 446, 5296, 5297, 5893, 11317, 11451]:
+            radioB.array.mask[n] = False
+        resB = overflow_correction(radioB.array, radioB, air_slices)
         sects = np.ma.clump_unmasked(resB)
-        self.assertEqual(len(sects), 5)
+        self.assertEqual(len(sects), 4)
         self.assertGreater(resB.max(), 5000)
         self.assertEqual(resB.min(), -2)
 
     def test_overflow_correction_a340(self):
-        fast = S(items=[Section('Fast', slice(2000, 6500), 2000, 6500)])
+        air_slices = [slice(1020, 34400)]
         radioA = load(os.path.join(
             test_data_path, 'A340_Altitude_Radio_A_overflow.nod'))
-        alt_baro = np.ma.concatenate([
-            np.zeros(2292),
-            np.arange(0, 10000, 60),
-            np.ones(3640) * 10000,
-            np.arange(10000, 0, -40),
-            np.zeros(275)]).astype(np.float64)
-        first_pass = overflow_correction(radioA.array, None, None)
-        resA = overflow_correction(first_pass, alt_baro, fast)
+        for n in [2349, 2350, 6148, 6149]:
+            radioA.array.mask[n] = False
+        resA = overflow_correction(radioA.array, radioA, air_slices)
         sects = np.ma.clump_unmasked(resA)
         # 1 section for climb, one for descent
         self.assertEqual(len(sects), 2)
@@ -5164,10 +5193,12 @@ class TestOverflowCorrection(unittest.TestCase):
 
         radioB = load(os.path.join(
             test_data_path, 'A340_Altitude_Radio_B_overflow.nod'))
-        first_pass = overflow_correction(radioB.array, None, None)
-        resB = overflow_correction(first_pass, alt_baro, fast)
+        for n in [2349, 2350, 6147, 6148]:
+            radioB.array.mask[n] = False
+        resB = overflow_correction(radioB.array, radioB, air_slices)
         sects = np.ma.clump_unmasked(resB)
         # 1 section for climb, one for descent
+        # - and a third covers the ARINC429 data which is no longer masked
         self.assertEqual(len(sects), 2)
         self.assertGreater(resB.max(), 7500)
         self.assertEqual(resB.min(), 0)
@@ -5178,7 +5209,7 @@ class TestOverflowCorrectionArray(unittest.TestCase):
     '''
     def test_mask_retention(self):
         array = np.ma.array(data=[5]*10, mask=[0]*3 + [1]*4 + [0]*3)
-        result = overflow_correction_array(array)
+        result = overflow_correction_array(array, 1024.0)
         self.assertEqual(result.mask[5], True)
 
     @unittest.skip('This is effectively a data spike which should be handled elsewhere')
@@ -5199,6 +5230,20 @@ class TestOverflowCorrectionArray(unittest.TestCase):
                                           np.ma.array(data=array.data,
                                                       mask=expected_mask)
                                           )
+
+    def test_level_changes(self):
+        '''
+        Data from actual flight case
+        '''
+        array = np.ma.zeros(20500)
+        indexes = [1001, 1085, 9413, 15230, 20079, 20108, 20306]
+        jumps = [-4086.0, -4032.0, 1029.0, -2955.0, 1895.0, 4010.0, 4063.0]
+        for n, index in enumerate(indexes):
+            array[index] = -jumps[n]
+        array = np.ma.cumsum(array)
+        result = overflow_correction_array(array, 1024.0)
+        # Overflow correction errors result in a final value around -4000, so anything positive is fine.
+        self.assertGreater(result[-1], 0.0)
 
 
 class TestPeakCurvature(unittest.TestCase):
@@ -8385,7 +8430,7 @@ class TestNearestRunway(unittest.TestCase):
     Tests for Nearest Runway
     '''
     airports = yaml.load(open(os.path.join(test_data_path, 'airports.yaml'), 'rb'),
-                         Loader=yaml.FullLoader)
+                         Loader=yaml.Loader)
     _airports = airports['airports']
     _expected = {
         '001': {
@@ -8960,7 +9005,7 @@ class TestFindClimbCruiseDescent(unittest.TestCase):
 
 class TestMaintainAltitude(unittest.TestCase):
     def test_stay_within_50_ft(self):
-        altitude = np.ma.concatenate((        
+        altitude = np.ma.concatenate((
             np.ma.arange(1000, 2000, 100),
             np.ones(30) * 2000,
             np.ma.arange(2000, 3000, 100),
@@ -8973,4 +9018,4 @@ class TestMaintainAltitude(unittest.TestCase):
         altitude = np.ma.arange(1000, 4000, 100)
         target = np.ma.ones(30) * 2000
         distance = altitude - target
-        self.assertFalse(maintain_altitude(distance))        
+        self.assertFalse(maintain_altitude(distance))

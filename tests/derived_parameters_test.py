@@ -2034,7 +2034,6 @@ class TestAltitudeRadio(unittest.TestCase):
     # This test retained as it checks the particularly awkward 737NG configuration.
     def test_altitude_radio_737_3C(self):
         alt_rad = AltitudeRadio()
-        alt_baro = Parameter('Altitude STD', np.ma.array([0]*19 + [10]))
         fast = S(items=[Section('Fast', slice(0, 20), 0, 20)])
         alt_rad.derive(Parameter('Altitude Radio (A)',
                                  np.ma.array(data=[10.0]*9 + [50.1], mask=[0]*10), 0.5,  0.0),
@@ -2042,7 +2041,7 @@ class TestAltitudeRadio(unittest.TestCase):
                                  np.ma.array(data=[20.0,20.0,20.0,20.0,60.2], mask=[0]*5), 0.25, 1.0),
                        Parameter('Altitude Radio (C)',
                                  np.ma.array(data=[30.0,30.0,30.0,30.0,70.3], mask=[0]*5), 0.25, 3.0),
-                       None, None, None, None, None, alt_baro, None, fast, None)
+                       None, None, None, None, None, None, None)
         self.assertGreater(alt_rad.array[4], 16)
         self.assertLess(alt_rad.array[4], 30)
         self.assertEqual(alt_rad.array.mask[0], True)
@@ -2103,31 +2102,28 @@ class TestAltitudeRadio(unittest.TestCase):
                         Section('Fast', slice(5859, 11520), 5859, 11520)])
         radioA = load(os.path.join(
             test_data_path, 'A320_Altitude_Radio_A_overflow.nod'))
+        for n in [371, 5092, 5298, 5894, 11240, 11452]:
+            radioA.array.mask[n] = False
         radioB = load(os.path.join(
             test_data_path, 'A320_Altitude_Radio_B_overflow.nod'))
-        alt_baro = P('Altitude STD', np.ma.concatenate([
-            np.zeros(340),
-            np.arange(0, 10000, 50),
-            np.ones(4645) * 10000,
-            np.arange(10000, 0, -50),
-            np.zeros(480),
-            np.arange(0, 10000, 50),
-            np.ones(5245) * 10000,
-            np.arange(10000, 0, -50),
-            np.zeros(170)]), frequency = 0.5)
-        radioA.array = overflow_correction(radioA.array)
-        radioB.array = overflow_correction(radioB.array)
+        for n in range(433, 447):
+            radioB.array.mask[n] = False
+        for n in [371, 435, 446, 5296, 5297, 5893, 11317, 11451]:
+            radioB.array.mask[n] = False
+        radioA.array = overflow_correction(radioA.array, radioA, fast.get_slices())
+        radioB.array = overflow_correction(radioB.array, radioB, fast.get_slices())
+        radioA.array = np.ma.masked_greater(radioA.array, 5000.0)
+        radioB.array = np.ma.masked_greater(radioA.array, 5000.0)
         rad = AltitudeRadio()
         rad.derive(radioA, radioB, None, None, None, None, None, None,
-                   alt_baro, None,
-                   fast=fast, family=A('Family', 'A320'))
+                   None, family=A('Family', 'A320'))
 
         sects = np.ma.clump_unmasked(rad.array)
-        self.assertEqual(len(sects), 6)
+        self.assertEqual(len(sects), 5)
         for sect in sects[0], sects[2]:
             # takeoffs
             self.assertAlmostEqual(rad.array[sect.start] / 10., 0, 0)
-        for sect in sects[1], sects[5]:
+        for sect in sects[1], sects[4]:
             # landings
             self.assertAlmostEqual(rad.array[sect.stop - 1] / 10., 0, 0)
 
@@ -2162,13 +2158,10 @@ class TestAltitudeRadio(unittest.TestCase):
         fast = buildsection('Fast', 248.8, 3674.3)
         radioA = load(os.path.join(
             test_data_path, 'Altitude_Radio_A_A320_eec5df85279d.nod'))
-        radioA.array = overflow_correction(radioA.array)
-        alt_baro = P('Altitude STD', np.ma.concatenate([np.zeros(2180), np.arange(0, 10000, 5), np.ones(20000) * 10000, np.arange(10000, 0, -2), np.zeros(5124)]), frequency = 8.0)
+        radioA.array = overflow_correction(radioA.array, radioA, fast.get_slices())
         rad = AltitudeRadio()
         rad.derive(radioA, None, None, None, None, None, None, None,
-                   alt_baro, None,
-                   fast=fast, family=A('Family', 'A320'))
-
+                   None, family=A('Family', 'A320'))
         self.assertGreater(rad.array[14150], 1300)
         self.assertLess(rad.array[14150], 1500)
 
@@ -2176,15 +2169,17 @@ class TestAltitudeRadio(unittest.TestCase):
         fast = buildsection('Fast', 480, 31032)
         radioA = load(os.path.join(
             test_data_path, 'A330_AltitudeRadio_A_overflow_8191.nod'))
+        for n in [648, 649, 30710, 30711]:
+            radioA.array.mask[n] = False
         radioB = load(os.path.join(
             test_data_path, 'A330_AltitudeRadio_B_overflow_8191.nod'))
-        radioA.array = overflow_correction(radioA.array)
-        radioB.array = overflow_correction(radioB.array)
-        alt_baro = P('Altitude STD', np.ma.concatenate([np.zeros(509), np.arange(0, 10000, 30), np.ones(29170) * 10000, np.arange(10000, 0, -10), np.zeros(2267)]), frequency = 1.0)
+        for n in range(649, 30711):
+            radioB.array.mask[n] = False
+        radioA.array = overflow_correction(radioA.array, radioA, fast.get_slices())
+        radioB.array = overflow_correction(radioB.array, radioB, fast.get_slices())
         rad = AltitudeRadio()
         rad.derive(radioA, radioB, None, None, None, None, None, None,
-                   alt_baro, None,
-                   fast=fast, family=A('Family', 'A330'))
+                   None, family=A('Family', 'A330'))
 
         sects = np.ma.clump_unmasked(rad.array)
         self.assertEqual(len(sects), 3)
@@ -2194,7 +2189,6 @@ class TestAltitudeRadio(unittest.TestCase):
         self.assertEqual(sects[2].start, 122508)
         self.assertAlmostEqual(rad.array[122508], 4994, places=0)
 
-
     def test_altitude_radio_CL_600(self):
         alt_rad = AltitudeRadio()
         array = np.ma.concatenate((np.arange(5,-5,-1), np.arange(-5,15))).astype(float)
@@ -2202,10 +2196,8 @@ class TestAltitudeRadio(unittest.TestCase):
         alt_rad.derive(None, None, None,
                        Parameter('Altitude Radio (L)', array, 1.0, 0.0),
                        None, None, None, None,
-                       Parameter('Altitude STD', array, 1.0, 0.0),
                        Parameter('Pitch',
                                  np.ma.concatenate((np.zeros(30), np.ones(30) * 5, np.ones(30) * 10, np.ones(30) * 20)).astype(float), 4.0, 0.0),
-                       fast=fast,
                        family=A('Family', 'CL-600'))
         self.assertAlmostEqual(alt_rad.array.data[4], 2.5) # -1.5ft offset
         self.assertEqual(alt_rad.array.data[36], -3.675) # -1.5ft & 5deg
@@ -2216,35 +2208,23 @@ class TestAltitudeRadio(unittest.TestCase):
         array = np.ma.array(data=[1]*10, mask=[1]*10)
         radio_L = P('Altitude Radio (L)', array, 1.0, 0.0)
         radio_R = P('Altitude Radio (R)', array, 1.0, 0.0)
-        alt_baro = P('Altitude STD', array, frequency = 1.0)
         rad = AltitudeRadio()
         rad.derive(radio_L, radio_R, None, None, None, None, None, None,
-                   alt_baro, None,
-                   fast=fast, family=A('Family', 'A330'))
+                   None, family=A('Family', 'A330'))
         self.assertEqual(len(rad.array), 40)
 
     def test_rad_alt_sources_contain_nan(self):
-        fast = buildsection('Fast', 0, 10)
         array = np.ma.array(data=[np.nan] + [1]*8 + [np.nan], mask=[0]*10)
         radio_L = P('Altitude Radio (L)', array, 1.0, 0.0)
         radio_R = P('Altitude Radio (R)', array, 1.0, 0.0)
-        alt_baro = P('Altitude STD', array, frequency = 1.0)
         rad = AltitudeRadio()
         rad.derive(radio_L, radio_R, None, None, None, None, None, None,
-                   alt_baro, None,
-                   fast=fast, family=A('Family', 'A330'))
+                   None, family=A('Family', 'A330'))
         self.assertEqual(len(rad.array), 40)
 
+    @unittest.skip('Code for this test no longer used')
     def test_altitude_radio_with_diversion(self):
         alt_rad = AltitudeRadio()
-        alt_baro = Parameter(
-            'Altitude STD',
-            np.ma.concatenate((
-                np.ma.array([40.0] + [41.0]*38 + [42.0] + [28000.0]*40),
-                np.arange(3010, 110, -145), np.arange(110, 170, 3),
-                np.ma.array([25000.0]*40 + [151.0]*39 + [150.0]),
-            )).astype(float)
-        )
         fast = buildsection('Fast', 0, 200)
         alt_rad.derive(
             Parameter('Altitude Radio (A)', np.ma.array(
@@ -2255,7 +2235,7 @@ class TestAltitudeRadio(unittest.TestCase):
                 data=[0.0]*20 + [28000.0]*20 + [50.0]*10 + [100.0]*10 + [25000.0]*20 + [0.0]*20,
                 mask=[0.0]*20 + [1.0]*20 + [0.0]*20 + [1.0]*20 + [0.0]*20),
             ),
-            None, None, None, None, None, None, alt_baro, None, fast, None,
+            None, None, None, None, None, None, None, None,
         )
         self.assertListEqual(list(alt_rad.array[1:159]), [0.0]*158)
         self.assertTrue(all(alt_rad.array.mask[160:320]))
@@ -2266,6 +2246,7 @@ class TestAltitudeRadio(unittest.TestCase):
         self.assertEqual(alt_rad.offset, 0.0)
         self.assertEqual(alt_rad.frequency, 4.0)
 
+    @unittest.skip('Test data not available')
     def test_altitude_radio_b737_no_overflow(self):
         source_A = load(os.path.join(test_data_path, 'radio_737_test_source_A.nod'))
         source_B = load(os.path.join(test_data_path, 'radio_737_test_source_B.nod'))
