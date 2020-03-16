@@ -219,6 +219,7 @@ from analysis_engine.key_point_values import (
     AltitudeAtLastFlapSelectionBeforeTouchdown,
     AltitudeAtLastFlapRetraction,
     AltitudeAtMachMax,
+    AltitudeAtSpeedbrakeArmedDuringApproachMin,
     AltitudeDuringGoAroundMin,
     AltitudeFirstStableDuringApproachBeforeGoAround,
     AltitudeFirstStableDuringLastApproach,
@@ -19758,6 +19759,115 @@ class TestSpeedbrakeDeployedDuringGoAroundDuration(unittest.TestCase, NodeTest):
         self.assertEqual(node, [
             KeyPointValue(14, 2.0,
                           'Speedbrake Deployed During Go Around Duration')])
+
+
+class TestAltitudeAtSpeedbrakeArmedDuringApproachMin(unittest.TestCase, NodeTest):
+    def setUp(self):
+        self.node_class = AltitudeAtSpeedbrakeArmedDuringApproachMin
+        self.operational_combinations = [
+            ('Altitude AAL', 'Speedbrake Selected', 'Descent'),
+        ]
+        self.values_mapping = {0: 'Stowed', 1: 'Armed/Cmd Dn', 2: 'Deployed/Cmd Up'}
+
+    def test_spdbrk_armed_once(self):
+        array = np.ma.array([0, 0, 0, 0, 0, 1, 1, 1, 2, 2, 2, 2, 2, 1, 0])
+        spd_brk = M('Speedbrake Selected', values_mapping=self.values_mapping, array=array)
+        array = np.ma.concatenate((
+            np.ma.arange(1000, -100, -100),
+            np.ma.zeros(5)
+        ))
+        alt_aal = P('Altitude AAL', array=array)
+        descent = buildsection('Descent', 0, 10)
+        armed = P('Speedbrake Armed')
+        node = self.node_class()
+        node.derive(alt_aal, spd_brk, descent, armed, None, None, None)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 4.5)
+        self.assertEqual(node[0].value, 550)
+
+    def test_spdbrk_armed_twice(self):
+        array = np.ma.array([0, 0, 1, 0, 0, 1, 1, 1, 2, 2, 2, 2, 2, 1, 0])
+        spd_brk = M('Speedbrake Selected', values_mapping=self.values_mapping, array=array)
+        array = np.ma.concatenate((
+            np.ma.arange(1000, -100, -100),
+            np.ma.zeros(5)
+        ))
+        alt_aal = P('Altitude AAL', array=array)
+        descent = buildsection('Descent', 0, 10)
+        armed = P('Speedbrake Armed')
+        node = self.node_class()
+        node.derive(alt_aal, spd_brk, descent, armed, None, None, None)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 4.5)
+        self.assertEqual(node[0].value, 550)
+
+    def test_spdbrake_armed_before_descent(self):
+        array = np.ma.array([1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 1, 0])
+        spd_brk = M('Speedbrake Selected', values_mapping=self.values_mapping, array=array)
+        array = np.ma.concatenate((
+            np.ma.arange(1000, -100, -100),
+            np.ma.zeros(5)
+        ))
+        alt_aal = P('Altitude AAL', array=array)
+        descent = buildsection('Descent', 0, 10)
+        armed = P('Speedbrake Armed')
+        node = self.node_class()
+        node.derive(alt_aal, spd_brk, descent, armed, None, None, None)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 0)
+        self.assertEqual(node[0].value, 1000)
+
+    def test_spdbrk_not_armed(self):
+        # Armed and deployed after touchdown
+        array = np.ma.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 0])
+        spd_brk = M('Speedbrake Selected', values_mapping=self.values_mapping, array=array)
+        array = np.ma.concatenate((
+            np.ma.arange(1000, -100, -100),
+            np.ma.zeros(5)
+        ))
+        alt_aal = P('Altitude AAL', array=array)
+        descent = buildsection('Descent', 0, 10)
+        armed = P('Speedbrake Armed')
+        node = self.node_class()
+        node.derive(alt_aal, spd_brk, descent, armed, None, None, None)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 11)
+        self.assertEqual(node[0].value, 0)
+
+    def test_spdbrk_armed_then_disarmed(self):
+        array = np.ma.array([0, 0, 1, 2, 1, 0, 0, 0, 0, 0, 0, 0, 1, 2, 0])
+        spd_brk = M('Speedbrake Selected', values_mapping=self.values_mapping, array=array)
+        array = np.ma.concatenate((
+            np.ma.arange(1000, -100, -100),
+            np.ma.zeros(5)
+        ))
+        alt_aal = P('Altitude AAL', array=array)
+        descent = buildsection('Descent', 0, 10)
+        armed = P('Speedbrake Armed')
+        node = self.node_class()
+        node.derive(alt_aal, spd_brk, descent, armed, None, None, None)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 11)
+        self.assertEqual(node[0].value, 0)
+
+    def test_spdbrk_armed_not_recorded(self):
+        array = np.ma.array([0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0])
+        spd_brk = M('Speedbrake Selected', values_mapping=self.values_mapping, array=array)
+        array = np.ma.concatenate((
+            np.ma.arange(1000, -100, -100),
+            np.ma.zeros(5)
+        ))
+        alt_aal = P('Altitude AAL', array=array)
+        descent = buildsection('Descent', 0, 10)
+        node = self.node_class()
+        node.derive(alt_aal, spd_brk, descent, None, None, None, None)
+
+        self.assertEqual(len(node), 0)
 
 
 ##############################################################################

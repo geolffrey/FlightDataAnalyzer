@@ -17219,6 +17219,58 @@ class SpeedbrakeDeployedDuringGoAroundDuration(KeyPointValueNode):
                                                   mark='start')
 
 
+class AltitudeAtSpeedbrakeArmedDuringApproachMin(KeyPointValueNode):
+    '''
+    Minimum Altitude (AAL) when speedbrake is armed during the final approach.
+    '''
+
+    units = ut.FT
+
+    @classmethod
+    def can_operate(cls, available):
+        return all_of(['Altitude AAL', 'Speedbrake Selected', 'Descent'], available)
+
+    @staticmethod
+    def spdbrk_armed_recorded(armed, handle, spdsw, gnd_spoiler_armed):
+        return any((armed, handle, spdsw, gnd_spoiler_armed))
+
+    def derive(self,
+               alt_aal=P('Altitude AAL'),
+               spd_brk=M('Speedbrake Selected'),
+               descents=S('Descent'),
+               armed=M('Speedbrake Armed'),
+               handle=P('Speedbrake Handle'),
+               spdsw=M('Speedbrake Switch'),
+               gnd_spoiler_armed=M('Ground Spoiler Armed')):
+        if not self.spdbrk_armed_recorded(armed, handle, spdsw, gnd_spoiler_armed):
+            return
+
+        for descent in descents:
+            slice_ = descent.slice
+            # Speedbrake not armed if crossing bottom of descent in Stowed position
+            if spd_brk.array[int(slice_.stop) - 1] == 'Stowed':
+                self.create_kpv(slice_.stop, 0)
+                continue
+
+            idxs = find_edges_on_state_change(
+                'Armed/Cmd Dn',
+                spd_brk.array,
+                phase=[descent]
+            )
+            if idxs:
+                # Only consider the last time the speedbrakes were armed
+                idx = idxs[-1]
+                self.create_kpv(idx, value_at_index(alt_aal.array, idx))
+
+            elif spd_brk.array[int(slice_.start)] == 'Armed/Cmd Dn':
+                # Either the speedbrakes were armed before starting the Descent
+                # Very unlikely but we can deal with it, so why not?
+                self.create_kpv(slice_.start, value_at_index(alt_aal.array, slice_.start))
+            else:
+                # Or the speedbrakes were never armed
+                self.create_kpv(slice_.stop, 0)
+
+
 ##############################################################################
 # Warnings: Stall, Stick Pusher/Shaker
 
