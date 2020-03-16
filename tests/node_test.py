@@ -1267,8 +1267,8 @@ class TestKeyPointValueNode(unittest.TestCase):
         # value should be that of the second KTI
         self.assertEqual(len(knode), 2)
         self.assertEqual(list(knode),
-                         [KeyPointValue(index=4, value=6, name='Kpv'),
-                          KeyPointValue(index=8, value=10, name='Kpv')])
+                         [KeyPointValue(index=3, value=5, name='Kpv'),
+                          KeyPointValue(index=7, value=9, name='Kpv')])
 
     def test_create_kpvs_between_ktis_weird_order(self):
         knode = self.knode
@@ -1285,8 +1285,8 @@ class TestKeyPointValueNode(unittest.TestCase):
         knode.create_kpvs_between_ktis(param.array, kti_1, kti_2, max_value)
         self.assertEqual(len(knode), 2)
         self.assertEqual(list(knode),
-                         [KeyPointValue(index=8, value=10, name='Kpv'),
-                          KeyPointValue(index=18, value=20, name='Kpv')])
+                         [KeyPointValue(index=7, value=9, name='Kpv'),
+                          KeyPointValue(index=17, value=19, name='Kpv')])
 
 
     def test_create_kpvs_at_ktis_suppressed_zeros(self):
