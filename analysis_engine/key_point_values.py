@@ -16906,24 +16906,43 @@ class RollRateMaxAboveLimitAtTouchdown(KeyPointValueNode):
     def derive(self,
                roll_rate=P('Roll Rate For Touchdown'),
                limit=P('Roll Rate At Touchdown Limit'),
-               touchdowns=KTI('Touchdown'),
-               touch_and_go=KTI('Touch And Go'),
-               bounces=S('Bounced Landing'),):
+               gw=P('Gross Weight Smoothed'),
+               acc_norm_tdwns=KPV('Acceleration Normal At Touchdown'),):
 
-        tdwns = touchdowns
-        if touch_and_go:
-            tdwns += touch_and_go
-
-        indices = [touchdown.index for touchdown in tdwns] + \
-                  [bounce.slice.stop for bounce in bounces]
-
-        for i in indices:
+        for acc_norm_tdwn in acc_norm_tdwns:
+            i = acc_norm_tdwn.index
+            if acc_norm_tdwn.value < self._min_vert_acceleration(gw.array[int(i)]):
+                # Check for minimum vertical acceleration
+                continue
             window_start = i - (2*self.hz)
             window_end = i + (2*self.hz) + 1 # +1 so that the number of indices is equal on both sides of peak acceleration
             window_slice = slices_int(window_start, window_end)
             rr_over_limit = abs(roll_rate.array[window_slice]) - \
                             limit.array[window_slice]
             self.create_kpv(np.argmax(rr_over_limit)+window_start, max(rr_over_limit))
+
+    def _min_vert_acceleration(self, gross_weight):
+        '''
+        Embraer 175 - AMM 2134
+        200-802-A/600
+        Rev 74 - Sep 20/19
+
+        E175 Aircraft Maintenance Manual, Minimum Vertical Acceleration to consider roll
+        rate cases.
+        Figure 614
+
+        Minimum vertical acceleration is a linear function of gross weight passing by
+        two given points: (weight low, roll rate high) and (weight high, roll rate low).
+        '''
+        weight_low = 21_800
+        weight_high = 38_790
+        vert_acc_high = 1.83
+        vert_acc_low = 1.20
+
+        slope = (vert_acc_low - vert_acc_high) / (weight_high - weight_low)
+        intercept = vert_acc_high - slope * weight_low
+
+        return gross_weight * slope + intercept
 
 
 ##############################################################################

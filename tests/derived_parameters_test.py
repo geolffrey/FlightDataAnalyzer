@@ -6378,14 +6378,14 @@ class TestRollRateForTouchdown(unittest.TestCase):
 class TestRollRateAtTouchdownLimit(unittest.TestCase):
     def test_derive(self):
         gw = P('Gross Weight Smoothed', np.ma.masked_array(
-            [10000, 20000, 20000, 22000, 34000, 38000, 40000, 50000],
+            [10000, 20000, 20000, 21800, 34000, 38790, 40000, 50000],
             mask=[False, True, False, False, False, False, False, False]))
         expected_result = np.ma.masked_array(
-            [0, 0, 14, 12.5, 8, 6.5, 6, 0],
-            mask=[True, True, False, False, False, False, False, True])
+            [0, 0, 0, 12.4, 8.02, 6.3, 0, 0],
+            mask=[True, True, True, False, False, False, True, True])
         node = RollRateAtTouchdownLimit()
         node.derive(gw)
-        assert_array_almost_equal(node.array, expected_result)
+        assert_array_almost_equal(node.array, expected_result, decimal=3)
 
 
 class TestRudderPedalCapt(unittest.TestCase):

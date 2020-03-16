@@ -19194,7 +19194,10 @@ class TestRollAboveFL300Max(unittest.TestCase):
 
 class TestRollRateMaxAboveLimitAtTouchdown(unittest.TestCase):
     def test_high_roll_at_touchdown(self):
-        touchdowns = KTI('Touchdown', items=[KeyTimeInstance(13, 'Touchdown')])
+        acc_norm_tdwns = KPV(
+            'Acceleration Normal At Touchdown',
+            items=[KeyPointValue(13, 1.7, 'Acceleration Normal At Touchdown')])
+        gw = P('Gross Weight Smoothed', array=np.ma.ones(25) * 28_000)
 
         limit=P('Roll Rate At Touchdown Limit',
                 np.ma.array([0, 0, 0, 0, 0,
@@ -19202,78 +19205,6 @@ class TestRollRateMaxAboveLimitAtTouchdown(unittest.TestCase):
                              0, 0, 0, 0, 0,
                              0, 0, 0, 0, 0,
                              0, 0, 0, 0, 0, ]))
-
-        roll_rate=P('Roll Rate For Touchdown',
-                    np.ma.array([0, 0, 0, 0, 0,
-                             0, 0, 0, 0, 0,
-                             2, 3, 4, 3, 2,
-                             0, 0, 0, 0, 0,
-                             0, 0, 0, 0, 0, ]))
-
-        node = RollRateMaxAboveLimitAtTouchdown()
-        node.derive(roll_rate, limit, touchdowns=touchdowns)
-
-        self.assertEqual(node[0].index, 12)
-        self.assertEqual(node[0].value, 4)
-
-
-    def test_high_roll_before_td_window(self):
-        touchdowns = KTI('Touchdown', items=[KeyTimeInstance(13, 'Touchdown')])
-
-        limit=P('Roll Rate At Touchdown Limit',
-                np.ma.array([0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0, ]))
-
-        roll_rate=P('Roll Rate For Touchdown',
-                    np.ma.array([0, 0, 0, 0, 0,
-                                 0, 1, 2, 3, 4,
-                                 0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0, ]))
-
-        node = RollRateMaxAboveLimitAtTouchdown()
-        node.derive(roll_rate, limit, touchdowns=touchdowns)
-
-        self.assertEqual(node[0].index, 11)
-        self.assertEqual(node[0].value, 0)
-
-
-    def test_high_roll_beginning_of_window(self):
-        touchdowns = KTI('Touchdown', items=[KeyTimeInstance(12, 'Touchdown')])
-
-        limit=P('Roll Rate At Touchdown Limit',
-                np.ma.array([0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0, ]))
-
-        roll_rate=P('Roll Rate For Touchdown',
-                    np.ma.array([0, 0, 0, 0, 0,
-                                 0, 0, 2, 3, 4,
-                                 5, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0, ]))
-
-        node = RollRateMaxAboveLimitAtTouchdown()
-        node.derive(roll_rate, limit, touchdowns=touchdowns)
-
-        self.assertEqual(node[0].index, 10)
-        self.assertEqual(node[0].value, 5)
-
-
-    def test_high_roll_end_of_window(self):
-        touchdowns = KTI('Touchdown', items=[KeyTimeInstance(8, 'Touchdown')])
-
-        limit=P('Roll Rate At Touchdown Limit',
-                np.ma.array([0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0, ]))
 
         roll_rate=P('Roll Rate For Touchdown',
                     np.ma.array([0, 0, 0, 0, 0,
@@ -19283,21 +19214,104 @@ class TestRollRateMaxAboveLimitAtTouchdown(unittest.TestCase):
                                  0, 0, 0, 0, 0, ]))
 
         node = RollRateMaxAboveLimitAtTouchdown()
-        node.derive(roll_rate, limit, touchdowns=touchdowns)
+        node.derive(roll_rate, limit, gw, acc_norm_tdwns)
+
+        self.assertEqual(node[0].index, 12)
+        self.assertEqual(node[0].value, 4)
+
+
+    def test_high_roll_before_td_window(self):
+        acc_norm_tdwns = KPV(
+            'Acceleration Normal At Touchdown',
+            items=[KeyPointValue(13, 1.7, 'Acceleration Normal At Touchdown')])
+        gw = P('Gross Weight Smoothed', array=np.ma.ones(25) * 28_000)
+        limit=P('Roll Rate At Touchdown Limit',
+                np.ma.array([0, 0, 0, 0, 0,
+                             0, 0, 0, 0, 0,
+                             0, 0, 0, 0, 0,
+                             0, 0, 0, 0, 0,
+                             0, 0, 0, 0, 0, ]))
+
+        roll_rate=P('Roll Rate For Touchdown',
+                    np.ma.array([0, 0, 0, 0, 0,
+                                 0, 1, 2, 3, 4,
+                                 0, 0, 0, 0, 0,
+                                 0, 0, 0, 0, 0,
+                                 0, 0, 0, 0, 0, ]))
+
+        node = RollRateMaxAboveLimitAtTouchdown()
+        node.derive(roll_rate, limit, gw, acc_norm_tdwns)
+
+        self.assertEqual(node[0].index, 11)
+        self.assertEqual(node[0].value, 0)
+
+
+    def test_high_roll_beginning_of_window(self):
+        acc_norm_tdwns = KPV(
+            'Acceleration Normal At Touchdown',
+            items=[KeyPointValue(12, 1.7, 'Acceleration Normal At Touchdown')])
+        gw = P('Gross Weight Smoothed', array=np.ma.ones(25) * 28_000)
+
+        limit=P('Roll Rate At Touchdown Limit',
+                np.ma.array([0, 0, 0, 0, 0,
+                             0, 0, 0, 0, 0,
+                             0, 0, 0, 0, 0,
+                             0, 0, 0, 0, 0,
+                             0, 0, 0, 0, 0, ]))
+
+        roll_rate=P('Roll Rate For Touchdown',
+                    np.ma.array([0, 0, 0, 0, 0,
+                                 0, 0, 2, 3, 4,
+                                 5, 0, 0, 0, 0,
+                                 0, 0, 0, 0, 0,
+                                 0, 0, 0, 0, 0, ]))
+
+        node = RollRateMaxAboveLimitAtTouchdown()
+        node.derive(roll_rate, limit, gw, acc_norm_tdwns)
+
+        self.assertEqual(node[0].index, 10)
+        self.assertEqual(node[0].value, 5)
+
+
+    def test_high_roll_end_of_window(self):
+        acc_norm_tdwns = KPV(
+            'Acceleration Normal At Touchdown',
+            items=[KeyPointValue(8, 1.7, 'Acceleration Normal At Touchdown')])
+        gw = P('Gross Weight Smoothed', array=np.ma.ones(25) * 28_000)
+
+        limit=P('Roll Rate At Touchdown Limit',
+                np.ma.array([0, 0, 0, 0, 0,
+                             0, 0, 0, 0, 0,
+                             0, 0, 0, 0, 0,
+                             0, 0, 0, 0, 0,
+                             0, 0, 0, 0, 0, ]))
+
+        roll_rate=P('Roll Rate For Touchdown',
+                    np.ma.array([0, 0, 0, 0, 0,
+                                 0, 0, 0, 0, 0,
+                                 2, 3, 4, 3, 2,
+                                 0, 0, 0, 0, 0,
+                                 0, 0, 0, 0, 0, ]))
+
+        node = RollRateMaxAboveLimitAtTouchdown()
+        node.derive(roll_rate, limit, gw, acc_norm_tdwns)
 
         self.assertEqual(node[0].index, 10)
         self.assertEqual(node[0].value, 2)
 
 
     def test_high_roll_after_landing(self):
-        touchdowns = KTI('Touchdown', items=[KeyTimeInstance(13, 'Touchdown')])
+        acc_norm_tdwns = KPV(
+            'Acceleration Normal At Touchdown',
+            items=[KeyPointValue(13, 1.7, 'Acceleration Normal At Touchdown')])
+        gw = P('Gross Weight Smoothed', array=np.ma.ones(25) * 28_000)
 
         limit=P('Roll Rate At Touchdown Limit',
                 np.ma.array([0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0, ]))
+                             0, 0, 0, 0, 0,
+                             0, 0, 0, 0, 0,
+                             0, 0, 0, 0, 0,
+                             0, 0, 0, 0, 0, ]))
 
         roll_rate=P('Roll Rate For Touchdown',
                     np.ma.array([0, 0, 0, 0, 0,
@@ -19307,117 +19321,43 @@ class TestRollRateMaxAboveLimitAtTouchdown(unittest.TestCase):
                                  0, 2, 3, 4, 5, ]))
 
         node = RollRateMaxAboveLimitAtTouchdown()
-        node.derive(roll_rate, limit, touchdowns=touchdowns)
+        node.derive(roll_rate, limit, gw, acc_norm_tdwns)
 
         self.assertEqual(node[0].index, 11)
         self.assertEqual(node[0].value, 0)
 
 
     def test_normal_landing(self):
-        touchdowns = KTI('Touchdown', items=[KeyTimeInstance(13, 'Touchdown')])
+        acc_norm_tdwns = KPV(
+            'Acceleration Normal At Touchdown',
+            items=[KeyPointValue(13, 1.7, 'Acceleration Normal At Touchdown')])
+        gw = P('Gross Weight Smoothed', array=np.ma.ones(25) * 28_000)
 
         limit=P('Roll Rate At Touchdown Limit',
-                np.ma.array([0, 0, 0, 0, 0,
+                array=np.ma.ones(25) * 10)
+
+        roll_rate=P('Roll Rate For Touchdown',
+                    np.ma.array([0, 0, 0, 0, 0,
                                  0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0,
+                                 0, 0, 2, -3, -1,
                                  0, 0, 0, 0, 0,
                                  0, 0, 0, 0, 0, ]))
 
-        roll_rate=P('Roll Rate For Touchdown',
-                    np.ma.array([0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0, ]))
-
         node = RollRateMaxAboveLimitAtTouchdown()
-        node.derive(roll_rate, limit, touchdowns=touchdowns)
+        node.derive(roll_rate, limit, gw, acc_norm_tdwns)
 
-        self.assertEqual(node[0].index, 11)
-        self.assertEqual(node[0].value, 0)
+        self.assertEqual(node[0].index, 13)
+        self.assertEqual(node[0].value, -7)
 
-
-    def test_high_roll_bounce_after_normal_landing(self):
-        touchdowns = KTI('Touchdown', items=[KeyTimeInstance(13, 'Touchdown')])
-        bounces = buildsection('Bounced Landing', 13, 17)
-
-        limit=P('Roll Rate At Touchdown Limit',
-                np.ma.array([0, 0, 0, 0, 0,
-                             0, 0, 0, 0, 0,
-                             0, 0, 0, 0, 0,
-                             0, 0, 0, 0, 0,
-                             0, 0, 0, 0, 0, ]))
-
-        roll_rate=P('Roll Rate For Touchdown',
-                    np.ma.array([0, 0, 0, 0, 0,
-                             0, 0, 0, 0, 0,
-                             0, 0, 0, 0, 0,
-                             3, 3, 3, 0, 0,
-                             0, 0, 0, 0, 0, ]))
-
-        node = RollRateMaxAboveLimitAtTouchdown()
-        node.derive(roll_rate, limit, touchdowns=touchdowns, bounces=bounces)
-
-        self.assertEqual(node[0].index, 15)
-        self.assertEqual(node[0].value, 3)
-
-
-    def test_normal_bounce_after_high_roll_landing(self):
-        touchdowns = KTI('Touchdown', items=[KeyTimeInstance(13, 'Touchdown')])
-        bounces = buildsection('Bounced Landing', 13, 17)
-
-        limit=P('Roll Rate At Touchdown Limit',
-                np.ma.array([0, 0, 0, 0, 0,
-                             0, 0, 0, 0, 0,
-                             0, 0, 0, 0, 0,
-                             0, 0, 0, 0, 0,
-                             0, 0, 0, 0, 0, ]))
-
-        roll_rate=P('Roll Rate For Touchdown',
-                    np.ma.array([0, 0, 0, 0, 0,
-                             0, 0, 0, 0, 0,
-                             2, 3, 4, 0, 0,
-                             0, 0, 0, 0, 0,
-                             0, 0, 0, 0, 0, ]))
-
-        node = RollRateMaxAboveLimitAtTouchdown()
-        node.derive(roll_rate, limit, touchdowns=touchdowns, bounces=bounces)
-
-        self.assertEqual(node[0].index, 12)
-        self.assertEqual(node[0].value, 4)
-
-
-    def test_high_roll_bounce_after_high_roll_landing(self):
-        touchdowns = KTI('Touchdown', items=[KeyTimeInstance(13, 'Touchdown')])
-        bounces = buildsection('Bounced Landing', 13, 17)
-
-        limit=P('Roll Rate At Touchdown Limit',
-                np.ma.array([0, 0, 0, 0, 0,
-                             0, 0, 0, 0, 0,
-                             0, 0, 0, 0, 0,
-                             0, 0, 0, 0, 0,
-                             0, 0, 0, 0, 0, ]))
-
-        roll_rate=P('Roll Rate For Touchdown',
-                    np.ma.array([0, 0, 0, 0, 0,
-                             0, 0, 0, 0, 0,
-                             2, 3, 4, 0, 0,
-                             3, 3, 3, 0, 0,
-                             0, 0, 0, 0, 0, ]))
-
-        node = RollRateMaxAboveLimitAtTouchdown()
-        node.derive(roll_rate, limit, touchdowns=touchdowns, bounces=bounces)
-
-        self.assertEqual(node[0].index, 12)
-        self.assertEqual(node[0].value, 4)
-        self.assertEqual(node[1].index, 16)
-        self.assertEqual(node[1].value, 3)
-
-
-    def test_touch_and_go_landing_and_bounce(self):
-        touchdowns = KTI('Touchdown', items=[KeyTimeInstance(13, 'Touchdown')])
-        touch_and_go = KTI('Touch And Go', items=[KeyTimeInstance(3, 'Touch And Go')])
-        bounces = buildsection('Bounced Landing', 13, 17)
+    def test_touch_and_go_then_landing(self):
+        acc_norm_tdwns = KPV(
+            'Acceleration Normal At Touchdown',
+            items=[
+                KeyPointValue(3, 1.7, 'Acceleration Normal At Touchdown'),
+                KeyPointValue(13, 1.7, 'Acceleration Normal At Touchdown'),
+            ]
+        )
+        gw = P('Gross Weight Smoothed', array=np.ma.ones(25) * 28_000)
 
         limit=P('Roll Rate At Touchdown Limit',
                 np.ma.array([0, 0, 0, 0, 0,
@@ -19428,20 +19368,39 @@ class TestRollRateMaxAboveLimitAtTouchdown(unittest.TestCase):
 
         roll_rate=P('Roll Rate For Touchdown',
                     np.ma.array([0, 1, 3, 1, 0,
-                             0, 0, 0, 0, 0,
-                             2, 3, 4, 0, 0,
-                             3, 3, 3, 0, 0,
-                             0, 0, 0, 0, 0, ]))
+                                 0, 0, 0, 0, 0,
+                                 2, 3, 4, 0, 0,
+                                 3, 3, 3, 0, 0,
+                                 0, 0, 0, 0, 0, ]))
 
         node = RollRateMaxAboveLimitAtTouchdown()
-        node.derive(roll_rate, limit, touchdowns=touchdowns, touch_and_go=touch_and_go, bounces=bounces)
+        node.derive(roll_rate, limit, gw, acc_norm_tdwns)
 
-        self.assertEqual(node[0].index, 12)
-        self.assertEqual(node[0].value, 4)
-        self.assertEqual(node[1].index, 2)
-        self.assertEqual(node[1].value, 3)
-        self.assertEqual(node[2].index, 16)
-        self.assertEqual(node[2].value, 3)
+        self.assertEqual(node[0].index, 2)
+        self.assertEqual(node[0].value, 3)
+        self.assertEqual(node[1].index, 12)
+        self.assertEqual(node[1].value, 4)
+
+    def test_accel_vert_below_minimum(self):
+        acc_norm_tdwns = KPV(
+            'Acceleration Normal At Touchdown',
+            items=[KeyPointValue(13, 1.3, 'Acceleration Normal At Touchdown')])
+        gw = P('Gross Weight Smoothed', array=np.ma.ones(25) * 28_000)
+
+        limit=P('Roll Rate At Touchdown Limit',
+                array=np.ma.ones(25) * 10)
+
+        roll_rate=P('Roll Rate For Touchdown',
+                    np.ma.array([0, 0, 0, 0, 0,
+                                 0, 0, 0, 0, 0,
+                                 0, 3, 4, 5, 0,
+                                 0, 0, 0, 0, 0,
+                                 0, 0, 0, 0, 0, ]))
+
+        node = RollRateMaxAboveLimitAtTouchdown()
+        node.derive(roll_rate, limit, gw, acc_norm_tdwns)
+
+        self.assertEqual(len(node), 0)
 
 
 ##############################################################################

@@ -6335,32 +6335,26 @@ class RollRateAtTouchdownLimit(DerivedParameterNode):
         '''
         Embraer 175 - AMM 2134
         200-802-A/600
-        Rev 52 - Nov 24/17
+        Rev 74 - Sep 20/19
 
         E175 Aircraft Maintenance Manual, Roll Rate Calculation and Threshold,
-        Figure 606 - Sheet 2
+        Figure 608
 
-        The following method returns an approximation of the roll limit curve.
-
-        For weights between 20000kg and 21999kg approximate (values returned are
-        slightly below the limit) roll rate limit is:    def test_can_operate(self):
-        opts = RollRateAtTouchdownLimit.get_operational_combinations()
-        self.assertTrue(('Gross Weight Smoothed', 'ERJ-170/175') in opts)
-        f(x) = -0.001x + 34
-
-        For weights between 22000kg and 38000kg roll rate limit is a function:
-        f(x) = -0.000375x + 20.75
-
-        For weights between 38001kg and 40000kg we assume a limit of 6 degrees per second,
-        which again, is slightly below the limit.
+        The maximum roll rate is a linear function of the gross weight passing by
+        two given points: (weight low, roll rate high) and (weight high, roll rate low).
         '''
 
+        weight_low = 21_800
+        weight_high = 38_790
+        roll_rate_high = 12.4
+        roll_rate_low = 6.3
+
+        slope = (roll_rate_low - roll_rate_high) / (weight_high - weight_low)
+        intercept = roll_rate_high - slope * weight_low
+
         self.array = np_ma_masked_zeros_like(gw.array)
-        range1 = (20000 <= gw.array) & (gw.array < 22000)
-        self.array[range1] = gw.array[range1] * -0.001 + 34
-        range2 = (22000 <= gw.array) & (gw.array <= 38000)
-        self.array[range2] = gw.array[range2] * -0.000375 + 20.75
-        self.array[(38000 < gw.array) & (gw.array <= 40000)] = 6
+        range_ = (weight_low <= gw.array) & (gw.array <= weight_high)
+        self.array[range_] = slope * gw.array[range_] + intercept
 
 
 class AccelerationNormalLowLimitForLandingWeight(DerivedParameterNode):
