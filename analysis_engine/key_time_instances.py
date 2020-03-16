@@ -11,7 +11,7 @@ from flightdatautilities import units as ut
 from flightdatautilities.geometry import great_circle_distance__haversine
 
 from analysis_engine.node import (
-    A, M, P, S, KTI, App,
+    A, M, P, S, KTI, App, aeroplane,
     helicopter, KeyTimeInstanceNode
 )
 
@@ -2612,3 +2612,64 @@ class FirstAirspeedDuringLanding(KeyTimeInstanceNode):
                 )
                 if idx is not None:
                     self.create_kti(idx, airspeed=target_spd)
+
+
+class NosewheelDown(KeyTimeInstanceNode):
+    '''
+    Nose Gear touches the runway during landing.
+
+    If Gear (N) On Ground has a sample rate less than 1 Hz or if unavailable,
+    we instead determine a point at which the pitch is 2 degrees more than the pitch
+    when the aircraft has reached an airspeed of 60 Kts.
+    '''
+    @classmethod
+    def can_operate(cls, available, ac_type=A('Aircraft Type')):
+        is_plane = ac_type == aeroplane
+        pitch = all_of(['Pitch', 'First Airspeed During Landing'], available)
+        gear = 'Gear (N) On Ground' in available
+        return is_plane and 'Touchdown' in available and (pitch or gear)
+
+    def derive(self,
+               pitch=P('Pitch'),
+               spd_ldgs=KTI('First Airspeed During Landing'),
+               nose_gear=M('Gear (N) On Ground'),
+               tdwns=KTI('Touchdown'),
+               ldgs=S('Landing')):
+
+        for ldg in ldgs:
+            tdwn = tdwns.get_last(within_slice=ldg.slice)
+            if tdwn is None:
+                continue
+
+            if nose_gear is None:
+                # get index where airspeed is 60 Kts
+                this_60_kt = spd_ldgs.get_next(tdwn.index, name='First 60 Kt During Landing')
+                if this_60_kt is None:
+                    continue
+
+                idx_60_kt = this_60_kt.index
+                pitch_at_60 = value_at_index(pitch.array, idx_60_kt)
+                if pitch_at_60 is None:
+                    continue
+                pitch_ref = pitch_at_60 + 2
+                gear_idx = index_at_value(pitch.array, pitch_ref,
+                                          slice(idx_60_kt, tdwn.index, -1))
+                if gear_idx is not None:
+                    self.create_kti(gear_idx)
+
+            else:
+                # Look for Gear (N) On Ground from 1 min prior touchdown until 5 min after
+                slice_ = slice(
+                    max(0, tdwn.index - 60 * self.hz),
+                    min(len(nose_gear.array), tdwn.index + 5 * 60 * self.hz))
+                gear_idxs = find_edges_on_state_change(
+                    'Ground',
+                    nose_gear.array,
+                    phase=[slice_],
+                    min_samples=2
+                )
+                if not gear_idxs:
+                    continue
+
+                gear_idx = max(gear_idxs[0], tdwn.index)
+                self.create_kti(gear_idx)

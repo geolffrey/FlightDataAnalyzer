@@ -66,6 +66,7 @@ from analysis_engine.key_time_instances import (
     MinsToTouchdown,
     MovementStart,
     MovementStop,
+    NosewheelDown,
     OffBlocks,
     OnBlocks,
     OffshoreTouchdown,
@@ -3054,3 +3055,61 @@ class TestFirstAirspeedDuringLanding(unittest.TestCase, NodeTest):
         self.assertEqual(node[0].index, 7.5)
         self.assertEqual(node[1].name, 'First 60 Kt During Landing')
         self.assertEqual(node[1].index, 17.5)
+
+
+class TestNosewheelDown(unittest.TestCase, NodeTest):
+    def setUp(self):
+        self.node_class = NosewheelDown
+        self.operational_combinations = [
+            ('Pitch', 'First Airspeed During Landing', 'Touchdown', 'Landing'),
+            ('Gear (N) On Ground', 'Touchdown', 'Landing'),
+            ('Pitch', 'First Airspeed During Landing', 'Gear (N) On Ground', 'Touchdown', 'Landing'),
+        ]
+        self.can_operate_kwargs = {'ac_type': aeroplane}
+
+    def test_nose_gear_available(self):
+        nose_gear = M('Gear (N) On Ground',
+                      values_mapping={0: '-', 1: 'Ground'},
+                      array=np.ma.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1]))
+        tdwns = KTI('Touchdown', items=[
+            KeyTimeInstance(name=Touchdown, index=1)
+        ])
+        ldgs = buildsection('Landing', 0, 8)
+        node = self.node_class()
+        node.derive(None, None, nose_gear, tdwns, ldgs)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 4.5)
+
+    def test_nose_gear_unavailable(self):
+        pitch = P(
+            "Pitch",
+            array=np.ma.concatenate((np.ma.arange(5, 0, -0.2), np.ma.zeros(10))),
+        )
+        spd_ldgs = FirstAirspeedDuringLanding(items=[
+            KeyTimeInstance(name='First 60 Kt During Landing', index=30)
+        ])
+        tdwns = KTI('Touchdown', items=[
+            KeyTimeInstance(name=Touchdown, index=1)
+        ])
+        ldgs = buildsection('Landing', 0, 45)
+        node = self.node_class()
+        node.derive(pitch, spd_ldgs, None, tdwns, ldgs)
+
+        self.assertEqual(len(node), 1)
+        self.assertAlmostEqual(node[0].index, 15)
+
+    def test_nose_gear_and_60kt_landing_unavailable(self):
+        pitch = P(
+            "Pitch",
+            array=np.ma.concatenate((np.ma.arange(5, 0, -0.2), np.ma.zeros(10))),
+        )
+        spd_ldgs = FirstAirspeedDuringLanding(items=[])
+        tdwns = KTI('Touchdown', items=[
+            KeyTimeInstance(name=Touchdown, index=1)
+        ])
+        ldgs = buildsection('Landing', 0, 45)
+        node = self.node_class()
+        node.derive(pitch, spd_ldgs, None, tdwns, ldgs)
+
+        self.assertEqual(len(node), 0)
