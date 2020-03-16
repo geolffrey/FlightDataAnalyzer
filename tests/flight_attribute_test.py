@@ -674,58 +674,60 @@ class TestLandingRunway(unittest.TestCase, NodeTest):
 
 class TestOffBlocksDatetime(unittest.TestCase):
     def test_derive(self):
-        # Empty 'Turning'.
-        turning = S('Turning On Ground')
+        # Empty.
+        off_blocks = KTI('Off Blocks', items=[])
         start_datetime = A(name='Start Datetime', value=datetime.now())
         off_blocks_datetime = OffBlocksDatetime()
         off_blocks_datetime.set_flight_attr = Mock()
-        off_blocks_datetime.derive(turning, start_datetime)
+        off_blocks_datetime.derive(off_blocks, start_datetime)
         off_blocks_datetime.set_flight_attr.assert_called_once_with(None)
-        # 'Turning On Ground'.
-        turning = S('Turning On Ground', items=[KeyPointValue(name='Turning On Ground',
-                                                    slice=slice(20, 60))])
-        off_blocks_datetime.set_flight_attr = Mock()
-        off_blocks_datetime.derive(turning, start_datetime)
-        off_blocks_datetime.set_flight_attr.assert_called_once_with(
-            start_datetime.value + timedelta(seconds=20))
 
-        turning = S('Turning', items=[KeyPointValue(name='Turning On Ground',
-                                                    slice=slice(10, 20)),
-                                      KeyPointValue(name='Turning On Ground',
-                                                    slice=slice(70, 90))])
+        # One instance.
+        off_blocks = KTI('Off Blocks', items=[KeyTimeInstance(name='Off Blocks',
+                                                    index=300)])
         off_blocks_datetime.set_flight_attr = Mock()
-        off_blocks_datetime.derive(turning, start_datetime)
+        off_blocks_datetime.derive(off_blocks, start_datetime)
         off_blocks_datetime.set_flight_attr.assert_called_once_with(
-            start_datetime.value + timedelta(seconds=10))
+            start_datetime.value + timedelta(seconds=300))
+
+        # More than one instance.
+        off_blocks = KTI('Off Blocks', items=[
+            KeyTimeInstance(name='Off Blocks', index=400),
+            KeyTimeInstance(name='Off Blocks', index=600),
+        ])
+        off_blocks_datetime.set_flight_attr = Mock()
+        off_blocks_datetime.derive(off_blocks, start_datetime)
+        off_blocks_datetime.set_flight_attr.assert_called_once_with(
+            start_datetime.value + timedelta(seconds=400))
 
 
 class TestOnBlocksDatetime(unittest.TestCase):
-    def test_derive_without_turning(self):
-        # Empty 'Turning'.
-        turning = S('Turning On Ground')
+    def test_derive(self):
+        # Empty.
+        on_blocks = KTI('On Blocks', items=[])
         start_datetime = A(name='Start Datetime', value=datetime.now())
-        off_blocks_datetime = OnBlocksDatetime()
-        off_blocks_datetime.set_flight_attr = Mock()
-        off_blocks_datetime.derive(turning, start_datetime)
-        off_blocks_datetime.set_flight_attr.assert_called_once_with(None)
-        # 'Turning On Ground'.
-        turning = S('Turning On Ground',
-                    items=[KeyPointValue(name='Turning On Ground',
-                                         slice=slice(20, 60))])
-        off_blocks_datetime.set_flight_attr = Mock()
-        off_blocks_datetime.derive(turning, start_datetime)
-        off_blocks_datetime.set_flight_attr.assert_called_once_with(
-            start_datetime.value + timedelta(seconds=60))
-        turning = S('Turning', items=[KeyPointValue(name='Turning On Ground',
-                                                    slice=slice(10, 20)),
-                                      KeyPointValue(name='Turning In Air',
-                                                    slice=slice(20, 60)),
-                                      KeyPointValue(name='Turning On Ground',
-                                                    slice=slice(70, 90))])
-        off_blocks_datetime.set_flight_attr = Mock()
-        off_blocks_datetime.derive(turning, start_datetime)
-        off_blocks_datetime.set_flight_attr.assert_called_once_with(
-            start_datetime.value + timedelta(seconds=90))
+        on_blocks_datetime = OnBlocksDatetime()
+        on_blocks_datetime.set_flight_attr = Mock()
+        on_blocks_datetime.derive(on_blocks, start_datetime)
+        on_blocks_datetime.set_flight_attr.assert_called_once_with(None)
+
+        # One instance.
+        on_blocks = KTI('On Blocks', items=[KeyTimeInstance(name='On Blocks',
+                                                    index=300)])
+        on_blocks_datetime.set_flight_attr = Mock()
+        on_blocks_datetime.derive(on_blocks, start_datetime)
+        on_blocks_datetime.set_flight_attr.assert_called_once_with(
+            start_datetime.value + timedelta(seconds=300))
+
+        # More than one instance.
+        on_blocks = KTI('On Blocks', items=[
+            KeyTimeInstance(name='On Blocks', index=400),
+            KeyTimeInstance(name='On Blocks', index=600),
+        ])
+        on_blocks_datetime.set_flight_attr = Mock()
+        on_blocks_datetime.derive(on_blocks, start_datetime)
+        on_blocks_datetime.set_flight_attr.assert_called_once_with(
+            start_datetime.value + timedelta(seconds=600))
 
 
 class TestTakeoffAirport(unittest.TestCase, NodeTest):
