@@ -15555,6 +15555,7 @@ class PitchBetweenFL200AndFL300Max(KeyPointValueNode):
         self.create_kpvs_within_slices(pitch.array,
                                        alt.slices_between(20000,30000), max_value)
 
+
 class PitchBetweenFL200AndFL300Min(KeyPointValueNode):
     '''
     Minimum pitch angle above FL200 (Alt STD Smoothed)
@@ -15582,6 +15583,7 @@ class PitchAboveFL300Max(KeyPointValueNode):
         self.create_kpvs_within_slices(pitch.array,
                                        alt.slices_above(30000), max_value)
 
+
 class PitchAboveFL300Min(KeyPointValueNode):
     '''
     Minimum pitch angle above FL300 (Alt STD Smoothed)
@@ -15594,6 +15596,88 @@ class PitchAboveFL300Min(KeyPointValueNode):
         alt.array = nearest_neighbour_mask_repair(alt.array)
         self.create_kpvs_within_slices(pitch.array,
                                        alt.slices_above(30000), min_value)
+
+
+class PitchFor3SecAtHeightMax(KeyPointValueNode):
+    '''
+    Maximum pitch for 3 seconds at various altitudes.
+    '''
+
+    units = ut.DEGREE
+    NAME_FORMAT = 'Pitch For 3 Sec %(high)d To %(low)d Ft Max'
+    NAME_VALUES = {'high': [1000, 500, 500, 500, 500],
+                   'low':  [ 500, 100,  50,  20,   7]}
+
+    @classmethod
+    def can_operate(cls, available, ac_type=A('Aircraft Type')):
+        alt = (
+            "Altitude AGL"
+            if ac_type and ac_type.value == "helicopter"
+            else "Altitude AAL For Flight Phases"
+        )
+        return all_of(['Pitch For 3 Sec', alt], available)
+
+    def derive(self,
+               pitch=P('Pitch For 3 Sec'),
+               ac_type=A('Aircraft Type'),
+               # aeroplane
+               alt_aal=P('Altitude AAL For Flight Phases'),
+               # helicopter
+               alt_agl=P('Altitude AGL'),
+               duration=A('HDF Duration')):
+
+        hdf_duration = duration.value * self.frequency if duration else None
+        alt = alt_aal or alt_agl
+
+        for high, low in zip(self.NAME_VALUES['high'], self.NAME_VALUES['low']):
+            self.create_kpvs_within_slices(
+                pitch.array,
+                trim_slices(alt.slices_from_to(high, low), 3, self.frequency,
+                            hdf_duration),
+                max_value,
+                replace_values={'high': high, 'low': low}
+            )
+
+
+class PitchFor3SecAtHeightMin(KeyPointValueNode):
+    '''
+    Minimum pitch for 3 seconds at various altitudes.
+    '''
+
+    units = ut.DEGREE
+    NAME_FORMAT = 'Pitch For 3 Sec %(high)d To %(low)d Ft Min'
+    NAME_VALUES = {'high': [1000, 500, 500, 500, 500],
+                   'low':  [ 500, 100,  50,  20,   7]}
+
+    @classmethod
+    def can_operate(cls, available, ac_type=A('Aircraft Type')):
+        alt = (
+            "Altitude AGL"
+            if ac_type and ac_type.value == "helicopter"
+            else "Altitude AAL For Flight Phases"
+        )
+        return all_of(['Pitch For 3 Sec', alt], available)
+
+    def derive(self,
+               pitch=P('Pitch For 3 Sec'),
+               ac_type=A('Aircraft Type'),
+               # aeroplane
+               alt_aal=P('Altitude AAL For Flight Phases'),
+               # helicopter
+               alt_agl=P('Altitude AGL'),
+               duration=A('HDF Duration')):
+
+        hdf_duration = duration.value * self.frequency if duration else None
+        alt = alt_aal or alt_agl
+
+        for high, low in zip(self.NAME_VALUES['high'], self.NAME_VALUES['low']):
+            self.create_kpvs_within_slices(
+                pitch.array,
+                trim_slices(alt.slices_from_to(high, low), 3, self.frequency,
+                            hdf_duration),
+                min_value,
+                replace_values={'high': high, 'low': low}
+            )
 
 
 ##############################################################################
@@ -16395,6 +16479,47 @@ class RateOfDescentAtHeightBeforeAltitudeSelected(KeyPointValueNode):
                                         replace_values={'altitude': altitude})
 
 
+class RateOfDescentFor3SecAtHeightMax(KeyPointValueNode):
+    '''
+    Maximum rate of descent for 3 seconds at various altitudes.
+    '''
+
+    units = ut.FPM
+    NAME_FORMAT = 'Rate Of Descent For 3 Sec %(high)d To %(low)d Ft Max'
+    NAME_VALUES = {'high': [2000, 1000, 500, 500],
+                   'low':  [1000,  500, 100,  50]}
+
+    @classmethod
+    def can_operate(cls, available, ac_type=A('Aircraft Type')):
+        alt = (
+            "Altitude AGL"
+            if ac_type and ac_type.value == "helicopter"
+            else "Altitude AAL For Flight Phases"
+        )
+        return all_of(['Vertical Speed For 3 Sec', alt], available)
+
+    def derive(self,
+               vert_spd=P('Vertical Speed For 3 Sec'),
+               ac_type=A('Aircraft Type'),
+               # aeroplane
+               alt_aal=P('Altitude AAL For Flight Phases'),
+               # helicopter
+               alt_agl=P('Altitude AGL'),
+               duration=A('HDF Duration')):
+
+        hdf_duration = duration.value * self.frequency if duration else None
+        alt = alt_aal or alt_agl
+
+        for high, low in zip(self.NAME_VALUES['high'], self.NAME_VALUES['low']):
+            self.create_kpvs_within_slices(
+                vert_spd.array,
+                trim_slices(alt.slices_from_to(high, low), 3, self.frequency,
+                            hdf_duration),
+                min_value,
+                replace_values={'high': high, 'low': low}
+            )
+
+
 ##############################################################################
 # Roll
 
@@ -16955,6 +17080,47 @@ class RollRateMaxAboveLimitAtTouchdown(KeyPointValueNode):
         intercept = vert_acc_high - slope * weight_low
 
         return gross_weight * slope + intercept
+
+
+class RollFor3SecAtHeightMax(KeyPointValueNode):
+    '''
+    Maximum roll for 3 seconds at various altitudes.
+    '''
+
+    units = ut.DEGREE
+    NAME_FORMAT = 'Roll For 3 Sec %(high)d To %(low)d Ft Max'
+    NAME_VALUES = {'high': [1000, 300],
+                   'low':  [ 300,  20]}
+
+    @classmethod
+    def can_operate(cls, available, ac_type=A('Aircraft Type')):
+        alt = (
+            "Altitude AGL"
+            if ac_type and ac_type.value == "helicopter"
+            else "Altitude AAL For Flight Phases"
+        )
+        return all_of(['Roll For 3 Sec', alt], available)
+
+    def derive(self,
+               roll=P('Roll For 3 Sec'),
+               ac_type=A('Aircraft Type'),
+               # aeroplane
+               alt_aal=P('Altitude AAL For Flight Phases'),
+               # helicopter
+               alt_agl=P('Altitude AGL'),
+               duration=A('HDF Duration')):
+
+        hdf_duration = duration.value * self.frequency if duration else None
+        alt = alt_aal or alt_agl
+
+        for high, low in zip(self.NAME_VALUES['high'], self.NAME_VALUES['low']):
+            self.create_kpvs_within_slices(
+                roll.array,
+                trim_slices(alt.slices_from_to(high, low), 3, self.frequency,
+                            hdf_duration),
+                max_abs_value,
+                replace_values={'high': high, 'low': low}
+            )
 
 
 ##############################################################################

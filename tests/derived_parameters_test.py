@@ -185,8 +185,10 @@ from analysis_engine.derived_parameters import (
     MinimumAirspeed,
     MinimumCleanLookup,
     Pitch,
+    PitchFor3Sec,
     PotentialEnergy,
     Roll,
+    RollFor3Sec,
     RollRate,
     RollRateForTouchdown,
     RollRateAtTouchdownLimit,
@@ -219,6 +221,7 @@ from analysis_engine.derived_parameters import (
     VappLookup,
     VerticalSpeed,
     VerticalSpeedForFlightPhases,
+    VerticalSpeedFor3Sec,
     VerticalSpeedInertial,
     Vref,
     VrefLookup,
@@ -4755,6 +4758,40 @@ class TestPitch(unittest.TestCase):
         self.assertEqual(len(pch.array),10)
 
 
+class TestPitchFor3Sec(unittest.TestCase, NodeTest):
+
+    def setUp(self):
+        self.node_class = PitchFor3Sec
+        self.operational_combinations = [
+            ('Pitch',),
+        ]
+        self.pitch = P(
+            name='Pitch',
+            array=np.ma.repeat((10, 11, 12, 10), (6, 7, 1, 6)),
+            frequency=2,
+        )
+
+    def test_name_and_units(self):
+        node = self.node_class()
+        self.assertEqual(node.name, 'Pitch For 3 Sec')
+        self.assertEqual(node.units, ut.DEGREE)
+
+    def test_derive_basic(self):
+        node = self.node_class()
+        node.get_derived([self.pitch])
+        expected = np.ma.repeat((10, 11, 10), (6, 8, 6))
+        expected[-6:] = np.ma.masked
+        ma_test.assert_masked_array_equal(node.array, expected)
+
+    def test_derive_align(self):
+        self.pitch.frequency = 1
+        node = self.node_class()
+        node.get_derived([self.pitch])
+        expected = np.ma.repeat((10, 10.5, 11, 10), (11, 1, 16, 12))
+        expected[-7:] = np.ma.masked
+        ma_test.assert_masked_array_equal(node.array, expected)
+
+
 class TestVerticalSpeed(unittest.TestCase):
     def test_can_operate(self):
         self.assertEqual(VerticalSpeed.get_operational_combinations(),
@@ -4794,6 +4831,39 @@ class TestVerticalSpeedForFlightPhases(unittest.TestCase):
         vert_spd = VerticalSpeedForFlightPhases()
         vert_spd.derive(alt_std)
         assert_array_equal(vert_spd.array, np.ma.zeros(10))
+
+class TestVerticalSpeedFor3Sec(unittest.TestCase, NodeTest):
+
+    def setUp(self):
+        self.node_class = VerticalSpeedFor3Sec
+        self.operational_combinations = [
+            ('Vertical Speed',),
+        ]
+        self.vert_spd = P(
+            name='Vertical Speed',
+            array=np.ma.repeat((1000, 1100, 1200, 1000), (6, 7, 1, 6)),
+            frequency=2,
+        )
+
+    def test_name_and_units(self):
+        node = self.node_class()
+        self.assertEqual(node.name, 'Vertical Speed For 3 Sec')
+        self.assertEqual(node.units, ut.FPM)
+
+    def test_derive_basic(self):
+        node = self.node_class()
+        node.get_derived([self.vert_spd])
+        expected = np.ma.repeat((1000, 1100, 1000), (6, 8, 6))
+        expected[-6:] = np.ma.masked
+        ma_test.assert_masked_array_equal(node.array, expected)
+
+    def test_derive_align(self):
+        self.vert_spd.frequency = 1
+        node = self.node_class()
+        node.get_derived([self.vert_spd])
+        expected = np.ma.repeat((1000, 1050, 1100, 1000), (11, 1, 16, 12))
+        expected[-7:] = np.ma.masked
+        ma_test.assert_masked_array_equal(node.array, expected)
 
 
 class TestHeadingRate(unittest.TestCase):
@@ -6353,6 +6423,41 @@ class TestRoll(unittest.TestCase):
         self.assertLess(derroll.array[40], 0.25)
         self.assertLess(np.ma.max(derroll.array),13.0)
         self.assertGreater(np.ma.max(derroll.array),11.0)
+
+
+class TestRollFor3Sec(unittest.TestCase, NodeTest):
+
+    def setUp(self):
+        self.node_class = RollFor3Sec
+        self.operational_combinations = [
+            ('Roll',),
+        ]
+        self.roll = P(
+            name='Roll',
+            array=np.ma.repeat((10, 11, 12, 10), (6, 7, 1, 6)),
+            frequency=2,
+        )
+
+    def test_name_and_units(self):
+        node = self.node_class()
+        self.assertEqual(node.name, 'Roll For 3 Sec')
+        self.assertEqual(node.units, ut.DEGREE)
+
+    def test_derive_basic(self):
+        node = self.node_class()
+        node.get_derived([self.roll])
+        expected = np.ma.repeat((10, 11, 10), (6, 8, 6))
+        expected[-6:] = np.ma.masked
+        ma_test.assert_masked_array_equal(node.array, expected)
+
+    def test_derive_align(self):
+        self.roll.frequency = 1
+        node = self.node_class()
+        node.get_derived([self.roll])
+        expected = np.ma.repeat((10, 10.5, 11, 10), (11, 1, 16, 12))
+        expected[-7:] = np.ma.masked
+        ma_test.assert_masked_array_equal(node.array, expected)
+
 
 class TestRollRate(unittest.TestCase):
     def test_can_operate(self):

@@ -583,6 +583,8 @@ from analysis_engine.key_point_values import (
     PitchBetweenFL200AndFL300Max,
     PitchBetweenFL200AndFL300Min,
     PitchCyclesDuringFinalApproach,
+    PitchFor3SecAtHeightMax,
+    PitchFor3SecAtHeightMin,
     PitchDisconnectDuration,
     PitchDuringGoAroundMax,
     Pitch500To50FtMin,
@@ -617,6 +619,7 @@ from analysis_engine.key_point_values import (
     RateOfDescentAtTouchdown,
     RateOfDescentBelow80KtsMax,
     RateOfDescentBelow10000FtMax,
+    RateOfDescentFor3SecAtHeightMax,
     RateOfDescentMax,
     RateOfDescentAbove3000FtMax,
     RateOfDescentTopOfDescentTo10000FtMax,
@@ -636,6 +639,7 @@ from analysis_engine.key_point_values import (
     RollCyclesExceeding5DegDuringInitialClimb,
     RollCyclesExceeding15DegDuringInitialClimb,
     RollCyclesNotDuringFinalApproach,
+    RollFor3SecAtHeightMax,
     RollLeftAbove8000FtAltitudeDensityAbove60Kts,
     RollLeftAbove6000FtAltitudeDensityBelow60Kts,
     RollLeftBelow8000FtAltitudeDensityAbove60Kts,
@@ -17842,6 +17846,226 @@ class TestPitchAboveFL300Min(unittest.TestCase):
         self.assertEqual(node[0].value, 8)
 
 
+class TestPitchFor3SecAtHeightMax(unittest.TestCase):
+
+    def setUp(self):
+        self.node_class = PitchFor3SecAtHeightMax
+        self.function = max_value
+
+    def test_can_operate(self):
+        opts = self.node_class.get_operational_combinations(ac_type=helicopter)
+        self.assertTrue(len(opts) > 0)
+        for opt in opts:
+            self.assertTrue(
+                set(opt).issuperset({'Pitch For 3 Sec', 'Altitude AGL'})
+            )
+
+        opts = self.node_class.get_operational_combinations(ac_type=aeroplane)
+        for opt in opts:
+            self.assertTrue(
+                set(opt).issuperset({'Pitch For 3 Sec', 'Altitude AAL For Flight Phases'})
+            )
+
+    def test_derive_aeroplane(self):
+        pitch = P(
+            name='Pitch For 3 Sec',
+            array=np.ma.array(
+                [0, 1, 2, 3, 4, 4, 5, 6, 7, 8,  # 1000 ft
+                 9, 8, 8, 7, 6, 4, 3, 5, 7, 9,  #  500 ft
+                 10]                            #    0 ft
+            ),
+        )
+        alt_aal = P(
+            name='Altitude AAL For Flight Phases',
+            array=np.ma.arange(1000, -50, -50),
+        )
+        hdf_duration = A('HDF Duration', value=len(pitch.array) / pitch.frequency)
+        node = self.node_class()
+        node.derive(pitch, aeroplane, alt_aal, None, hdf_duration)
+        self.assertEqual(node, KPV(items=[
+            KeyPointValue(
+                name='Pitch For 3 Sec 1000 To 500 Ft Max',
+                index=6,
+                value=5
+            ),
+            KeyPointValue(
+                name='Pitch For 3 Sec 500 To 100 Ft Max',
+                index=14,
+                value=6
+            ),
+            KeyPointValue(
+                name='Pitch For 3 Sec 500 To 50 Ft Max',
+                index=14,
+                value=6
+            ),
+            KeyPointValue(
+                name='Pitch For 3 Sec 500 To 20 Ft Max',
+                index=14,
+                value=6
+            ),
+            KeyPointValue(
+                name='Pitch For 3 Sec 500 To 7 Ft Max',
+                index=14,
+                value=6
+            ),
+        ]))
+        self.assertEqual(node.units, ut.DEGREE)
+
+    def test_derive_helicopter(self):
+        pitch = P(
+            name='Pitch For 3 Sec',
+            array=np.ma.array(
+                [0, 1, 2, 3, 4, 4, 5, 6, 7, 8,  # 1000 ft
+                 9, 8, 8, 7, 6, 4, 3, 5, 7, 9,  #  500 ft
+                 10]                            #    0 ft
+            ),
+        )
+        alt_agl = P(
+            name='Altitude AGL',
+            array=np.ma.arange(1000, -50, -50),
+        )
+        node = self.node_class()
+        node.derive(pitch, helicopter, None, alt_agl, None)
+        self.assertEqual(node, KPV(items=[
+            KeyPointValue(
+                name='Pitch For 3 Sec 1000 To 500 Ft Max',
+                index=6,
+                value=5
+            ),
+            KeyPointValue(
+                name='Pitch For 3 Sec 500 To 100 Ft Max',
+                index=14,
+                value=6
+            ),
+            KeyPointValue(
+                name='Pitch For 3 Sec 500 To 50 Ft Max',
+                index=14,
+                value=6
+            ),
+            KeyPointValue(
+                name='Pitch For 3 Sec 500 To 20 Ft Max',
+                index=14,
+                value=6
+            ),
+            KeyPointValue(
+                name='Pitch For 3 Sec 500 To 7 Ft Max',
+                index=14,
+                value=6
+            ),
+        ]))
+        self.assertEqual(node.units, ut.DEGREE)
+
+
+class TestPitchFor3SecAtHeightMin(unittest.TestCase):
+
+    def setUp(self):
+        self.node_class = PitchFor3SecAtHeightMin
+        self.function = min_value
+
+    def test_can_operate(self):
+        opts = self.node_class.get_operational_combinations(ac_type=helicopter)
+        self.assertTrue(len(opts) > 0)
+        for opt in opts:
+            self.assertTrue(
+                set(opt).issuperset({'Pitch For 3 Sec', 'Altitude AGL'})
+            )
+
+        opts = self.node_class.get_operational_combinations(ac_type=aeroplane)
+        for opt in opts:
+            self.assertTrue(
+                set(opt).issuperset({'Pitch For 3 Sec', 'Altitude AAL For Flight Phases'})
+            )
+
+    def test_derive_aeroplane(self):
+        pitch = P(
+            name='Pitch For 3 Sec',
+            array=np.ma.array(
+                [0, 1, 2, 3, 4, 4, 5, 6, 7, 8,  # 1000 ft
+                 9, 8, 8, 7, 6, 4, 3, 5, 7, 9,  #  500 ft
+                 10]                            #    0 ft
+            ),
+        )
+        alt_aal = P(
+            name='Altitude AAL For Flight Phases',
+            array=np.ma.arange(1000, -50, -50),
+        )
+        hdf_duration = A('HDF Duration', value=len(pitch.array) / pitch.frequency)
+        node = self.node_class()
+        node.derive(pitch, aeroplane, alt_aal, None, hdf_duration)
+        self.assertEqual(node, KPV(items=[
+            KeyPointValue(
+                name='Pitch For 3 Sec 1000 To 500 Ft Min',
+                index=4,
+                value=4
+            ),
+            KeyPointValue(
+                name='Pitch For 3 Sec 500 To 100 Ft Min',
+                index=14,
+                value=6
+            ),
+            KeyPointValue(
+                name='Pitch For 3 Sec 500 To 50 Ft Min',
+                index=15,
+                value=4
+            ),
+            KeyPointValue(
+                name='Pitch For 3 Sec 500 To 20 Ft Min',
+                index=16,
+                value=3
+            ),
+            KeyPointValue(
+                name='Pitch For 3 Sec 500 To 7 Ft Min',
+                index=16,
+                value=3
+            ),
+        ]))
+        self.assertEqual(node.units, ut.DEGREE)
+
+    def test_derive_helicopter(self):
+        pitch = P(
+            name='Pitch For 3 Sec',
+            array=np.ma.array(
+                [0, 1, 2, 3, 4, 4, 5, 6, 7, 8,  # 1000 ft
+                 9, 8, 8, 7, 6, 4, 3, 5, 7, 9,  #  500 ft
+                 10]                            #    0 ft
+            ),
+        )
+        alt_agl = P(
+            name='Altitude AGL',
+            array=np.ma.arange(1000, -50, -50),
+        )
+        node = self.node_class()
+        node.derive(pitch, helicopter, None, alt_agl, None)
+        self.assertEqual(node, KPV(items=[
+            KeyPointValue(
+                name='Pitch For 3 Sec 1000 To 500 Ft Min',
+                index=4,
+                value=4
+            ),
+            KeyPointValue(
+                name='Pitch For 3 Sec 500 To 100 Ft Min',
+                index=14,
+                value=6
+            ),
+            KeyPointValue(
+                name='Pitch For 3 Sec 500 To 50 Ft Min',
+                index=15,
+                value=4
+            ),
+            KeyPointValue(
+                name='Pitch For 3 Sec 500 To 20 Ft Min',
+                index=16,
+                value=3
+            ),
+            KeyPointValue(
+                name='Pitch For 3 Sec 500 To 7 Ft Min',
+                index=16,
+                value=3
+            ),
+        ]))
+        self.assertEqual(node.units, ut.DEGREE)
+
+
 ##############################################################################
 # Pitch Rate
 
@@ -18801,6 +19025,121 @@ class TestRateOfDescentAtHeightBeforeAltitudeSelected(unittest.TestCase):
         ])
         self.assertEqual(node, expected)
 
+
+class TestRateOfDescentFor3SecAtHeightMax(unittest.TestCase):
+
+    def setUp(self):
+        self.node_class = RateOfDescentFor3SecAtHeightMax
+        self.function = min_value
+
+    def test_can_operate(self):
+        opts = self.node_class.get_operational_combinations(ac_type=helicopter)
+        self.assertTrue(len(opts) > 0)
+        for opt in opts:
+            self.assertTrue(
+                set(opt).issuperset({'Vertical Speed For 3 Sec', 'Altitude AGL'})
+            )
+
+        opts = self.node_class.get_operational_combinations(ac_type=aeroplane)
+        for opt in opts:
+            self.assertTrue(
+                set(opt).issuperset({'Vertical Speed For 3 Sec', 'Altitude AAL For Flight Phases'})
+            )
+
+    def test_derive_basic(self):
+        vert_spd = P(
+            name='Vertical Speed For 3 Sec',
+            array=np.ma.concatenate(
+                [np.ma.arange(-1000, 1000, 100), np.ma.arange(1000, -1100, -100)] *2
+            ),
+        )
+        alt_aal = P(
+            name='Altitude AAL For Flight Phases',
+            array=np.ma.arange(2025, -25, -25),
+        )
+        hdf_duration = A('HDF Duration', value=len(vert_spd.array) / vert_spd.frequency)
+        node = self.node_class()
+        node.derive(vert_spd, aeroplane, alt_aal, None, hdf_duration)
+        self.assertEqual(node, KPV(items=[
+            KeyPointValue(
+                name='Rate Of Descent For 3 Sec 2000 To 1000 Ft Max',
+                index=37,
+                value=-700
+            ),
+            KeyPointValue(
+                name='Rate Of Descent For 3 Sec 1000 To 500 Ft Max',
+                index=45,
+                value=-600
+            ),
+            KeyPointValue(
+                name='Rate Of Descent For 3 Sec 500 To 100 Ft Max',
+                index=73,
+                value=-200
+            ),
+            KeyPointValue(
+                name='Rate Of Descent For 3 Sec 500 To 50 Ft Max',
+                index=75,
+                value=-400
+            ),
+        ]))
+        self.assertEqual(node.units, ut.FPM)
+
+    def test_derive_two_descents(self):
+        vert_spd = P(
+            name='Vertical Speed For 3 Sec',
+            array=np.tile(np.ma.repeat([-1000, 1000], (10, 10)), 8)
+        )
+        alt_agl = P(
+            name='Altitude AGL',
+            array=np.tile(np.ma.arange(2000, 0, -25), 2)
+        )
+        hdf_duration = A('HDF Duration', value=len(vert_spd.array) / vert_spd.frequency)
+        node = self.node_class()
+        node.derive(vert_spd, helicopter, None, alt_agl, hdf_duration)
+        self.assertEqual(node, KPV(items=[
+            KeyPointValue(
+                name='Rate Of Descent For 3 Sec 2000 To 1000 Ft Max',
+                index=4,
+                value=-1000
+            ),
+            KeyPointValue(
+                name='Rate Of Descent For 3 Sec 2000 To 1000 Ft Max',
+                index=4+80,
+                value=-1000
+            ),
+            KeyPointValue(
+                name='Rate Of Descent For 3 Sec 1000 To 500 Ft Max',
+                index=44,
+                value=-1000
+            ),
+            KeyPointValue(
+                name='Rate Of Descent For 3 Sec 1000 To 500 Ft Max',
+                index=44+80,
+                value=-1000
+            ),
+            KeyPointValue(
+                name='Rate Of Descent For 3 Sec 500 To 100 Ft Max',
+                index=64,
+                value=-1000
+            ),
+            KeyPointValue(
+                name='Rate Of Descent For 3 Sec 500 To 100 Ft Max',
+                index=64+80,
+                value=-1000
+            ),
+            KeyPointValue(
+                name='Rate Of Descent For 3 Sec 500 To 50 Ft Max',
+                index=64,
+                value=-1000
+            ),
+            KeyPointValue(
+                name='Rate Of Descent For 3 Sec 500 To 50 Ft Max',
+                index=64+80,
+                value=-1000
+            ),
+        ]))
+
+
 ##############################################################################
 # Roll
 
@@ -19431,6 +19770,83 @@ class TestRollRateMaxAboveLimitAtTouchdown(unittest.TestCase):
 
         self.assertEqual(len(node), 0)
 
+
+class TestRollFor3SecAtHeightMax(unittest.TestCase):
+
+    def setUp(self):
+        self.node_class = RollFor3SecAtHeightMax
+        self.function = max_abs_value
+
+    def test_can_operate(self):
+        opts = self.node_class.get_operational_combinations(ac_type=helicopter)
+        self.assertTrue(len(opts) > 0)
+        for opt in opts:
+            self.assertTrue(
+                set(opt).issuperset({'Roll For 3 Sec', 'Altitude AGL'})
+            )
+
+        opts = self.node_class.get_operational_combinations(ac_type=aeroplane)
+        for opt in opts:
+            self.assertTrue(
+                set(opt).issuperset({'Roll For 3 Sec', 'Altitude AAL For Flight Phases'})
+            )
+
+    def test_derive_aeroplane(self):
+        roll = P(
+            name='Roll For 3 Sec',
+            array=np.ma.concatenate([
+                np.ma.arange(15, -15, -1), np.ma.arange(-15, 15),
+                np.ma.arange(15, 5, -1), np.ma.arange(5, 15)
+            ]),
+        )
+        alt_aal = P(
+            name='Altitude AAL For Flight Phases',
+            array=np.ma.arange(1000, 0, -10),
+        )
+        hdf_duration = A('HDF Duration', value=len(roll.array) / roll.frequency)
+        node = self.node_class()
+        node.derive(roll, aeroplane, alt_aal, None, hdf_duration)
+        self.assertEqual(node, KPV(items=[
+            KeyPointValue(
+                name='Roll For 3 Sec 1000 To 300 Ft Max',
+                index=30,
+                value=-15
+            ),
+            KeyPointValue(
+                name='Roll For 3 Sec 300 To 20 Ft Max',
+                index=79,
+                value=14
+            ),
+        ]))
+        self.assertEqual(node.units, ut.DEGREE)
+
+    def test_derive_helicopter(self):
+        roll = P(
+            name='Roll For 3 Sec',
+            array=np.ma.concatenate([
+                np.ma.arange(15, -15, -1), np.ma.arange(-15, 15),
+                np.ma.arange(15, 5, -1), np.ma.arange(5, 15)
+            ]),
+        )
+        alt_agl = P(
+            name='Altitude AGL',
+            array=np.ma.arange(1000, 0, -10),
+        )
+        node = self.node_class()
+        node.derive(roll, helicopter, None, alt_agl, None)
+        self.assertEqual(node, KPV(items=[
+            KeyPointValue(
+                name='Roll For 3 Sec 1000 To 300 Ft Max',
+                index=30,
+                value=-15
+            ),
+            KeyPointValue(
+                name='Roll For 3 Sec 300 To 20 Ft Max',
+                index=79,
+                value=14
+            ),
+        ]))
+        self.assertEqual(node.units, ut.DEGREE)
 
 ##############################################################################
 # Rudder

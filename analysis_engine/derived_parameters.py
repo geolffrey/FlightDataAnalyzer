@@ -5842,6 +5842,20 @@ class VerticalSpeedForFlightPhases(DerivedParameterNode):
         self.array = hysteresis(rate_of_change(alt_std, 6) * 60, threshold)
 
 
+class VerticalSpeedFor3Sec(DerivedParameterNode):
+    '''
+    Vertical Speed over a 3 second window.
+    '''
+
+    align_frequency = 2
+    align_offset = 0
+    units = ut.FPM
+
+    def derive(self, vert_spd=P('Vertical Speed')):
+
+        self.array = second_window(vert_spd.array, self.frequency, 3)
+
+
 class Relief(DerivedParameterNode):
     """
     Also known as Terrain, this is zero at the airfields. There is a small
@@ -6235,6 +6249,20 @@ class RollSmoothed(DerivedParameterNode):
                                           mode='cubic')
 
 
+class RollFor3Sec(DerivedParameterNode):
+    '''
+    Roll over a 3 second window.
+    '''
+
+    align_frequency = 2
+    align_offset = 0
+    units = ut.DEGREE
+
+    def derive(self, roll=P('Roll')):
+
+        self.array = second_window(roll.array, self.frequency, 3)
+
+
 class PitchSmoothed(DerivedParameterNode):
 
     align = False
@@ -6263,6 +6291,20 @@ class PitchSmoothed(DerivedParameterNode):
                                           frequency=self.frequency,
                                           small_slice_duration=10,
                                           mode='cubic')
+
+
+class PitchFor3Sec(DerivedParameterNode):
+    '''
+    Pitch over a 3 second window.
+    '''
+
+    align_frequency = 2
+    align_offset = 0
+    units = ut.DEGREE
+
+    def derive(self, pitch=P('Pitch')):
+
+        self.array = second_window(pitch.array, self.frequency, 3)
 
 
 class RollRate(DerivedParameterNode):
