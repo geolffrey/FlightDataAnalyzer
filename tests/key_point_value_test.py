@@ -12507,8 +12507,8 @@ class TestEngGasTempDuringEngStartMax(unittest.TestCase, NodeTest):
 
     def test_derive(self):
         eng_starts = EngStart('Eng Start', items=[
-            KeyTimeInstance(163, 'Eng (1) Start'),
-            KeyTimeInstance(98, 'Eng (2) Start'),
+            KeyTimeInstance(163.2, 'Eng (1) Start'),
+            KeyTimeInstance(98.2, 'Eng (2) Start'),
         ])
         eng_1_egt = load(os.path.join(test_data_path, 'eng_start_eng_1_egt.nod'))
         eng_2_egt = load(os.path.join(test_data_path, 'eng_start_eng_2_egt.nod'))
@@ -12522,6 +12522,33 @@ class TestEngGasTempDuringEngStartMax(unittest.TestCase, NodeTest):
         self.assertEqual(node[0].value, 303)
         self.assertEqual(node[1].index, 99)
         self.assertEqual(node[1].value, 333)
+
+    def test_peak_before_eng_start(self):
+        eng_1_egt = P('Eng (1) Gas Temp', array=np.ma.arange(700, 500, -1))
+        eng_1_n2 = P('Eng (1) N2', array=np.ma.concatenate((
+            np.ma.arange(90, 70, -0.2),
+            np.ma.ones(100) * 70,
+        )))
+        eng_starts = EngStart('Eng Start', items=[
+            KeyTimeInstance(20, 'Eng (1) Start'),
+        ])
+        node = EngGasTempDuringEngStartMax()
+        node.derive(eng_1_egt, None, None, None, None, None, None,
+                    None, eng_1_n2, None, None, None, None, None, None, None, eng_starts)
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 0)
+        self.assertEqual(node[0].value, 700)
+
+    def test_eng_start_at_start_of_recording(self):
+        eng_starts = EngStart('Eng Start', items=[
+            KeyTimeInstance(0.2, 'Eng (1) Start'),
+        ])
+        eng_1_egt = load(os.path.join(test_data_path, 'eng_start_eng_1_egt.nod'))
+        eng_1_n3 = load(os.path.join(test_data_path, 'eng_start_eng_1_n3.nod'))
+        node = EngGasTempDuringEngStartMax()
+        node.derive(eng_1_egt, None, None, None, eng_1_n3, None, None,
+                    None, None, None, None, None, None, None, None, None, eng_starts)
+        self.assertEqual(len(node), 1)
 
 
 class TestEngGasTempDuringEngStartForXSecMax(unittest.TestCase, NodeTest):
