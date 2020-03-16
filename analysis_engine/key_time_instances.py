@@ -26,6 +26,7 @@ from analysis_engine.library import (
     hysteresis,
     index_at_value,
     is_index_within_slice,
+    is_index_within_slices,
     last_valid_sample,
     max_value,
     min_value,
@@ -1748,9 +1749,10 @@ class OffshoreTouchdown(KeyTimeInstanceNode):
     '''
 
     def derive(self, touchdowns=KTI('Touchdown'),
-               offshore=M('Offshore')):
+               offshore=S('Offshore')):
+        offshore_slices = offshore.get_slices()
         for tdwn in touchdowns:
-            if value_at_index(offshore.array, tdwn.index, interpolate=False) == 'Offshore':
+            if is_index_within_slices(tdwn.index, offshore_slices):
                 self.create_kti(tdwn.index)
 
 
@@ -1760,9 +1762,10 @@ class OnshoreTouchdown(KeyTimeInstanceNode):
     '''
 
     def derive(self, touchdowns=KTI('Touchdown'),
-               offshore=M('Offshore')):
+               offshore=S('Offshore')):
+        offshore_slices = offshore.get_slices()
         for tdwn in touchdowns:
-            if value_at_index(offshore.array, tdwn.index, interpolate=False) == 'Onshore':
+            if not is_index_within_slices(tdwn.index, offshore_slices):
                 self.create_kti(tdwn.index)
 
 
