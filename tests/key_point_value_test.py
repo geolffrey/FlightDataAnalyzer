@@ -270,6 +270,7 @@ from analysis_engine.key_point_values import (
     DistanceFromRunwayCentrelineFromTouchdownTo60KtMax,
     DistanceFromRunwayStartTo60Kts,
     DistanceFromTouchdownTo60Kts,
+    DistanceFromTouchdownToNosewheelDown,
     DistanceTravelledDuringTurnback,
     DistanceTravelledFollowingDiversion,
     DualInputAbove200FtDuration,
@@ -766,6 +767,7 @@ from analysis_engine.key_point_values import (
     TorqueAsymmetryWhileAirborneMax,
     TouchdownTo60KtsDuration,
     TouchdownToElevatorDownDuration,
+    TouchdownToNosewheelDownDuration,
     TouchdownToPitch2DegreesAbovePitchAt60KtsDuration,
     TouchdownToSpoilersDeployedDuration,
     TouchdownToThrustReversersDeployedDuration,
@@ -24123,6 +24125,108 @@ class TestTouchdownToPitch2DegreesAbovePitchAt60KtsDuration(unittest.TestCase):
         self.assertEqual(len(node), 1)
         self.assertAlmostEqual(node[0].index, 35.4, places=1)
         self.assertAlmostEqual(node[0].value, 27.4, places=1)
+
+class TestTouchdownToNosewheelDownDuration(unittest.TestCase, NodeTest):
+    def setUp(self):
+        self.node_class = TouchdownToNosewheelDownDuration
+        self.operational_combinations = [
+            ('Landing', 'Nosewheel Down', 'Touchdown')
+        ]
+        self.can_operate_kwargs = {'ac_type': aeroplane}
+
+    def test_one_touchdown(self):
+        ldgs = buildsection('Landing', 10, 30)
+        tdwns = KTI('Touchdown', items=[
+            KeyTimeInstance(name='Touchdown', index=15)
+        ])
+        nwds = KTI('Nosewheel Down', items=[
+            KeyTimeInstance(name='Nosewheel Down', index=25)
+        ])
+        node = self.node_class()
+        node.derive(ldgs, tdwns, nwds)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 25)
+        self.assertEqual(node[0].value, 10)
+
+    def test_two_touchdowns(self):
+        ldgs = buildsections('Landing', (10, 30), (40, 60))
+        tdwns = KTI('Touchdown', items=[
+            KeyTimeInstance(name='Touchdown', index=15),
+            KeyTimeInstance(name='Touchdown', index=45),
+        ])
+        nwds = KTI('Nosewheel Down', items=[
+            KeyTimeInstance(name='Nosewheel Down', index=25),
+            KeyTimeInstance(name='Nosewheel Down', index=55),
+        ])
+        node = self.node_class()
+        node.derive(ldgs, tdwns, nwds)
+
+        self.assertEqual(len(node), 2)
+        self.assertEqual(node[0].index, 25)
+        self.assertEqual(node[0].value, 10)
+        self.assertEqual(node[1].index, 55)
+        self.assertEqual(node[1].value, 10)
+
+    def test_missing_touchdown_in_landing(self):
+        ldgs = buildsections('Landing', (10, 30), (40, 60))
+        tdwns = KTI('Touchdown', items=[
+            KeyTimeInstance(name='Touchdown', index=45),
+        ])
+        nwds = KTI('Nosewheel Down', items=[
+            KeyTimeInstance(name='Nosewheel Down', index=25),
+            KeyTimeInstance(name='Nosewheel Down', index=55),
+        ])
+        node = self.node_class()
+        node.derive(ldgs, tdwns, nwds)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 55)
+        self.assertEqual(node[0].value, 10)
+
+    def test_missing_nosewheel_down_in_landing(self):
+        ldgs = buildsections('Landing', (10, 30), (40, 60))
+        tdwns = KTI('Touchdown', items=[
+            KeyTimeInstance(name='Touchdown', index=15),
+            KeyTimeInstance(name='Touchdown', index=45),
+        ])
+        nwds = KTI('Nosewheel Down', items=[
+            KeyTimeInstance(name='Nosewheel Down', index=55),
+        ])
+        node = self.node_class()
+        node.derive(ldgs, tdwns, nwds)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 55)
+        self.assertEqual(node[0].value, 10)
+
+
+class TestDistanceFromTouchdownToNosewheelDown(unittest.TestCase):
+    def test_derive(self):
+        lat = P('Latitude Smoothed', np.ma.ones(50))
+        lon = P('Longitude Smoothed', np.ma.arange(1, 1.001, 0.001/50))
+        nwds = KTI('Nosewheel Down', items=[
+            KeyTimeInstance(index=40, name='Nosewheel Down')
+        ])
+        lat_tdns = KPV('Latitude Smoothed At Touchdown', items=[
+            KeyPointValue(index=10, value=1)
+        ])
+        lon_tdns = KPV('Longitude Smoothed At Touchdown', items=[
+            KeyPointValue(index=10, value=1.0002)
+        ])
+        runway = {
+            'identifier': 'EGXX',
+            'start': {'latitude': 1, 'longitude': 1},
+            'end': {'latitude': 1, 'longitude': 1.001},
+        }
+        rwy = A('FDR Landing Runway', value=runway)
+        node = DistanceFromTouchdownToNosewheelDown()
+        node.derive(lat, lon, lat_tdns, lon_tdns, nwds, rwy)
+
+        self.assertEqual(len(node), 1)
+        self.assertAlmostEqual(node[0].index, 40)
+        # Haversine distance between 1 and 1.001 is 111.2 meters
+        self.assertAlmostEqual(node[0].value, 111.2 * 3/5, places=1)
 
 
 ##############################################################################

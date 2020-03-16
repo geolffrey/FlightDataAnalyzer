@@ -20097,6 +20097,69 @@ class TouchdownToPitch2DegreesAbovePitchAt60KtsDuration(KeyPointValueNode):
                 self.create_kpv(stop, duration)
 
 
+class TouchdownToNosewheelDownDuration(KeyPointValueNode):
+    '''
+    Return the duration between Touchdown and Nosewheel Down.
+    '''
+
+    units = ut.SECOND
+    can_operate = aeroplane_only
+
+    def derive(self, ldgs=S('Landing'), tdwns=KTI('Touchdown'),
+               nwds=KTI('Nosewheel Down')):
+        for ldg in ldgs:
+            tdwn = tdwns.get_last(within_slice=ldg.slice)
+            if tdwn is None:
+                continue
+
+            nwd = nwds.get_first(within_slice=ldg.slice)
+            if nwd is None:
+                continue
+
+            duration = (nwd.index - tdwn.index) / self.frequency
+            self.create_kpv(nwd.index, duration)
+
+
+class DistanceFromTouchdownToNosewheelDown(KeyPointValueNode):
+    '''
+    Return the distance from Touchdown to Nosewheel Down.
+
+    Restricted to the last touchdown.
+    '''
+
+    units = ut.METER
+    can_operate = aeroplane_only
+
+    def derive(self,
+               lat=P('Latitude Smoothed'),
+               lon=P('Longitude Smoothed'),
+               lat_tdns=KPV('Latitude Smoothed At Touchdown'),
+               lon_tdns=KPV('Longitude Smoothed At Touchdown'),
+               nwds=KTI('Nosewheel Down'),
+               rwy=A('FDR Landing Runway')):
+
+        if ambiguous_runway(rwy):
+            return
+        nwd = nwds.get_last()
+        if nwd is None:
+            return
+
+        lat_nwd = value_at_index(lat.array, nwd.index)
+        lon_nwd = value_at_index(lon.array, nwd.index)
+
+        if None in (lat_nwd, lon_nwd):
+            return
+
+        distance_to_touchdown = runway_distance_from_end(
+            rwy.value,
+            lat_tdns.get_last().value,
+            lon_tdns.get_last().value
+        )
+        distance_to_nwd = runway_distance_from_end(rwy.value, lat_nwd, lon_nwd)
+        distance_touchdown_to_nwd = distance_to_touchdown - distance_to_nwd
+        self.create_kpv(nwd.index, distance_touchdown_to_nwd)
+
+
 ##############################################################################
 # Turbulence
 
