@@ -2641,7 +2641,9 @@ class NosewheelDown(KeyTimeInstanceNode):
             if tdwn is None:
                 continue
 
-            if nose_gear is None:
+            if nose_gear is None or nose_gear.hz < 1.0:
+                if None in (spd_ldgs, pitch):
+                    return
                 # get index where airspeed is 60 Kts
                 this_60_kt = spd_ldgs.get_next(tdwn.index, name='First 60 Kt During Landing')
                 if this_60_kt is None:
