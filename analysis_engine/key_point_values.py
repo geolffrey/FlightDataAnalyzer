@@ -4287,10 +4287,12 @@ class GroundspeedWithThrustReversersDeployedAnyPowerMin(KeyPointValueNode):
 
     def derive(self,
                gnd_spd=P('Groundspeed'),
-               tr=M('Thrust Reversers'),):
+               tr=M('Thrust Reversers'),
+               stationaries=S('Stationary')):
 
         tr_deployed = runs_of_ones(tr.array == 'Deployed')
-        self.create_kpv_from_slices(gnd_spd.array, tr_deployed, min_value)
+        tr_deployed_moving = slices_and_not(tr_deployed, stationaries.get_slices())
+        self.create_kpv_from_slices(gnd_spd.array, tr_deployed_moving, min_value)
 
 
 ########################################
