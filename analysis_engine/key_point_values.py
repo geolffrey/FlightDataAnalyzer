@@ -15338,6 +15338,64 @@ class Pitch400To1000FtMin(KeyPointValueNode):
         )
 
 
+class PitchAtHeightWithFlapMin(KeyPointValueNode):
+    '''
+    Minimum pitch at various altitudes with the last flap lever selected
+    during approach.
+
+    Applies to fixed wing aircraft.
+    '''
+
+    NAME_FORMAT = 'Pitch %(high)d To %(low)d Ft With Flap %(flap)s Min'
+    NAME_VALUES = NAME_VALUES_LEVER.copy()
+    NAME_VALUES.update(
+        {'high': [1000, 500],
+         'low':  [ 500,  20]}
+    )
+    units = ut.DEGREE
+
+    @classmethod
+    def can_operate(cls, available, ac_type=A('Aircraft Type')):
+        plane = ac_type == aeroplane
+        flap = any_of(('Flap Lever', 'Flap Lever (Synthetic)'), available)
+        required = all_of(
+            ('Pitch', 'Altitude AAL For Flight Phases', 'Approach And Landing', 'Touchdown'),
+            available
+        )
+        return plane and required and flap
+
+    def derive(self,
+               pitch=P('Pitch'),
+               alt_aal=P('Altitude AAL For Flight Phases'),
+               flap_lever=M('Flap Lever'),
+               flap_synth=M('Flap Lever (Synthetic)'),
+               apps=S('Approach And Landing'),
+               touchdowns=KTI('Touchdown')):
+
+        flap = flap_lever or flap_synth
+        for app in apps:
+            touchdown = touchdowns.get_first(within_slice=app.slice)
+            stop = touchdown.index if touchdown else app.slice.stop
+            app_slice = slices_int(slice(app.slice.start, stop))
+            last_flap = prev_unmasked_value(flap.array, stop-1, start_index=app_slice.start)
+            if last_flap is None:
+                continue
+
+            last_flap_set = runs_of_ones(flap.array[app_slice] == last_flap.value)
+            last_flap_set = shift_slices(last_flap_set, app_slice.start)
+
+            for high, low in zip(self.NAME_VALUES['high'], self.NAME_VALUES['low']):
+                _, slices = slices_from_to(alt_aal.array[app_slice], high, low)
+                slices = shift_slices(slices, app_slice.start)
+                slices = slices_and(slices, last_flap_set)
+                self.create_kpv_from_slices(
+                    pitch.array,
+                    slices,
+                    min_value,
+                    replace_values={'high': high, 'low': low, 'flap': last_flap.value}
+                )
+
+
 class Pitch1000To500FtMax(KeyPointValueNode):
     '''
     Maximum pitch 1000ft to 500ft AAL (AGL for helicopters).

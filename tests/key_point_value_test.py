@@ -590,6 +590,7 @@ from analysis_engine.key_point_values import (
     PitchAboveFL300Max,
     PitchAfterFlapRetractionMax,
     PitchAt35FtDuringClimb,
+    PitchAtHeightWithFlapMin,
     PitchAtLiftoff,
     PitchAtTouchdown,
     PitchBetweenFL200AndFL300Max,
@@ -18318,6 +18319,93 @@ class TestPitch400To1000FtMin(unittest.TestCase):
     @unittest.skip('Test Not Implemented')
     def test_derive(self):
         self.assertTrue(False, msg='Test not implemented.')
+
+
+class TestPitchAtHeightWithFlapMin:
+    operational_combinations = [
+        ('Pitch', 'Altitude AAL For Flight Phases', 'Approach And Landing', 'Touchdown', 'Flap Lever'),
+        ('Pitch', 'Altitude AAL For Flight Phases', 'Approach And Landing', 'Touchdown', 'Flap Lever (Synthetic)'),
+    ]
+
+    @pytest.mark.parametrize('combination', operational_combinations)
+    def test_can_operate(self, combination):
+        assert PitchAtHeightWithFlapMin.can_operate(combination, ac_type=aeroplane)
+        assert not PitchAtHeightWithFlapMin.can_operate(combination, ac_type=helicopter)
+
+    def test_one_approach(self):
+        array = np.ma.ones(30) * 5.0
+        array[[4, 6, 13]] = [2.0, 3.0, 1.0]
+        pitch = P('Pitch', array=array)
+        array = np.ma.concatenate((np.arange(1_000, -50, -50), np.zeros(9)))
+        alt_aal = P('Altitude AAL For Flight Phase', array=array)
+        array = np.ma.concatenate((np.ones(5) * 5, np.ones(25) * 6))
+        flap_lever = M('Flap Lever', array=array, values_mapping={5: 'Lever 5', 6: 'Lever Full'})
+        apps = buildsection('Approach And Landing', 0, 30)
+        tdwns = KTI('Touchdown', items=[
+            KeyTimeInstance(index=22, name='Touchdown')
+        ])
+
+        node = PitchAtHeightWithFlapMin()
+        node.derive(pitch, alt_aal, flap_lever, None, apps, tdwns)
+
+        assert len(node) == 2
+        assert node[0].name == 'Pitch 1000 To 500 Ft With Flap Lever Full Min'
+        assert node[0].index == 6
+        assert node[0].value == 3.0
+        assert node[1].name == 'Pitch 500 To 20 Ft With Flap Lever Full Min'
+        assert node[1].index == 13
+        assert node[1].value == 1.0
+
+    def test_one_approach_without_landing(self):
+        array = np.ma.ones(30) * 5.0
+        array[[4, 6, 13]] = [2.0, 3.0, 1.0]
+        pitch = P('Pitch', array=array)
+        array = np.ma.concatenate((np.arange(1_000, 500, -50), np.ones(20) * 600))
+        alt_aal = P('Altitude AAL For Flight Phase', array=array)
+        array = np.ma.concatenate((np.ones(5) * 5, np.ones(5) * 6, np.ones(20) * 3))
+        flap_lever = M(
+            'Flap Lever',
+            array=array,
+            values_mapping={3: 'Lever 3', 5: 'Lever 5', 6: 'Lever Full'}
+        )
+        apps = buildsection('Approach And Landing', 0, 9)
+        tdwns = KTI('Touchdown')
+
+        node = PitchAtHeightWithFlapMin()
+        node.derive(pitch, alt_aal, flap_lever, None, apps, tdwns)
+
+        assert len(node) == 1
+        assert node[0].name == 'Pitch 1000 To 500 Ft With Flap Lever Full Min'
+        assert node[0].index == 6
+        assert node[0].value == 3.0
+
+    def test_two_approaches(self):
+        array = np.ma.ones(40) * 5.0
+        array[[4, 6, 17, 24]] = [2.0, 3.0, 1.0, 2.0]
+        pitch = P('Pitch', array=array)
+        array = np.ma.concatenate((np.arange(1_000, 500, -50), np.arange(1_000, -50, -50), np.zeros(9)))
+        alt_aal = P('Altitude AAL For Flight Phase', array=array)
+        array = np.ma.repeat([3, 4, 5, 6, 3], [5, 5, 5, 20, 5])
+        flap_lever = M('Flap Lever', array=array,
+                       values_mapping={3: 'Lever 3', 4: 'Lever 4', 5: 'Lever 5', 6: 'Lever Full'})
+        apps = buildsections('Approach And Landing', [0, 9], [10, 40])
+        tdwns = KTI('Touchdown', items=[
+            KeyTimeInstance(index=32, name='Touchdown')
+        ])
+
+        node = PitchAtHeightWithFlapMin()
+        node.derive(pitch, alt_aal, flap_lever, None, apps, tdwns)
+
+        assert len(node) == 3
+        assert node[0].name == 'Pitch 1000 To 500 Ft With Flap Lever 4 Min'
+        assert node[0].index == 6
+        assert node[0].value == 3.0
+        assert node[1].name == 'Pitch 1000 To 500 Ft With Flap Lever Full Min'
+        assert node[1].index == 17
+        assert node[1].value == 1.0
+        assert node[2].name == 'Pitch 500 To 20 Ft With Flap Lever Full Min'
+        assert node[2].index == 24
+        assert node[2].value == 2.0
 
 
 class TestPitch1000To500FtMax(unittest.TestCase):
