@@ -15396,6 +15396,62 @@ class PitchAtHeightWithFlapMin(KeyPointValueNode):
                 )
 
 
+class Pitch20FtToTouchdownWithFlapMin(KeyPointValueNode):
+    '''
+    Minimum pitch 20 Ft to Touchdown with the last flap lever selected
+    during approach.
+
+    Applies to fixed wing aircraft.
+    '''
+
+    NAME_FORMAT = 'Pitch 20 Ft To Touchdown With Flap %(flap)s Min'
+    NAME_VALUES = NAME_VALUES_LEVER
+    units = ut.DEGREE
+
+    @classmethod
+    def can_operate(cls, available, ac_type=A('Aircraft Type')):
+        plane = ac_type == aeroplane
+        flap = any_of(('Flap Lever', 'Flap Lever (Synthetic)'), available)
+        required = all_of(
+            ('Pitch', 'Altitude AAL For Flight Phases', 'Approach And Landing', 'Touchdown'),
+            available
+        )
+        return plane and required and flap
+
+    def derive(self,
+               pitch=P('Pitch'),
+               alt_aal=P('Altitude AAL For Flight Phases'),
+               flap_lever=M('Flap Lever'),
+               flap_synth=M('Flap Lever (Synthetic)'),
+               apps=S('Approach And Landing'),
+               touchdowns=KTI('Touchdown')):
+
+        flap = flap_lever or flap_synth
+        for app in apps:
+            touchdown = touchdowns.get_first(within_slice=app.slice)
+            if not touchdown:
+                continue
+            alt_20_idx = index_at_value(
+                alt_aal.array,
+                20.0,
+                _slice=slice(touchdown.index, app.slice.start, -1),
+                endpoint='closing')
+            slice_ = slices_int(slice(alt_20_idx, touchdown.index))
+            last_flap = prev_unmasked_value(flap.array, slice_.stop, start_index=slice_.start)
+            if last_flap is None:
+                continue
+
+            last_flap_set = runs_of_ones(flap.array[slice_] == last_flap.value)
+            last_flap_set = shift_slices(last_flap_set, slice_.start)
+
+            self.create_kpv_from_slices(
+                pitch.array,
+                [slice_],
+                min_value,
+                replace_values={'flap': last_flap.value}
+            )
+
+
 class Pitch1000To500FtMax(KeyPointValueNode):
     '''
     Maximum pitch 1000ft to 500ft AAL (AGL for helicopters).

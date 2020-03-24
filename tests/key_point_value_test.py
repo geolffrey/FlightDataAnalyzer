@@ -571,6 +571,7 @@ from analysis_engine.key_point_values import (
     Pitch1000To500FtMin,
     Pitch20FtToTouchdownMax,
     Pitch20FtToTouchdownMin,
+    Pitch20FtToTouchdownWithFlapMin,
     Pitch35ToClimbAccelerationStartMax,
     Pitch35ToClimbAccelerationStartMin,
     Pitch35To400FtMax,
@@ -18406,6 +18407,42 @@ class TestPitchAtHeightWithFlapMin:
         assert node[2].name == 'Pitch 500 To 20 Ft With Flap Lever Full Min'
         assert node[2].index == 24
         assert node[2].value == 2.0
+
+
+class TestPitch20FtToTouchdownWithFlapMin:
+    operational_combinations = [
+        ('Pitch', 'Altitude AAL For Flight Phases', 'Approach And Landing', 'Touchdown', 'Flap Lever'),
+        ('Pitch', 'Altitude AAL For Flight Phases', 'Approach And Landing', 'Touchdown', 'Flap Lever (Synthetic)'),
+    ]
+
+    @pytest.mark.parametrize('combination', operational_combinations)
+    def test_can_operate(self, combination):
+        assert PitchAtHeightWithFlapMin.can_operate(combination, ac_type=aeroplane)
+        assert not PitchAtHeightWithFlapMin.can_operate(combination, ac_type=helicopter)
+
+    def test_one_approach(self):
+        array = np.ma.ones(30) * 5.0
+        array[[8, 14, 23]] = [2.0, 3.0, 1.0]
+        pitch = P('Pitch', array=array)
+        array = np.ma.concatenate((np.arange(20, -0.1, -0.1), np.zeros(9)))
+        array[0] = np.ma.masked
+        alt_aal = P('Altitude AAL For Flight Phase', array=array)
+        array = np.ma.ones(30) * 5
+        array[20:24] = np.ma.masked
+        flap_lever = M('Flap Lever', array=array, values_mapping={5: 'Lever 5', 6: 'Lever Full'})
+        apps = buildsection('Approach And Landing', 0, 30)
+        tdwns = KTI('Touchdown', items=[
+            KeyTimeInstance(index=22.9, name='Touchdown'),
+            KeyTimeInstance(index=24.9, name='Touchdown')
+        ])
+
+        node = Pitch20FtToTouchdownWithFlapMin()
+        node.derive(pitch, alt_aal, flap_lever, None, apps, tdwns)
+
+        assert len(node) == 1
+        assert node[0].name == 'Pitch 20 Ft To Touchdown With Flap Lever 5 Min'
+        assert node[0].index == 8
+        assert node[0].value == 2.0
 
 
 class TestPitch1000To500FtMax(unittest.TestCase):
