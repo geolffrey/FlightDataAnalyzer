@@ -1756,12 +1756,11 @@ class AOA(DerivedParameterNode):
                model=A('Model')):
 
         sources = [s for s in [aoa_l, aoa_r, aoa_1, aoa_2, aoa_3, aoa_4] if s]
-        freqs = np.unique([s.frequency for s in sources])
         if len(sources) == 0:
             return
         elif len(sources) == 1:
             self.array = sources[0].array
-        elif len(sources) == 2 and len(freqs) == 1:
+        elif len(sources) == 2 and len(set(s.frequency for s in sources)) == 1:
             self.array, self.frequency, self.offset = blend_two_parameters(sources[0], sources[1])
         else:
             self.array = blend_parameters(sources)
