@@ -390,10 +390,7 @@ class ClimbThrustDerateDeselected(KeyTimeInstanceNode):
     '''
     @classmethod
     def can_operate(cls, available, ac_family=A('Family')):
-        if ac_family and ac_family.value == 'B787':
-            return True
-
-        return False
+        return ac_family and ac_family.value == 'B787'
 
     def derive(self, climb_derate_1=P('AT Climb 1 Derate'),
                climb_derate_2=P('AT Climb 2 Derate'),):
