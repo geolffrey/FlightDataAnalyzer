@@ -192,6 +192,8 @@ def _segment_type_and_slice(speed_array, speed_frequency,
                     col_start -= col_window_sample + np.ma.where(col.array[col_start - col_window_sample:col_start])[0][0]
                 except IndexError:
                     pass
+                if col_start < unmasked_slices[0].start:
+                    col_start = unmasked_slices[0].start
                 try: # shift stop forwards to later low Collective value
                     col_stop += np.ma.where(col.array[col_stop:col_stop + col_window_sample])[0][-1]
                 except IndexError:

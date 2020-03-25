@@ -380,29 +380,27 @@ class OffBlocksDatetime(FlightAttributeNode):
     "Datetime when moving away from Gate/Blocks"
     name = 'FDR Off Blocks Datetime'
 
-    def derive(self, turning=S('Turning On Ground'),
+    def derive(self, off_blocks=KTI('Off Blocks'),
                start_datetime=A('Start Datetime')):
-        first_turning = turning.get_first()
-        if first_turning:
+        first_off_blocks = off_blocks.get_first()
+        if first_off_blocks:
             off_blocks_datetime = datetime_of_index(start_datetime.value,
-                                                    first_turning.slice.start,
-                                                    turning.hz)
+                                                    first_off_blocks.index)
             self.set_flight_attr(off_blocks_datetime)
         else:
             self.set_flight_attr(None)
 
 
 class OnBlocksDatetime(FlightAttributeNode):
-    "Datetime when moving away from Gate/Blocks"
+    "Datetime when arriving at Gate/Blocks"
     name = 'FDR On Blocks Datetime'
 
-    def derive(self, turning=S('Turning On Ground'),
+    def derive(self, on_blocks=KTI('On Blocks'),
                start_datetime=A('Start Datetime')):
-        last_turning = turning.get_last()
-        if last_turning:
+        last_on_blocks = on_blocks.get_last()
+        if last_on_blocks:
             on_blocks_datetime = datetime_of_index(start_datetime.value,
-                                                   last_turning.slice.stop,
-                                                   turning.hz)
+                                                    last_on_blocks.index)
             self.set_flight_attr(on_blocks_datetime)
         else:
             self.set_flight_attr(None)

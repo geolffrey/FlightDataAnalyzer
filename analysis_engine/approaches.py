@@ -28,6 +28,7 @@ from analysis_engine.library import (
     ils_established,
     index_at_value,
     is_index_within_slice,
+    is_index_within_slices,
     runs_of_ones,
     peak_curvature,
     shift_slices,
@@ -292,7 +293,7 @@ class ApproachInformation(ApproachNode):
                heading=P('Heading'),
                distance_land=P('Distance To Landing'),
                tdwns=KTI('Touchdown'),
-               offshore=M('Offshore'),
+               offshore=S('Offshore'),
                takeoff=S('Takeoff')
                ):
 
@@ -433,12 +434,12 @@ class ApproachInformation(ApproachNode):
                 # to test this had the touchdown a couple of seconds outside the approach slice
                 if is_index_within_slice(touchdown.index, slice(_slice.start, _slice.stop+5*alt.frequency)):
                     if offshore and \
-                       offshore.array[int(touchdown.index)] == 'Offshore' and \
+                       is_index_within_slices(touchdown.index, offshore.get_slices()) and \
                        tkoff.slice.start < touchdown.index:
                         if not distance_land:
-                            if offshore.array[tkoff.slice.start] == 'Offshore':
+                            if is_index_within_slices(tkoff.slice.start, offshore.get_slices()):
                                 approach_type = 'SHUTTLING'
-                        elif offshore.array[tkoff.slice.start] == 'Offshore' and \
+                        elif is_index_within_slices(tkoff.slice.start, offshore.get_slices()) and \
                              tkoff.slice.start < len(distance_land.array) and \
                              distance_land.array[int(tkoff.slice.start)] <= 40:
                             approach_type = 'SHUTTLING'

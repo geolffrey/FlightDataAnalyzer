@@ -1,0 +1,970 @@
+115 VAC Standby Bus
+115 VAC Unavailable To IGN (L) (1)
+115 VAC Unavailable To IGN (L) (2)
+115 VAC Unavailable To IGN (R) (1)
+115 VAC Unavailable To IGN (R) (2)
+115 VAC XFR Bus
+28 VDC Battery Bus
+28 VDC Battery Bus Hot
+28 VDC Battery Bus Switch Hot
+28 VDC Bus (1)
+28 VDC Bus (2)
+28 VDC Standby Bus
+ABS Roll Exceeded
+AC Ident
+AC Type
+ACMS Software Part Number Code
+AD-IR Fault
+ADC Fault
+ADF (L) Selected (Capt)
+ADF (L) Selected (FO)
+ADF (R) Selected (Capt)
+ADF (R) Selected (FO)
+ADIRU (L) PT Input (1) Invalid
+ADIRU (L) PT Input (2) Invalid
+ADIRU (R) PT Input (1) Invalid
+ADIRU (R) PT Input (2) Invalid
+ADR Air-Ground Logic Invalid
+ADR Fault
+ADR Ground Effect Inoperative
+ADR Program Pin Invalid
+ADR Selected
+AOA (L)
+AOA (R)
+AOA Failure
+AOA Primary Heater
+AOA Signal Failure
+AP (1) Engaged
+AP (2) Engaged
+AP Trim Down
+AP Trim Up
+AP Warning
+APU Available
+APU Bleed Air Switch
+APU Bleed Valve Open
+APU Fault
+APU Fire
+APU Fuel Flow
+APU Gas Temp
+APU N1
+APU Oil Qty Low
+APU Oil Temp
+APU On
+AT Armed
+AT Disconnected
+AT Engaged
+AT FMC Speed
+AT Go Around
+AT Limit
+AT MCP Speed
+AT Min Speed
+AT Mode
+AT N1
+AT Retard
+AT Speed Warning
+AT Warning
+Acceleration Lateral
+Acceleration Limit Mode (1) Selected
+Acceleration Limit Mode (2) Selected
+Acceleration Longitudinal
+Acceleration Normal
+Aileron (L)
+Aileron (L) Actuator
+Aileron (R)
+Aileron (R) Actuator
+Aileron AP (1) Roll Command
+Aileron AP (2) Roll Command
+Aileron Quadrant
+Airborne Vibration Monitoring System Fault
+Airports Selected (Capt)
+Airports Selected (FO)
+Airspeed
+Airspeed Max Allowable
+Airspeed Min For Flaps Retracted
+Airspeed Selected
+Airspeed Selected (FMC)
+Align Mode Enhanced Selected
+All ADIRU (1) Invalid (1)
+All ADIRU (1) Invalid (2)
+All ADIRU (2) Invalid (1)
+All ADIRU (2) Invalid (2)
+Alternator (1) Fault
+Alternator (2) Fault
+Altitude (FMC) Selected
+Altitude Acq
+Altitude Acquire
+Altitude Alert
+Altitude Baro (1)
+Altitude Baro (2)
+Altitude Baro (3)
+Altitude Baro (4)
+Altitude Baro Invalid (1)
+Altitude Baro Invalid (2)
+Altitude Baro No Data (1)
+Altitude Baro No Data (2)
+Altitude Baro Signal Fail (3)
+Altitude Hold
+Altitude Hold Push Button Light
+Altitude Radio (A)
+Altitude Radio (B)
+Altitude Radio (C)
+Altitude Radio Health
+Altitude Reference Active
+Altitude STD
+Altitude Selected
+Approach Mode Selected (Capt)
+Approach Mode Selected (FO)
+Approach Push Button Light
+Asymmetry Enabled
+Auto Speedbrake Extend
+Autobrake Applied
+Autoslat (L) Command
+Autoslat (L) Enabled
+Autoslat (L) Valid
+Autoslat (R) Command
+Autoslat (R) Enabled
+Autoslat (R) Valid
+Autoslat Command
+Brake (L) Inboard Temp
+Brake (L) Outboard Temp
+Brake (L) Press
+Brake (R) Inboard Temp
+Brake (R) Outboard Temp
+Brake (R) Press
+Brake Main Alternate Selected
+Brake Overheat Light
+CDS Fault Message DEU (1)
+CDS Fault Message DEU (2)
+CDS Maintenance Message DEU (1)
+CDS Maintenance Message DEU (2)
+Cabin Altitude Warning
+Centre Unit Display Driven (1)
+Centre Unit Display Driven (2)
+Centre Unit Display Format
+Communications Select
+Control Column (Capt)
+Control Column (FO)
+Control Column Force
+Control Column Force (Foreign)
+Control Column Force Raw
+Control Display Unit Format
+Control Regulator (1)
+Control Regulator (2)
+Control Unit Display Driven (1)
+Control Unit Display Driven (2)
+Control Unit Display Format
+Control Wheel (Capt)
+Control Wheel (FO)
+Control Wheel Force
+Control Wheel Steering (A) Engaged
+Control Wheel Steering (B) Engaged
+Control Wheel Steering Pitch Engaged
+Control Wheel Steering Roll Engaged
+Control Wheel Steering Warning
+Customer Unique Frame
+DAC Fuel Mod Valve (1) Selected
+DAC Fuel Mod Valve (2) Selected
+DAC Staging Mode (1)
+DAC Staging Mode (2)
+DC Fail-On DC
+DEU Centre Display Format (Capt)
+DEU Centre Display Format (FO)
+DEU Check List
+DH Selected (Capt)
+DH Selected (FO)
+DME (1)
+DME (1) Antenna Failure
+DME (1) Failure
+DME (2)
+DME (2) Antenna Failure
+DME (2) Failure
+DSM Inboard Engaged (Capt)
+DSM Inboard Engaged (FO)
+DSM Inboard Multi Function Display (Capt)
+DSM Inboard Multi Function Display (FO)
+DSM Inboard Primary Flight Display (Capt)
+DSM Inboard Primary Flight Display (FO)
+DSM Lower Engaged (Capt)
+DSM Lower Engaged (FO)
+DSM Lower Navigation Display (Capt)
+DSM Lower Navigation Display (FO)
+DSM Lower Normal (Capt)
+DSM Lower Normal (FO)
+DSM Normal (Capt)
+DSM Normal (FO)
+DSM Outboard Primary Flight Display (Capt)
+DSM Outboard Primary Flight Display (FO)
+Day
+Deceleration Limit Mode (1) Selected
+Deceleration Limit Mode (2) Selected
+Destination
+Display Unit Format Cleared
+Distance To Go
+Drift
+ECS (1) Configuration Code
+ECS (2) Configuration Code
+ECS Pack (1)
+ECS Pack (1) High Flow
+ECS Pack (1) On
+ECS Pack (2)
+ECS Pack (2) High Flow
+ECS Pack (2) On
+EFIS Display Data
+ETA Hour
+ETA Minutes
+Elevator (L)
+Elevator (L) Actuator
+Elevator (R)
+Elevator (R) Actuator
+Elevator AP (1) Pitch Command
+Elevator AP (2) Pitch Command
+Elevator Quadrant
+Eng (1 ) EEC Soft Alternate Mode Selected
+Eng (1) Airborne Vibration Monitoring
+Eng (1) Aircraft Type Code
+Eng (1) Anti Ice
+Eng (1) Anti Ice Configuration Code
+Eng (1) Approach Idle Selected
+Eng (1) Auto Start Mode Selected
+Eng (1) BSV Demanded Closed
+Eng (1) BSV Driver Relay Connected
+Eng (1) Bleed
+Eng (1) Burner Staging Valve
+Eng (1) Combustor Severity
+Eng (1) Cutoff
+Eng (1) Dual Annular Combustor Selected
+Eng (1) EEC Channel Fault
+Eng (1) EEC Channel In Control
+Eng (1) EEC Cross Channel Fault
+Eng (1) EEC Hard Alternate Mode Selected
+Eng (1) EEC On Ground Selected
+Eng (1) EEC Temp Over Limit
+Eng (1) FMV Driver Relay Connected
+Eng (1) Failure
+Eng (1) Fan Imbalance Angle
+Eng (1) Fault Dispatch Level (A)
+Eng (1) Fault Dispatch Level (B)
+Eng (1) Fault Dispatch Level (C)
+Eng (1) Fault Dispatch Level (D)
+Eng (1) Fire
+Eng (1) Flameout Protection
+Eng (1) Forward Thrust Limited By Thrust Reverser
+Eng (1) Fuel Air Ratio Status
+Eng (1) Fuel Filter Impending Bypass
+Eng (1) Fuel Flow
+Eng (1) Fuel Metering Valve Selected
+Eng (1) Gas Temp
+Eng (1) Gas Temp Amber
+Eng (1) Gas Temp Amber Limit
+Eng (1) Gas Temp Redline Alert
+Eng (1) Gas Temp Redline Exceeded
+Eng (1) Gas Temp Start Redline
+Eng (1) Gas Temp Start Redline Exceeded
+Eng (1) Hot Start Detected
+Eng (1) Hyd (A) Low Press
+Eng (1) Ignition Command On (1)
+Eng (1) Ignition Command On (2)
+Eng (1) Light Off Ref Status
+Eng (1) Low Press Turbine Imbalance Angle
+Eng (1) Manual Start Mode
+Eng (1) Manual Start Mode Enhanced
+Eng (1) Model
+Eng (1) N1
+Eng (1) N1 Bug Drive
+Eng (1) N1 Command
+Eng (1) N1 Limit
+Eng (1) N1 Max Climb Rating
+Eng (1) N1 Max Takeoff Rating
+Eng (1) N1 Redline Alert
+Eng (1) N1 Redline Exceeded
+Eng (1) N1 Reference Set
+Eng (1) N1 Tachometer
+Eng (1) N1 Target
+Eng (1) N1 Trim
+Eng (1) N2
+Eng (1) N2 Redline Alert
+Eng (1) N2 Redline Exceeded
+Eng (1) N2 Tachometer
+Eng (1) No Light Off
+Eng (1) Oil Filter Impending Bypass
+Eng (1) Oil Press
+Eng (1) Oil Press Amber Limit
+Eng (1) Oil Press Low
+Eng (1) Oil Press Low Amber Warning
+Eng (1) Oil Press Low Caution
+Eng (1) Oil Press Low Red Warning
+Eng (1) Oil Press Redline
+Eng (1) Oil Press Redline Range
+Eng (1) Oil Qty
+Eng (1) Oil Temp
+Eng (1) Oil Temp Amber Limit
+Eng (1) Oil Temp Amber Limit Exceeded
+Eng (1) Oil Temp Red
+Eng (1) Oil Temp Redline
+Eng (1) Operating At Minimum Allowed Power
+Eng (1) P0 Selected
+Eng (1) P30 Selected
+Eng (1) PT Taxi Inhibit
+Eng (1) P20 Selected
+Eng (1) Panel Mode
+Eng (1) Position Code
+Eng (1) Power Management Control
+Eng (1) Rating
+Eng (1) Reverse Thrust Limited By Thrust Reverser
+Eng (1) Reverser Fully Deployed
+Eng (1) Reverser In Transit
+Eng (1) Rollback Overtemperature Active
+Eng (1) Running Sim
+Eng (1) Speed Regulator
+Eng (1) Starter Valve
+Eng (1) T25 Sensor Selected
+Eng (1) T30 Selected
+Eng (1) TAT Inhibit Flag
+Eng (1) Throttle Lever
+Eng (1) Throttle Rate Command
+Eng (1) Torque
+Eng (1) Thrust Reverser (L) Sleeve
+Eng (1) Thrust Reverser (R) Sleeve
+Eng (1) Thrust Reverser Deployed
+Eng (1) Thrust Reverser In Transit
+Eng (1) Thrust Reverser Interlocked
+Eng (1) Thrust Servo Motor Tachometer
+Eng (1) Vib N1 Fan
+Eng (1) Vib N1 Turbine
+Eng (1) Vib N2 Compressor
+Eng (1) Vib N2 Turbine
+Eng (2) Airborne Vibration Monitoring
+Eng (2) Aircraft Type Code
+Eng (2) Anti Ice
+Eng (2) Anti Ice Configuration Code
+Eng (2) Approach Idle Selected
+Eng (2) Auto Start Mode Selected
+Eng (2) BSV Demanded Closed
+Eng (2) BSV Driver Relay Connected
+Eng (2) Bleed
+Eng (2) Burner Staging Valve
+Eng (2) Combustor Severity
+Eng (2) Cutoff
+Eng (2) Dual Annular Combustor Selected
+Eng (2) EEC Channel Fault
+Eng (2) EEC Channel In Control
+Eng (2) EEC Cross Channel Fault
+Eng (2) EEC Hard Alternate Mode Selected
+Eng (2) EEC On Ground Selected
+Eng (2) EEC Soft Alternate Mode Selected
+Eng (2) EEC Temp Over Limit
+Eng (2) FMV Driver Relay Connected
+Eng (2) Failure
+Eng (2) Fan Imbalance Angle
+Eng (2) Fault Dispatch Level (A)
+Eng (2) Fault Dispatch Level (B)
+Eng (2) Fault Dispatch Level (C)
+Eng (2) Fault Dispatch Level (D)
+Eng (2) Fire
+Eng (2) Flameout Protection
+Eng (2) Forward Thrust Limited By Thrust Reverser
+Eng (2) Fuel Air Ratio Status
+Eng (2) Fuel Filter Impending Bypass
+Eng (2) Fuel Flow
+Eng (2) Fuel Metering Valve Selected
+Eng (2) Gas Temp
+Eng (2) Gas Temp Amber
+Eng (2) Gas Temp Amber Limit
+Eng (2) Gas Temp Redline Alert
+Eng (2) Gas Temp Redline Exceeded
+Eng (2) Gas Temp Start Redline
+Eng (2) Gas Temp Start Redline Exceeded
+Eng (2) Hot Start Detected
+Eng (2) Hyd (B) Low Press
+Eng (2) Ignition Command On (1)
+Eng (2) Ignition Command On (2)
+Eng (2) Light Off Ref Status
+Eng (2) Low Press Turbine Imbalance Angle
+Eng (2) Manual Start Mode
+Eng (2) Manual Start Mode Enhanced
+Eng (2) Model
+Eng (2) N1
+Eng (2) N1 Bug Drive
+Eng (2) N1 Command
+Eng (2) N1 Max Climb Rating
+Eng (2) N1 Max Takeoff Rating
+Eng (2) N1 Redline Alert
+Eng (2) N1 Redline Exceeded
+Eng (2) N1 Reference Set
+Eng (2) N1 Tachometer
+Eng (2) N1 Target
+Eng (2) N1 Trim
+Eng (2) N2
+Eng (2) N2 Redline Alert
+Eng (2) N2 Redline Exceeded
+Eng (2) N2 Tachometer
+Eng (2) No Light Off
+Eng (2) Oil Filter Impending Bypass
+Eng (2) Oil Press
+Eng (2) Oil Press Amber Limit
+Eng (2) Oil Press Low
+Eng (2) Oil Press Low Amber Warning
+Eng (2) Oil Press Low Caution
+Eng (2) Oil Press Low Red Warning
+Eng (2) Oil Press Redline
+Eng (2) Oil Press Redline Range
+Eng (2) Oil Qty
+Eng (2) Oil Temp
+Eng (2) Oil Temp Amber Limit
+Eng (2) Oil Temp Amber Limit Exceeded
+Eng (2) Oil Temp Redline
+Eng (2) Oil Temp Redline Exceeded
+Eng (2) Operating At Minimum Allowed Power
+Eng (2) P0 Selected
+Eng (2) P30 Selected
+Eng (2) PT Taxi Inhibit
+Eng (2) P20 Selected
+Eng (2) Panel Mode
+Eng (2) Position Code
+Eng (2) Power Management Control
+Eng (2) Rating
+Eng (2) Reverse Thrust Limited By Thrust Reverser
+Eng (2) Reverser Fully Deployed
+Eng (2) Reverser In Transit
+Eng (2) Rollback Overtemperature Active
+Eng (2) Running Sim
+Eng (2) Speed Regulator
+Eng (2) Starter Valve
+Eng (2) T25 Sensor Selected
+Eng (2) T30 Selected
+Eng (2) TAT Inhibit Flag
+Eng (2) Throttle Lever
+Eng (2) Throttle Rate Command
+Eng (2) Torque
+Eng (2) Thrust Reverser (L) Sleeve
+Eng (2) Thrust Reverser (R) Sleeve
+Eng (2) Thrust Reverser Deployed
+Eng (2) Thrust Reverser In Transit
+Eng (2) Thrust Reverser Interlocked
+Eng (2) Thrust Servo Motor Tachometer
+Eng (2) Vib N1 Fan
+Eng (2) Vib N1 Turbine
+Eng (2) Vib N2 Compressor
+Eng (2) Vib N2 Turbine
+Eng Accelerometer Source CN1
+Eng Accelerometer Source CN2
+Eng Accelerometer Source TN1
+Eng Accelerometer Source TN2
+Eng Display Data
+Eng Fan Imbalance Accelerometer Source
+Eng Fuel Filter Impending Bypass (1)
+Eng Fuel Filter Impending Bypass (2)
+Eng Hot Start Detected (1)
+Eng Hot Start Detected (2)
+Eng Low Press Turbine Compressor (1) Driver Rly Connected
+Eng Low Press Turbine Compressor (2) Driver Rly Connected
+Eng Low Press Turbine Imbalance Acceleration Source
+Eng N1 Limit Mode
+Eng N1 Push Button Light
+Eng N1 Set Selected
+Eng Out Engaged
+Eng Secondary
+Event Marker
+Exc Invalid (L)
+Exc Invalid (R)
+FC Min Operating Speed
+FD Only
+FDEP Day
+FDEP Depart
+FDEP Destination
+FDEP Flight Number
+FDEP Leg Number
+FMC Data Source Selected
+FMC Eng Out Engaged
+FMC Selected Navigation Source
+FMC Selected Switch (Capt)
+FMC Static Air Temperature
+FMC Valid
+FSEU Fault
+FSEU Flap Gate Up
+Flap (L) Split Needle
+Flap (R) Split Needle
+Flap Alternate Armed
+Flap Angle (L)
+Flap Angle (R)
+Flap Bypass Relay
+Flap Bypass Valve Position
+Flap Extended
+Flap Leading Edge (1) Extended
+Flap Leading Edge (1) In Transit
+Flap Leading Edge (2) Extended
+Flap Leading Edge (2) In Transit
+Flap Leading Edge (3) Extended
+Flap Leading Edge (3) In Transit
+Flap Leading Edge (4) Extended
+Flap Leading Edge (4) In Transit
+Flap Lever Angle
+Flap Load Relief
+Flap Skew (1) Position
+Flap Skew (1-8)
+Flap Skew (2) Position
+Flap Skew (2-7)
+Flap Skew (3) Position
+Flap Skew (3-6)
+Flap Skew (4) Position
+Flap Skew (4-5)
+Flap Skew (5) Position
+Flap Skew (6) Position
+Flap Skew (7) Position
+Flap Skew (8) Position
+Flap Split Needle CW
+Flare Armed
+Flare Engaged
+Fleet Ident
+Flight Dir (A) Engaged
+Flight Dir (B) Engaged
+Flight Number
+Flight Number Numeric
+Flight Path Angle
+Flight Path Vector Selected (Capt)
+Flight Path Vector Selected (FO)
+Frame Counter
+Fuel Configuration Alert
+Fuel Qty (1) Imbalance Tank
+Fuel Qty (2) Imbalance Tank
+Fuel Qty (Aux)
+Fuel Qty (C)
+Fuel Qty (L)
+Fuel Qty (L) Low
+Fuel Qty (R)
+Fuel Qty (R) Low
+GLS Mode (Capt)
+GLS Mode (FO)
+GMT Hour
+GMT Minute
+GNSS Output Correction
+GPS Selected
+Gear (L) Down
+Gear (L) On Ground
+Gear (L) Red Warning
+Gear (N) Down
+Gear (N) On Ground
+Gear (N) Red Warning
+Gear (R) Down
+Gear (R) On Ground
+Gear (R) Red Warning
+Gear On Ground
+Gross Weight
+Ground Spoiler Deployed
+Ground Station Data Selected (1)
+Ground Station Data Selected (2)
+Groundspeed
+Groundspeed (FMC)
+HUD Aiii Capability
+HUD Aiii Mode
+HUD Airspeed Absolute Error
+HUD Airspeed Average Error
+HUD Approach Warning
+HUD Clear Submode
+HUD Combiner Position
+HUD Crosstrack Rate Below 8 Ft Sec
+HUD Crosstrack Rate Below 9 Ft Sec
+HUD Crosstrack Rate Latitude Below 0 Ft Sec
+HUD Crosstrack Rate Latitude Over 0 Ft Sec
+HUD Flare Command Not Initiated
+HUD Flight Path X Position
+HUD Flight Path Y Position
+HUD Guidance Cue Flight Path Deviation
+HUD Guidance Cue X Position
+HUD Guidance Cue Y Position
+HUD Hgs Bit Fault
+HUD ILS Glideslope Deviation
+HUD ILS Localizer Deviation
+HUD Instrument Meteorological Condition
+HUD Low Visibility Takeoff
+HUD Primary Mode Active
+HUD Touchdown
+HUD Vertical Deviation
+HUD Vertical Speed Deviation
+HUD Vertical Speed Over 12Ft Sec
+HUD Visual Meteorological Condition
+Heading
+Heading Mag-True (Capt)
+Heading Selected
+Heading Selected Engaged
+Heading Selected Push Button Light
+Heading True Track
+Heading Up MAP Format (Capt)
+Heading Up MAP Format (FO)
+Hectopascals Selected (Capt)
+Hectopascals Selected (FO)
+High Speed Buffet Speed
+Hour
+Hyd (A) Chip Detect Installed
+Hyd (A) Chip Detected
+Hyd (A) Electrical
+Hyd (A) Oil Press
+Hyd (A) Oil Qty
+Hyd (B) Chip Detected
+Hyd (B) Electrical
+Hyd (B) Oil Press
+Hyd (B) Oil Qty
+Hyd Standby Low Press
+Hyd System (B) Chip Detect Installed
+IAN Final Approach Course
+IAN Glidepath
+ILS (1) Failure
+ILS (1) Frequency
+ILS (1) Glideslope
+ILS (1) Glideslope Antenna Failure
+ILS (1) Glideslope Receiver Failure
+ILS (1) Localizer
+ILS (1) Localizer Antenna Failure
+ILS (1) Localizer Receiver Failure
+ILS (1) Standby
+ILS (2) Failure
+ILS (2) Frequency
+ILS (2) Glideslope
+ILS (2) Glideslope Antenna Failure
+ILS (2) Glideslope Receiver Failure
+ILS (2) Localizer
+ILS (2) Localizer Antenna Failure
+ILS (2) Localizer Receiver Failure
+ILS (2) Standby
+ILS (3) Glideslope
+ILS (3) Localizer
+ILS (4) Glideslope
+ILS (4) Localizer
+ILS Deviation Warning
+ILS Glideslope Armed
+ILS Glideslope Deviation Warning
+ILS Glideslope Engaged
+ILS Glideslope Test Tune Inhibit
+ILS Inner Marker
+ILS Localizer Deviation Warning
+ILS Localizer Engaged
+ILS Localizer Test Tune Inhibit
+ILS Middle Marker
+ILS Mode (1)
+ILS Mode (2)
+ILS Outer Marker
+ILS Selected
+ILS-GLS (1) Frequency
+ILS-GLS (2) Frequency
+ILS-MLS-GLS (1) Mode Selected
+ILS-MLS-GLS (2) Mode Selected
+ILS-VOR (1) Course Selected
+ILS-VOR (2) Course Selected
+IRU Aircraft Ident Code Invalid
+IRU Attitude Invalid
+IRU Attitude Rev Mode
+IRU Auto Navigation Realign
+IRU DC Fail
+IRU Excess Motion Error
+IRU Fault
+IRU Navigation Align Fault
+IRU Navigation Align Not Ready
+IRU Navigation Mode
+IRU No Initialization
+IRU On DC
+IRU Selected Switch (Capt)
+IRU Set Heading
+IRU To ADR Data Invalid
+IRU To ADR No Data
+Isolation Valve Open
+Key HF (1)
+Key HF (2)
+Key Satcom (1)
+Key Satcom (2)
+Key VHF (1)
+Key VHF (2)
+Key VHF (3)
+LIB Display Unit (1) Driven
+LIB Display Unit Format
+LOB Display Unit Driven
+LOB Display Unit Format
+LRRA (1) Antenna Receive
+LRRA (1) Antenna Transmit
+LRRA (1) Failure
+LRRA (2) Antenna Receive
+LRRA (2) Antenna Transmit
+LRRA (2) Failure
+Land (3) Mode
+Landing Mode Status Selected (L)
+Landing Mode Status Selected (R)
+Lateral Navigation Push Button Light
+Latitude
+Latitude Below 35 Ft
+Latitude Below 45 40 Ft
+Latitude Over 35 Ft
+Leading Edge Cruise Deployed
+Leading Edge Master Extended
+Leading Edge Master In Transit
+Leading Edge Uncommanded Motion
+Leading Edge Uncommanded Motion Shutoff
+Level Change Push Button Light
+Local Limited Master (L)
+Local Limited Master (R)
+Longitude
+Longitude Below 2250 Ft
+MAP Mode Selected (1)
+MAP Mode Selected (2)
+MDA (Capt)
+MDA (FO)
+MDA Selected (Capt)
+MDA Selected (FO)
+MLS (1) Channel
+MLS (2) Channel
+MLS (L) Mode
+MLS (R) Mode
+MLS Antenna Source
+MLS Direct Antenna Selected Command Acknowledge
+Mach
+Mach Calculated (1)
+Mach Calculated (2)
+Mach Selected
+Mach Selected (FMC)
+Mach Trim (1) Servo Brake Status
+Mach Trim Command
+Mach Trim Command Feedback
+Mach Trim In Command
+Mach-Airspeed Selected
+Mandatory Software Part Number Code
+Manufacturer Code
+Master Caution
+Master Light (A)
+Master Light (B)
+Meters (1) Selected
+Meters (2) Selected
+Min Operating Speed
+Minute
+Mode Control Panel Speed (FCC)
+Month
+Motor Pwr App From Asm (1)
+Motor Pwr App From Asm (2)
+NAV Database Effectivity Day
+NAV Database Effectivity Month
+NAV Database Effectivity Year
+NAV Mode Operational
+NAV Performance Actual
+NAV Performance Required
+On Ground Switch
+Origin
+Overspeed Warning
+PFD Navigation Display Format (Capt)
+PFD Navigation Display Format (FO)
+Pitch
+Pitch Mode
+Pitot Air Data Modules Data Invalid
+Pitot Air Data Modules No Data
+Pitot Heater (L)
+Pitot Static Selected
+Plan Mode Selected (Capt)
+Plan Mode Selected (FO)
+Position Data Selected (Capt)
+Position Data Selected (FO)
+RX Label 206 Activity Invalid
+RX Label 206 Parity Invalid
+RX Label 206 Sign Status Matrix Invalid
+Range Selected (Capt)
+Range Selected (FO)
+Rate Of Climb (Inertial)
+Reduced Thrust Takeoff
+Rib Display Unit Driven
+Rib Display Unit Format
+Rob Display Unit Driven
+Rob Display Unit Format
+Roll
+Roll Mode
+Roll Trim Command Wing (L) Down
+Roll Trim Command Wing (R) Down
+Rollout Engaged
+Rollout Warning
+Route Data Selected (Capt)
+Route Data Selected (FO)
+Rudder
+Rudder Main
+Rudder Pedal
+Rudder Pedal Force
+Rudder Pressure Limit
+Rudder Servo Command Standby
+Rudder Standby
+Second
+Single Channel Engaged
+Slat (1) Fully Extended
+Slat (1) In Transit
+Slat (1) Part Extended
+Slat (2) Fully Extended
+Slat (2) In Transit
+Slat (2) Part Extended
+Slat (3) Fully Extended
+Slat (3) In Transit
+Slat (3) Part Extended
+Slat (4) Fully Extended
+Slat (4) In Transit
+Slat (4) Part Extended
+Slat (5) Fully Extended
+Slat (5) In Transit
+Slat (5) Part Extended
+Slat (6) Fully Extended
+Slat (6) In Transit
+Slat (6) Part Extended
+Slat (7) Fully Extended
+Slat (7) In Transit
+Slat (7) Part Extended
+Slat (8) Fully Extended
+Slat (8) In Transit
+Slat (8) Part Extended
+Smoke Cargo Aft Warning
+Smoke Cargo Forward Warning
+Smoke Cargo Main Warning
+Smoke Lavatory Warning
+Solenoid Engage
+Special Pulse Identification
+Speed Push Button Light
+Speedbrake Armed
+Speedbrake Do Not Arm
+Speedbrake Handle
+Spoiler (L) (3)
+Spoiler (L) (4)
+Spoiler (R) (3)
+Spoiler (R) (4)
+Stabilizer
+Stabilizer Manual Trim Down
+Stabilizer Manual Trim Up
+Stall Mode Status (1)
+Stall Mode Status (2)
+Static Air Data Module Data Invalid
+Static Air Data Modules No Data
+Static Heater (R)
+Stick Shaker (L)
+Stick Shaker (R)
+Stick Shaker Speed
+Subframe Offset In Data
+Superframe Counter
+Superframe Cycle Count
+System Push Button Selected
+TAT
+TAT (1) Selected
+TAT (2) Selected
+TAT Heater
+TAT Probe Failure
+TAWS Alert Recorded
+TAWS Bit 23
+TAWS Caution
+TAWS Caution Terrain
+TAWS Display Selected (Capt)
+TAWS Display Selected (FO)
+TAWS Dont Sink
+TAWS Failure
+TAWS General
+TAWS Glideslope
+TAWS Glideslope Cancel
+TAWS Inoperative
+TAWS Minimums
+TAWS Obstacle Caution
+TAWS Obstacle Warning
+TAWS Predictive Windshear
+TAWS Pull Up
+TAWS Sink Rate
+TAWS Terrain
+TAWS Terrain Ahead
+TAWS Terrain Ahead Pull Up
+TAWS Terrain Awareness Inoperative
+TAWS Terrain Awareness Not Available
+TAWS Terrain Caution
+TAWS Terrain Display Selected (Capt)
+TAWS Terrain Display Selected (FO)
+TAWS Terrain Override
+TAWS Terrain Pull Up
+TAWS Terrain Warning
+TAWS Too Low Flap
+TAWS Too Low Gear
+TAWS Too Low Terrain
+TAWS V1 Callout Enabled (Capt)
+TAWS V1 Callout Enabled (FO)
+TAWS Warning
+TAWS Windshear
+TAWS Windshear Caution
+TAWS Windshear Inoperative
+TAWS Windshear Warning
+TBC-DMV Driver Relay Connected
+TBV-DMV Driver Relay Connected
+TCAS Advisory Rate To Maintain
+TCAS Altitude
+TCAS Altitude Rate Advisory
+TCAS Altitude Reporting
+TCAS Altitude Selected
+TCAS Combined Control
+TCAS Combined Control B
+TCAS Computer Unit
+TCAS Down Advisory
+TCAS Failure
+TCAS Reply Information
+TCAS Sensitivity Level
+TCAS Sensitivity Level Standby
+TCAS Special Position Identification
+TCAS Up Advisory
+TCAS Vertical Control
+TFC Selected (Capt)
+TFC Selected (FO)
+Takeoff And Go Around
+Takeoff And Go Around Switch
+Test Display (1) Command
+Test Display (2) Command
+Tuning Input Bus Activity
+V1
+V2
+VBV (1) Driver Relay Connected
+VBV (2) Driver Relay Connected
+VMO-MMO Alternate (1)
+VMO-MMO Alternate (2)
+VMO-MMO Alternate (3)
+VMO-MMO Alternate (4)
+VNAV Path
+VNAV Push Button Light
+VNAV Speed
+VOR (1) Failure
+VOR (1) Frequency
+VOR (1) Input Data
+VOR (1) MB Failure
+VOR (1) Selected (Capt)
+VOR (1) Selected (FO)
+VOR (2) Failure
+VOR (2) Frequency
+VOR (2) Input Data
+VOR (2) MB Failure
+VOR (2) Selected (Capt)
+VOR (2) Selected (FO)
+VOR Mode Selected (Capt)
+VOR Mode Selected (FO)
+VORLOC Armed
+VORLOC Engaged
+VORLOC Push Button Light
+VR
+VSV Driver Relay Connected (1)
+VSV Driver Relay Connected (2)
+Variable Bleed Valve (1)
+Variable Bleed Valve (2)
+Variable Stator Vane (1)
+Variable Stator Vane (2)
+Vertical Speed (FMC) Selected
+Vertical Speed Armed
+Vertical Speed Engaged
+Vertical Speed Push Button Light
+Vertical Speed Selected
+Vref
+Vref Selected
+WPT Distance To Go
+WPT Selected (Capt)
+WPT Selected (FO)
+WXR Selected (Capt)
+WXR Selected (FO)
+Wheel Well Fire
+Wind Direction
+Wind Speed
+Wing (L) Anti Ice Configuration Code
+Wing (R) Anti Ice Configuration Code
+Wing Anti Ice
+Yaw Damper Engaged
+Yaw Damper Engaged (Standby)
+Yaw Trim (L) Command
+Yaw Trim (R) Command
+Year
+inHg Selected (Capt)
+inHg Selected (FO)

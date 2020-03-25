@@ -228,7 +228,7 @@ class TestMGBOilTemp(unittest.TestCase):
                                                     ac_type=helicopter))
 
         opts = self.node_class.get_operational_combinations(ac_type=helicopter)
-        self.assertEquals(len(opts), 3)
+        self.assertEqual(len(opts), 3)
 
     def test_derive(self):
         t1 = [78.0]*14 + [78.5,78] + [78.5]*23 + [79.0]*5 + [79.5] + [79.0]*5
@@ -272,7 +272,7 @@ class TestMGBOilPress(unittest.TestCase):
                                                     ac_type=helicopter))
 
         opts = self.node_class.get_operational_combinations(ac_type=helicopter)
-        self.assertEquals(len(opts), 3)
+        self.assertEqual(len(opts), 3)
 
     def test_derive(self):
         p1 = [26.51]*7 + [26.63] + [26.51]*7 + [26.4]*27 + [26.29] + [26.4]*7

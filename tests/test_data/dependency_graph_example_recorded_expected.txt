@@ -1,0 +1,919 @@
+Heading Continuous
+Fast
+Altitude Radio
+Altitude Radio Offset Removed
+Altitude STD Smoothed
+Altitude AAL
+Altitude AAL For Flight Phases
+Airborne
+Takeoff
+Heading Rate
+Mobile
+Acceleration Longitudinal Offset
+Acceleration Longitudinal Offset Removed
+Takeoff Acceleration Start
+Takeoff Roll
+2 Deg Pitch To 35 Ft
+2 Deg Pitch To 35 Ft Duration
+AOA
+AOA Abnormal Operation
+AOA Abnormal Operation Duration
+AOA Difference 5 Sec Max
+Vertical Speed For Flight Phases
+Level Flight
+Go Around And Climbout
+AOA During Go Around Max
+Flap Lever
+Flap Angle
+Landing
+Flap
+Approach
+Approach And Landing
+Flap Lever (Synthetic)
+Climbing
+AOA With Flap During Climb Max
+Descending
+AOA With Flap During Descent Max
+AOA With Flap Max
+AP Channels Engaged
+AP Engaged
+Climb Cruise Descent
+Top Of Climb
+Top Of Descent
+Cruise
+AP Disengaged During Cruise Duration
+AP Disengaged Selection
+AP Engaged Selection
+AP Vertical Mode
+APU Fire Warning Duration
+APU On During Flight Duration
+APU Running
+APU Start
+APU Stop
+AT Disengaged AP Engaged Duration
+AT Disengaged Selection
+AT Engaged AP Disengaged Outside Climb Duration
+AT Engaged Selection
+Eng (*) N1 Min
+Eng (*) N2 Min
+Eng (*) Fuel Flow Min
+Eng (*) All Running
+Grounded
+Eng (*) N1 Max
+Takeoff Runway Heading
+Rejected Takeoff
+Taxiing
+Acceleration Normal Offset
+Acceleration Normal Offset Removed
+Acceleration Forwards
+Turning On Ground
+Acceleration Lateral Offset
+Acceleration Lateral Offset Removed
+Acceleration Sideways
+Acceleration Across Track
+Acceleration Along Track
+Touchdown
+Acceleration Lateral At Touchdown
+SAT
+Airspeed True
+Landing Roll
+ILS Localizer
+ILS Glideslope
+ILS Frequency
+Latitude At Touchdown
+Longitude At Touchdown
+Vertical Speed
+Distance Travelled
+Distance To Landing
+Approach Information
+FDR Landing Runway
+Acceleration Lateral During Landing Max
+Acceleration Lateral During Takeoff Max
+Acceleration Lateral For 5 Sec Max
+Acceleration Lateral Smoothed
+Eng Start
+Eng Stop
+Last Eng Stop After Touchdown
+Taxi In
+Acceleration Lateral In Turn During Taxi In Max
+Acceleration Vertical
+Vertical Speed Inertial
+Liftoff
+First Eng Start Before Liftoff
+Taxi Out
+Acceleration Lateral In Turn During Taxi Out Max
+Acceleration Lateral Max
+Acceleration Lateral While Airborne Max
+Acceleration Lateral While Taxiing Straight Max
+Acceleration Lateral While Taxiing Turn Max
+Acceleration Longitudinal During Landing Min
+Acceleration Longitudinal During Takeoff Max
+Acceleration Longitudinal While Airborne Max
+Acceleration Normal 20 Ft To 5 Ft Max
+Touch And Go
+Acceleration Normal At Touchdown
+Acceleration Normal At Liftoff
+Acceleration Normal Liftoff To 35 Ft Max
+Acceleration Normal Max
+Eng (*) Fuel Flow
+Gross Weight Smoothed
+Gross Weight At Touchdown
+Load Factor Threshold At Touchdown
+Acceleration Normal Minus Load Factor Threshold At Touchdown
+Acceleration Normal While Airborne Max
+Acceleration Normal While Airborne Min
+Acceleration Normal With Flap Down While Airborne Max
+Acceleration Normal With Flap Down While Airborne Min
+Acceleration Normal With Flap Up While Airborne Max
+Acceleration Normal With Flap Up While Airborne Min
+Aileron
+Last APU Start Before Liftoff
+Aileron Preflight Check
+Track
+Magnetic Variation
+Takeoff Roll Or Rejected Takeoff
+Heading During Takeoff
+Heading During Landing
+Latitude At Liftoff
+Longitude At Liftoff
+Off Blocks
+Latitude Off Blocks
+Longitude Off Blocks
+FDR Takeoff Airport
+Latitude At Takeoff Acceleration Start
+Longitude At Takeoff Acceleration Start
+FDR Takeoff Runway
+Magnetic Variation From Runway
+Heading True
+Track True
+Approach Range
+Aiming Point Range
+Airborne Radar Approach
+Potential Energy
+Kinetic Energy
+Aircraft Energy
+Bottom Of Descent
+Descent
+Altitude When Descending
+Aircraft Energy When Descending
+Final Approach
+Airspeed 1000 To 500 Ft Max
+Airspeed 1000 To 500 Ft Min
+Climb Start
+Climb
+Airspeed 1000 To 5000 Ft Max
+Airspeed 1000 To 8000 Ft Max
+Baro Correction
+Altitude QNH
+Airspeed 1000 To 8000 Ft Max QNH
+Airspeed 10000 To 5000 Ft Max
+Airspeed 10000 To 8000 Ft Max
+Airspeed 10000 To 8000 Ft Max QNH
+Airspeed 3000 Ft To Top Of Climb Max
+Airspeed 3000 Ft To Top Of Climb Min
+Airspeed 3000 To 1000 Ft Max
+Airspeed 3000 To 1000 Ft Max QNH
+Initial Climb
+Airspeed 35 To 1000 Ft Max
+Airspeed 35 To 1000 Ft Min
+Airspeed 500 To 20 Ft Max
+Airspeed 500 To 20 Ft Min
+Airspeed 500 To 50 Ft Median
+Airspeed 500 To 50 Ft Median Minus Airspeed Selected
+Airspeed 5000 To 10000 Ft Max
+Airspeed 5000 To 3000 Ft Max
+Airspeed 5000 To 3000 Ft Max QNH
+Airspeed 5000 To 8000 Ft Max
+Airspeed 8000 To 10000 Ft Max
+Airspeed 8000 To 10000 Ft Max QNH
+Airspeed 8000 To 5000 Ft Max
+Airspeed 8000 To 5000 Ft Max QNH
+Airspeed Above FL300 Max
+Airspeed Above FL300 Min
+Airspeed Above Stick Shaker Speed Min
+Airspeed At 35 Ft During Takeoff
+Airspeed At 8000 Ft Descending
+First Flap Extension While Airborne
+Airspeed At First Flap Extension While Airborne
+Airspeed At Flap Extension
+Gear (*) Red Warning
+Gear Down In Transit
+Gear Up In Transit
+Gear In Transit
+Gear Up Selected
+Gear Up
+Gear Down Selected
+Airspeed At Flap Extension With Gear Down Selected
+Gear Down Selection
+Airspeed At Gear Down Selection
+Gear Up Selection
+Airspeed At Gear Up Selection
+Airspeed At Liftoff
+Thrust Reversers
+Airspeed At Thrust Reversers Selection
+Airspeed At Touchdown
+FDR Landing Airport
+Airspeed Below 10000 Ft During Descent Max
+Airspeed Below Airspeed Selected Duration Max
+Minimum Airspeed
+Flap Including Transition
+Flap Manoeuvre Speed
+Airspeed Below Minimum Airspeed Flap Clean Min
+Airspeed Between FL200 And FL300 Max
+Airspeed Between FL200 and FL300 Min
+Airspeed Difference 5 Sec Max
+Airspeed During Cruise Max
+Airspeed During Cruise Min
+Airspeed During Level Flight Max
+Airspeed During Rejected Takeoff Max
+Airspeed Gusts During Final Approach
+Airspeed Max
+Mins To Touchdown
+Airspeed Mins To Touchdown
+Airspeed Selected For Approaches
+Airspeed Minus Airspeed Selected For 3 Sec
+Airspeed Minus Airspeed Selected For 3 Sec 1000 To 500 Ft Max
+Airspeed Minus Airspeed Selected For 3 Sec 1000 To 500 Ft Min
+Airspeed Minus Airspeed Selected For 3 Sec 500 To 20 Ft Max
+Airspeed Minus Airspeed Selected For 3 Sec 500 To 20 Ft Min
+Airspeed Minus Flap Manoeuvre Speed
+Airspeed Minus Flap Manoeuvre Speed For 3 Sec
+Descent To Flare
+Airspeed Minus Flap Manoeuvre Speed With Flap During Descent Min
+Airspeed Minus Minimum Airspeed
+Airspeed Minus Minimum Airspeed 10000 To 50 Ft Min
+Airspeed Minus Minimum Airspeed 35 To 10000 Ft Min
+Airspeed Minus Minimum Airspeed Above 10000 Ft Min
+Airspeed Minus Minimum Airspeed During Go Around Min
+Airspeed Minus Minimum Airspeed For 3 Sec
+V2 At Liftoff
+Airspeed Selected At Takeoff Acceleration Start
+Gross Weight At Liftoff
+V2 Lookup At Liftoff
+Altitude When Climbing
+Throttle Levers
+Flap Lever Set
+Climb Acceleration Start
+Airspeed Minus V2
+Airspeed Minus V2 35 To 1000 Ft Max
+Airspeed Minus V2 35 To 1000 Ft Min
+Airspeed Minus V2 35 To Climb Acceleration Start Max
+Airspeed Minus V2 35 To Climb Acceleration Start Min
+Airspeed Minus V2 At 35 Ft During Takeoff
+Airspeed Minus V2 At Liftoff
+Airspeed Minus V2 For 3 Sec
+Airspeed Minus V2 For 3 Sec 35 To 1000 Ft Max
+Airspeed Minus V2 For 3 Sec 35 To 1000 Ft Min
+Airspeed Minus V2 For 3 Sec 35 To Climb Acceleration Start Max
+Airspeed Minus V2 For 3 Sec 35 To Climb Acceleration Start Min
+VMO Lookup
+Airspeed Minus VMO Max
+Vref Lookup
+Airspeed Minus Vref
+Airspeed Minus Vref For 3 Sec
+Heading True Continuous
+Eng (*) N2 Max
+Eng (*) Fuel Flow Max
+Eng (*) Any Running
+Groundspeed Signed
+Longitude Smoothed
+Latitude Smoothed
+Distance From Threshold
+Airspeed Nm To Threshold
+Airspeed Relative
+Airspeed Relative 1000 To 500 Ft Max
+Airspeed Relative 1000 To 500 Ft Min
+Airspeed Relative 20 Ft To Touchdown Max
+Airspeed Relative 20 Ft To Touchdown Min
+Airspeed Relative 500 To 20 Ft Max
+Airspeed Relative 500 To 20 Ft Min
+Airspeed Relative At Touchdown
+Airspeed Relative For 3 Sec
+Airspeed Relative For 3 Sec 1000 To 500 Ft Max
+Airspeed Relative For 3 Sec 1000 To 500 Ft Min
+Airspeed Relative For 3 Sec 20 Ft To Touchdown Max
+Airspeed Relative For 3 Sec 20 Ft To Touchdown Min
+Airspeed Relative For 3 Sec 500 To 20 Ft Max
+Airspeed Relative For 3 Sec 500 To 20 Ft Min
+Airspeed Selected (FMC) Minus Flap Manoeuvre Speed 1000 to 5000 Ft Min
+Airspeed Selected At Liftoff
+Airspeed Top Of Descent To 10000 Ft Max
+Airspeed Top Of Descent To 4000 Ft Max
+Airspeed Top Of Descent To 4000 Ft Min
+Airspeed True At Touchdown
+Landing Turn Off Runway
+Airspeed Vacating Runway
+Gear Extending
+Airspeed While Gear Extending Max
+Gear Retracting
+Airspeed While Gear Retracting Max
+Flap Excluding Transition
+Airspeed With Flap During Climb Max
+Airspeed With Flap During Climb Min
+Airspeed With Flap During Descent Max
+Airspeed With Flap During Descent Min
+Airspeed With Flap Max
+Airspeed With Flap Min
+Airspeed With Gear Down Max
+Speedbrake
+Airspeed With Speedbrake Deployed Max
+Airspeed With Thrust Reversers Deployed Min
+Gear Retracted
+Altitude AAL Clean Configuration Min
+Altitude At AP Disengaged Selection
+Altitude At AP Engaged Selection
+Altitude At AT Disengaged Selection
+Altitude At AT Engaged Selection
+Altitude At First AP Engaged After Liftoff
+Flap At Liftoff
+Altitude At First Flap Change After Liftoff
+Flap Extension While Airborne
+Altitude At Flap Extension
+Altitude At First Flap Extension After Liftoff
+Flap Retraction While Airborne
+Altitude At First Flap Retraction
+Flap Retraction During Go Around
+Altitude At First Flap Retraction During Go Around
+Altitude At First Gear Up Selection
+Altitude At Flap Extension With Gear Down Selected
+Altitude At Gear Down Selection With Flap Down
+Altitude At Gear Down Selection With Flap Up
+Gear Up Selection During Go Around
+Altitude At Gear Up Selection During Go Around
+Altitude At Last AP Disengaged During Approach
+Altitude At Last Flap Change Before Bottom Of Descent
+Altitude At Last Flap Retraction
+Altitude At Last Flap Selection Before Touchdown
+Altitude At Last Gear Down Selection
+Mach Max
+Altitude At Mach Max
+Altitude Before Level Flight When Climbing
+Altitude Before Level Flight When Descending
+Altitude Deviation From Altitude Selected Max
+Altitude During Cabin Altitude Warning Max
+Altitude During Go Around Min
+Track True Continuous
+Track Continuous
+Track Deviation From Runway
+Eng (*) N1 Avg
+Eng (*) N1 Avg For 10 Sec
+Stable Approach
+Altitude First Stable During Approach Before Go Around
+Altitude First Stable During Last Approach
+Altitude In Cruise Average
+Altitude Last Unstable During Approach Before Go Around
+Altitude Last Unstable During Last Approach
+Stable Approach Excluding Eng Thrust
+Altitude Last Unstable During Last Approach Excluding Eng Thrust
+Altitude Max
+Altitude Overshoot At Suspected Level Bust
+Altitude Peak
+Altitude STD Difference 5 Sec Max
+Altitude STD Max
+Altitude STD With Gear Down Max
+Altitude Tail
+Altitude Visualization With Ground Offset
+Altitude Visualization Without Ground Offset
+Altitude With Flap Max
+Altitude With Gear Down Max
+Altitude With Gear Up Before Bottom Of Descent Min
+Speedbrake Deployed
+Speedbrake Selected
+Altitude With Speedbrake Deployed During Final Approach Min
+Approach Flight Path Angle
+Approach Flight Path Angle 1000 To 500 Ft Max
+Approach Flight Path Angle 1000 To 500 Ft Min
+Approach Flight Path Angle 1500 To 1000 Ft Max
+Approach Flight Path Angle 1500 To 1000 Ft Min
+Approach Flight Path Angle 500 To 200 Ft Max
+Approach Flight Path Angle 500 To 200 Ft Min
+Autoland
+Baro Correction Minus 1013 Above 20000 Ft During Level Flight Max
+Bounced Landing
+Brake Pressure
+Brake Pressure In Takeoff Roll Max
+Cabin Altitude Warning Duration
+Cargo (*) Smoke Or Fire
+Cargo Smoke Or Fire Warning Duration
+Climb For Flight Phases
+Control Column
+Control Column Force Max
+Control Column Stiffness
+Control Wheel
+Control Wheel Force Max
+Daylight
+Deceleration After Touchdown Avg
+Latitude Smoothed At Touchdown
+Longitude Smoothed At Touchdown
+ILS Glideslope Established
+ILS Localizer Established
+Deceleration From Touchdown To Stop On Runway
+Deceleration To Abort Takeoff At Rotation
+Delayed Braking After Touchdown
+Descend For Flight Phases
+Descent Low Climb
+Distance Flown
+Distance From Landing Airport
+Latitude Smoothed At Liftoff
+Longitude Smoothed At Liftoff
+Distance From Liftoff To Runway End
+Distance From Rotation To Runway End
+ILS Lateral Distance
+Distance From Runway Centreline At Touchdown
+Distance From Runway Centreline From Touchdown To 60 Kt Max
+Distance From Runway Start To Touchdown
+Distance From Takeoff Airport
+Distance From Touchdown To Runway End
+Distance On Landing From 60 Kt To Runway End
+Distance Past Glideslope Antenna To Touchdown
+Distance To Touchdown
+Distance Travelled During Turnback
+Distance Travelled Following Diversion
+Drift At Touchdown
+Elevator
+Elevator During Landing Min
+Elevator Preflight Check
+Eng (*) Fire
+Eng (1) Fuel Burn
+Eng (2) Fuel Burn
+Eng (*) Fuel Burn
+Eng (*) Gas Temp Avg
+Eng (*) Gas Temp Max
+Eng (*) Gas Temp Min
+Eng (*) N1 Min For 5 Sec
+Eng (*) N1 Split
+Eng (*) N2 Avg
+Eng (*) Oil Press Avg
+Eng (*) Oil Press Max
+Eng (*) Oil Press Min
+Eng (*) Oil Press Warning
+Eng (*) Oil Qty Avg
+Eng (*) Oil Qty Max
+Eng (*) Oil Qty Min
+Eng (*) Oil Temp Avg
+Eng (*) Oil Temp Max
+Eng (*) Oil Temp Min
+Eng (*) Torque Avg
+Eng (*) Torque Max
+Eng (*) Torque Min
+Eng (*) Vib N1 Max
+Eng (*) Vib N2 Max
+Eng (1) Running
+Eng (2) Running
+Eng Bleed Open
+Eng Bleed Valves At Liftoff
+Eng Eng Start To N1 At 60 Percent Duration
+Eng Fire Warning Duration
+Takeoff Turn Onto Runway
+Eng Gas Temp During Eng Start For X Sec Max
+Eng Gas Temp During Eng Start Max
+Eng Gas Temp During Flight Min
+Go Around
+Go Around 5 Min Rating
+Eng Gas Temp During Go Around 5 Min Rating Max
+Takeoff 5 Min Rating
+Eng Gas Temp During Maximum Continuous Power For X Min Max
+Maximum Continuous Power
+Eng Gas Temp During Maximum Continuous Power Max
+Eng Gas Temp During Takeoff 5 Min Rating Max
+Eng Gas Temp For 5 Sec During Go Around 5 Min Rating Max
+Eng Gas Temp For 5 Sec During Maximum Continuous Power Max
+Eng Gas Temp For 5 Sec During Takeoff 5 Min Rating Max
+Eng Gas Temp Max During Takeoff Max Maintained
+Eng N1 500 To 50 Ft Max
+Eng N1 500 To 50 Ft Min
+Eng N1 At TOGA During Takeoff
+Eng N1 Below 60 Percent After Touchdown Duration
+Eng N1 Cycles During Final Approach
+Eng N1 During Approach Max
+Eng N1 During Go Around 5 Min Rating Max
+Eng N1 During Maximum Continuous Power Max
+Eng N1 During Takeoff 5 Min Rating Max
+Eng N1 During Takeoff Max
+Eng N1 During Taxi In Max
+Eng N1 During Taxi Max
+Eng N1 During Taxi Out Max
+Eng N1 For 5 Sec 1000 To 500 Ft Min
+Eng N1 For 5 Sec 500 To 50 Ft Min
+Eng N1 For 5 Sec During Go Around 5 Min Rating Max
+Eng N1 For 5 Sec During Maximum Continuous Power Max
+Eng N1 For 5 Sec During Takeoff 5 Min Rating Max
+Eng N1 With Thrust Reversers Deployed Max
+Eng N1 With Thrust Reversers In Transit Max
+Eng N2 Cycles During Final Approach
+Eng N2 During Go Around 5 Min Rating Max
+Eng N2 During Maximum Continuous Power For X Sec Max
+Eng N2 During Maximum Continuous Power Max
+Eng N2 During Takeoff 5 Min Rating Max
+Eng N2 During Takeoff For X Sec Max
+Eng N2 During Taxi Max
+Eng N2 For 5 Sec During Go Around 5 Min Rating Max
+Eng N2 For 5 Sec During Maximum Continuous Power Max
+Eng N2 For 5 Sec During Takeoff 5 Min Rating Max
+Eng Oil Press For 60 Sec During Cruise Max
+Eng Oil Press Max
+Eng Oil Press Min
+Eng Oil Press Warning Duration
+Eng Oil Qty During Taxi In Max
+Eng Oil Qty During Taxi Out Max
+Eng Oil Qty Max
+Eng Oil Qty Min
+Eng Oil Temp For X Min Max
+Eng Oil Temp Max
+Eng Running Duration
+Eng Shutdown During Flight Duration
+Eng Torque 500 To 50 Ft Max
+Eng Torque 500 To 50 Ft Min
+Eng Torque 65 Kts To 35 Ft Min
+Eng Torque During Go Around 5 Min Rating Max
+Eng Torque During Maximum Continuous Power Max
+Eng Torque During Takeoff 5 Min Rating Max
+Eng Torque During Taxi Max
+Eng Torque For 5 Sec During Go Around 5 Min Rating Max
+Eng Torque For 5 Sec During Maximum Continuous Power Max
+Eng Torque For 5 Sec During Takeoff 5 Min Rating Max
+Eng Torque Max During Maximum Continuous Power
+Eng Torque Max During Takeoff
+Eng Torque While Descending Max
+Eng Torque Within 1 Sec Of Touchdown Max
+Eng Vib N1 Max
+Eng Vib N2 Max
+Holding
+Enter Hold
+Event Marker Pressed
+Exit Hold
+FDR Analysis Datetime
+FDR Destination Airport
+FDR Takeoff Datetime
+FDR Landing Datetime
+FDR Duration
+FDR Flight Number
+FDR Flight Type
+Fuel Qty
+Fuel Qty At Touchdown
+FDR Landing Fuel
+FDR Landing Gross Weight
+FDR Landing Pilot
+FDR Off Blocks Datetime
+FDR On Blocks Datetime
+Fuel Qty At Liftoff
+FDR Takeoff Fuel
+FDR Takeoff Gross Weight
+FDR Takeoff Pilot
+FDR Version
+First Eng Fuel Flow Start
+Flap Alternate Armed Set
+Flap At 1000 Ft
+Flap At 500 Ft
+Flap At First Movement After Engine Start
+Flap At Gear Down Selection
+Flap At Gear Up Selection During Go Around
+Flap At Touchdown
+Flap Bypass Valve Duration
+Flap Load Relief Set
+Flap With Gear Up Max
+Flap With Speedbrake Deployed Max
+Flare Distance 20 Ft To Touchdown
+Flare Duration 20 Ft To Touchdown
+Rudder Preflight Check
+Flight Control Preflight Check
+Fuel Qty (*) Low
+Fuel Qty Low Warning Duration
+Fuel Qty Wing Difference Max
+Gear Down To Landing Flap Configuration Duration
+Gear Extended
+Gear Extension Duration
+Gear Retraction Duration
+Glideslope Established End
+Glideslope Established Start
+Great Circle Distance
+Gross Weight Delta 60 Seconds In Flight Max
+Groundspeed At Liftoff
+Groundspeed At TOGA
+Groundspeed At Touchdown
+Groundspeed During Rejected Takeoff Max
+Groundspeed Flap Change During Takeoff Max
+Groundspeed In Straight Line During Taxi In Max
+Groundspeed In Straight Line During Taxi Out Max
+Groundspeed In Turn During Taxi In Max
+Groundspeed In Turn During Taxi Out Max
+Groundspeed Speedbrake During Takeoff Max
+Groundspeed Speedbrake Handle During Takeoff Max
+Groundspeed Stabilizer Out Of Trim During Takeoff Max
+Groundspeed Vacating Runway
+Groundspeed While Taxiing Straight Max
+Groundspeed While Taxiing Turn Max
+Groundspeed With Gear On Ground Max
+Groundspeed With Thrust Reversers Deployed Any Power Min
+Groundspeed With Thrust Reversers Deployed Min
+Lowest Altitude During Approach
+Heading At Lowest Altitude During Approach
+Turning In Air
+Heading Change
+Heading Deviation From Runway At 50 Ft During Landing
+Heading Deviation From Runway At TOGA During Takeoff
+Heading Deviation From Runway During Landing Roll
+Heading Difference 5 Sec Max
+Heading Rate While Airborne Max
+Heading True During Landing
+Heading True During Takeoff
+Heading Vacating Runway
+Heading Variation 300 To 50 Ft
+Heading Variation 500 To 50 Ft
+Heading Variation 800 To 50 Ft
+Heading Variation Above 100 Kts Airspeed During Landing
+Pitch Rate
+Heading Variation Above 80 Kts Airspeed During Takeoff
+Heading Variation Touchdown Plus 4 Sec To 60 Kts Airspeed
+Headwind
+Height At Distances From Threshold
+Height At Go Around
+Height At Offset ILS Turn
+Height At Runway Change
+Height Loss 1000 To 2000 Ft
+Height Loss 35 To 1000 Ft
+Height Loss Liftoff To 35 Ft
+Height Mins To Touchdown
+Height Of Bounced Landing
+Holding Duration
+ILS Frequency During Approach
+ILS Glideslope 10 Sec Before Established
+ILS Glideslope Deviation 1000 To 500 Ft Max
+ILS Glideslope Deviation 1500 To 1000 Ft Max
+ILS Glideslope Deviation 500 To 200 Ft Max
+ILS Glideslope Not Established Highest Altitude 1000 To 200Ft
+ILS Glideslope Not Established Highest Altitude 500 To 200 Ft
+ILS Localizer Deviation 1000 To 500 Ft Max
+ILS Localizer Deviation 1500 To 1000 Ft Max
+ILS Localizer Deviation 500 To 200 Ft Max
+ILS Localizer Deviation At Touchdown
+ILS Localizer Not Established Highest Altitude 1000 To 200 Ft
+ILS Localizer Not Established Highest Altitude 500 To 200 Ft
+Initial Approach
+Initial Climb Start
+Initial Cruise
+Isolation Valve Open At Liftoff
+Kinetic Energy At Runway Turnoff
+Landing Deceleration End
+Landing Start
+Last Eng Fuel Flow Stop
+Last Eng Start Before Liftoff
+Last Flap Change To Takeoff Roll End Duration
+Last Unstable State During Approach Before Go Around
+Last Unstable State During Last Approach
+Latitude At Lowest Altitude During Approach
+Liftoff To Climb Pitch Duration
+Localizer Established End
+Localizer Established Start
+Longitude At Lowest Altitude During Approach
+MMO Lookup
+Mach Above FL300 Max
+Mach Above FL300 Min
+Mach Between FL200 And FL300 Max
+Mach Between FL200 And FL300 Min
+Mach During Cruise Avg
+Mach Minus MMO Max
+Mach While Gear Extending Max
+Mach While Gear Retracting Max
+Mach With Flap Max
+Mach With Gear Down Max
+Magnetic Variation At Landing Turn Off Runway
+Magnetic Variation At Takeoff Turn Onto Runway
+Main Fuel Quantity Off Block With Fuel In Center Tank
+Main Gear On Ground To Nose Gear On Ground Duration
+Master Caution During Takeoff Duration
+Stationary
+Movement Start
+Movement Stop
+Number of AP Channels Engaged At Touchdown
+On Blocks
+Overspeed Duration
+Pack Valves Open
+Pack Valves Open At Liftoff
+Percent Approach Stable
+Pitch 1000 To 500 Ft Max
+Pitch 1000 To 500 Ft Min
+Pitch 20 Ft To Touchdown Max
+Pitch 20 Ft To Touchdown Min
+Pitch 35 To 400 Ft Max
+Pitch 35 To 400 Ft Min
+Pitch 35 To Climb Acceleration Start Max
+Pitch 35 To Climb Acceleration Start Min
+Pitch 400 To 1000 Ft Max
+Pitch 400 To 1000 Ft Min
+Pitch 50 Ft To Touchdown Max
+Pitch 500 To 20 Ft Min
+Pitch 500 To 50 Ft Max
+Pitch 500 To 50 Ft Min
+Pitch 500 To 7 Ft Max
+Pitch 500 To 7 Ft Min
+Pitch 7 Ft To Touchdown Max
+Pitch 7 Ft To Touchdown Min
+Pitch Above 1000 Ft Max
+Pitch Above 1000 Ft Min
+Pitch Above FL300 Max
+Pitch Above FL300 Min
+Pitch After Flap Retraction Max
+Pitch At 35 Ft During Climb
+Pitch At Liftoff
+Pitch At Touchdown
+Pitch Between FL200 And FL300 Max
+Pitch Between FL200 And FL300 Min
+Pitch Cycles During Final Approach
+Pitch During Go Around Max
+Pitch Rate 2 Deg Pitch To 35 Ft Max
+Pitch Rate 2 Deg Pitch To 35 Ft Min
+Pitch Rate 20 Ft To Touchdown Max
+Pitch Rate 20 Ft To Touchdown Min
+Pitch Rate 35 To 1000 Ft Max
+Pitch Rate 35 To Climb Acceleration Start Max
+Pitch Rate Touchdown To 60 Kts Airspeed Max
+Pitch Rate While Airborne Max
+Pitch Takeoff Max
+Pitch Touchdown To 60 Kts Airspeed Max
+Pitch While Airborne Max
+Pitch While Airborne Min
+QNH Difference During Approach
+QNH Difference During Takeoff
+Rate Of Climb 35 To 1000 Ft Min
+Rate Of Climb 35 To Climb Acceleration Start Min
+Rate Of Climb At Height Before Altitude Selected
+Rate Of Climb At Height Before Level Flight
+Rate Of Climb Below 10000 Ft Max
+Rate Of Climb During Go Around Max
+Rate Of Climb Max
+Rate Of Descent 1000 To 500 Ft Max
+Rate Of Descent 10000 To 5000 Ft Max
+Rate Of Descent 2000 To 1000 Ft Max
+Rate Of Descent 3000 To 2000 Ft Max
+Rate Of Descent 50 Ft To Touchdown Max
+Rate Of Descent 500 To 50 Ft Max
+Rate Of Descent 5000 To 3000 Ft Max
+Rate Of Descent Above 3000 Ft Max
+Rate Of Descent At Height Before Altitude Selected
+Rate Of Descent At Height Before Level Flight
+Rate Of Descent At Touchdown
+Rate Of Descent Below 10000 Ft Max
+Rate Of Descent Below 80 Kts Max
+Rate Of Descent During Go Around Max
+Rate Of Descent Max
+Rate Of Descent Top Of Descent To 10000 Ft Max
+Rejected Takeoff Start
+Relief
+Roll 1000 To 300 Ft Max
+Roll 1000 To 500 Ft Max
+Roll 20 Ft To Touchdown Max
+Roll 20 To 400 Ft Max
+Roll 300 To 20 Ft Max
+Roll 400 To 1000 Ft Max
+Roll 500 Ft To Touchdown Max
+Roll Above 1000 Ft Max
+Roll Above FL300 Max
+Roll At Low Altitude
+Roll Between FL200 and FL300 Max
+Roll Cycles Exceeding 15 Deg During Final Approach
+Roll Cycles Exceeding 15 Deg During Initial Climb
+Roll Cycles Exceeding 5 Deg During Final Approach
+Roll Cycles Exceeding 5 Deg During Initial Climb
+Roll Cycles Not During Final Approach
+Roll Liftoff To 20 Ft Max
+Roll Rate
+Rudder Cycles Above 50 Ft
+Rudder During Takeoff Max
+Rudder Pedal Force Max
+Rudder Pedal Max
+Rudder Pedal Min
+Rudder Reversal Above 50 Ft
+Runway Heading True
+Runway Overrun Without Slowing Duration
+SAT International Standard Atmosphere
+SAT Max
+Secs To Touchdown
+Shuttling Approach
+Single Engine During Taxi In Duration
+Single Engine During Taxi Out Duration
+Slat Fully Extended
+Slat Part Extended
+Slat In Transit
+Slope To Aiming Point
+Slope Angle To Aiming Point
+Slope To Landing
+Slope Angle To Landing
+Smoke Warning
+Smoke Warning Duration
+Speedbrake Deployed 1000 To 20 Ft Duration
+Speedbrake Deployed During Go Around Duration
+Speedbrake Deployed With Flap Duration
+Speedbrake Deployed With Power On Duration
+Spoilers Deployed Duration During Landing
+Stick Shaker
+Stick Shaker Activated Duration
+Straight And Level
+TAWS Alert
+TAWS Alert Duration
+TAWS Caution Terrain Duration
+TAWS Dont Sink Warning Duration
+TAWS Failure Duration
+TAWS General Warning Duration
+TAWS Glideslope Cancel Pressed
+TAWS Glideslope Warning 1000 To 500 Ft Duration
+TAWS Glideslope Warning 1500 To 1000 Ft Duration
+TAWS Glideslope Warning 500 To 200 Ft Duration
+TAWS Minimums Triggered
+TAWS Obstacle Warning Duration
+TAWS Predictive Windshear Duration
+TAWS Pull Up Warning Duration
+TAWS Sink Rate Warning Duration
+TAWS Terrain Ahead Duration
+TAWS Terrain Ahead Pull Up Duration
+TAWS Terrain Caution Duration
+TAWS Terrain Override Pressed
+TAWS Terrain Pull Up Warning Duration
+TAWS Terrain Warning Duration
+TAWS Too Low Flap Warning Duration
+TAWS Too Low Gear Warning Duration
+TAWS Too Low Terrain Warning Duration
+TAWS Warning Duration
+TAWS Windshear Caution Below 1500 Ft Duration
+TAWS Windshear Warning Below 1500 Ft Duration
+TCAS Operational
+TCAS Failure Ratio
+TCAS Resolution Advisory
+TCAS RA AP Disengaged
+TCAS RA Direction
+TCAS RA Acceleration
+TCAS RA Altitude AAL
+TCAS RA Altitude STD
+TCAS RA Change Of Vertical Speed
+TCAS RA Erroneous Acceleration
+TCAS RA Heading
+TCAS RA Reaction Delay
+TCAS RA Subsequent Acceleration
+TCAS RA Subsequent Reaction Delay
+TCAS RA To AP Disengaged Delay
+TCAS RA Warning Above FL100 Duration
+TCAS RA Warning Below FL100 In Climb Duration
+TCAS RA Warning Below FL100 In Descent Duration
+TCAS RA Warning Duration
+TOGA Selected During Flight Not Go Around Duration
+TOGA Selected During Go Around Duration
+Tail Clearance During Approach Min
+Tail Clearance During Go Around Min
+Tail Clearance During Landing Min
+Tail Clearance During Takeoff Min
+Tailwind
+Tailwind 100 Ft To Touchdown Max
+Tailwind At Altitude During Descent
+Takeoff Rotation
+Tailwind During Takeoff Max
+Tailwind Liftoff To 100 Ft Max
+Takeoff Peak Acceleration
+Takeoff Rating Duration
+Takeoff Rotation WOW
+Takeoff Start
+Taxi In Duration
+Taxi Out Duration
+Terrain Clearance Above 3000 Ft Min
+Throttle Cycles During Final Approach
+Throttle Lever At Liftoff
+Throttle Lever Variation Above 80 Kts To Takeoff
+Throttle Reduction To Touchdown Duration
+Thrust Asymmetry
+Thrust Asymmetry During Approach Duration
+Thrust Asymmetry During Approach Max
+Thrust Asymmetry During Flight Max
+Thrust Asymmetry During Go Around Max
+Thrust Asymmetry During Takeoff Max
+Thrust Asymmetry With Thrust Reversers Deployed Duration
+Thrust Asymmetry With Thrust Reversers Deployed Max
+Thrust Reversers Cancel To Eng Stop Duration
+Thrust Reversers Deployed Duration
+Thrust Reversers Deployed During Flight Duration
+Thrust Reversers Effective
+Touchdown To 60 Kts Duration
+Touchdown To Elevator Down Duration
+Touchdown To Pitch 2 Degrees Above Pitch At 60 Kts Duration
+Touchdown To Spoilers Deployed Duration
+Touchdown To Thrust Reversers Deployed Duration
+Track Deviation From Runway 1000 To 500 Ft
+Track Deviation From Runway 300 Ft To Touchdown
+Track Deviation From Runway 500 To 300 Ft
+Transmitting
+Transmit
+Transmit Inactivity Duration
+Turbulence
+Turbulence During Approach Max
+Turbulence During Cruise Max
+Turbulence During Flight Max
+V2 Lookup
+V2 Variation Max
+Wind Direction Continuous
+Wind Direction Magnetic
+Wind Direction Magnetic Continuous
+Wind Across Landing Runway
+Wind Across Landing Runway At 50 Ft
+Wind Direction At Altitude During Descent
+Wind Direction True
+Wind Direction True Continuous
+Wind Speed At Altitude During Descent
+Zero Fuel Weight

@@ -1412,7 +1412,7 @@ class TestGrounded(unittest.TestCase):
         duration = A('HDF Duration', len(ias.array)/ias.frequency)
         air = buildsection('Airborne', 2, 311)
         phase_grounded = Grounded()
-        phase_grounded.derive(aeroplane, ias, duration, None, air)
+        phase_grounded.derive(ias, air, aeroplane, duration)
         expected = buildsections('Grounded', [0, 2], [311, 313])
         self.assertEqual(phase_grounded.get_slices(), expected.get_slices())
 
@@ -1422,7 +1422,7 @@ class TestGrounded(unittest.TestCase):
         duration = A('HDF Duration', len(ias.array)/ias.frequency)
         air = buildsection('Airborne', None, None)
         phase_grounded = Grounded()
-        phase_grounded.derive(aeroplane, ias, duration, None, air)
+        phase_grounded.derive(ias, air, aeroplane, duration)
         expected = buildsection('Grounded', None, None)
         self.assertEqual(phase_grounded.get_slices(), expected.get_slices())
 
@@ -1432,7 +1432,7 @@ class TestGrounded(unittest.TestCase):
         duration = A('HDF Duration', len(ias.array)/ias.frequency)
         air = buildsection('Airborne', None, None)
         phase_grounded = Grounded()
-        phase_grounded.derive(aeroplane, ias, duration, None, air)
+        phase_grounded.derive(ias, air, aeroplane, duration)
         expected = buildsection('Grounded', 0, 9)
         self.assertEqual(phase_grounded.get_first().slice, expected[0].slice)
 
@@ -1442,7 +1442,7 @@ class TestGrounded(unittest.TestCase):
         duration = A('HDF Duration', len(ias.array)/ias.frequency)
         air = buildsection('Airborne',None,4)
         phase_grounded = Grounded()
-        phase_grounded.derive(aeroplane, ias, duration, None, air)
+        phase_grounded.derive(ias, air, aeroplane, duration)
         expected = buildsection('Grounded',4,4)
         self.assertEqual(phase_grounded.get_first().slice, expected[0].slice)
 
@@ -1452,7 +1452,7 @@ class TestGrounded(unittest.TestCase):
         duration = A('HDF Duration', len(ias.array)/ias.frequency)
         air = buildsection('Airborne',2,None)
         phase_grounded = Grounded()
-        phase_grounded.derive(aeroplane, ias, duration, None, air)
+        phase_grounded.derive(ias, air, aeroplane, duration)
         expected = buildsection('Grounded',0,1)
         self.assertEqual(phase_grounded.get_first().slice, expected[0].slice)
 

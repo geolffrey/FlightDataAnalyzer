@@ -53,6 +53,7 @@ from analysis_engine.library import (
     last_valid_sample,
     level_off_index,
     lookup_table,
+    maintain_altitude,
     mask_inside_slices,
     mask_outside_slices,
     max_abs_value,
@@ -915,6 +916,8 @@ class LoadFactorThresholdAtTouchdown(KeyPointValueNode):
         B767-400     (ER)           None                                 158757
         Return the weight in KG when match is found else None
         '''
+        if None in (series, model, mods):
+            return None
         re_series = re.match(r'^B7[365]7-[2346789][05][0E]', series)
         if not re_series and series != 'B737-MAX-8':
             return None
@@ -973,6 +976,8 @@ class LoadFactorThresholdAtTouchdown(KeyPointValueNode):
     @classmethod
     def can_operate(cls, available, model=A('Model'), series=A('Series'),
                     mods=A('Modifications')):
+        if None in (model, series, mods):
+            return False
         ac_weight = cls.get_landing_weight(series.value, model.value,
                                            mods.value)
         return ac_weight and all_deps(cls, available)
@@ -6660,6 +6665,8 @@ class QNHDifferenceDuringTakeoff(KeyPointValueNode):
             index = takeoff.slice.start
 
             final_alt = alt_aal.array[int(index)]
+            if to_runway.value is None:
+                continue
             rwy_elevation = to_runway.value['start']['elevation']
             ref = rwy_elevation + final_alt
             alt_qnh_lo = alt_qnh.array[int(index)]
@@ -9711,6 +9718,8 @@ class EngGasTempOverThresholdDuration(KeyPointValueNode):
     def can_operate(cls, available, eng_series=A('Engine Series'), eng_type=A('Engine Type'), mods=A('Modifications')):
         try:
             at.get_engine_map(eng_series.value, eng_type.value, mods.value)
+        except AttributeError:
+            return False
         except KeyError:
             cls.warning("No engine thresholds available for '%s', '%s', '%s'.",
                         eng_series.value, eng_type.value, mods.value)
@@ -9785,6 +9794,8 @@ class EngN1OverThresholdDuration(KeyPointValueNode):
     def can_operate(cls, available, eng_series=A('Engine Series'), eng_type=A('Engine Type'), mods=A('Modifications')):
         try:
             at.get_engine_map(eng_series.value, eng_type.value, mods.value)
+        except AttributeError:
+            return False
         except KeyError:
             cls.warning("No engine thresholds available for '%s', '%s', '%s'.",
                         eng_series.value, eng_type.value, mods.value)
@@ -9857,6 +9868,8 @@ class EngN2OverThresholdDuration(KeyPointValueNode):
     def can_operate(cls, available, eng_series=A('Engine Series'), eng_type=A('Engine Type'), mods=A('Modifications')):
         try:
             at.get_engine_map(eng_series.value, eng_type.value, mods.value)
+        except AttributeError:
+            return False
         except KeyError:
             cls.warning("No engine thresholds available for '%s', '%s', '%s'.",
                         eng_series.value, eng_type.value, mods.value)
@@ -9929,6 +9942,8 @@ class EngNpOverThresholdDuration(KeyPointValueNode):
     def can_operate(cls, available, eng_series=A('Engine Series'), eng_type=A('Engine Type'), mods=A('Modifications')):
         try:
             at.get_engine_map(eng_series.value, eng_type.value, mods.value)
+        except AttributeError:
+            return False
         except KeyError:
             cls.warning("No engine thresholds available for '%s', '%s', '%s'.",
                         eng_series.value, eng_type.value, mods.value)
@@ -10716,9 +10731,14 @@ class APUFireWarningDuration(KeyPointValueNode):
 
     @classmethod
     def can_operate(cls, available):
-        return ('APU Fire',) in [available] or \
-               ('Fire APU Single Bottle System',
-                'Fire APU Dual Bottle System') in [available]
+        return any_of(
+            (
+                "APU Fire",
+                "Fire APU Single Bottle System",
+                "Fire APU Dual Bottle System",
+            ),
+            available,
+        )
 
     def derive(self, fire=M('APU Fire'),
                single_bottle=M('Fire APU Single Bottle System'),
@@ -11013,14 +11033,26 @@ class EngGasTempDuringEngStartMax(KeyPointValueNode):
 
             for eng_start in eng_number_starts:
                 # Search for 10 minutes for level off.
-                start = eng_start.index
+                start = int(eng_start.index)
                 stop = start + search_duration
                 eng_start_slice = slice(start, stop)
 
                 level_off = level_off_index(eng_power.array, self.frequency, 10, 1,
                                             _slice=eng_start_slice)
 
-                if level_off is not None:
+                # Look 30 sec before Engine Start but only within valid data
+                start_minus_30_sec = max(0, start - int(ceil(eng_egt.hz * 30)))
+                valid_samples_before = 0
+                if start > start_minus_30_sec:
+                    clumps = np.ma.clump_unmasked(eng_egt.array[start:start_minus_30_sec:-1])
+                    if clumps:
+                        valid_samples_before = clumps[0].stop
+
+                start -= valid_samples_before
+
+                if level_off is None:
+                    eng_start_slice = slice(start, stop)
+                else:
                     eng_start_slice = slice(start, level_off)
 
                 self.create_kpv(*max_value(eng_egt.array,
@@ -15523,6 +15555,7 @@ class PitchBetweenFL200AndFL300Max(KeyPointValueNode):
         self.create_kpvs_within_slices(pitch.array,
                                        alt.slices_between(20000,30000), max_value)
 
+
 class PitchBetweenFL200AndFL300Min(KeyPointValueNode):
     '''
     Minimum pitch angle above FL200 (Alt STD Smoothed)
@@ -15550,6 +15583,7 @@ class PitchAboveFL300Max(KeyPointValueNode):
         self.create_kpvs_within_slices(pitch.array,
                                        alt.slices_above(30000), max_value)
 
+
 class PitchAboveFL300Min(KeyPointValueNode):
     '''
     Minimum pitch angle above FL300 (Alt STD Smoothed)
@@ -15562,6 +15596,88 @@ class PitchAboveFL300Min(KeyPointValueNode):
         alt.array = nearest_neighbour_mask_repair(alt.array)
         self.create_kpvs_within_slices(pitch.array,
                                        alt.slices_above(30000), min_value)
+
+
+class PitchFor3SecAtHeightMax(KeyPointValueNode):
+    '''
+    Maximum pitch for 3 seconds at various altitudes.
+    '''
+
+    units = ut.DEGREE
+    NAME_FORMAT = 'Pitch For 3 Sec %(high)d To %(low)d Ft Max'
+    NAME_VALUES = {'high': [1000, 500, 500, 500, 500],
+                   'low':  [ 500, 100,  50,  20,   7]}
+
+    @classmethod
+    def can_operate(cls, available, ac_type=A('Aircraft Type')):
+        alt = (
+            "Altitude AGL"
+            if ac_type and ac_type.value == "helicopter"
+            else "Altitude AAL For Flight Phases"
+        )
+        return all_of(['Pitch For 3 Sec', alt], available)
+
+    def derive(self,
+               pitch=P('Pitch For 3 Sec'),
+               ac_type=A('Aircraft Type'),
+               # aeroplane
+               alt_aal=P('Altitude AAL For Flight Phases'),
+               # helicopter
+               alt_agl=P('Altitude AGL'),
+               duration=A('HDF Duration')):
+
+        hdf_duration = duration.value * self.frequency if duration else None
+        alt = alt_aal or alt_agl
+
+        for high, low in zip(self.NAME_VALUES['high'], self.NAME_VALUES['low']):
+            self.create_kpvs_within_slices(
+                pitch.array,
+                trim_slices(alt.slices_from_to(high, low), 3, self.frequency,
+                            hdf_duration),
+                max_value,
+                replace_values={'high': high, 'low': low}
+            )
+
+
+class PitchFor3SecAtHeightMin(KeyPointValueNode):
+    '''
+    Minimum pitch for 3 seconds at various altitudes.
+    '''
+
+    units = ut.DEGREE
+    NAME_FORMAT = 'Pitch For 3 Sec %(high)d To %(low)d Ft Min'
+    NAME_VALUES = {'high': [1000, 500, 500, 500, 500],
+                   'low':  [ 500, 100,  50,  20,   7]}
+
+    @classmethod
+    def can_operate(cls, available, ac_type=A('Aircraft Type')):
+        alt = (
+            "Altitude AGL"
+            if ac_type and ac_type.value == "helicopter"
+            else "Altitude AAL For Flight Phases"
+        )
+        return all_of(['Pitch For 3 Sec', alt], available)
+
+    def derive(self,
+               pitch=P('Pitch For 3 Sec'),
+               ac_type=A('Aircraft Type'),
+               # aeroplane
+               alt_aal=P('Altitude AAL For Flight Phases'),
+               # helicopter
+               alt_agl=P('Altitude AGL'),
+               duration=A('HDF Duration')):
+
+        hdf_duration = duration.value * self.frequency if duration else None
+        alt = alt_aal or alt_agl
+
+        for high, low in zip(self.NAME_VALUES['high'], self.NAME_VALUES['low']):
+            self.create_kpvs_within_slices(
+                pitch.array,
+                trim_slices(alt.slices_from_to(high, low), 3, self.frequency,
+                            hdf_duration),
+                min_value,
+                replace_values={'high': high, 'low': low}
+            )
 
 
 ##############################################################################
@@ -15855,6 +15971,70 @@ class RateOfClimbAtHeightBeforeLevelFlight(KeyPointValueNode):
                 value = value_at_index(vert_spd.array, kti.index)
                 self.create_kpv(kti.index, value,
                                 replace_values={'altitude': altitude})
+
+
+class RateOfClimbAtHeightBeforeAltitudeSelected(KeyPointValueNode):
+    '''
+    Rate of climb at various altitudes before reaching Altitude Selected.
+    Uses altitude QNH.
+    '''
+
+    NAME_FORMAT = 'Rate Of Climb At %(altitude)d Ft Before Altitude Selected'
+    NAME_VALUES = {'altitude': [2000, 1000]}
+
+    units = ut.FPM
+
+    @classmethod
+    def can_operate(cls, available, manufacturer=A('Manufacturer')):
+        if manufacturer and manufacturer.value == 'Airbus':
+            # Airbus Baro Correction does not show 1013 when selecting QNH STD.
+            # Can only be used in the presence of other parameters telling us when STD is selected.
+            baro_setting_sel = any((
+                any_of(('Baro Setting Selection', 'Baro Correction (ISIS)'), available),
+                all_of(('Baro Setting Selection (Capt)', 'Baro Setting Selection (FO)'), available)
+            ))
+            if not baro_setting_sel:
+                return False
+
+        return all_of(
+            ('Altitude QNH', 'Altitude Selected', 'Airborne', 'Vertical Speed'),
+            available
+        )
+
+    def derive(self,
+               alt=P('Altitude QNH'),
+               alt_sel=P('Altitude Selected'),
+               vert_spd=P('Vertical Speed'),
+               airborne=S('Airborne'),
+               # Those kwargs populate the `available` arg in the `can_operate` method
+               bar_sel=P('Baro Setting Selection'),
+               bar_sel_cpt=P('Baro Setting Selection (Capt)'),
+               bar_sel_fo=P('Baro Setting Selection (FO)'),
+               bar_cor_isis=P('Baro Correction (ISIS)')):
+
+        # Round Altitude Selected to the next 100 ft
+        alt_sel_rounded = np.ma.ceil(alt_sel.array / 100) * 100
+        repair_mask(alt.array, frequency=alt.hz)
+        dist = alt.array - alt_sel_rounded
+        dist = mask_outside_slices(dist, airborne.get_slices())
+        # Mask out when Altitude Selected is changing
+        alt_sel_change = np.ma.ediff1d(alt_sel.array, to_end=0.0) == 0.0
+        # Filter out Alt Sel constant for less than 8 seconds
+        min_samples = ceil(8 * alt_sel.hz) - 1
+        alt_sel_change_slices = runs_of_ones(alt_sel_change, min_samples)
+        dist = mask_outside_slices(dist, alt_sel_change_slices)
+
+        # Find Vertical Speed at height from Altitude Selected
+        clumps = np.ma.clump_unmasked(dist)
+        for clump in clumps:
+            for altitude in self.NAME_VALUES['altitude']:
+                # Negative altitude when Altitude below Altitude Selected
+                index = index_at_value(dist, -altitude, clump)
+                if index is not None:
+                    value = value_at_index(vert_spd.array, index)
+                    if value and value > 0:
+                        self.create_kpv(index, value,
+                                        replace_values={'altitude': altitude})
 
 
 ##############################################################################
@@ -16205,6 +16385,139 @@ class RateOfDescentAtHeightBeforeLevelFlight(KeyPointValueNode):
                 value = value_at_index(vert_spd.array, kti.index)
                 self.create_kpv(kti.index, value,
                                 replace_values={'altitude': altitude})
+
+
+class RateOfDescentAtHeightBeforeAltitudeSelected(KeyPointValueNode):
+    '''
+    Rate of descend at various altitudes before reaching Altitude Selected.
+    Uses altitude QNH.
+    '''
+
+    NAME_FORMAT = 'Rate Of Descent At %(altitude)d Ft Before Altitude Selected'
+    NAME_VALUES = {'altitude': [2000, 1000]}
+
+    units = ut.FPM
+
+    @classmethod
+    def can_operate(cls, available, manufacturer=A('Manufacturer')):
+        if manufacturer and manufacturer.value == 'Airbus':
+            # Airbus Baro Correction does not show 1013 when selecting QNH STD.
+            # Can only be used in the presence of other parameters telling us when STD is selected.
+            baro_setting_sel = any((
+                any_of(('Baro Setting Selection', 'Baro Correction (ISIS)'), available),
+                all_of(('Baro Setting Selection (Capt)', 'Baro Setting Selection (FO)'), available)
+            ))
+            if not baro_setting_sel:
+                return False
+
+        return all_of(
+            (
+                'Altitude QNH', 'Altitude Selected', 'Airborne',
+                'Approach And Landing', 'Vertical Speed'
+            ),
+            available
+        )
+
+    def derive(self,
+               alt=P('Altitude QNH'),
+               alt_sel=P('Altitude Selected'),
+               vert_spd=P('Vertical Speed'),
+               airborne=S('Airborne'),
+               apps=S('Approach And Landing'),
+               # Those kwargs populate the `available` arg in the `can_operate` method
+               bar_sel=P('Baro Setting Selection'),
+               bar_sel_cpt=P('Baro Setting Selection (Capt)'),
+               bar_sel_fo=P('Baro Setting Selection (FO)'),
+               bar_cor_isis=P('Baro Correction (ISIS)')):
+
+        # Round Altitude Selected to the next 100 ft
+        alt_sel_rounded = np.ma.ceil(alt_sel.array / 100) * 100
+        repair_mask(alt.array, frequency=alt.hz)
+        dist = alt.array - alt_sel_rounded
+        dist = mask_outside_slices(dist, airborne.get_slices())
+        # Mask out when Altitude Selected is changing
+        alt_sel_change = np.ma.ediff1d(alt_sel.array, to_end=0.0) == 0.0
+        # Filter out Alt Sel constant for less than 8 seconds
+        min_samples = ceil(8 * alt_sel.hz) - 1
+        alt_sel_change_slices = runs_of_ones(alt_sel_change, min_samples)
+        dist = mask_outside_slices(dist, alt_sel_change_slices)
+        clumps = np.ma.clump_unmasked(dist)
+        if not clumps:
+            return
+
+        # Mask out the sections of approaches where the missed approach altitude
+        # was selected.
+        for app in apps:
+            clumps_in_app = [(i, clump) for (i, clump) in enumerate(clumps)
+                             if slices_overlap(clump, app.slice)]
+            if not clumps_in_app:
+                # Altitude Selected completely masked during this approach
+                continue
+            idx, missed_app_clump = clumps_in_app[-1]
+            # Mask out the go-around Altitude Selected.
+            ignore = slice(missed_app_clump.start, app.slice.stop)
+            dist[ignore] = np.ma.masked
+
+            # Check the previous Altitude Selected section as it could be
+            # the intercept altitude for the approach. We want then to mask
+            # it if we did not maintain that altitude but flew through it.
+            previous_idx = idx - 1
+            if previous_idx >= 0:
+                previous_clump = clumps[previous_idx]
+                if not maintain_altitude(dist[previous_clump], hz=alt.hz):
+                    dist[previous_clump] = np.ma.masked
+
+        # Find Vertical Speed at height from Altitude Selected
+        for clump in clumps:
+            for altitude in self.NAME_VALUES['altitude']:
+                # Positive altitude when Altitude above Altitude Selected
+                index = index_at_value(dist, altitude, clump)
+                if index is not None:
+                    value = value_at_index(vert_spd.array, index)
+                    if value and value < 0:
+                        self.create_kpv(index, value,
+                                        replace_values={'altitude': altitude})
+
+
+class RateOfDescentFor3SecAtHeightMax(KeyPointValueNode):
+    '''
+    Maximum rate of descent for 3 seconds at various altitudes.
+    '''
+
+    units = ut.FPM
+    NAME_FORMAT = 'Rate Of Descent For 3 Sec %(high)d To %(low)d Ft Max'
+    NAME_VALUES = {'high': [2000, 1000, 500, 500],
+                   'low':  [1000,  500, 100,  50]}
+
+    @classmethod
+    def can_operate(cls, available, ac_type=A('Aircraft Type')):
+        alt = (
+            "Altitude AGL"
+            if ac_type and ac_type.value == "helicopter"
+            else "Altitude AAL For Flight Phases"
+        )
+        return all_of(['Vertical Speed For 3 Sec', alt], available)
+
+    def derive(self,
+               vert_spd=P('Vertical Speed For 3 Sec'),
+               ac_type=A('Aircraft Type'),
+               # aeroplane
+               alt_aal=P('Altitude AAL For Flight Phases'),
+               # helicopter
+               alt_agl=P('Altitude AGL'),
+               duration=A('HDF Duration')):
+
+        hdf_duration = duration.value * self.frequency if duration else None
+        alt = alt_aal or alt_agl
+
+        for high, low in zip(self.NAME_VALUES['high'], self.NAME_VALUES['low']):
+            self.create_kpvs_within_slices(
+                vert_spd.array,
+                trim_slices(alt.slices_from_to(high, low), 3, self.frequency,
+                            hdf_duration),
+                min_value,
+                replace_values={'high': high, 'low': low}
+            )
 
 
 ##############################################################################
@@ -16730,24 +17043,84 @@ class RollRateMaxAboveLimitAtTouchdown(KeyPointValueNode):
     def derive(self,
                roll_rate=P('Roll Rate For Touchdown'),
                limit=P('Roll Rate At Touchdown Limit'),
-               touchdowns=KTI('Touchdown'),
-               touch_and_go=KTI('Touch And Go'),
-               bounces=S('Bounced Landing'),):
+               gw=P('Gross Weight Smoothed'),
+               acc_norm_tdwns=KPV('Acceleration Normal At Touchdown'),):
 
-        tdwns = touchdowns
-        if touch_and_go:
-            tdwns += touch_and_go
-
-        indices = [touchdown.index for touchdown in tdwns] + \
-                  [bounce.slice.stop for bounce in bounces]
-
-        for i in indices:
+        for acc_norm_tdwn in acc_norm_tdwns:
+            i = acc_norm_tdwn.index
+            if acc_norm_tdwn.value < self._min_vert_acceleration(gw.array[int(i)]):
+                # Check for minimum vertical acceleration
+                continue
             window_start = i - (2*self.hz)
             window_end = i + (2*self.hz) + 1 # +1 so that the number of indices is equal on both sides of peak acceleration
             window_slice = slices_int(window_start, window_end)
             rr_over_limit = abs(roll_rate.array[window_slice]) - \
                             limit.array[window_slice]
             self.create_kpv(np.argmax(rr_over_limit)+window_start, max(rr_over_limit))
+
+    def _min_vert_acceleration(self, gross_weight):
+        '''
+        Embraer 175 - AMM 2134
+        200-802-A/600
+        Rev 74 - Sep 20/19
+
+        E175 Aircraft Maintenance Manual, Minimum Vertical Acceleration to consider roll
+        rate cases.
+        Figure 614
+
+        Minimum vertical acceleration is a linear function of gross weight passing by
+        two given points: (weight low, roll rate high) and (weight high, roll rate low).
+        '''
+        weight_low = 21_800
+        weight_high = 38_790
+        vert_acc_high = 1.83
+        vert_acc_low = 1.20
+
+        slope = (vert_acc_low - vert_acc_high) / (weight_high - weight_low)
+        intercept = vert_acc_high - slope * weight_low
+
+        return gross_weight * slope + intercept
+
+
+class RollFor3SecAtHeightMax(KeyPointValueNode):
+    '''
+    Maximum roll for 3 seconds at various altitudes.
+    '''
+
+    units = ut.DEGREE
+    NAME_FORMAT = 'Roll For 3 Sec %(high)d To %(low)d Ft Max'
+    NAME_VALUES = {'high': [1000, 300],
+                   'low':  [ 300,  20]}
+
+    @classmethod
+    def can_operate(cls, available, ac_type=A('Aircraft Type')):
+        alt = (
+            "Altitude AGL"
+            if ac_type and ac_type.value == "helicopter"
+            else "Altitude AAL For Flight Phases"
+        )
+        return all_of(['Roll For 3 Sec', alt], available)
+
+    def derive(self,
+               roll=P('Roll For 3 Sec'),
+               ac_type=A('Aircraft Type'),
+               # aeroplane
+               alt_aal=P('Altitude AAL For Flight Phases'),
+               # helicopter
+               alt_agl=P('Altitude AGL'),
+               duration=A('HDF Duration')):
+
+        hdf_duration = duration.value * self.frequency if duration else None
+        alt = alt_aal or alt_agl
+
+        for high, low in zip(self.NAME_VALUES['high'], self.NAME_VALUES['low']):
+            self.create_kpvs_within_slices(
+                roll.array,
+                trim_slices(alt.slices_from_to(high, low), 3, self.frequency,
+                            hdf_duration),
+                max_abs_value,
+                replace_values={'high': high, 'low': low}
+            )
 
 
 ##############################################################################
@@ -16927,6 +17300,37 @@ class SpeedbrakeDeployedWithFlapDuration(KeyPointValueNode):
                                                   mark='start')
 
 
+class SpeedbrakeDeployedWithGearDownDuration(KeyPointValueNode):
+    '''
+    Duration for which the speedbrake was deployed with the gear down.
+    '''
+
+    units = ut.SECOND
+
+    def derive(self,
+               spd_brk=M('Speedbrake Selected'),
+               gear=M('Gear Down'),
+               airborne=S('Airborne'),
+               altitudes_descending=KTI('Altitude When Descending')):
+
+        spd_brk_dep = runs_of_ones(spd_brk.array == 'Deployed/Cmd Up')
+        gear_down = runs_of_ones(gear.array == 'Down')
+        slices = slices_and(spd_brk_dep, gear_down)
+        airs = airborne.get_slices()
+
+        airs_to_20ft = []
+        for air in airs:
+            alts = altitudes_descending.get(name='20 Ft Descending', within_slice=air)
+            if alts:
+                alt = alts.get_last()
+                air = slice(air.start, alt.index)
+            airs_to_20ft.append(air)
+
+        slices = slices_and(slices, airs_to_20ft)
+
+        self.create_kpvs_from_slice_durations(slices, self.frequency, mark='start')
+
+
 class SpeedbrakeDeployedWithPowerOnDuration(KeyPointValueNode):
     '''
     Each time the aircraft is flown with high power and the speedbrakes open,
@@ -16979,6 +17383,58 @@ class SpeedbrakeDeployedDuringGoAroundDuration(KeyPointValueNode):
                                   go_around.slice.start)
             self.create_kpvs_from_slice_durations(slices, self.frequency,
                                                   mark='start')
+
+
+class AltitudeAtSpeedbrakeArmedDuringApproachMin(KeyPointValueNode):
+    '''
+    Minimum Altitude (AAL) when speedbrake is armed during the final approach.
+    '''
+
+    units = ut.FT
+
+    @classmethod
+    def can_operate(cls, available):
+        return all_of(['Altitude AAL', 'Speedbrake Selected', 'Descent'], available)
+
+    @staticmethod
+    def spdbrk_armed_recorded(armed, handle, spdsw, gnd_spoiler_armed):
+        return any((armed, handle, spdsw, gnd_spoiler_armed))
+
+    def derive(self,
+               alt_aal=P('Altitude AAL'),
+               spd_brk=M('Speedbrake Selected'),
+               descents=S('Descent'),
+               armed=M('Speedbrake Armed'),
+               handle=P('Speedbrake Handle'),
+               spdsw=M('Speedbrake Switch'),
+               gnd_spoiler_armed=M('Ground Spoiler Armed')):
+        if not self.spdbrk_armed_recorded(armed, handle, spdsw, gnd_spoiler_armed):
+            return
+
+        for descent in descents:
+            slice_ = descent.slice
+            # Speedbrake not armed if crossing bottom of descent in Stowed position
+            if spd_brk.array[int(slice_.stop) - 1] == 'Stowed':
+                self.create_kpv(slice_.stop, 0)
+                continue
+
+            idxs = find_edges_on_state_change(
+                'Armed/Cmd Dn',
+                spd_brk.array,
+                phase=[descent]
+            )
+            if idxs:
+                # Only consider the last time the speedbrakes were armed
+                idx = idxs[-1]
+                self.create_kpv(idx, value_at_index(alt_aal.array, idx))
+
+            elif spd_brk.array[int(slice_.start)] == 'Armed/Cmd Dn':
+                # Either the speedbrakes were armed before starting the Descent
+                # Very unlikely but we can deal with it, so why not?
+                self.create_kpv(slice_.start, value_at_index(alt_aal.array, slice_.start))
+            else:
+                # Or the speedbrakes were never armed
+                self.create_kpv(slice_.stop, 0)
 
 
 ##############################################################################
@@ -20458,6 +20914,7 @@ class DHSelectedAt1500FtLVO(KeyPointValueNode):
                                  alt_descending.get(name='1500 Ft Descending'),
                                  suppress_zeros=True)
 
+
 class AltitudeDeviationFromAltitudeSelectedMax(KeyPointValueNode):
     '''
     Altitude deviation from Altitude Selected which could possibly indicate
@@ -20534,7 +20991,8 @@ class AltitudeDeviationFromAltitudeSelectedMax(KeyPointValueNode):
                 # Altitude Selected completely masked during this approach
                 continue
             idx, missed_app_clump = clumps_in_app[-1]
-            if self._maintain_alt(dist[missed_app_clump], hz=alt.hz):
+            if maintain_altitude(dist[missed_app_clump], hz=alt.hz):
+
                 # If we have maintained the missed approach altitude, it means it was
                 # also the intercept altitude for the approach. In that case, we
                 # mask out `dist` from the moment we fly below the Altitude Selected
@@ -20568,47 +21026,6 @@ class AltitudeDeviationFromAltitudeSelectedMax(KeyPointValueNode):
                 max_deviation = dist[max_dev_idx]
                 if abs(max_deviation) > 100:
                     self.create_kpv(max_dev_idx, max_deviation)
-
-        '''
-        # This part of the code makes redundant findings witht he previous code
-
-        # Find Altitude QNH moving away from Altitude Selected
-        # Mask out where dist is less than 100 ft
-        dist[np.abs(dist) < 100] = np.ma.masked
-        vert_spd = np.ma.ediff1d(dist, to_end=0.0)
-        dist_sign = np.sign(dist)
-        vert_spd_sign = np.sign(vert_spd)
-        combination = dist_sign * vert_spd_sign
-        # Flying away means dist is positive and vert_spd is positive or
-        # dist is negative and vert_spd is positive. So multiplying both signs
-        # is always positive in that case
-        flying_away = combination > 0
-        # Filter out small vertical speeds
-        flying_away[np.abs(vert_spd) < 5] = 0
-
-        # When flying_away is True for more than 5 (?) consecutive seconds,
-        # create KPV.
-        '''
-
-
-    def _maintain_alt(self, dist_array, hz=1.0):
-        '''
-        Check if the altitude was maintained given the Distance array between
-        Altitude Selected and Altitude QNH.
-
-        :param dist_array: The array of distances between Altitude Selected and
-            Altitude QNH
-        :type dist_array: numpy.array
-        :param hz: Array sampling frequency
-        :type hz: float
-
-        :returns: If altitude QNH was within 50 ft of Altitude Selected for 20
-            consecutive secs.
-        :rtype: bool
-        '''
-        within_50ft = np.abs(dist_array) < 50
-        clumps = ezclump(within_50ft)
-        return any((clump.stop - clump.start) > 20 * hz for clump in clumps)
 
     def _mask_out_leaving_altitude(self, dist_array, slice_):
         '''
