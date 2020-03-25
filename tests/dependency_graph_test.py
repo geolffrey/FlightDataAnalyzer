@@ -1,49 +1,30 @@
 from __future__ import print_function
 
-import importlib.machinery
-import os
-import networkx as nx
-import six
+import importlib.util
+from pathlib import Path
 import unittest
-import yaml
 import types
-from collections.abc import Iterable
 
 from datetime import datetime
 
 from analysis_engine.node import (DerivedParameterNode, Node, NodeManager, P)
 from analysis_engine.dependency_graph import (
-    CircularDependency,
-    any_predecessors_in_requested,
     dependency_order,
     graph_nodes,
-    graph_adjacencies,
     indent_tree,
-    process_order,
 )
 from analysis_engine.utils import get_derived_nodes
 from analysis_engine import settings
 
-test_data_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                              'test_data')
-
-def flatten(l):
-    "Flatten an iterable of many levels of depth (generator)"
-    for el in l:
-        if isinstance(el, Iterable) and not isinstance(el, six.string_types):
-            for sub in sorted(flatten(el)):
-                yield sub
-        else:
-            yield el
-
+test_data_path = Path(__file__).parent / 'test_data'
 
 def import_module(module_name):
-    loader = importlib.machinery.SourceFileLoader(
-        'tests.%s' % module_name,
-        os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                     '%s.py' % module_name))
-    mod = types.ModuleType(loader.name)
-    loader.exec_module(mod)
+    module_name = Path(module_name)
+    path = Path(__file__).resolve().parent / ('%s.py' % module_name)
+    spec = importlib.util.spec_from_file_location(f"{module_name.name}", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
     return mod
 
 
@@ -70,6 +51,17 @@ class MockParam(Node):
 
 
 class TestDependencyGraph(unittest.TestCase):
+
+    def assert_order_maintained(self, first, second, msg=None):
+        '''
+        Test that all elements from second appear in first in the same order.
+
+        first can contain additional items in any places, provided that all the elements
+        from second appear in first in the same order.
+        '''
+        second_set = set(second)
+        filtered_first = [item for item in first if item in second_set]
+        self.assertEqual(filtered_first, second, msg=msg)
 
     def setUp(self):
         # nodes found on this aircraft's LFL
@@ -141,54 +133,6 @@ class TestDependencyGraph(unittest.TestCase):
              '    - Raw5 (HDFNode)',
             ])
 
-    def test_required_available(self):
-        nodes = ['a', 'b', 'c']
-        required = ['a', 'c']
-        mgr = NodeManager({'Start Datetime': datetime.now()}, 10, nodes, nodes,
-                          required, {}, {}, {})
-        _graph = graph_nodes(mgr)
-        gr_all, gr_st, order = process_order(_graph, mgr)
-        self.assertEqual(set(required) - set(order), set())
-
-    @unittest.skip("Ignoring as graph_nodes does nothing with required nodes")
-    def test_required_unavailable(self):
-        nodes = ['a', 'b', 'c']
-        required = ['a', 'c', 'd']
-        mgr = NodeManager({'Start Datetime': datetime.now()}, 10, nodes, nodes,
-                          required, {}, {}, {})
-        self.assertRaises(ValueError, graph_nodes, mgr)
-
-    def test_graph_predecessors(self):
-        edges = [('a', 'b'), ('b', 'c1'), ('b', 'c2'), ('b', 'c3'), ('c2', 'd'),
-                 ('x', 'y'), ('y', 'z')]
-        gr = nx.DiGraph(edges)
-        # all requested
-        req = ['a', 'b', 'c1', 'c2', 'c3']
-        self.assertTrue(any_predecessors_in_requested('b', req, gr))
-        self.assertEqual(any_predecessors_in_requested('b', req, gr), 'a') # finds 'a'
-        self.assertTrue(any_predecessors_in_requested('c3', req, gr))
-        self.assertEqual(any_predecessors_in_requested('c3', req, gr), 'b') # finds 'b' just above
-        # no predecessors returns False
-        self.assertFalse(any_predecessors_in_requested('a', req, gr))
-        self.assertEqual(any_predecessors_in_requested('a', req, gr), False)
-        self.assertFalse(any_predecessors_in_requested('x', req, gr))
-        self.assertFalse(any_predecessors_in_requested('y', req, gr))
-        # only requested half way down ('b')
-        req = ['b', 'y']
-        self.assertFalse(any_predecessors_in_requested('a', req, gr))
-        self.assertEqual(any_predecessors_in_requested('a', req, gr), False)
-        # 'b' is requested, but NONE of its predecessors are requested!
-        self.assertFalse(any_predecessors_in_requested('b', req, gr))
-        # 'c1' is not requested, but 'b' is requested
-        self.assertTrue(any_predecessors_in_requested('c1', req, gr))
-        self.assertEqual(any_predecessors_in_requested('c1', req, gr), 'b')
-        # 'd' must pass through 'c2' then find 'b' in requested
-        self.assertTrue(any_predecessors_in_requested('d', req, gr))
-        self.assertEqual(any_predecessors_in_requested('d', req, gr), 'b')
-        # 'x' is not requested, and although 'y' is it has no predecessors available
-        self.assertFalse(any_predecessors_in_requested('x', req, gr))
-        self.assertFalse(any_predecessors_in_requested('y', req, gr))
-
     def test_graph_nodes_using_sample_tree(self):
         requested = ['P7', 'P8']
         mgr2 = NodeManager({'Start Datetime': datetime.now()}, 10, self.lfl_params, requested, [],
@@ -197,14 +141,14 @@ class TestDependencyGraph(unittest.TestCase):
         self.assertEqual(len(gr), 11)
         self.assertEqual(sorted(gr.neighbors('root')), sorted(['P8', 'P7']))
 
-    def test_graph_requesting_all_dependencies_links_root_to_end_leafs(self):
+    def test_graph_requesting_all_dependencies_links_root_to_all_requests(self):
         # build list of all nodes as required
         requested = self.lfl_params + list(self.derived_nodes.keys())
         mgr = NodeManager({'Start Datetime': datetime.now()}, 1, self.lfl_params, requested, [],
                           self.derived_nodes, {}, {})
         gr = graph_nodes(mgr)
-        # should only be linked to end leafs
-        self.assertEqual(sorted(gr.neighbors('root')), sorted(['P8', 'P7']))
+        # should be linked to all requested nodes
+        self.assertEqual(sorted(gr.neighbors('root')), sorted(requested))
 
     def test_graph_middle_level_depenency_builds_partial_tree(self):
         requested = ['P5']
@@ -237,35 +181,20 @@ class TestDependencyGraph(unittest.TestCase):
         self.assertEqual(len(gr), 5)
         # LFL
         self.assertEqual(list(gr.edges('1')), []) # as it's in LFL, it shouldn't have any edges
-        self.assertEqual(gr.node['1'], {'color': '#72f4eb', 'node_type': 'HDFNode'})
+        self.assertEqual(gr.node['1'], {'node_type': 'HDFNode'})
         # Derived
         self.assertEqual(list(gr.edges('4')), [('4','DepFour')])
-        self.assertEqual(gr.node['4'], {'color': '#72cdf4', 'node_type': 'DerivedParameterNode'})
+        self.assertEqual(gr.node['4'], {'node_type': 'DerivedParameterNode'})
         # Root
-        from analysis_engine.dependency_graph import draw_graph
-        draw_graph(gr, 'test_graph_nodes_with_duplicate_key_in_lfl_and_derived')
         self.assertEqual(list(gr.successors('root')), ['2','4']) # only the two requested are linked
-        self.assertEqual(gr.node['root'], {'color': '#ffffff'})
+        self.assertEqual(gr.node['root'], {})
 
     def test_dependency(self):
         requested = ['P7', 'P8']
         mgr = NodeManager({'Start Datetime': datetime.now()}, 10, self.lfl_params, requested, [],
                           self.derived_nodes, {}, {})
-        gr = graph_nodes(mgr)
-        gr_all, gr_st, order = process_order(gr, mgr)
-
-        self.assertEqual(len(gr_st), 11)
-        pos = order.index
-        self.assertTrue(pos('P8') > pos('Raw5'))
-        self.assertTrue(pos('P7') > pos('P4'))
-        self.assertTrue(pos('P7') > pos('P5'))
-        self.assertTrue(pos('P7') > pos('P6'))
-        self.assertTrue(pos('P6') > pos('Raw3'))
-        self.assertTrue(pos('P5') > pos('Raw3'))
-        self.assertTrue(pos('P5') > pos('Raw4'))
-        self.assertTrue(pos('P4') > pos('Raw1'))
-        self.assertTrue(pos('P4') > pos('Raw2'))
-        self.assertFalse('root' in order) #don't include the root!
+        order, _ = dependency_order(mgr)
+        self.assertEqual(order, ['P4', 'P5', 'P6', 'P7', 'P8'])
 
         """
 # Sample demonstrating which nodes have predecessors, successors and so on:
@@ -296,114 +225,137 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
                      ]
         mgr = NodeManager({'Start Datetime': datetime.now()}, 10, self.lfl_params + ['Floating'],
                           requested, [], self.derived_nodes, {}, {})
-        gr = graph_nodes(mgr)
-        gr_all, gr_st, order = process_order(gr, mgr)
+        order, _ = dependency_order(mgr)
+        self.assertEqual(order, ['P4', 'P5', 'P6', 'P7', 'P8'])
 
-        self.assertEqual(len(gr_st), 11)
-        pos = order.index
-        self.assertTrue(pos('P8') > pos('Raw5'))
-        self.assertTrue(pos('P7') > pos('P4'))
-        self.assertTrue(pos('P7') > pos('P5'))
-        self.assertTrue(pos('P7') > pos('P6'))
-        self.assertTrue(pos('P6') > pos('Raw3'))
-        self.assertTrue(pos('P5') > pos('Raw3'))
-        self.assertTrue(pos('P5') > pos('Raw4'))
-        self.assertTrue(pos('P4') > pos('Raw1'))
-        self.assertTrue(pos('P4') > pos('Raw2'))
-        self.assertFalse('Floating' in order)
-        self.assertFalse('root' in order) #don't include the root!
+    def test_dependency_one_path_circular(self):
+        '''Test that if one Node can be created using its 2 dependencies, but one of
+        them is optional and creates a circular dependency.
 
-    def test_sample_parameter_module(self):
-        """Tests many options:
-        can_operate on SmoothedTrack works with
-        """
-        requested = ['Smoothed Track', 'Moment Of Takeoff', 'Vertical Speed',
-                     'Slip On Runway']
-        lfl_params = ['Indicated Airspeed',
-              'Groundspeed',
-              'Pressure Altitude',
-              'Heading', 'TAT',
-              'Latitude', 'Longitude',
-              'Longitudinal g', 'Lateral g', 'Normal g',
-              'Pitch', 'Roll',
-              ]
-        derived = get_derived_nodes([import_module('sample_derived_parameters')])
-        nodes = NodeManager({'Start Datetime': datetime.now()}, 10, lfl_params,
-                            requested, [], derived, {}, {})
-        order, _ = dependency_order(nodes, draw=False)
-        pos = order.index
-        self.assertTrue(len(order))
-        self.assertNotIn('Moment Of Takeoff', order)  # not available
-        self.assertTrue(pos('Vertical Speed') > pos('Pressure Altitude'))
-        self.assertTrue(pos('Slip On Runway') > pos('Groundspeed'))
-        self.assertTrue(pos('Slip On Runway') > pos('Horizontal g Across Track'))
-        self.assertTrue(pos('Horizontal g Across Track') > pos('Roll'))
-        self.assertFalse('Mach' in order) # Mach wasn't requested!
-        self.assertFalse('Radio Altimeter' in order)
-        self.assertEqual(len(nodes.hdf_keys), 12)
-        self.assertEqual(len(nodes.requested), 4)
-        self.assertEqual(len(nodes.derived_nodes), 13)
-        # remove some hdf params to see inactive nodes
+          ,-> P1 ~~~~~~~~~> P2 ~~~~~~~~> P3--、
+         |      `---> Raw1   `---> Raw2      |
+         |                                   |
+          `----------------------------------’
+
+        P1 requires Raw1 but tries also P2. P2 requires Raw 2 but also tries P3.
+        P3 requires P1. This makes a circular dependency. But we don't want to give up
+        here as we could still make P1 from Raw1 only, avoiding the circular path.
+        '''
+        class P1(DerivedParameterNode):
+            @classmethod
+            def can_operate(self, avail):
+                return 'Raw1' in avail
+
+            def derive(self, P2=P('P2'), raw=P('Raw1')):
+                pass
+
+        class P2(DerivedParameterNode):
+            @classmethod
+            def can_operate(self, avail):
+                return 'Raw2' in avail
+
+            def derive(self, P3=P('P3'), raw=P('Raw2')):
+                pass
+
+        class P3(DerivedParameterNode):
+            @classmethod
+            def can_operate(self, avail):
+                return 'P1' in avail
+
+            def derive(self, P1=P('P1')):
+                pass
+
+        derived_nodes = {
+            'P0' : MockParam(dependencies=['P1']),
+            'P1' : P1,
+            'P2' : P2,
+            'P3' : P3,
+        }
+        requested = ['P0']
+        lfl_params = ['Raw1', 'Raw2']
+
+        segment_info = {'Start Datetime': datetime.now(), 'Segment Type': 'START_AND_STOP'}
+        mgr = NodeManager(segment_info, 10, lfl_params, requested, [], derived_nodes, {}, {})
+        order, _ = dependency_order(mgr)
+        self.assertEqual(order, ['P1', 'P3', 'P2', 'P0'])
 
     def test_invalid_requirement_raises(self):
         lfl_params = []
-        requested = ['Smoothed Track', 'Moment of Takeoff'] #it's called Moment Of Takeoff
-        derived = get_derived_nodes([import_module('sample_derived_parameters')])
+        requested = ['Moment of Takeoff']
+        node_modules = [import_module(Path('dummy_nodes') / 'derived_parameters')]
+        # go through modules to get derived nodes
+        derived_nodes = get_derived_nodes(node_modules)
         mgr = NodeManager({'Start Datetime': datetime.now()}, 10, lfl_params, requested, [],
-                          derived, {}, {})
-        self.assertRaises(nx.NetworkXError, dependency_order, mgr, draw=False)
+                          derived_nodes, {}, {})
+        self.assertRaises(ValueError, dependency_order, mgr)
 
     def test_avoiding_possible_circular_dependency(self):
         # Possible circular dependency which can be avoided:
         # Gear Selected Down depends on Gear Down which depends on Gear Selected Down...!
-        lfl_params = ['Airspeed', 'Gear (L) Down', 'Gear (L) Red Warning']
-        requested = ['Airspeed At Gear Down Selected']
-        derived = get_derived_nodes([import_module('sample_circular_dependency_nodes')])
-        segment_info = {
-            'Start Datetime': datetime.now(),
-            'Segment Type': 'START_AND_STOP',
+        lfl_params = ['Airspeed', 'Gear (L) Down', 'Gear (L) Red Warning', 'Altitude STD']
+        requested = ['Airspeed At Gear Down Selection']
+        aircraft_info = {
+            'Aircraft Type': 'aeroplane',
+            'Frame': 'dummy_LFL'  # Needed for Altitude STD Smoothed, although not needed in derive method!
         }
-        mgr = NodeManager(segment_info, 10, lfl_params, requested, [],
-                          derived, {}, {})
-        order, _ = dependency_order(mgr, draw=False)
-        # As Gear Selected Down depends upon Gear Down
+        order = self._get_dependency_order(requested, aircraft_info, lfl_params)
 
-        self.assertEqual(order,
-            ['Gear (L) Down', 'Gear Down', 'Gear (L) Red Warning',
-             'Gear Down Selected', 'Airspeed', 'Airspeed At Gear Down Selected'])
+        expected_order = [
+            'Gear Down Selected', 'Airspeed At Gear Down Selection'
+        ]
+        self.assert_order_maintained(order, expected_order)
 
         # try a bigger cyclic dependency on top of the above one
 
-    def _get_dependency_order(self, requested, aircraft_info, lfl_params,
-                              draw=False, raise_cir_dep=True, segment_info={}):
-        #derived_nodes = get_derived_nodes(settings.NODE_MODULES)
-        if aircraft_info['Aircraft Type'] == 'helicopter':
-            node_modules = settings.NODE_MODULES + settings.NODE_HELICOPTER_MODULE_PATHS
-        else:
-            node_modules = settings.NODE_MODULES
-        # go through modules to get derived nodes
-        derived_nodes = get_derived_nodes(node_modules)
-
-        if requested == []:
-            # Use all derived nodes if requested is empty
-            requested = [p for p in derived_nodes.keys() if p not in lfl_params]
+    def _get_dependency_order(self, requested, aircraft_info, lfl_params, segment_info={}):
         if not segment_info:
             segment_info = {
                 'Start Datetime': datetime.now(),
                 'Segment Type': 'START_AND_STOP',
             }
-        node_mgr= NodeManager(segment_info, 10, lfl_params,
-                              requested, [], derived_nodes, aircraft_info, {})
-        order, gr_st = dependency_order(node_mgr, draw=draw,
-                                        raise_cir_dep=raise_cir_dep)
-        return order, gr_st
 
-    @unittest.skip('Need to improve testcase, exception still being rasie. with a diferent circular dependency.')
+        rel_path = Path('dummy_nodes')
+        pre_processing_modules = ['merge_multistate_parameters', 'merge_parameters']
+        node_modules = [
+            import_module(rel_path / 'pre_processing' / f'{mod}')
+            for mod in pre_processing_modules
+        ]
+        pre_processing_nodes = get_derived_nodes(node_modules)
+        pre_processing_requested = list(pre_processing_nodes.keys())
+
+        node_mgr = NodeManager(
+            segment_info, 10, lfl_params,
+            pre_processing_requested, [], pre_processing_nodes, aircraft_info, {})
+        order, _ = dependency_order(node_mgr)
+
+        modules = {
+            rel_path: [
+                'derived_parameters', 'flight_phase', 'key_point_values',
+                'key_time_instances', 'approaches', 'multistate_parameters',
+                'flight_attribute'
+            ]
+        }
+        if aircraft_info['Aircraft Type'] == 'helicopter':
+            modules[rel_path / 'helicopter'] = [
+                'derived_parameters', 'flight_phase', 'key_point_values',
+                'key_time_instances', 'multistate_parameters',
+            ]
+        node_modules = [
+            import_module(path / f'{mod}') for path, mods in modules.items()
+            for mod in mods
+
+        ]
+        # go through modules to get derived nodes
+        derived_nodes = get_derived_nodes(node_modules)
+        if requested == []:
+            # Use all derived nodes if requested is empty
+            requested = [p for p in derived_nodes.keys() if p not in lfl_params]
+        node_mgr= NodeManager(segment_info, 10, lfl_params + order,
+                              requested, [], derived_nodes, aircraft_info, {})
+        order, _ = dependency_order(node_mgr)
+        return order
+
     def test_avoiding_circular_dependency_gear_up_selected(self):
-        '''
-        <<< Gear Up Selected CIRCULAR >>> (218)
-        root>Altitude At First Gear Up Selection>Gear Up Selection>Gear Up Selected>Gear Up>Gear Up Selected><<< Gear Up Selected CIRCULAR >>>
-        '''
         lfl_params = [
             "Gear (L) Down",
             "Gear (L) On Ground",
@@ -414,165 +366,201 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
             "Gear (R) Down",
             "Gear (R) On Ground",
             "Gear (R) Red Warning",
-            "Gear On Ground"
+            "Gear On Ground",
+            "Gear (*) Red Warning"
         ]
         requested = ['Gear Up Selection',]
-        aircraft_info = {u'Aircraft Type': u'aeroplane',}
-        try:
-            self._get_dependency_order(requested, aircraft_info, lfl_params)
-        except CircularDependency as err:
-            self.assertFalse(True, msg=err.message)
+        aircraft_info = {'Aircraft Type': 'aeroplane',}
+        order = self._get_dependency_order(requested, aircraft_info, lfl_params)
+        expected_order = [
+            'Gear Down In Transit', 'Gear Up In Transit', 'Gear In Transit',
+            'Gear Up Selected', 'Gear Down Selected', 'Gear Up'
+        ]
 
-    @unittest.skip('Need to improve testcase, exception still being rasie. with a diferent circular dependency.')
-    def test_avoiding_circular_dependency_track_true(self):
-        '''
-        <<< Track True Continuous CIRCULAR >>> (197)
-        root>Holding Duration>Holding>Latitude Smoothed>Approach Range>Track True Continuous>Track True>Track True Continuous><<< Track True Continuous CIRCULAR >>>
-        '''
-        lfl_params = ['Altitude STD', 'Airspeed','Heading']
-        requested = ['Approach Range',]
-        aircraft_info = {u'Aircraft Type': u'aeroplane',}
-        try:
-            self._get_dependency_order(requested, aircraft_info, lfl_params)
-        except CircularDependency as err:
-            self.assertFalse(True, msg=err.message)
+        self.assert_order_maintained(order, expected_order)
 
-    @unittest.skip('Need to improve testcase, exception still being rasie. with a diferent circular dependency.')
     def test_avoiding_circular_dependency_approach_range(self):
-        '''
-        <<< Approach Range CIRCULAR >>> (200)
-        root>Holding Duration>Holding>Latitude Smoothed>Approach Range>Longitude Smoothed>Approach Range><<< Approach Range CIRCULAR >>>
-        '''
-        lfl_params = ['Altitude STD', 'Airspeed','Heading']
-        requested = ['Latitude Smoothed',]
-        aircraft_info = {u'Aircraft Type': u'aeroplane',}
-        try:
-            self._get_dependency_order(requested, aircraft_info, lfl_params)
-        except CircularDependency as err:
-            self.assertFalse(True, msg=err.message)
+        lfl_params = ['Altitude STD', 'Airspeed', 'Heading']
+        requested = ['Approach Range',]
+        aircraft_info = {
+            'Aircraft Type': 'aeroplane',
+            'Precise Positioning': False,
+            'Frame': 'dummy_LFL'  # Needed for Altitude STD Smoothed, although not needed in derive method!
+        }
+        order = self._get_dependency_order(requested, aircraft_info, lfl_params)
+        expected_order = [
+            'Heading Continuous', 'Fast',
+            'Altitude STD Smoothed', 'Altitude AAL', 'Altitude AAL For Flight Phases',
+            'Airborne', 'Takeoff', 'Takeoff Acceleration Start',
+            'Takeoff Roll', 'Grounded', 'Takeoff Runway Heading',
+            'Takeoff Roll Or Rejected Takeoff', 'Heading During Takeoff', 'Mach',
+            'Heading Rate', 'Mobile', 'Landing', 'Airspeed True', 'Landing Roll',
+            'Heading During Landing', 'Vertical Speed', 'Liftoff',
+            'Vertical Speed For Flight Phases', 'Level Flight', 'Approach',
+            'Approach And Landing', 'ILS Localizer', 'Roll', 'Touchdown',
+            'Approach Information', 'FDR Landing Runway', 'Approach Range'
+        ]
+        self.assert_order_maintained(order, expected_order)
 
-    @unittest.skip('Need to improve testcase, exception still being rasie. with a diferent circular dependency.')
-    def test_avoiding_circular_dependency_approach_range_helicopter(self):
-        '''
-        <<< Approach Range CIRCULAR >>> (200)
-        root>Holding Duration>Holding>Latitude Smoothed>Approach Range>Longitude Smoothed>Approach Range><<< Approach Range CIRCULAR >>>
-        '''
-        lfl_params = ['Altitude STD', 'Airspeed','Heading']
+    def test_avoiding_circular_dependency_latitude_smoothed(self):
+        lfl_params = ['Altitude STD', 'Airspeed', 'Heading', 'Latitude', 'Longitude']
         requested = ['Latitude Smoothed',]
-        aircraft_info = {u'Aircraft Type': u'helicopter',}
-        try:
-            self._get_dependency_order(requested, aircraft_info, lfl_params)
-        except CircularDependency as err:
-            self.assertFalse(True, msg=err.message)
+        aircraft_info = {
+            'Aircraft Type': 'aeroplane',
+            'Precise Positioning': False,
+            'Frame': 'dummy_LFL'  # Needed for Altitude STD Smoothed, although not needed in derive method!
+        }
+        order = self._get_dependency_order(requested, aircraft_info, lfl_params)
+        expected_order = [
+            'Heading Continuous',
+            'ILS Localizer', 'Fast',
+            'Altitude STD Smoothed', 'Altitude AAL', 'Magnetic Variation',
+            'Altitude AAL For Flight Phases', 'Airborne', 'Takeoff',
+            'Takeoff Acceleration Start', 'Takeoff Roll', 'Grounded',
+            'Takeoff Runway Heading', 'Takeoff Roll Or Rejected Takeoff',
+            'Heading During Takeoff', 'Mach', 'Heading Rate', 'Mobile', 'Landing',
+            'Airspeed True', 'Landing Roll', 'Heading During Landing', 'Vertical Speed',
+            'Liftoff', 'Latitude At Liftoff', 'Longitude At Liftoff', 'Off Blocks',
+            'Latitude Off Blocks', 'Longitude Off Blocks', 'FDR Takeoff Airport',
+            'Latitude At Takeoff Acceleration Start',
+            'Longitude At Takeoff Acceleration Start', 'FDR Takeoff Runway',
+            'Vertical Speed For Flight Phases', 'Level Flight', 'Approach',
+            'Approach And Landing', 'Touchdown', 'Latitude At Touchdown',
+            'Longitude At Touchdown', 'Roll', 'Approach Information',
+            'FDR Landing Runway', 'Magnetic Variation From Runway', 'Heading True',
+            'Approach Range', 'Heading True Continuous', 'Latitude Smoothed'
+        ]
+        self.assert_order_maintained(order, expected_order)
 
-    @unittest.skip('Need to improve testcase, exception still being rasie. with a diferent circular dependency.')
-    def test_avoiding_circular_dependency_approach_information(self):
-        '''
-        <<< Approach Information CIRCULAR >>> (60)
-        root>Airspeed Top Of Descent To 4000 Ft Min>FDR Landing Airport>Approach Information>Latitude Prepared>Heading True>Magnetic Variation From Runway>FDR Landing Runway>Approach Information><<< Approach Information CIRCULAR >>>
-        '''
-        lfl_params = []
+    def test_avoiding_circular_dependency_latitude_smoothed_helicopter(self):
+        lfl_params = ['Altitude STD', 'Airspeed', 'Heading', 'Latitude', 'Longitude']
+        requested = ['Latitude Smoothed',]
+        aircraft_info = {
+            'Aircraft Type': 'helicopter',
+            'Precise Positioning': False,
+            'Frame': 'dummy_LFL'  # Needed for Altitude STD Smoothed, although not needed in derive method!
+        }
+        order = self._get_dependency_order(requested, aircraft_info, lfl_params)
+
+        expected_order = [
+            'Heading Continuous',
+            'ILS Localizer', 'Altitude STD Smoothed',
+            'Vertical Speed', 'Heading Rate', 'Mobile',
+            'Off Blocks', 'Latitude Off Blocks', 'Longitude Off Blocks',
+            'FDR Takeoff Airport', 'Mach', 'Airspeed True', 'Latitude Smoothed',
+            'Longitude Smoothed'
+        ]
+        self.assert_order_maintained(order, expected_order)
+
+    def test_avoiding_circular_dependency_fdr_landing(self):
+        lfl_params = [
+            'Altitude STD', 'Altitude Radio', 'Airspeed', 'Heading', 'Latitude',
+            'Longitude', 'Gear (L) On Ground', 'Collective',
+        ]
         requested = ['FDR Landing Airport',]
-        aircraft_info = {u'Aircraft Type': u'aeroplane',}
-        self._get_dependency_order(requested, aircraft_info, lfl_params)
-        try:
-            self._get_dependency_order(requested, aircraft_info, lfl_params)
-        except CircularDependency as err:
-            self.assertFalse(True, msg=err.message)
+        aircraft_info = {
+            'Aircraft Type': 'helicopter',
+            'Precise Positioning': False,
+            'Frame': 'dummy_LFL'  # Needed for Altitude STD Smoothed, although not needed in derive method!
+        }
+        order = self._get_dependency_order(requested, aircraft_info, lfl_params)
 
-    @unittest.skip('Need to improve testcase, exception still being rasie. with a diferent circular dependency.')
+        expected_order = [
+            'Altitude STD Smoothed',
+            'Vertical Speed', 'Gear On Ground',
+            'Altitude AGL', 'Heading Continuous', 'Heading Rate',
+            'Airborne', 'Mobile', 'Landing',
+            'Approach', 'Approach And Landing', 'ILS Localizer', 'Touchdown',
+            'Latitude At Touchdown', 'Longitude At Touchdown', 'Altitude ADH',
+            'Liftoff', 'Takeoff', 'Approach Information', 'FDR Landing Airport'
+        ]
+        self.assert_order_maintained(order, expected_order)
+
     def test_avoiding_circular_dependency_approach_information_helicopter(self):
-        '''
-        <<< Approach Information CIRCULAR >>> (60)
-        root>Airspeed Top Of Descent To 4000 Ft Min>FDR Landing Airport>Approach Information>Latitude Prepared>Heading True>Magnetic Variation From Runway>FDR Landing Runway>Approach Information><<< Approach Information CIRCULAR >>>
-        '''
-        lfl_params = ['Altitude STD', 'Airspeed','Heading',
-                      'Altitude AGL',
-                      'Approach And Landing',
-                      #'Latitude Prepared (Lat Lon)',
-                      'Longitude Prepared (Lat Lon)',
-                      ]
+        lfl_params = [
+            'Altitude STD', 'Altitude AGL', 'Altitude Radio', 'Airspeed', 'Heading',
+            'Latitude', 'Longitude', 'Gear (L) On Ground', 'Collective',
+        ]
         requested = ['Approach Information',]
-        aircraft_info = {u'Aircraft Type': u'helicopter',}
-        try:
-            self._get_dependency_order(requested, aircraft_info, lfl_params)
-        except CircularDependency as err:
-            self.assertFalse(True, msg=err.message)
+        aircraft_info = {'Aircraft Type': 'helicopter', 'Precise Positioning': False}
+        order = self._get_dependency_order(requested, aircraft_info, lfl_params)
 
-    @unittest.skip('Need to completely remove circular dependencies before this test could be use by Jenkins.')
+        expected_order = [
+            'Gear On Ground', 'Heading Continuous',
+            'Heading Rate', 'Airborne', 'Mobile',
+            'Landing', 'Approach', 'Approach And Landing', 'ILS Localizer',
+            'Touchdown', 'Latitude At Touchdown', 'Longitude At Touchdown',
+            'Liftoff', 'Takeoff', 'Approach Information'
+        ]
+        self.assert_order_maintained(order, expected_order)
+
     def test_avoiding_all_circular_dependencies_by_having_nothing_recorded(self):
         # not realistic use case; but let's see if we can avoid all circular dependencies in the theoretical deriving tree structure things
         lfl_params = []#['Altitude STD', 'Airspeed', 'Heading'] # Core parameters
-        aircraft_info = {u'Aircraft Type': u'aeroplane',}
+        aircraft_info = {'Aircraft Type': 'aeroplane',}
         requested = []
-        try:
-            self._get_dependency_order(requested, aircraft_info, lfl_params)
-        except CircularDependency as err:
-            self.assertFalse(True, msg=err.message)
+        order = self._get_dependency_order(requested, aircraft_info, lfl_params)
+
+        expected = [
+            'Grounded', 'Eng Start', 'FDR Analysis Datetime',
+            'FDR Takeoff Datetime', 'FDR Flight Type', 'FDR Version'
+        ]
+        self.assertTrue(set(order) >= set(expected))
 
     def _example_recorded_parameters(self):
         # A more realistic tree, for finding circular dependencies, using the
         # recorded parameter names and aircraft_info (de-identified) from AE-214.
         # Segment Hash: 141ef6749191d5aecb6b3dc5f6d2c341276aa9bce61ee38b1f5ccf4f825329f4
         aircraft_info = {
-            u'Aircraft Type': u'aeroplane',
-            u'Data Type': None,
-            u'QAR Serial Number': u'',
-            u'Data Source': u'FDR',
-            u'Ground To Lowest Point Of Tail': 2.57712,
-            u'Dry Operating Weight': None, u'Data Rate': 256,
-            u'Fleet Code': None,
-            u'Engine Count': 2,
-            u'Engine Manufacturer': u'CFM International',
-            u'Frame Type': None,
-            u'Modifications': [],
-            u'Tail Number': None,
-            u'Precise Positioning': True,
-            u'Recorder Name': u'MEDIAPREP',
-            u'Main Gear To Lowest Point Of Tail': 9.8234,
-            u'Frame Doubled': False,
-            u'Engine Series': u'CFM56-7B',
-            u'Model': u'B737-7CN(BBJ)',
-            u'Identifier': u'',
-            u'Frame Name': u'737-3A',
-            u'Family': u'B737 NG',
-            u'Series': u'B737-700',
-            u'Frame': u'737-3A',
-            u'Engine Propulsion': u'JET',
-            u'Manufacturer Serial Number': None,
-            u'Processing Format': u'tdwgl',
-            u'Stretched': None,
-            u'Main Gear To Radio Altimeter Antenna': None,
-            u'Engine Type': u'CFM56-7B26',
-            u'Manufacturer': u'Boeing',
-            u'Payload': None,
-            u'Maximum Landing Weight': None
+            'Aircraft Type': 'aeroplane',
+            'Data Type': None,
+            'QAR Serial Number': '',
+            'Data Source': 'FDR',
+            'Ground To Lowest Point Of Tail': 2.57712,
+            'Dry Operating Weight': None, 'Data Rate': 256,
+            'Fleet Code': None,
+            'Engine Count': 2,
+            'Engine Manufacturer': 'CFM International',
+            'Frame Type': None,
+            'Modifications': [],
+            'Tail Number': None,
+            'Precise Positioning': True,
+            'Recorder Name': 'MEDIAPREP',
+            'Main Gear To Lowest Point Of Tail': 9.8234,
+            'Frame Doubled': False,
+            'Engine Series': 'CFM56-7B',
+            'Model': 'B737-7CN(BBJ)',
+            'Identifier': '',
+            'Frame Name': '737-3A',
+            'Family': 'B737 NG',
+            'Series': 'B737-700',
+            'Frame': '737-3A',
+            'Engine Propulsion': 'JET',
+            'Manufacturer Serial Number': None,
+            'Processing Format': 'tdwgl',
+            'Stretched': None,
+            'Main Gear To Radio Altimeter Antenna': None,
+            'Engine Type': 'CFM56-7B26',
+            'Manufacturer': 'Boeing',
+            'Payload': None,
+            'Maximum Landing Weight': None
         }
-        with open(os.path.join(test_data_path, "dependency_graph_example_recorded_lfl_parameters.yaml")) as f:
-            lfl_params = yaml.load(f)
+        path = Path(test_data_path) / 'dependency_graph_example_recorded_lfl_parameters.txt'
+        lfl_params = path.read_text().splitlines()
         # Pre-processed order
-        lfl_params = list(set(lfl_params + [
-            'Groundspeed',
-            'Gear (L) Down',
-            'Gear (N) Down',
-            'Gear (R) Down',
-            'Gear Down',
-            'Latitude Prepared',
-            'Longitude Prepared',
-            'Aircraft Type',
-            'Longitude',
-            'Latitude',
-        ]))
+        lfl_params.extend(['Gear Down', 'Latitude Prepared', 'Longitude Prepared', 'Aircraft Type'])
         return aircraft_info, lfl_params
 
-    @unittest.skip('Need to completely remove circular dependencies before this test could be use by Jenkins.')
     def test_avoiding_all_circular_dependencies_with_recorded_lfls(self):
         aircraft_info, lfl_params = self._example_recorded_parameters()
         requested = []
-        try:
-            self._get_dependency_order(requested, aircraft_info, lfl_params)
-        except CircularDependency as err:
-            self.assertFalse(True, msg=err.message)
+        order = self._get_dependency_order(requested, aircraft_info, lfl_params)
+
+        path = Path(test_data_path) / 'dependency_graph_example_recorded_expected.txt'
+        expected = path.read_text().splitlines()
+
+        self.assert_order_maintained(order, expected)
+        self.assertTrue(set(order) >= set(expected))
 
     def test_acceleration_normal_offset_processing_order(self):
         # In the past, the KPV 'Acceleration Normal Offset' got straved out of
@@ -581,8 +569,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         # order doesn't do that again
         aircraft_info, lfl_params = self._example_recorded_parameters()
         requested = []
-        order, _ = self._get_dependency_order(requested, aircraft_info,
-                                              lfl_params, raise_cir_dep=False)
+        order = self._get_dependency_order(requested, aircraft_info, lfl_params)
         self.assertIn('Acceleration Normal Offset', order)
         self.assertIn('Acceleration Normal Offset Removed', order)
         self.assertLess(order.index('Acceleration Normal Offset'),
@@ -595,8 +582,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         # order doesn't do that again
         aircraft_info, lfl_params = self._example_recorded_parameters()
         requested = []
-        order, _ = self._get_dependency_order(requested, aircraft_info,
-                                              lfl_params, raise_cir_dep=False)
+        order = self._get_dependency_order(requested, aircraft_info, lfl_params)
         self.assertIn('Acceleration Lateral Offset', order)
         self.assertIn('Acceleration Lateral Offset Removed', order)
         self.assertLess(order.index('Acceleration Lateral Offset'),
@@ -611,8 +597,7 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         # 'Magnetic Variation From Runway' created before 'Heading True'.
         aircraft_info, lfl_params = self._example_recorded_parameters()
         requested = []
-        order, _ = self._get_dependency_order(requested, aircraft_info,
-                                              lfl_params, raise_cir_dep=False)
+        order = self._get_dependency_order(requested, aircraft_info, lfl_params)
         self.assertIn('Heading True', order)
         self.assertIn('Magnetic Variation From Runway', order)
         self.assertIn('Magnetic Variation', order)
@@ -623,82 +608,28 @@ Node: Start Datetime 	Pre: [] 	Succ: [] 	Neighbors: [] 	Edges: []
         self.assertLess(order.index('Magnetic Variation'),
                         order.index('Magnetic Variation From Runway'))
 
+    def test_processing_order_approach_and_landing(self):
+        lfl_params = ['Altitude STD', 'Airspeed','Heading']
+        requested = ['Approach And Landing',]
+        aircraft_info = {
+            'Aircraft Type': 'aeroplane',
+            'Precise Positioning': False,
+            'Frame': 'dummy_LFL'  # Needed for Altitude STD Smoothed, although not needed in derive method!
+        }
+        order = self._get_dependency_order(requested, aircraft_info, lfl_params)
 
-
-class TestGraphAdjacencies(unittest.TestCase):
-    def test_graph_adjacencies(self):
-        g = nx.DiGraph()
-        g.add_node('a', color='blue', label='a1')
-        g.add_nodes_from(['b', 'c', 'd'])
-        g.add_node('root', color='red')
-        g.add_edge('root', 'a')
-        g.add_edge('root', 'd')
-        g.add_edge('a', 'b')
-        g.add_edge('a', 'c')
-        g.add_edge('d', 'c')
-        res = graph_adjacencies(g)
-        exp = [
-        {
-            'id': 'root',
-            'name': 'root',
-            'data': {
-                'color': 'red',
-                },
-            'adjacencies': [
-                {
-                    'nodeTo': 'a',
-                    'data': {},
-                    },
-                {
-                    'nodeTo': 'd',
-                    'data': {},
-                    },
-                ],
-            },
-        {
-            'id': 'a',
-            'name': 'a1',
-            'data': {
-                'color': 'blue',
-                },
-            'adjacencies': [
-                {
-                    'nodeTo': 'b',
-                    'data': {},
-                    },
-                {
-                    'nodeTo': 'c',
-                    'data': {},
-                    },
-                ],
-            },
-        {
-            'id': 'b',
-            'name': 'b',
-            'data': {},
-            'adjacencies': [
-                ],
-            },
-        {
-            'id': 'c',
-            'name': 'c',
-            'data': {},
-            'adjacencies': [
-                ],
-            },
-        {
-            'id': 'd',
-            'name': 'd',
-            'data': {},
-            'adjacencies': [
-                {
-                    'nodeTo': 'c',
-                    'data': {},
-                    }
-                ],
-            },
+        expected_order = [
+            'Fast', 'Altitude STD Smoothed', 'Altitude AAL',
+            'Altitude AAL For Flight Phases', 'Airborne', 'Vertical Speed For Flight Phases',
+            'Level Flight', 'Heading Continuous', 'Heading Rate', 'Takeoff',
+            'Takeoff Acceleration Start', 'Takeoff Roll', 'Grounded',
+            'Takeoff Runway Heading', 'Takeoff Roll Or Rejected Takeoff',
+            'Heading During Takeoff', 'Mach', 'Landing', 'Airspeed True', 'Landing Roll',
+            'Heading During Landing', 'Vertical Speed', 'Liftoff', 'Approach And Landing',
+            'ILS Localizer', 'Roll', 'Touchdown', 'Approach Information',
+            'FDR Landing Runway', 'Mobile', 'Approach'
         ]
-        self.assertEqual(list(flatten(exp)), list(flatten(res)))
+        self.assert_order_maintained(order, expected_order)
 
 
 if __name__ == '__main__':

@@ -8,7 +8,7 @@ import simplejson
 import six
 import zipfile
 
-from collections import defaultdict
+from collections import defaultdict, deque
 from inspect import getargspec, isclass, ismodule
 
 from hdfaccess.file import hdf_file
@@ -16,7 +16,7 @@ from hdfaccess.utils import strip_hdf
 
 from flightdatautilities import api
 
-from analysis_engine.dependency_graph import dependencies3, graph_nodes
+from analysis_engine.dependency_graph import dependency_order
 # node classes required for unpickling
 from analysis_engine.node import (
     loads, save, Node, NodeManager,
@@ -214,16 +214,27 @@ def derived_trimmer(hdf_path, node_names, dest):
     :return: parameters in stripped hdf file
     :rtype: [str]
     '''
-    params = []
     with hdf_file(hdf_path) as hdf:
-        derived_nodes = get_derived_nodes(settings.NODE_MODULES)
-        node_mgr = NodeManager(
-            {}, hdf.duration, hdf.valid_param_names(), [], [],
-            derived_nodes, {}, {})
-        _graph = graph_nodes(node_mgr)
-        for node_name in node_names:
-            deps, _ = dependencies3(_graph, node_name, node_mgr)
-            params.extend(filter(lambda d: d in node_mgr.hdf_keys, deps))
+        duration = hdf.duration
+        raw_nodes = hdf.valid_param_names()
+
+    derived_nodes = get_derived_nodes(settings.NODE_MODULES)
+    node_mgr = NodeManager({}, duration, raw_nodes, derived_nodes.keys(), [], derived_nodes, {}, {})
+    order, graph = dependency_order(node_mgr)
+
+    node_names = set(node_names)
+    queue = deque(i for i in order if i in node_names)
+    params = {i for i in node_mgr.hdf_keys if i in node_names}
+    visited = set()
+    while queue:
+        current = queue.popleft()
+        visited.add(current)
+        for name in graph[current]:
+            if graph.nodes[name]['node_type'] == 'HDFNode':
+                params.add(name)
+            elif name not in visited:
+                queue.append(name)
+
     return strip_hdf(hdf_path, params, dest)
 
 

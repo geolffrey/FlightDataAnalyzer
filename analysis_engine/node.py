@@ -160,10 +160,8 @@ def get_param_kwarg_names(method):
     :returns: Ordered list of default values of keyword arguments
     :rtype: list
     """
-    try:
-        args, varargs, varkw, defaults = inspect.getargspec(method)
-    except AttributeError:
-        args, varargs, varkw, defaults = inspect.getfullargspec(method)[:4]
+    args, varargs, varkw, defaults = inspect.getfullargspec(method)[:4]
+
     if not defaults or args[:-len(defaults)] != ['self'] or varargs:
         raise ValueError("Node '%s' must have kwargs, must accept at least one "
                          "kwarg and not any args other than 'self'. args:'%s' "
@@ -1813,7 +1811,7 @@ class KeyPointValueNode(FormattedNameNode):
         # happen.
         if value is np.ma.masked:
             msg = "'%s' cannot create KPV at index '%s': Value is masked."
-            logger.warn(msg, self.name, index)
+            logger.warning(msg, self.name, index)
             return
 
         value = float(value)
@@ -2468,6 +2466,8 @@ class NodeManager(object):
         self.requested = requested
         self.required = required
         self.derived_nodes = derived_nodes
+        # Caching for derived nodes attributes. {NodeClass: List[Attributes]}
+        self._node_attribute_cache = {}
         # Attributes:
         self.aircraft_info = non_empty(aircraft_info)
         self.achieved_flight_record = non_empty(achieved_flight_record)
@@ -2478,12 +2478,14 @@ class NodeManager(object):
         :returns: Ordered list of all Node names stored within the manager.
         :rtype: list of str
         """
-        return sorted(list(set(['HDF Duration']
-                               + list(self.hdf_keys)
-                               + list(self.derived_nodes.keys())
-                               + list(self.aircraft_info.keys())
-                               + list(self.achieved_flight_record.keys())
-                               + list(self.segment_info.keys()))))
+        return sorted({
+            'HDF Duration',
+            *self.hdf_keys,
+            *self.derived_nodes,
+            *self.aircraft_info,
+            *self.achieved_flight_record,
+            *self.segment_info,
+        })
 
     def get_attribute(self, name):
         """
@@ -2519,35 +2521,20 @@ class NodeManager(object):
         :returns: Result of Operational test on parameter.
         :rtype: bool
         """
-        if name in self.hdf_keys \
-                or self.aircraft_info.get(name) is not None \
-                or self.achieved_flight_record.get(name) is not None \
-                or self.segment_info.get(name) is not None \
-                or name in ('root', 'HDF Duration'):
-            return True
-        elif name in self.derived_nodes:
-            derived_node = self.derived_nodes[name]
-            # NOTE: Raises "Unbound method" here due to can_operate being
-            # overridden without wrapping with @classmethod decorator
+        node = self.derived_nodes[name]
+
+        # NOTE: Raises "Unbound method" here due to can_operate being
+        # overridden without wrapping with @classmethod decorator
+
+        # Cache lookup of attributes to pass to .can_operate() for improved performance:
+        if node not in self._node_attribute_cache:
             attributes = []
-            argspec = inspect.getargspec(derived_node.can_operate)
-            if argspec.defaults:
-                for default in argspec.defaults:
-                    if not isinstance(default, Attribute):
-                        raise TypeError('Only Attributes may be keyword '
-                                        'arguments in can_operate methods.')
-                    attributes.append(self.get_attribute(default.name))
-            # can_operate expects attributes.
-            res = derived_node.can_operate(available, *attributes)
-            ##if not res:
-            ##    logger.debug("Derived Node '%s' cannot operate with available nodes: %s",
-            ##                 name, available)
-            ##else:
-                ##logger.debug("Node '%s' derived with available nodes: %s",name, available)
-            return res
-        else:
-            ##logger.debug("Node '%s' is unavailable", name)
-            return False
+            for default in inspect.getfullargspec(node.can_operate).defaults or ():
+                if not isinstance(default, Attribute):
+                    raise TypeError('Only Attributes may be keyword arguments in can_operate methods.')
+                attributes.append(self.get_attribute(default.name))
+            self._node_attribute_cache[node] = attributes
+        return node.can_operate(available, *self._node_attribute_cache[node])
 
     def node_type(self, node_name):
         '''

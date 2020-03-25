@@ -48,7 +48,7 @@ from analysis_engine.test_utils import buildsection
 test_data_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                               'test_data')
 
-airports = yaml.load(open(os.path.join(test_data_path, 'airports.yaml'), 'rb'))
+airports = yaml.load(open(os.path.join(test_data_path, 'airports.yaml'), 'rb'), Loader=yaml.FullLoader)
 
 
 def setUpModule():
@@ -424,35 +424,38 @@ class TestFlightID(unittest.TestCase):
 class TestFlightNumber(unittest.TestCase):
     def test_can_operate(self):
         self.assertEqual(FlightNumber.get_operational_combinations(),
-                         [('Flight Number',)])
+                         [('Flight Number', 'Mobile')])
 
     def test_derive_basic(self):
         flight_number_param = P('Flight Number',
                                 array=np.ma.masked_array([103, 102,102]))
+        mobiles = buildsection('Mobile', 0, 3)
         flight_number = FlightNumber()
         flight_number.set_flight_attr = Mock()
-        flight_number.derive(flight_number_param)
+        flight_number.derive(flight_number_param, mobiles)
         flight_number.set_flight_attr.assert_called_with('102')
 
     def test_derive(self):
         flight_number = load(os.path.join(test_data_path,
                                           'FDRFlightNumber_FlightNumber.nod'))
+        mobiles = buildsection('Mobile', 10, 130)
         node = FlightNumber()
-        node.derive(flight_number)
+        node.derive(flight_number, mobiles)
         self.assertEqual(node.value, '805')
 
     def test_derive_ascii(self):
         flight_number_param = P('Flight Number',
                                 array=np.ma.masked_array(['ABC', 'DEF', 'DEF'],
                                                          dtype=np.string_))
+        mobiles = buildsection('Mobile', 0, 3)
         flight_number = FlightNumber()
         flight_number.set_flight_attr = Mock()
-        flight_number.derive(flight_number_param)
+        flight_number.derive(flight_number_param, mobiles)
         flight_number.set_flight_attr.assert_called_with('DEF')
         flight_number.set_flight_attr.reset_mock()
         # Entirely masked.
         flight_number_param.array[:] = np.ma.masked
-        flight_number.derive(flight_number_param)
+        flight_number.derive(flight_number_param, mobiles)
         flight_number.set_flight_attr.called = False
 
     def test_derive_masked(self):
@@ -464,7 +467,8 @@ class TestFlightNumber(unittest.TestCase):
             'Flight Number',
             array=np.ma.array([0, 0, 0, 0, 36, 36, 0, 0, 0, 0],
                               mask=[True] * 4 + [False] * 2 + [True] * 4))
-        flight_number.derive(number_param)
+        mobiles = buildsection('Mobile', 0, 10)
+        flight_number.derive(number_param, mobiles)
         self.assertEqual(flight_number.value, '36')
 
     def test_derive_most_common_positive_float(self):
@@ -473,7 +477,8 @@ class TestFlightNumber(unittest.TestCase):
         neg_number_param = P(
             'Flight Number',
             array=np.ma.array([-1,2,-4,10,20,40,11]))
-        flight_number.derive(neg_number_param)
+        mobiles = buildsection('Mobile', 0, 7)
+        flight_number.derive(neg_number_param, mobiles)
         self.assertEqual(flight_number.value, None)
 
         # TODO: Implement variance checks as below
@@ -486,9 +491,18 @@ class TestFlightNumber(unittest.TestCase):
             'Flight Number',
             array=np.ma.array([2,555.6,444,444,444,444,444,444,888,444,444,
                                444,444,444,444,444,444,7777,9100]))
+        mobiles = buildsection('Mobile', 0, 19)
         flight_number.set_flight_attr = Mock()
-        flight_number.derive(flight_number_param)
+        flight_number.derive(flight_number_param, mobiles)
         flight_number.set_flight_attr.assert_called_with('444')
+
+    def test_derive_restrict_to_mobile(self):
+        flight_number_param = P('Flight Number',
+                                array=np.ma.repeat([103, 102], [30, 20]))
+        mobiles = buildsection('Mobile', 20, 50)
+        flight_number = FlightNumber()
+        flight_number.derive(flight_number_param, mobiles)
+        self.assertEqual(flight_number.value, '102')
 
 
 class TestLandingAirport(unittest.TestCase, NodeTest):
@@ -660,58 +674,60 @@ class TestLandingRunway(unittest.TestCase, NodeTest):
 
 class TestOffBlocksDatetime(unittest.TestCase):
     def test_derive(self):
-        # Empty 'Turning'.
-        turning = S('Turning On Ground')
+        # Empty.
+        off_blocks = KTI('Off Blocks', items=[])
         start_datetime = A(name='Start Datetime', value=datetime.now())
         off_blocks_datetime = OffBlocksDatetime()
         off_blocks_datetime.set_flight_attr = Mock()
-        off_blocks_datetime.derive(turning, start_datetime)
+        off_blocks_datetime.derive(off_blocks, start_datetime)
         off_blocks_datetime.set_flight_attr.assert_called_once_with(None)
-        # 'Turning On Ground'.
-        turning = S('Turning On Ground', items=[KeyPointValue(name='Turning On Ground',
-                                                    slice=slice(20, 60))])
-        off_blocks_datetime.set_flight_attr = Mock()
-        off_blocks_datetime.derive(turning, start_datetime)
-        off_blocks_datetime.set_flight_attr.assert_called_once_with(
-            start_datetime.value + timedelta(seconds=20))
 
-        turning = S('Turning', items=[KeyPointValue(name='Turning On Ground',
-                                                    slice=slice(10, 20)),
-                                      KeyPointValue(name='Turning On Ground',
-                                                    slice=slice(70, 90))])
+        # One instance.
+        off_blocks = KTI('Off Blocks', items=[KeyTimeInstance(name='Off Blocks',
+                                                    index=300)])
         off_blocks_datetime.set_flight_attr = Mock()
-        off_blocks_datetime.derive(turning, start_datetime)
+        off_blocks_datetime.derive(off_blocks, start_datetime)
         off_blocks_datetime.set_flight_attr.assert_called_once_with(
-            start_datetime.value + timedelta(seconds=10))
+            start_datetime.value + timedelta(seconds=300))
+
+        # More than one instance.
+        off_blocks = KTI('Off Blocks', items=[
+            KeyTimeInstance(name='Off Blocks', index=400),
+            KeyTimeInstance(name='Off Blocks', index=600),
+        ])
+        off_blocks_datetime.set_flight_attr = Mock()
+        off_blocks_datetime.derive(off_blocks, start_datetime)
+        off_blocks_datetime.set_flight_attr.assert_called_once_with(
+            start_datetime.value + timedelta(seconds=400))
 
 
 class TestOnBlocksDatetime(unittest.TestCase):
-    def test_derive_without_turning(self):
-        # Empty 'Turning'.
-        turning = S('Turning On Ground')
+    def test_derive(self):
+        # Empty.
+        on_blocks = KTI('On Blocks', items=[])
         start_datetime = A(name='Start Datetime', value=datetime.now())
-        off_blocks_datetime = OnBlocksDatetime()
-        off_blocks_datetime.set_flight_attr = Mock()
-        off_blocks_datetime.derive(turning, start_datetime)
-        off_blocks_datetime.set_flight_attr.assert_called_once_with(None)
-        # 'Turning On Ground'.
-        turning = S('Turning On Ground',
-                    items=[KeyPointValue(name='Turning On Ground',
-                                         slice=slice(20, 60))])
-        off_blocks_datetime.set_flight_attr = Mock()
-        off_blocks_datetime.derive(turning, start_datetime)
-        off_blocks_datetime.set_flight_attr.assert_called_once_with(
-            start_datetime.value + timedelta(seconds=60))
-        turning = S('Turning', items=[KeyPointValue(name='Turning On Ground',
-                                                    slice=slice(10, 20)),
-                                      KeyPointValue(name='Turning In Air',
-                                                    slice=slice(20, 60)),
-                                      KeyPointValue(name='Turning On Ground',
-                                                    slice=slice(70, 90))])
-        off_blocks_datetime.set_flight_attr = Mock()
-        off_blocks_datetime.derive(turning, start_datetime)
-        off_blocks_datetime.set_flight_attr.assert_called_once_with(
-            start_datetime.value + timedelta(seconds=90))
+        on_blocks_datetime = OnBlocksDatetime()
+        on_blocks_datetime.set_flight_attr = Mock()
+        on_blocks_datetime.derive(on_blocks, start_datetime)
+        on_blocks_datetime.set_flight_attr.assert_called_once_with(None)
+
+        # One instance.
+        on_blocks = KTI('On Blocks', items=[KeyTimeInstance(name='On Blocks',
+                                                    index=300)])
+        on_blocks_datetime.set_flight_attr = Mock()
+        on_blocks_datetime.derive(on_blocks, start_datetime)
+        on_blocks_datetime.set_flight_attr.assert_called_once_with(
+            start_datetime.value + timedelta(seconds=300))
+
+        # More than one instance.
+        on_blocks = KTI('On Blocks', items=[
+            KeyTimeInstance(name='On Blocks', index=400),
+            KeyTimeInstance(name='On Blocks', index=600),
+        ])
+        on_blocks_datetime.set_flight_attr = Mock()
+        on_blocks_datetime.derive(on_blocks, start_datetime)
+        on_blocks_datetime.set_flight_attr.assert_called_once_with(
+            start_datetime.value + timedelta(seconds=600))
 
 
 class TestTakeoffAirport(unittest.TestCase, NodeTest):

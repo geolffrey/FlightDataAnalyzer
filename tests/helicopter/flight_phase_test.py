@@ -262,10 +262,10 @@ class TestNoseDownAttitudeAdoption(unittest.TestCase):
     def setUp(self):
         self.node_class = NoseDownAttitudeAdoption
         self.climbs = buildsection('Initial Climb', 10, 40)
-        self.operational_combinations = [('Pitch', 'Initial Climb')]
+        self.offshore = buildsection('Offshore', 5, 35)
 
     def test_can_operate(self):
-        expected = [('Pitch', 'Initial Climb',)]
+        expected = [('Pitch', 'Initial Climb', 'Offshore')]
         opts_h175 = self.node_class.get_operational_combinations(family=A('Family', 'H175'))
 
         self.assertEqual(opts_h175, expected)
@@ -274,7 +274,7 @@ class TestNoseDownAttitudeAdoption(unittest.TestCase):
         node = NoseDownAttitudeAdoption()
         pitch = np.concatenate([np.ones(15) * 2, np.linspace(2, -11, num=15), np.ones(10) * -11])
 
-        node.derive(P('Pitch', pitch), self.climbs)
+        node.derive(P('Pitch', pitch), self.climbs, self.offshore)
 
         self.assertEqual(len(node), 1)
         self.assertEqual(node[0], Section('Nose Down Attitude Adoption', slice(15, 28, None), 15, 28))
@@ -283,7 +283,7 @@ class TestNoseDownAttitudeAdoption(unittest.TestCase):
         node = NoseDownAttitudeAdoption()
         pitch = np.concatenate([np.ones(15) * 2, np.linspace(2, -6, num=15), np.ones(10) * -6])
 
-        node.derive(P('Pitch', pitch), self.climbs)
+        node.derive(P('Pitch', pitch), self.climbs, self.offshore)
 
         self.assertEqual(len(node), 1)
         self.assertEqual(node[0], Section('Nose Down Attitude Adoption', slice(15, 29, None), 15, 29))
@@ -295,7 +295,8 @@ class TestNoseDownAttitudeAdoption(unittest.TestCase):
                                 np.ones(20) * 2, np.linspace(2, -11, num=15),
                                 np.ones(10) * -11])
         climbs = buildsections('Initial Climb', [10, 40], [60, 85])
-        node.derive(P('Pitch', pitch), climbs)
+        offshores = buildsections('Offshore', [5, 85])
+        node.derive(P('Pitch', pitch), climbs, offshores)
 
         self.assertEqual(len(node), 2)
         self.assertEqual(node[0], Section('Nose Down Attitude Adoption', slice(15, 28, None), 15, 28))

@@ -21,7 +21,7 @@ from datetime import datetime
 from math import sqrt
 from mock import patch
 from numpy.ma.testutils import assert_array_almost_equal, assert_array_equal, assert_array_less, assert_equal
-from time import clock
+from time import process_time
 
 from analysis_engine.flight_attribute import LandingRunway
 
@@ -80,6 +80,7 @@ from analysis_engine.library import (
     filter_slices_duration,
     filter_slices_length,
     filter_vor_ils_frequencies,
+    find_climb_cruise_descent,
     find_edges,
     find_edges_on_state_change,
     find_slices_overlap,
@@ -124,6 +125,7 @@ from analysis_engine.library import (
     localizer_scale,
     lookup_table,
     MappedArray,
+    maintain_altitude,
     mask_inside_slices,
     mask_outside_slices,
     max_abs_value,
@@ -2190,11 +2192,11 @@ class TestCalculateTimebase(unittest.TestCase):
 class TestConvertTwoDigitToFourDigitYear(unittest.TestCase):
     def test_convert_two_digit_to_four_digit_year(self):
         # WARNING - this test will fail next year(!)
-        self.assertEquals(convert_two_digit_to_four_digit_year(99, '2012'), 1999)
-        self.assertEquals(convert_two_digit_to_four_digit_year(13, '2012'), 1913)
-        self.assertEquals(convert_two_digit_to_four_digit_year(12, '2012'), 2012) # will break next year
-        self.assertEquals(convert_two_digit_to_four_digit_year(11, '2012'), 2011)
-        self.assertEquals(convert_two_digit_to_four_digit_year(1, '2012'), 2001)
+        self.assertEqual(convert_two_digit_to_four_digit_year(99, '2012'), 1999)
+        self.assertEqual(convert_two_digit_to_four_digit_year(13, '2012'), 1913)
+        self.assertEqual(convert_two_digit_to_four_digit_year(12, '2012'), 2012) # will break next year
+        self.assertEqual(convert_two_digit_to_four_digit_year(11, '2012'), 2011)
+        self.assertEqual(convert_two_digit_to_four_digit_year(1, '2012'), 2001)
 
 
 class TestCoReg(unittest.TestCase):
@@ -2834,6 +2836,12 @@ class TestFindEdgesOnStateChange(unittest.TestCase):
                     'Down', gear_down, change='entering', phase=[slice(0, touchdown.index)], min_samples=1)
         self.assertEqual(gear_down_indexes, [3.5, 6.5, 11.5, 19.5, 25.5])
 
+    def test_slices_with_offset(self):
+        multi = self.Switch(array=np.ma.array([0,0,1,1,0,0,1,1,0,0]))
+        slices_ = [slice(2.9, 8.9)]
+        edges = find_edges_on_state_change('on', multi.array, phase=slices_)
+        expected = [5.5]
+        self.assertEqual(edges, expected)
 
 class TestFindTocTod(unittest.TestCase):
     def test_find_tod_with_smoothed_data(self):
@@ -2963,7 +2971,7 @@ class TestFirstOrderLag(unittest.TestCase):
         result = first_order_lag (array, 1.0, 1.0, gain = 10.0)
         # With a short time constant and more samples, the end result will
         # reach the input level (1.0) multiplied by the gain.
-        self.assertAlmostEquals(result.data[-1], 10.0)
+        self.assertAlmostEqual(result.data[-1], 10.0)
 
     def test_firstorderlag_stability_check(self):
         array = np.ma.ones(4)
@@ -3023,7 +3031,7 @@ class TestFirstOrderWashout(unittest.TestCase):
                                       initial_value = 0.0)
         # With a short time constant and more samples, the end result will
         # reach the input level (1.0) multiplied by the gain.
-        self.assertAlmostEquals(result.data[0], 6.6666667)
+        self.assertAlmostEqual(result.data[0], 6.6666667)
 
     def test_firstorderwashout_stability_check(self):
         array = np.ma.ones(4)
@@ -3253,7 +3261,7 @@ class TestGroundTrackPrecise(unittest.TestCase):
                                           1.0)
         self.assertLess(np.min(la), -.0002)
         self.assertGreater(np.max(la), +0.002)
-        self.assertAlmostEquals(np.min(lo), 0.0)
+        self.assertAlmostEqual(np.min(lo), 0.0)
         self.assertGreater(np.max(lo), -.001)
 
     def test_ppgt_dublin(self):
@@ -3442,32 +3450,32 @@ class TestIndexAtValue(unittest.TestCase):
 
     def test_index_at_value_basic(self):
         array = np.ma.arange(4)
-        self.assertEquals(index_at_value(array, 1.5, slice(0, 3)), 1.5)
+        self.assertEqual(index_at_value(array, 1.5, slice(0, 3)), 1.5)
 
     def test_index_at_value_no_slice(self):
         array = np.ma.arange(4)
-        self.assertEquals(index_at_value(array, 1.5), 1.5)
-        self.assertEquals(index_at_value(array, 1.5, slice(None, None, None)), 1.5)
+        self.assertEqual(index_at_value(array, 1.5), 1.5)
+        self.assertEqual(index_at_value(array, 1.5, slice(None, None, None)), 1.5)
 
     def test_index_at_value_backwards(self):
         array = np.ma.arange(8)
-        self.assertEquals(index_at_value(array, 3.2, slice(6, 2, -1)), 3.2)
+        self.assertEqual(index_at_value(array, 3.2, slice(6, 2, -1)), 3.2)
 
     def test_index_at_value_backwards_with_negative_values_a(self):
         array = np.ma.arange(8)*(-1.0)
-        self.assertEquals(index_at_value(array, -3.2, slice(6, 2, -1)), 3.2)
+        self.assertEqual(index_at_value(array, -3.2, slice(6, 2, -1)), 3.2)
 
     def test_index_at_value_backwards_with_negative_values_b(self):
         array = np.ma.arange(8)-10
-        self.assertEquals(index_at_value(array, -5.2, slice(6, 2, -1)), 4.8)
+        self.assertEqual(index_at_value(array, -5.2, slice(6, 2, -1)), 4.8)
 
     def test_index_at_value_right_at_start(self):
         array = np.ma.arange(4)
-        self.assertEquals(index_at_value(array, 1.0, slice(1, 3)), 1.0)
+        self.assertEqual(index_at_value(array, 1.0, slice(1, 3)), 1.0)
 
     def test_index_at_value_right_at_end(self):
         array = np.ma.arange(4)
-        self.assertEquals(index_at_value(array, 3.0, slice(1, 4)), 3.0)
+        self.assertEqual(index_at_value(array, 3.0, slice(1, 4)), 3.0)
 
     #==================================================================
     # Indexing from the end of the array results in an array length
@@ -3475,43 +3483,43 @@ class TestIndexAtValue(unittest.TestCase):
     # with array[:end:-1] construct, but using slices appears insoluble.
     def test_index_at_value_backwards_from_end_minus_one(self):
         array = np.ma.arange(8)
-        self.assertEquals(index_at_value(array, 7, slice(8, 3, -1)), 7)
+        self.assertEqual(index_at_value(array, 7, slice(8, 3, -1)), 7)
     #==================================================================
 
     def test_index_at_value_backwards_to_start(self):
         array = np.ma.arange(8)
-        self.assertEquals(index_at_value(array, 0, slice(5, 0, -1)), 0)
+        self.assertEqual(index_at_value(array, 0, slice(5, 0, -1)), 0)
 
     def test_index_at_value_backwards_floating_point_end(self):
         array = np.ma.arange(4)
-        self.assertEquals(index_at_value(array, 1.0, slice(3.4, 0.5, -1)), 1.0)
+        self.assertEqual(index_at_value(array, 1.0, slice(3.4, 0.5, -1)), 1.0)
 
     def test_index_at_value_forwards_floating_point_end(self):
         array = np.ma.arange(4)
-        self.assertEquals(index_at_value(array, 3.0, slice(0.6, 3.5)), 3.0)
+        self.assertEqual(index_at_value(array, 3.0, slice(0.6, 3.5)), 3.0)
 
     def test_index_at_value_threshold_not_crossed(self):
         array = np.ma.arange(4)
-        self.assertEquals(index_at_value(array, 7.5, slice(0, 3)), None)
+        self.assertEqual(index_at_value(array, 7.5, slice(0, 3)), None)
 
     def test_index_at_value_threshold_closing(self):
         array = np.ma.arange(4)
-        self.assertEquals(index_at_value(array, 99, slice(1, None), endpoint='closing'), 3)
+        self.assertEqual(index_at_value(array, 99, slice(1, None), endpoint='closing'), 3)
 
     def test_index_at_value_threshold_closing_backwards(self):
         array = 6-np.ma.arange(6)
         # array [6,5,4,3,2,1] with slice(None, 4, -1) = [1] which is index 5.
-        self.assertEquals(index_at_value(array, 99, slice(None, 4, -1), endpoint='closing'), 5)
+        self.assertEqual(index_at_value(array, 99, slice(None, 4, -1), endpoint='closing'), 5)
 
     def test_index_at_value_masked(self):
         array = np.ma.arange(4)
         array[1] = np.ma.masked
-        self.assertEquals(index_at_value(array, 1.5, slice(0, 3)), None)
+        self.assertEqual(index_at_value(array, 1.5, slice(0, 3)), None)
 
     def test_index_at_value_nan(self):
         array = np.ma.arange(4, dtype=np.float64)
         array[1] = np.NaN
-        self.assertEquals(index_at_value(array, 1.5, slice(0, 3)), None)
+        self.assertEqual(index_at_value(array, 1.5, slice(0, 3)), None)
 
     def test_index_at_value_slice_too_small(self):
         '''
@@ -3550,19 +3558,19 @@ class TestIndexAtValue(unittest.TestCase):
 
     def test_index_at_value_nearest(self):
         array = np.ma.array([0,1,2,1,2,3,2,1])
-        self.assertEquals(index_at_value(array, 3.1, slice(1, 8), endpoint='nearest'), 5.0)
+        self.assertEqual(index_at_value(array, 3.1, slice(1, 8), endpoint='nearest'), 5.0)
         # For comparison...
-        self.assertEquals(index_at_value(array, 3.1, slice(1, 8), endpoint='exact'), None)
-        self.assertEquals(index_at_value(array, 3.1, slice(1, 8), endpoint='closing'), 2.0)
+        self.assertEqual(index_at_value(array, 3.1, slice(1, 8), endpoint='exact'), None)
+        self.assertEqual(index_at_value(array, 3.1, slice(1, 8), endpoint='closing'), 2.0)
 
     def test_index_at_value_closing(self):
         array = np.ma.array([0,1,2,2,2,2,2,2])
-        self.assertEquals(index_at_value(array, 3.1, slice(0, 8), endpoint='first_closing'), 2)
-        self.assertEquals(index_at_value(array, 3.1, slice(0, 8), endpoint='closing'), 7)
+        self.assertEqual(index_at_value(array, 3.1, slice(0, 8), endpoint='first_closing'), 2)
+        self.assertEqual(index_at_value(array, 3.1, slice(0, 8), endpoint='closing'), 7)
 
     def test_index_at_value_nearest_backwards(self):
         array = np.ma.array([0,1,2,3,2,1,2,1])
-        self.assertEquals(index_at_value(array, 3.1, slice(7, 0, -1), endpoint='nearest'), 3.0)
+        self.assertEqual(index_at_value(array, 3.1, slice(7, 0, -1), endpoint='nearest'), 3.0)
 
     def test_index_at_value_all_masked(self):
         array = np.ma.array(data=[1.,2.,3.],mask=[1,1,1])
@@ -5100,54 +5108,83 @@ class TestOffsetSelect(unittest.TestCase):
 
 class TestOverflowCorrection(unittest.TestCase):
     '''
-    Overflow correction is applied in two stages, once in validation and
-    once in derived parameters, hence the double call, first without fast
-    and then with.
+    This is applied to rad alt signals only during cleansing
     '''
+    def test_overflow_correction_basic(self):
+        air_slices = [slice(30, 100)]
+        alt = [0]*30 + \
+            list(range(0, 2000, 100)) + \
+            [2000]*30 + \
+            list(range(2000, 0, -100))+ \
+            [0]*30
+        hide = [0]*10 + [1]*10 + [0]*31 + [1]*9 + [0]*10 + [1]*10 + \
+            [0]*30 + [1]*10 + [0]*10
+        rad_alt = np.ma.array(data=alt, mask=hide, dtype=np.float)
+        rad_alt = np.ma.mod(rad_alt, 1024)
+        save_rad_alt = np.ma.copy(rad_alt)
+
+        # Check of core correction process
+        alt_radio = P('Altitude Radio (A)', rad_alt, frequency=0.25)
+        result = overflow_correction(alt_radio.array, alt_radio, air_slices)
+        self.assertEqual(result[50], 2000.0)
+        self.assertTrue(np.ma.is_masked(result[65]))
+
+        # To ensure cruise peak to peak condition is satisfied from now onwards
+        save_rad_alt[62] += 25
+
+        # Shifted data at takeoff
+        rad_alt = np.ma.copy(save_rad_alt)
+        rad_alt[18:52] += 2048
+        alt_radio = P('Altitude Radio (A)', rad_alt, frequency=0.25)
+        result = overflow_correction(alt_radio.array, alt_radio, air_slices)
+        self.assertEqual(result[31], 100.0)
+
+        # Shifted data at landing
+        rad_alt = np.ma.copy(save_rad_alt)
+        rad_alt[78:112] += 4096
+        alt_radio = P('Altitude Radio (A)', rad_alt, frequency=0.25)
+        result = overflow_correction(alt_radio.array, alt_radio, air_slices)
+        self.assertEqual(result[99], 100.0)
+
+        # Shifted data in cruise
+        rad_alt = np.ma.copy(save_rad_alt)
+        rad_alt[54:78] -= 1024
+        alt_radio = P('Altitude Radio (A)', rad_alt, frequency=0.25)
+        result = overflow_correction(alt_radio.array, alt_radio, air_slices)
+        self.assertEqual(result[65], 2000.0)
+
+
     def test_overflow_correction_a320(self):
-        fast = S(items=[Section('Fast', slice(336, 5397), 336, 5397),
-                        Section('Fast', slice(5859, 11520), 5859, 11520)])
+        air_slices = [slice(336, 5397), slice(5859, 11520)]
         radioA = load(os.path.join(
             test_data_path, 'A320_Altitude_Radio_A_overflow.nod'))
-        alt_baro = np.ma.concatenate([
-            np.zeros(346),
-            np.arange(0, 10000, 60),
-            np.ones(4622) * 10000,
-            np.arange(10000, 0, -40),
-            np.zeros(488),
-            np.arange(0, 10000, 60),
-            np.ones(5220) * 10000,
-            np.arange(10000, 0, -40),
-            np.zeros(170)])
-
-        first_pass = overflow_correction(radioA.array, None, None)
-        resA = overflow_correction(first_pass, alt_baro, fast)
+        for n in [371, 5092, 5298, 5894, 11240, 11452]:
+            radioA.array.mask[n] = False
+        resA = overflow_correction(radioA.array, radioA, air_slices)
         sects = np.ma.clump_unmasked(resA)
-        self.assertEqual(len(sects), 4)
+        self.assertEqual(len(sects), 5)
         self.assertGreater(resA.max(), 5000)
         self.assertEqual(resA.min(), -2)
 
         radioB = load(os.path.join(
             test_data_path, 'A320_Altitude_Radio_B_overflow.nod'))
-        first_pass = overflow_correction(radioB.array, None, None)
-        resB = overflow_correction(first_pass, alt_baro, fast)
+        for n in range(433, 447):
+            radioB.array.mask[n] = False
+        for n in [371, 435, 446, 5296, 5297, 5893, 11317, 11451]:
+            radioB.array.mask[n] = False
+        resB = overflow_correction(radioB.array, radioB, air_slices)
         sects = np.ma.clump_unmasked(resB)
-        self.assertEqual(len(sects), 5)
+        self.assertEqual(len(sects), 4)
         self.assertGreater(resB.max(), 5000)
         self.assertEqual(resB.min(), -2)
 
     def test_overflow_correction_a340(self):
-        fast = S(items=[Section('Fast', slice(2000, 6500), 2000, 6500)])
+        air_slices = [slice(1020, 34400)]
         radioA = load(os.path.join(
             test_data_path, 'A340_Altitude_Radio_A_overflow.nod'))
-        alt_baro = np.ma.concatenate([
-            np.zeros(2292),
-            np.arange(0, 10000, 60),
-            np.ones(3640) * 10000,
-            np.arange(10000, 0, -40),
-            np.zeros(275)]).astype(np.float64)
-        first_pass = overflow_correction(radioA.array, None, None)
-        resA = overflow_correction(first_pass, alt_baro, fast)
+        for n in [2349, 2350, 6148, 6149]:
+            radioA.array.mask[n] = False
+        resA = overflow_correction(radioA.array, radioA, air_slices)
         sects = np.ma.clump_unmasked(resA)
         # 1 section for climb, one for descent
         self.assertEqual(len(sects), 2)
@@ -5156,10 +5193,12 @@ class TestOverflowCorrection(unittest.TestCase):
 
         radioB = load(os.path.join(
             test_data_path, 'A340_Altitude_Radio_B_overflow.nod'))
-        first_pass = overflow_correction(radioB.array, None, None)
-        resB = overflow_correction(first_pass, alt_baro, fast)
+        for n in [2349, 2350, 6147, 6148]:
+            radioB.array.mask[n] = False
+        resB = overflow_correction(radioB.array, radioB, air_slices)
         sects = np.ma.clump_unmasked(resB)
         # 1 section for climb, one for descent
+        # - and a third covers the ARINC429 data which is no longer masked
         self.assertEqual(len(sects), 2)
         self.assertGreater(resB.max(), 7500)
         self.assertEqual(resB.min(), 0)
@@ -5170,7 +5209,7 @@ class TestOverflowCorrectionArray(unittest.TestCase):
     '''
     def test_mask_retention(self):
         array = np.ma.array(data=[5]*10, mask=[0]*3 + [1]*4 + [0]*3)
-        result = overflow_correction_array(array)
+        result = overflow_correction_array(array, 1024.0)
         self.assertEqual(result.mask[5], True)
 
     @unittest.skip('This is effectively a data spike which should be handled elsewhere')
@@ -5191,6 +5230,20 @@ class TestOverflowCorrectionArray(unittest.TestCase):
                                           np.ma.array(data=array.data,
                                                       mask=expected_mask)
                                           )
+
+    def test_level_changes(self):
+        '''
+        Data from actual flight case
+        '''
+        array = np.ma.zeros(20500)
+        indexes = [1001, 1085, 9413, 15230, 20079, 20108, 20306]
+        jumps = [-4086.0, -4032.0, 1029.0, -2955.0, 1895.0, 4010.0, 4063.0]
+        for n, index in enumerate(indexes):
+            array[index] = -jumps[n]
+        array = np.ma.cumsum(array)
+        result = overflow_correction_array(array, 1024.0)
+        # Overflow correction errors result in a final value around -4000, so anything positive is fine.
+        self.assertGreater(result[-1], 0.0)
 
 
 class TestPeakCurvature(unittest.TestCase):
@@ -7521,9 +7574,9 @@ class TestSmoothTrack(unittest.TestCase):
         lon = np.ma.arange(10000, dtype=float)
         lon = lon%27
         lat = np.ma.zeros(10000, dtype=float)
-        start = clock()
+        start = process_time()
         lat_s, lon_s, cost = smooth_track(lat, lon, None, 0.25)
-        end = clock()
+        end = process_time()
         self.assertLess(end-start, 1.0)
 
 
@@ -7730,41 +7783,41 @@ class TestValueAtTime(unittest.TestCase):
 
     def test_value_at_time_basic(self):
         array = np.ma.arange(4)
-        self.assertEquals (value_at_time(array, 1, 0.0, 2.5), 2.5)
+        self.assertEqual (value_at_time(array, 1, 0.0, 2.5), 2.5)
 
     def test_value_at_time_right_at_start_of_data(self):
         array = np.ma.arange(4) + 22.3
-        self.assertEquals (value_at_time(array, 1, 0.0, 0.0), 22.3)
+        self.assertEqual (value_at_time(array, 1, 0.0, 0.0), 22.3)
 
     def test_value_at_time_right_at_end_of_data(self):
         array = np.ma.arange(4) + 22.3
-        self.assertEquals (value_at_time(array, 1.0, 0.0, 3.0), 25.3)
+        self.assertEqual (value_at_time(array, 1.0, 0.0, 3.0), 25.3)
 
     def test_value_at_time_assertion_just_below_range(self):
         array = np.ma.arange(4)+7.0
         # Note: Frequency and offset selected to go more than one sample period below bottom of range.
-        self.assertEquals (value_at_time(array, 1, 0.1, 0.0), 7.0)
+        self.assertEqual (value_at_time(array, 1, 0.1, 0.0), 7.0)
 
     def test_value_at_time_with_lower_value_masked(self):
         array = np.ma.arange(4) + 7.4
         array[1] = np.ma.masked
-        self.assertEquals (value_at_time(array, 2.0, 0.2, 1.0), 9.4)
+        self.assertEqual (value_at_time(array, 2.0, 0.2, 1.0), 9.4)
 
     def test_value_at_time_with_higher_value_masked(self):
         array = np.ma.arange(4) + 7.4
         array[2] = np.ma.masked
-        self.assertEquals (value_at_time(array, 2.0, 0.2, 1.0), 8.4)
+        self.assertEqual (value_at_time(array, 2.0, 0.2, 1.0), 8.4)
 
     def test_value_at_time_with_neither_value_masked(self):
         array = np.ma.arange(4) + 7.4
         array[3] = np.ma.masked
-        self.assertEquals (value_at_time(array, 2.0, 0.2, 1.0), 9.0)
+        self.assertEqual (value_at_time(array, 2.0, 0.2, 1.0), 9.0)
 
     def test_value_at_time_with_both_values_masked(self):
         array = np.ma.arange(4) + 7.4
         array[1] = np.ma.masked
         array[2] = np.ma.masked
-        self.assertEquals (value_at_time(array, 2.0, 0.2, 1.0), None)
+        self.assertEqual (value_at_time(array, 2.0, 0.2, 1.0), None)
 
 
 class TestValueAtDatetime(unittest.TestCase):
@@ -7791,43 +7844,43 @@ class TestValueAtIndex(unittest.TestCase):
 
     def test_value_at_index_basic(self):
         array = np.ma.arange(4)
-        self.assertEquals(value_at_index(array, 1.5), 1.5)
+        self.assertEqual(value_at_index(array, 1.5), 1.5)
 
     def test_value_at_index_basic_list(self):
         array = list(range(4))
-        self.assertEquals(value_at_index(array, 1.5), 1.5)
+        self.assertEqual(value_at_index(array, 1.5), 1.5)
 
     def test_value_at_index_just_above_range(self):
         array = np.ma.arange(4)
-        self.assertEquals(value_at_index(array, 3.7), 3.0)
+        self.assertEqual(value_at_index(array, 3.7), 3.0)
 
     def test_value_at_index_just_below_range(self):
         array = np.ma.arange(4)
-        self.assertEquals(value_at_index(array, -0.5), 0.0)
+        self.assertEqual(value_at_index(array, -0.5), 0.0)
 
     def test_value_at_index_masked(self):
         array = np.ma.arange(4)
         array[2] = np.ma.masked
-        self.assertEquals(value_at_index(array, 2), None)
+        self.assertEqual(value_at_index(array, 2), None)
 
     def test_value_at_index_non_interpolated(self):
         array = np.ma.arange(4)
         for x in (2.00, 2.25):
-            self.assertEquals(value_at_index(array, x, interpolate=False), 2)
+            self.assertEqual(value_at_index(array, x, interpolate=False), 2)
         for x in (2.50, 2.75, 3.00):
-            self.assertEquals(value_at_index(array, x, interpolate=False), 3)
+            self.assertEqual(value_at_index(array, x, interpolate=False), 3)
 
     def test_value_at_index_masked_non_interpolated(self):
         array = np.ma.arange(4)
         array[2] = np.ma.masked
         for x in (2.00, 2.25, 2.50, 2.75, 3.00):
             expected = None if x == 2.00 else 3
-            self.assertEquals(value_at_index(array, x, interpolate=False), expected)
+            self.assertEqual(value_at_index(array, x, interpolate=False), expected)
         array = np.ma.arange(4)
         array[3] = np.ma.masked
         for x in (2.00, 2.25, 2.50, 2.75, 3.00):
             expected = None if x == 3.00 else 2
-            self.assertEquals(value_at_index(array, x, interpolate=False), expected)
+            self.assertEqual(value_at_index(array, x, interpolate=False), expected)
 
 
 class TestVstackParams(unittest.TestCase):
@@ -7996,7 +8049,7 @@ class TestCas2Dp(unittest.TestCase):
 class TestCasAlt2Mach(unittest.TestCase):
     def test_cas_alt2mach(self):
         cas = np.ma.array(data=[300.0, 300, 300, 300], mask=[0,1,0,0])
-        alt_ft = np.ma.array(data=[0, 0, 0,30000.0], mask = [0,0,1,0])
+        alt_ft = np.ma.array(data=[0, 0, 0, 30000.0], mask=[0,0,1,0])
         result = cas_alt2mach(cas, alt_ft)
         expected = np.ma.array(data=[0.4535, 99, 99, 0.79],mask=[0,1,1,0])
         ma_test.assert_masked_array_approx_equal(result[:3], expected[:3], decimal=4)
@@ -8377,7 +8430,7 @@ class TestNearestRunway(unittest.TestCase):
     Tests for Nearest Runway
     '''
     airports = yaml.load(open(os.path.join(test_data_path, 'airports.yaml'), 'rb'),
-                         Loader=yaml.FullLoader)
+                         Loader=yaml.Loader)
     _airports = airports['airports']
     _expected = {
         '001': {
@@ -8593,7 +8646,7 @@ class TestNearestRunway(unittest.TestCase):
         '''
         Test finding nearest runway with invalid magnetic heading.
         '''
-        self.assertRaisesRegexp(Exception,
+        self.assertRaisesRegex(Exception,
                                 self._expected['008'],
                                 callableObj=nearest_runway, args=[self._airports['001'], 'ABC'])
 
@@ -8601,7 +8654,7 @@ class TestNearestRunway(unittest.TestCase):
         '''
         Test finding nearest runway with positive overflowed magnetic heading.
         '''
-        self.assertRaisesRegexp(Exception,
+        self.assertRaisesRegex(Exception,
                                 self._expected['008'],
                                 callableObj=nearest_runway, args=[self._airports['001'], 361])
 
@@ -8609,7 +8662,7 @@ class TestNearestRunway(unittest.TestCase):
         '''
         Test finding nearest runway with negative overflowed magnetic heading.
         '''
-        self.assertRaisesRegexp(Exception,
+        self.assertRaisesRegex(Exception,
                                 self._expected['008'],
                                 callableObj=nearest_runway, args=[self._airports['001'], -1])
 
@@ -8617,7 +8670,7 @@ class TestNearestRunway(unittest.TestCase):
         '''
         Test finding nearest runway without a magnetic heading.
         '''
-        self.assertRaisesRegexp(Exception,
+        self.assertRaisesRegex(Exception,
                                 self._expected['006'],
                                 callableObj=nearest_runway, args=[self._airports['001'], None])
 
@@ -8632,7 +8685,7 @@ class TestNearestRunway(unittest.TestCase):
         '''
         Test finding nearest runway with invalid latitude.
         '''
-        self.assertRaisesRegexp(Exception,
+        self.assertRaisesRegex(Exception,
                                 self._expected['010'],
                                 callableObj=nearest_runway,
                                 args=[self._airports['001'], 270.5],
@@ -8642,7 +8695,7 @@ class TestNearestRunway(unittest.TestCase):
         '''
         Test finding nearest runway with positive overflowed latitude.
         '''
-        self.assertRaisesRegexp(Exception,
+        self.assertRaisesRegex(Exception,
                                 self._expected['012'],
                                 callableObj=nearest_runway,
                                 args=[self._airports['001'], 270.5],
@@ -8652,7 +8705,7 @@ class TestNearestRunway(unittest.TestCase):
         '''
         Test finding nearest runway with negative overflowed latitude.
         '''
-        self.assertRaisesRegexp(Exception,
+        self.assertRaisesRegex(Exception,
                                 self._expected['012'],
                                 callableObj=nearest_runway,
                                 args=[self._airports['001'], 270.5],
@@ -8662,7 +8715,7 @@ class TestNearestRunway(unittest.TestCase):
         '''
         Test finding nearest runway with invalid longitude.
         '''
-        self.assertRaisesRegexp(Exception,
+        self.assertRaisesRegex(Exception,
                                 self._expected['011'],
                                 callableObj=nearest_runway,
                                 args=[self._airports['001'], 270.5],
@@ -8672,7 +8725,7 @@ class TestNearestRunway(unittest.TestCase):
         '''
         Test finding nearest runway with positive overflowed longitude.
         '''
-        self.assertRaisesRegexp(Exception,
+        self.assertRaisesRegex(Exception,
                                 self._expected['013'],
                                 callableObj=nearest_runway,
                                 args=[self._airports['001'], 270.5],
@@ -8682,7 +8735,7 @@ class TestNearestRunway(unittest.TestCase):
         '''
         Test finding nearest runway with negative overflowed longitude.
         '''
-        self.assertRaisesRegexp(Exception,
+        self.assertRaisesRegex(Exception,
                                 self._expected['013'],
                                 callableObj=nearest_runway,
                                 args=[self._airports['001'], 270.5],
@@ -8692,7 +8745,7 @@ class TestNearestRunway(unittest.TestCase):
         '''
         Test finding nearest runway with one coordinate.
         '''
-        self.assertRaisesRegexp(Exception,
+        self.assertRaisesRegex(Exception,
                                 self._expected['009'],
                                 callableObj=nearest_runway,
                                 args=[self._airports['001'], 270.5],
@@ -8702,7 +8755,7 @@ class TestNearestRunway(unittest.TestCase):
         '''
         Test finding nearest runway with unknown magnetic heading.
         '''
-        self.assertRaisesRegexp(Exception,
+        self.assertRaisesRegex(Exception,
                                 self._expected['014'] % 180.0,
                                 callableObj=nearest_runway,
                                 args=[self._airports['001'], 180.0],
@@ -8726,7 +8779,7 @@ class TestNearestRunway(unittest.TestCase):
         '''
         Test finding nearest runway with invalid localizer frequency.
         '''
-        self.assertRaisesRegexp(Exception,
+        self.assertRaisesRegex(Exception,
                                 self._expected['015'],
                                 callableObj=nearest_runway,
                                 args=[self._airports['001'], 270.5],
@@ -8736,7 +8789,7 @@ class TestNearestRunway(unittest.TestCase):
         '''
         Test finding nearest runway with out-of-range localizer frequency.
         '''
-        self.assertRaisesRegexp(Exception,
+        self.assertRaisesRegex(Exception,
                                 self._expected['016'],
                                 callableObj=nearest_runway,
                                 args=[self._airports['001'], 270.5],
@@ -8746,7 +8799,7 @@ class TestNearestRunway(unittest.TestCase):
         '''
         Test finding nearest runway with out-of-range localizer frequency.
         '''
-        self.assertRaisesRegexp(Exception,
+        self.assertRaisesRegex(Exception,
                                 self._expected['016'],
                                 callableObj=nearest_runway,
                                 args=[self._airports['001'], 270.5],
@@ -8838,34 +8891,34 @@ class TestMaxMaintainedValue(unittest.TestCase):
     def test_example_max_maintained_value(self):
         arrays = np.ma.array([1,2,3,4,3,4,3,4,3,2,5,2])
         index, value = max_maintained_value(arrays, 5, 1)
-        self.assertEquals(index, 2)
-        self.assertEquals(value, 3)
+        self.assertEqual(index, 2)
+        self.assertEqual(value, 3)
 
     def test_short_down_spike(self):
         arrays = np.ma.array([1, 8, 8, 8, 1, 8, 1, 7, 7, 7, 7, 7, 9])
         index, value = max_maintained_value(arrays, 5, 1)
-        self.assertEquals(index, 7)
-        self.assertEquals(value, 7)
+        self.assertEqual(index, 7)
+        self.assertEqual(value, 7)
 
     def test_all_masked(self):
         arrays = np.ma.array([1, 8, 8, 8, 1, 8, 1, 7, 7, 7, 7, 7, 9], mask=True)
         index, value = max_maintained_value(arrays, 5, 1)
-        self.assertEquals(index, None)
-        self.assertEquals(value, None)
+        self.assertEqual(index, None)
+        self.assertEqual(value, None)
 
     def test_partly_masked(self):
         arrays = np.ma.array([1, 7, 7, 7, 7, 7, 9, 1, 8, 8, 8, 1, 8])
         arrays[1:3] = np.ma.masked
         index, value = max_maintained_value(arrays, 5, 1)
-        self.assertEquals(index, 3)
-        self.assertEquals(value, 1)
+        self.assertEqual(index, 3)
+        self.assertEqual(value, 1)
 
     def test_slice_outside_array(self):
         arrays = np.ma.array([1,2,3,4,3,4,3,4,3,2,5,2])
         arrays[2] = np.ma.masked
         index, value = max_maintained_value(arrays, 5, 1, slice(100, 200))
-        self.assertEquals(index, None)
-        self.assertEquals(value, None)
+        self.assertEqual(index, None)
+        self.assertEqual(value, None)
 
     def test_max_maintained_value(self):
         eng_torq_max=load(os.path.join(test_data_path,
@@ -8883,3 +8936,86 @@ class TestMaxMaintainedValue(unittest.TestCase):
             index, value = max_maintained_value(eng_torq_max.array, sec, hz, phase)
             self.assertAlmostEqual(index, idx, places=0)
             self.assertAlmostEqual(value, val, places=3)
+
+
+class TestFindClimbCruiseDescent(unittest.TestCase):
+    def test_climb_cruise_descent_start_midflight(self):
+        # This test will find out if we can separate the two humps on this camel
+        testwave = np.ma.concatenate((np.ones(5) * 15000, np.arange(15000, 1000, -1000)))
+        camel = find_climb_cruise_descent(testwave)
+        self.assertEqual(len(camel), 1)
+        self.assertEqual(camel[0], slice(None, 18))
+
+    def test_climb_cruise_descent_end_midflight(self):
+        # This test will find out if we can separate the two humps on this camel
+        testwave = np.ma.concatenate((np.arange(1000,15000,1000), np.ones(5) * 15000))
+        camel = find_climb_cruise_descent(testwave)
+        self.assertEqual(len(camel), 1)
+        self.assertEqual(camel[0], slice(0, None))
+
+    def test_climb_cruise_descent_all_high(self):
+        # This test will find out if we can separate the two humps on this camel
+        testwave = np.ma.ones(5) * 15000
+        camel = find_climb_cruise_descent(testwave)
+        self.assertEqual(len(camel), 0)
+
+    def test_climb_cruise_descent_one_humps(self):
+        # This test will find out if we can separate the two humps on this camel
+        testwave = np.ma.cos(np.arange(0, 3.14 * 2, 0.1)) * -3000 + 12500
+        camel = find_climb_cruise_descent(testwave)
+        self.assertEqual(len(camel), 1)
+        self.assertEqual(camel[0], slice(0, len(testwave)-1))
+
+    def test_climb_cruise_descent_two_humps(self):
+        # This test will find out if we can separate the two humps on this camel
+        testwave = np.ma.cos(np.arange(0, 3.14 * 4, 0.1)) * -3000 + 12500
+        camel = find_climb_cruise_descent(testwave)
+        self.assertEqual(len(camel), 2)
+        self.assertEqual(camel[0], slice(0, 63))
+        self.assertEqual(camel[1], slice(63, 125))
+
+    def test_climb_cruise_descent_three_humps(self):
+        # This test will find out if we can separate the two humps on this camel
+        testwave = np.ma.cos(np.arange(0, 3.14 * 6, 0.1)) * (-3000) + 12500
+        camel = find_climb_cruise_descent(testwave)
+        self.assertEqual(len(camel), 3)
+        self.assertEqual(camel[0], slice(0, 63))
+        self.assertEqual(camel[1], slice(63, 126))
+        self.assertEqual(camel[2], slice(126, 188))
+
+    def test_climb_cruise_descent_masked(self):
+        # This test will find out if we can separate the two humps on this camel
+        testwave = np.ma.cos(np.arange(0, 3.14 * 6, 0.1)) * (-3000) + 12500
+        testwave[63:125] = np.ma.masked
+        camel = find_climb_cruise_descent(testwave)
+        self.assertEqual(len(camel), 2)
+        self.assertEqual(camel[0], slice(0, 126))
+        self.assertEqual(camel[1], slice(126, 188))
+
+    def test_climb_cruise_descent_repair_mask(self):
+        # If the Altitude STD mask isn't repaired, a spurious cycle is reported
+        # by cycle_finder which results in an infinite loop.
+        camel = find_climb_cruise_descent(
+            load_compressed(
+                os.path.join(test_data_path, 'climb_cruise_descent_alt_std.npz')
+            )
+        )
+        self.assertEqual(len(camel), 1)
+
+
+class TestMaintainAltitude(unittest.TestCase):
+    def test_stay_within_50_ft(self):
+        altitude = np.ma.concatenate((
+            np.ma.arange(1000, 2000, 100),
+            np.ones(30) * 2000,
+            np.ma.arange(2000, 3000, 100),
+        ))
+        target = np.ma.ones(50) * 2000
+        distance = altitude - target
+        self.assertTrue(maintain_altitude(distance))
+
+    def test_fly_through_target(self):
+        altitude = np.ma.arange(1000, 4000, 100)
+        target = np.ma.ones(30) * 2000
+        distance = altitude - target
+        self.assertFalse(maintain_altitude(distance))

@@ -16,7 +16,7 @@ test_data_path = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), 'test_data')
 approaches_path = os.path.join(test_data_path, 'approaches')
 
-airports = yaml.load(open(os.path.join(test_data_path, 'airports.yaml'), 'rb'))
+airports = yaml.load(open(os.path.join(test_data_path, 'airports.yaml'), 'rb'), Loader=yaml.FullLoader)
 
 
 class TestIsHeliport(unittest.TestCase):

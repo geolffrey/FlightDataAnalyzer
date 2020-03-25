@@ -420,6 +420,7 @@ class TestClimbThrustDerateDeselected(unittest.TestCase):
         ac_family = A('Family', 'B787')
         expected = ('AT Climb 1 Derate', 'AT Climb 2 Derate')
         self.assertTrue(ClimbThrustDerateDeselected.can_operate(expected, ac_family=ac_family))
+        self.assertFalse(ClimbThrustDerateDeselected.can_operate(expected, ac_family=None))
 
     def test_derive_basic(self):
         values_mapping = {0: 'Not Latched', 1: 'Latched'}
@@ -1012,11 +1013,7 @@ class TestOffshoreTouchdown(unittest.TestCase, NodeTest):
         self.operational_combinations = [('Touchdown', 'Offshore')]
 
     def test_derived(self):
-        offshore = M(
-            name='Offshore',
-            array=np.ma.repeat([0,1,0,1,1,0,1,0,0], 10),
-            values_mapping={0: 'Onshore', 1: 'Offshore'},
-        )
+        offshore = buildsections('Offshore', [10, 20], [30, 50], [60, 70])
         touchdown = KTI('Touchdown', items=[KeyTimeInstance(15, 'Touchdown'),
                                             KeyTimeInstance(25, 'Touchdown'),
                                             KeyTimeInstance(35, 'Touchdown'),
@@ -1042,11 +1039,7 @@ class TestOnshoreTouchdown(unittest.TestCase, NodeTest):
         self.operational_combinations = [('Touchdown', 'Offshore')]
 
     def test_derived(self):
-        offshore = M(
-            name='Offshore',
-            array=np.ma.repeat([0,1,0,1,1,0,1,0,0], 10),
-            values_mapping={0: 'Onshore', 1: 'Offshore'},
-        )
+        offshore = buildsections('Offshore', [10, 20], [30, 50], [60, 70])
         touchdown = KTI('Touchdown', items=[KeyTimeInstance(15, 'Touchdown'),
                                             KeyTimeInstance(25, 'Touchdown'),
                                             KeyTimeInstance(35, 'Touchdown'),

@@ -13,6 +13,7 @@ from analysis_engine.library import (
     clump_multistate,
     cycle_finder,
     is_index_within_slice,
+    is_index_within_slices,
     index_at_value,
     mask_outside_slices,
     max_abs_value,
@@ -261,11 +262,11 @@ class AirspeedAt200FtDuringOnshoreApproach(KeyPointValueNode):
     can_operate = helicopter_only
 
     def derive(self, air_spd=P('Airspeed'), alt_agl=P('Altitude AGL For Flight Phases'),
-               approaches=App('Approach Information'), offshore=M('Offshore')):
+               approaches=App('Approach Information'), offshore=S('Offshore')):
         for approach in approaches:
             # check if landed/lowest point of approach is Offshore. May trigger incorrectly
             # close to coast. Will be able to improve once we have implemented Rig locations
-            if value_at_index(offshore.array, approach.slice.stop, interpolate=False) == 'Offshore':
+            if is_index_within_slices(approach.slice.stop, offshore.get_slices()):
                 continue
 
             index = index_at_value(alt_agl.array, 200,
@@ -1826,12 +1827,16 @@ class RotorSpeedWhileAirborneMax(KeyPointValueNode):
 
     units = ut.PERCENT
 
-    can_operate = helicopter_only
+    @classmethod
+    def can_operate(cls, available, ac_type=A('Aircraft Type')):
+        return ac_type == helicopter and all_of(('Nr', 'Airborne'), available)
 
     def derive(self, nr=P('Nr'), airborne=S('Airborne'), autorotation=S('Autorotation')):
+        slices = airborne.get_slices()
+        if autorotation is not None:
+            slices = slices_and_not(slices, autorotation.get_slices())
         self.create_kpv_from_slices(nr.array,
-                                    slices_and_not(airborne.get_slices(),
-                                                  autorotation.get_slices()),
+                                    slices,
                                     max_value)
 
 
@@ -1843,12 +1848,16 @@ class RotorSpeedWhileAirborneMin(KeyPointValueNode):
 
     units = ut.PERCENT
 
-    can_operate = helicopter_only
+    @classmethod
+    def can_operate(cls, available, ac_type=A('Aircraft Type')):
+        return ac_type == helicopter and all_of(('Nr', 'Airborne'), available)
 
     def derive(self, nr=P('Nr'), airborne=S('Airborne'), autorotation=S('Autorotation')):
+        slices = airborne.get_slices()
+        if autorotation is not None:
+            slices = slices_and_not(slices, autorotation.get_slices())
         self.create_kpv_from_slices(nr.array,
-                                    slices_and_not(airborne.get_slices(),
-                                                   autorotation.get_slices()),
+                                    slices,
                                     min_value)
 
 
@@ -1892,12 +1901,16 @@ class RotorSpeedDuringMaximumContinuousPowerMin(KeyPointValueNode):
 
     units = ut.PERCENT
 
-    can_operate = helicopter_only
+    @classmethod
+    def can_operate(cls, available, ac_type=A('Aircraft Type')):
+        return ac_type == helicopter and all_of(('Nr', 'Maximum Continuous Power'), available)
 
     def derive(self, nr=P('Nr'), mcp=S('Maximum Continuous Power'), autorotation=S('Autorotation')):
+        slices = mcp.get_slices()
+        if autorotation is not None:
+            slices = slices_and_not(slices, autorotation.get_slices())
         self.create_kpv_from_slices(nr.array,
-                                    slices_and_not(mcp.get_slices(),
-                                                   autorotation.get_slices()),
+                                    slices,
                                     min_value)
 
 
@@ -2022,13 +2035,9 @@ class SATMin(KeyPointValueNode):
 
     def derive(self,
                sat=P('SAT'),
-               family=A('Family'),
                rotors_turning=S('Rotors Turning')):
 
-        if family and family.value == 'S92':
-            self.create_kpvs_within_slices(sat.array, rotors_turning, min_value)
-        else:
-            self.create_kpv(*min_value(sat.array))
+        self.create_kpvs_within_slices(sat.array, rotors_turning, min_value)
 
 
 class SATRateOfChangeMax(KeyPointValueNode):
@@ -2123,8 +2132,8 @@ class HoverHeightDuringOnshoreTakeoffMax(KeyPointValueNode):
 
     can_operate = helicopter_only
 
-    def derive(self, rad_alt=P('Altitude Radio'), offshore=M('Offshore'), hover=S('Hover'), toff=S('Takeoff')):
-        phases = slices_and(runs_of_ones(offshore.array == 'Onshore'), hover.get_slices())
+    def derive(self, rad_alt=P('Altitude Radio'), offshore=S('Offshore'), hover=S('Hover'), toff=S('Takeoff')):
+        phases = slices_and_not(hover.get_slices(), offshore.get_slices())
         for phase in phases:
             if toff.get(within_slice=phase, within_use='any'):
                 self.create_kpvs_within_slices(rad_alt.array, [phase], max_value)
@@ -2140,8 +2149,8 @@ class HoverHeightDuringOffshoreTakeoffMax(KeyPointValueNode):
 
     can_operate = helicopter_only
 
-    def derive(self, rad_alt=P('Altitude Radio'), offshore=M('Offshore'), hover=S('Hover'), toff=S('Takeoff')):
-        phases = slices_and(runs_of_ones(offshore.array == 'Offshore'), hover.get_slices())
+    def derive(self, rad_alt=P('Altitude Radio'), offshore=S('Offshore'), hover=S('Hover'), toff=S('Takeoff')):
+        phases = slices_and(hover.get_slices(), offshore.get_slices())
         for phase in phases:
             if toff.get(within_slice=phase, within_use='any'):
                 self.create_kpvs_within_slices(rad_alt.array, [phase], max_value)
@@ -2168,20 +2177,20 @@ class AltitudeRadioMinBeforeNoseDownAttitudeAdoptionOffshore(KeyPointValueNode):
                                                              'Nose Down Attitude Adoption',
                                                              'Altitude AAL For Flight Phases'), available)
 
-    def derive(self, offshores=M('Offshore'), liftoffs=KTI('Liftoff'),
+    def derive(self, offshores=S('Offshore'), liftoffs=KTI('Liftoff'),
                hovers=S('Hover'), nose_downs=S('Nose Down Attitude Adoption'),
                rad_alt=P('Altitude Radio'),
                alt_aal=P('Altitude AAL For Flight Phases')):
 
 
-        clumped_offshores = clump_multistate(offshores.array, 'Offshore')
-        masked_alt_aal = mask_outside_slices(alt_aal.array, clumped_offshores + hovers.get_slices())
+        offshore_slices = offshores.get_slices()
+        masked_alt_aal = mask_outside_slices(alt_aal.array, offshore_slices + hovers.get_slices())
 
-        for clump in clumped_offshores:
+        for offshore in offshore_slices:
 
-            liftoffs_in_clump = [l.index for l in liftoffs if is_index_within_slice(l.index, clump)]
+            liftoffs_in_clump = [l.index for l in liftoffs if is_index_within_slice(l.index, offshore)]
 
-            nose_downs_in_clump = [n.slice.start for n in nose_downs if is_index_within_slice(n.slice.start, clump)]
+            nose_downs_in_clump = [n.slice.start for n in nose_downs if is_index_within_slice(n.slice.start, offshore)]
 
             if not liftoffs_in_clump or not nose_downs_in_clump:
                 continue
@@ -2250,7 +2259,8 @@ class PitchNoseDownAttitudeAdoptionDuration(KeyPointValueNode):
 
 class PitchMinimumDuringNoseDownAttitudeAdoption(KeyPointValueNode):
     '''
-    Minimum pitch during nose down attitude adoption.
+    Minimum pitch from nose down attitude adoption.
+    The minimum pitch could happen after Nose Down Attitude Adoption
     Helicopter only.
     '''
     units = ut.DEGREE
@@ -2262,6 +2272,8 @@ class PitchMinimumDuringNoseDownAttitudeAdoption(KeyPointValueNode):
         return family and family.value == 'H175' and all_of(('Pitch', 'Nose Down Attitude Adoption'), available)
 
     def derive(self, pitch=P('Pitch'), nose_downs=S('Nose Down Attitude Adoption')):
-
+        pitch_rate = np.ma.ediff1d(pitch.array, to_end=0.0)
+        pitch_rate_up = pitch_rate > 0.01
         for nose_down in nose_downs:
-            self.create_kpv(nose_down.slice.stop, pitch.array[nose_down.slice.stop])
+            idx = np.ma.argmax(pitch_rate_up[nose_down.slice.start:]) + nose_down.slice.start
+            self.create_kpv(idx, value_at_index(pitch.array, idx))

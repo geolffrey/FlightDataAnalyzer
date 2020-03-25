@@ -20,6 +20,7 @@ from analysis_engine.library import (
     bearing_and_distance,
     cycle_finder,
     filter_slices_duration,
+    find_climb_cruise_descent,
     find_low_alts,
     find_nearest_slice,
     first_order_washout,
@@ -476,41 +477,10 @@ class ClimbCruiseDescent(FlightPhaseNode):
             except:
                 # Short segments may be wholly masked. We ignore these.
                 continue
-            # We squash the altitude signal above 10,000ft so that changes of
-            # altitude to create a new flight phase have to be 10 times
-            # greater; 500ft changes below 10,000ft are significant, while
-            # above this 5,000ft is more meaningful.
-            alt_squash = np.ma.where(
-                alts > 10000, (alts - 10000) / 10.0 + 10000, alts)
-            pk_idxs, pk_vals = cycle_finder(alt_squash,
-                                            min_step=HYSTERESIS_FPALT_CCD)
 
-            if pk_vals is not None:
-                n = 0
-                pk_idxs += air.slice.start or 0
-                n_vals = len(pk_vals)
-                while n < n_vals - 1:
-                    pk_val = pk_vals[n]
-                    pk_idx = pk_idxs[n]
-                    next_pk_val = pk_vals[n + 1]
-                    next_pk_idx = pk_idxs[n + 1]
-                    if pk_val > next_pk_val:
-                        # descending
-                        self.create_phase(slice(None, next_pk_idx))
-                        n += 1
-                    else:
-                        # ascending
-                        # We are going upwards from n->n+1, does it go down
-                        # again?
-                        if n + 2 < n_vals:
-                            if pk_vals[n + 2] < next_pk_val:
-                                # Hurrah! make that phase
-                                self.create_phase(slice(pk_idx,
-                                                        pk_idxs[n + 2]))
-                                n += 2
-                        else:
-                            self.create_phase(slice(pk_idx, None))
-                            n += 1
+            section_slices = find_climb_cruise_descent(alts)
+            section_slices = shift_slices(section_slices, air.slice.start or 0)
+            self.create_sections(section_slices)
 
 
 """
@@ -1253,18 +1223,14 @@ class Grounded(FlightPhaseNode):
         self.create_sections(slices_and_not([all_data], air.get_slices()))
 
     def derive(self,
-               ac_type=A('Aircraft Type'),
-               # aircraft
-               speed=P('Airspeed'),
-               hdf_duration=A('HDF Duration'),
-               # helicopter
                airspeed=P('Airspeed'),
-               # shared
-               air=S('Airborne')):
+               air=S('Airborne'),
+               ac_type=A('Aircraft Type'),
+               hdf_duration=A('HDF Duration')):
         if ac_type == helicopter:
             self._derive_helicopter(air, airspeed)
         else:
-            self._derive_aircraft(speed, hdf_duration, air)
+            self._derive_aircraft(airspeed, hdf_duration, air)
 
 
 class Taxiing(FlightPhaseNode):

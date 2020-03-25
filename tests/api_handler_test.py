@@ -27,7 +27,7 @@ class FileHandlerTest(unittest.TestCase):
     def setUp(self):
         self.handler = api.get_handler(settings.API_FILE_HANDLER)
         with open(settings.API_FILE_PATHS['airports'], 'rb') as f:
-            self.airports = yaml.load(f)
+            self.airports = yaml.load(f, Loader=yaml.FullLoader)
 
     @unittest.skip('Not implemented yet.')
     def test_get_aircraft(self):

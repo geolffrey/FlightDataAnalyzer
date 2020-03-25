@@ -5,6 +5,7 @@ from analysis_engine.node import (
 )
 
 from analysis_engine.library import (
+    all_deps,
     all_of,
     filter_slices_duration,
     index_at_value,
@@ -234,12 +235,17 @@ class NoseDownAttitudeAdoption(FlightPhaseNode):
 
     @classmethod
     def can_operate(cls, available, family=A('Family')):
-        return family and family.value == 'H175' and all_of(('Pitch', 'Initial Climb'), available)
+        return family and family.value == 'H175' and \
+               all_deps(cls, available)
 
-    def derive(self, pitch=P('Pitch'), climbs=S('Initial Climb')):
+    def derive(self,
+               pitch=P('Pitch'),
+               climbs=S('Initial Climb'),
+               offshore=S('Offshore')):
 
-        for climb in climbs:
-            masked_pitch = mask_outside_slices(pitch.array, [climb.slice])
+        for climb_offshore in slices_and(climbs.get_slices(), offshore.get_slices()):
+            climb_offshore = slices_int(climb_offshore)
+            masked_pitch = mask_outside_slices(pitch.array, [climb_offshore])
 
             pitch_index = np.ma.argmax(masked_pitch <= -10) or np.ma.argmin(masked_pitch)
 
@@ -250,7 +256,7 @@ class NoseDownAttitudeAdoption(FlightPhaseNode):
             window_size = 32
             window_threshold_step = 0.050 * scaling_factor
 
-            diffs = np.ma.ediff1d(masked_pitch[climb.slice.start:pitch_index])
+            diffs = np.ma.ediff1d(masked_pitch[climb_offshore.start:pitch_index])
             diffs_exist = diffs.data.size >= 2
 
             big_diff_index = -1
@@ -280,13 +286,13 @@ class NoseDownAttitudeAdoption(FlightPhaseNode):
                     window_threshold += window_threshold_step
 
             if big_diff_index != -1:
-                self.create_section(slice(climb.slice.start + big_diff_index,
+                self.create_section(slice(climb_offshore.start + big_diff_index,
                                           pitch_index))
 
             # Worst case fallback, this should happen extremely rarely
             # and would trigger all events related to this phase
             else:
-                self.create_section(slice(climb.slice.start, climb.slice.stop))
+                self.create_section(slice(climb_offshore.start, climb_offshore.stop))
 
 
 class RotorsTurning(FlightPhaseNode):

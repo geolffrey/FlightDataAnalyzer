@@ -5,9 +5,11 @@ from __future__ import print_function
 import geomag
 import numpy as np
 import six
+import os
 
 from copy import deepcopy
 from datetime import date
+import itertools
 from math import radians
 from operator import attrgetter
 from scipy import interp
@@ -41,6 +43,7 @@ from analysis_engine.library import (
     dp2tas,
     dp_over_p2mach,
     filter_vor_ils_frequencies,
+    find_climb_cruise_descent,
     first_valid_parameter,
     first_valid_sample,
     first_order_lag,
@@ -76,7 +79,6 @@ from analysis_engine.library import (
     np_ma_masked_zeros_like,
     np_ma_zeros_like,
     offset_select,
-    overflow_correction,
     peak_curvature,
     press2alt,
     power_floor,
@@ -92,6 +94,7 @@ from analysis_engine.library import (
     runway_snap_dict,
     second_window,
     shift_slice,
+    shift_slices,
     slices_and,
     slices_of_runs,
     slices_between,
@@ -112,8 +115,8 @@ from analysis_engine.library import (
 
 from analysis_engine.settings import (
     AIRSPEED_THRESHOLD,
-    ALTITUDE_RADIO_OFFSET_LIMIT,
     ALTITUDE_RADIO_MAX_RANGE,
+    ALTITUDE_RADIO_OFFSET_LIMIT,
     ALTITUDE_AAL_TRANS_ALT,
     ALTITUDE_AGL_SMOOTHING,
     ALTITUDE_AGL_TRANS_ALT,
@@ -890,16 +893,6 @@ class AltitudeAAL(DerivedParameterNode):
                 if alt_idxs[-1]+1 != quick.stop and np.ma.count(alt_std.array[alt_idxs[-1]+1:quick.stop]) > (quick.stop - alt_idxs[-1]+1)/2:
                     alt_aal[alt_idxs[-1]+1:quick.stop] = 0.0
 
-        '''
-        # Quick visual check of the altitude aal.
-            import matplotlib.pyplot as plt
-            plt.plot(alt_aal, 'b-')
-            plt.plot(alt_std.array, 'y-')
-        if alt_rad:
-            plt.plot(alt_rad.array, 'r-')
-        plt.show()
-        '''
-
         self.array = alt_aal
 
 
@@ -989,9 +982,9 @@ class AltitudeRadio(DerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        alt_rads = [n for n in cls.get_dependency_names() if n.startswith('Altitude Radio')]
-        return all_of(('Fast', 'Climb Cruise Descent'), available) and any_of(alt_rads, available)
 
+        alt_rads = [n for n in cls.get_dependency_names() if n.startswith('Altitude Radio')]
+        return any_of(alt_rads, available)
 
     def derive(self,
                source_A=P('Altitude Radio (A)'),
@@ -1002,11 +995,8 @@ class AltitudeRadio(DerivedParameterNode):
                source_efis=P('Altitude Radio (EFIS)'),
                source_efis_L=P('Altitude Radio (EFIS) (L)'),
                source_efis_R=P('Altitude Radio (EFIS) (R)'),
-               alt_std=P('Altitude STD'),
                pitch=P('Pitch'),
-               fast=S('Fast'),
-               family=A('Family'),
-               ccd=S('Climb Cruise Descent')):
+               family=A('Family')):
 
         # Reminder: If you add parameters here, they need limits adding in the
         # database !!!
@@ -1021,43 +1011,36 @@ class AltitudeRadio(DerivedParameterNode):
         for source in sources:
             if source is None:
                 continue
-            # correct for overflow, aligning the fast slice to each source
-            source.array = overflow_correction(source.array,
-                                               align(alt_std, source),
-                                               fast=fast.get_aligned(source),
-                                               hz=source.frequency,
-                                               ccd=ccd.get_aligned(source))
-
             # Some data frames reference altimeters which are optionally
             # recorded. It is impractical to maintain the LFL patching
             # required, so we only manage altimeters with a significant
             # signal.
             if np.ma.ptp(source.array) > 10.0:
                 osources.append(source)
+            else:
+                # Get ready to provide a null response if needed
+                out_len = int(len(source.array) * self.frequency / source.frequency)
 
-        if osources:
+        if not osources:
+            self.array = np_ma_masked_zeros(out_len)
+        elif len(osources) == 1:
+            # A single altimeter, so nothing to blend, but we still have to align to the required frequency
+            self.array = blend_parameters(osources, offset=self.offset, frequency=self.frequency, small_slice_duration=10)
+        else:
             # Blend parameters was written around the Boeing 737NG frames where three sources
             # are available with different sample rates and latency. Some airbus aircraft
             # have three altimeters but one of the sensors can give signals that appear to be
-            # valid in the cruise, hence the alternative validity level. Finally, the overflow
-            # correction algorithms can be out of step, giving differences of the order of
-            # 1,000ft between two sensors. The tolerance threshold ensures these are rejected
-            # (a wide tolerance ensures we don't react to normal levels of noise between altimeters).
+            # valid in the cruise, hence the alternative validity level.
             self.array = blend_parameters(osources, offset=self.offset, frequency=self.frequency, small_slice_duration=10,
                                           mode='cubic', validity='all_but_one', tolerance=500.0)
 
-            self.array = np.ma.masked_greater(self.array, ALTITUDE_RADIO_MAX_RANGE)
+        # Apply limit to the radio altitude signal, which (due to overflow correction and cubic splines
+        # interpoloation) can be much greater than the raw converted data range.
+        self.array = np.ma.masked_greater(self.array, ALTITUDE_RADIO_MAX_RANGE)
 
-            # For aircraft where the antennae are placed well away from the main
-            # gear, and especially where it is aft of the main gear, compensation
-            # is necessary.
-
-            #TODO: Implement this type of correction on other types and embed
-            #coefficients in a database table.
-        else:
-            samples = int(len(alt_std.array) * self.frequency / alt_std.frequency)
-            self.array=np_ma_masked_zeros(samples)
-
+        # For aircraft where the antennae are placed well away from the main
+        # gear, and especially where it is aft of the main gear, compensation
+        # is necessary.
         if family and family.value in ['CL-600'] and pitch:
             assert pitch.frequency == 4.0
             # There is no alignment process for this small correction term,
@@ -1093,7 +1076,6 @@ class AltitudeRadioOffsetRemoved(DerivedParameterNode):
         offset = np.ma.median(smoothed)
         if 0 < offset < ALTITUDE_RADIO_OFFSET_LIMIT:
             self.array = alt_rad.array - offset
-
 
 
 class AltitudeSTDSmoothed(DerivedParameterNode):
@@ -4365,7 +4347,7 @@ class FlapSynchroAsymmetry(DerivedParameterNode):
     '''
     Flap Synchro Asymmetry angle.
 
-    Shows an absolute value of difference between Left and Right Flap Synchros.
+    Shows an absolute value of difference between Left and Right Flap Synchros, over at least 4 seconds.
     Note: this is not a difference in flap angle.
     '''
 
@@ -4376,7 +4358,7 @@ class FlapSynchroAsymmetry(DerivedParameterNode):
         return all_of(('Flap Angle (L) Synchro', 'Flap Angle (R) Synchro',), available)
 
     def derive(self, synchro_l=P('Flap Angle (L) Synchro'), synchro_r=P('Flap Angle (R) Synchro'),):
-        self.array = np.abs(synchro_l.array - synchro_r.array)
+        self.array = second_window(np.abs(synchro_l.array - synchro_r.array), self.hz, 4)
 
 
 '''
@@ -5860,6 +5842,20 @@ class VerticalSpeedForFlightPhases(DerivedParameterNode):
         self.array = hysteresis(rate_of_change(alt_std, 6) * 60, threshold)
 
 
+class VerticalSpeedFor3Sec(DerivedParameterNode):
+    '''
+    Vertical Speed over a 3 second window.
+    '''
+
+    align_frequency = 2
+    align_offset = 0
+    units = ut.FPM
+
+    def derive(self, vert_spd=P('Vertical Speed')):
+
+        self.array = second_window(vert_spd.array, self.frequency, 3)
+
+
 class Relief(DerivedParameterNode):
     """
     Also known as Terrain, this is zero at the airfields. There is a small
@@ -6253,6 +6249,20 @@ class RollSmoothed(DerivedParameterNode):
                                           mode='cubic')
 
 
+class RollFor3Sec(DerivedParameterNode):
+    '''
+    Roll over a 3 second window.
+    '''
+
+    align_frequency = 2
+    align_offset = 0
+    units = ut.DEGREE
+
+    def derive(self, roll=P('Roll')):
+
+        self.array = second_window(roll.array, self.frequency, 3)
+
+
 class PitchSmoothed(DerivedParameterNode):
 
     align = False
@@ -6281,6 +6291,20 @@ class PitchSmoothed(DerivedParameterNode):
                                           frequency=self.frequency,
                                           small_slice_duration=10,
                                           mode='cubic')
+
+
+class PitchFor3Sec(DerivedParameterNode):
+    '''
+    Pitch over a 3 second window.
+    '''
+
+    align_frequency = 2
+    align_offset = 0
+    units = ut.DEGREE
+
+    def derive(self, pitch=P('Pitch')):
+
+        self.array = second_window(pitch.array, self.frequency, 3)
 
 
 class RollRate(DerivedParameterNode):
@@ -6353,32 +6377,26 @@ class RollRateAtTouchdownLimit(DerivedParameterNode):
         '''
         Embraer 175 - AMM 2134
         200-802-A/600
-        Rev 52 - Nov 24/17
+        Rev 74 - Sep 20/19
 
         E175 Aircraft Maintenance Manual, Roll Rate Calculation and Threshold,
-        Figure 606 - Sheet 2
+        Figure 608
 
-        The following method returns an approximation of the roll limit curve.
-
-        For weights between 20000kg and 21999kg approximate (values returned are
-        slightly below the limit) roll rate limit is:    def test_can_operate(self):
-        opts = RollRateAtTouchdownLimit.get_operational_combinations()
-        self.assertTrue(('Gross Weight Smoothed', 'ERJ-170/175') in opts)
-        f(x) = -0.001x + 34
-
-        For weights between 22000kg and 38000kg roll rate limit is a function:
-        f(x) = -0.000375x + 20.75
-
-        For weights between 38001kg and 40000kg we assume a limit of 6 degrees per second,
-        which again, is slightly below the limit.
+        The maximum roll rate is a linear function of the gross weight passing by
+        two given points: (weight low, roll rate high) and (weight high, roll rate low).
         '''
 
+        weight_low = 21_800
+        weight_high = 38_790
+        roll_rate_high = 12.4
+        roll_rate_low = 6.3
+
+        slope = (roll_rate_low - roll_rate_high) / (weight_high - weight_low)
+        intercept = roll_rate_high - slope * weight_low
+
         self.array = np_ma_masked_zeros_like(gw.array)
-        range1 = (20000 <= gw.array) & (gw.array < 22000)
-        self.array[range1] = gw.array[range1] * -0.001 + 34
-        range2 = (22000 <= gw.array) & (gw.array <= 38000)
-        self.array[range2] = gw.array[range2] * -0.000375 + 20.75
-        self.array[(38000 < gw.array) & (gw.array <= 40000)] = 6
+        range_ = (weight_low <= gw.array) & (gw.array <= weight_high)
+        self.array[range_] = slope * gw.array[range_] + intercept
 
 
 class AccelerationNormalLowLimitForLandingWeight(DerivedParameterNode):
@@ -6929,7 +6947,11 @@ class TAT(DerivedParameterNode):
                source_2=P('TAT (2)'),
                sat=P('SAT'), mach=P('Mach')):
 
-        if sat:
+        if source_1 or source_2:
+            # Alternate samples (1)&(2) are blended.
+            self.array, self.frequency, self.offset = \
+                blend_two_parameters(source_1, source_2)
+        else:
             # We compute the total air temperature, assuming a perfect sensor.
             # Where Mach is masked we use SAT directly
             if sat.hz > mach.hz:
@@ -6944,11 +6966,6 @@ class TAT(DerivedParameterNode):
             self.array = np.ma.where(
                 np.ma.getmaskarray(mach.array), sat.array, machsat2tat(mach.array, sat.array,
                                                                        recovery_factor=1.0))
-
-        else:
-            # Alternate samples (1)&(2) are blended.
-            self.array, self.frequency, self.offset = \
-                blend_two_parameters(source_1, source_2)
 
 
 class WindAcrossLandingRunway(DerivedParameterNode):
