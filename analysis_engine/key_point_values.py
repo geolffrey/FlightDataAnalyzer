@@ -4545,6 +4545,20 @@ class AlphaFloorDuration(KeyPointValueNode):
 
 
 ##############################################################################
+# Airspeed: Vref
+
+class VrefMinusVrefLookupMax(KeyPointValueNode):
+    '''
+    Difference between recorded Vref and Vref Lookup
+    '''
+    def derive(self,
+               vref = P('Vref'),
+               vref_lookup = P('Vref Lookup'),):
+        diff = np.ma.abs(vref.array - vref_lookup.array)
+        self.create_kpv(np.ma.argmax(diff), np.ma.max(diff))
+
+
+##############################################################################
 # Angle of Attack
 
 
