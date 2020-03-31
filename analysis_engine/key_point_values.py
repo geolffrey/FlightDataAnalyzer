@@ -13,7 +13,7 @@ from math import ceil, copysign
 from operator import itemgetter
 import itertools
 
-from hdfaccess.parameter import NO_MAPPING
+from flightdataaccessor.datatypes.parameter import NO_MAPPING
 from flightdatautilities import aircrafttables as at, units as ut
 from flightdatautilities.geometry import midpoint, great_circle_distance__haversine
 

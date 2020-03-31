@@ -44,7 +44,7 @@ from analysis_engine.recordtype import recordtype
 from analysis_engine.settings import NODE_CACHE_OFFSET_DP
 
 # FIXME: a better place for this class
-from hdfaccess.parameter import MappedArray
+from flightdataaccessor import MappedArray
 
 from flightdatautilities.numpy_utils import slices_int
 
