@@ -431,7 +431,7 @@ class OnDeck(FlightPhaseNode):
             fft_max = np.ma.max(fft_p + fft_r)
 
             # Values of less than 0.1 were on the ground, and 0.34 on deck for the one case seen to date.
-            if fft_max > 0.2:
+            if fft_max > 0.1:
                 decks.append(gnd.slice)
         if decks:
             self.create_sections(decks)
