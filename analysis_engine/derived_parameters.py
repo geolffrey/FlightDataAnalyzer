@@ -1366,8 +1366,8 @@ class AltitudeVisualizationWithGroundOffset(DerivedParameterNode):
                apps=App('Approach Information')):
 
         # Attempt to determine elevations at takeoff and landing:
-        t_elev = t_apt.value.get('end')['elevation'] if t_apt else None
-        l_elev = l_apt.value.get('start')['elevation'] if l_apt else None
+        t_elev = t_apt.value.get('end', {}).get('elevation') if t_apt else None
+        l_elev = l_apt.value.get('start', {}).get('elevation') if l_apt else None
 
         if apps is None:
             self.warning('No Approach information, using Altitude AAL.')

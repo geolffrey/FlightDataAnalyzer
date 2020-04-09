@@ -1853,6 +1853,26 @@ class TestAltitudeVisualizationWithGroundOffset(unittest.TestCase, NodeTest):
         self.assertEqual(alt_qnh.array[35], 4100.0)  # Landing elevation
         self.assertEqual(alt_qnh.array[22], 15000.0)  # Cruise at STD
 
+    def test_no_takeoff_rwy_elevation(self):
+        t_apt = A(name='FDR Takeoff Runway', value={
+            'id': 0,
+            'start': {'latitude': 20, 'longitude': 10},
+            'end': {'latitude': 20.1, 'longitude': 10.2},
+        })
+        alt_qnh = self.node_class()
+
+        with self.assertLogs(self.logger, level='WARNING') as cm:
+            alt_qnh.derive(self.alt_aal, self.alt_std, self.l_apt, t_apt,
+                           self.climbs, self.descents, None, self.apps)
+            self.assertEqual(
+                cm.output,
+                [f'WARNING:{self.logger}:No takeoff elevation, using 4100 ft from landing airport.']
+            )
+
+        self.assertEqual(alt_qnh.array[2], 4100.0)  # Takeoff elevation
+        self.assertEqual(alt_qnh.array[35], 4100.0)  # Landing elevation
+        self.assertEqual(alt_qnh.array[22], 15000.0)  # Cruise at STD
+
     def test_trap_alt_difference(self):
         apps = App(items=[
             ApproachItem(
