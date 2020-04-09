@@ -5891,15 +5891,19 @@ class CoordinatesStraighten(object):
         :returns: coord1 smoothed.
         :rtype: np.ma.masked_array
         """
-        coord1_s = repair_mask(coord1.array, coord1.frequency, repair_duration=600)
-        coord2_s = repair_mask(coord2.array, coord2.frequency, repair_duration=600)
+        # Preload the output with masked values to keep dimension correct
+        array = np_ma_masked_zeros_like(coord1.array)
+        try:
+            coord1_s = repair_mask(coord1.array, coord1.frequency, repair_duration=600)
+            coord2_s = repair_mask(coord2.array, coord2.frequency, repair_duration=600)
+        except ValueError:
+            # One array is entirely masked
+            return array
 
         # Join the masks, so that we only consider positional data when both are valid:
         coord1_s.mask = np.ma.logical_or(np.ma.getmaskarray(coord1.array),
                                          np.ma.getmaskarray(coord2.array))
         coord2_s.mask = np.ma.getmaskarray(coord1_s)
-        # Preload the output with masked values to keep dimension correct
-        array = np_ma_masked_zeros_like(coord1_s)
 
         # Now we just smooth the valid sections.
         tracks = np.ma.clump_unmasked(coord1_s)
