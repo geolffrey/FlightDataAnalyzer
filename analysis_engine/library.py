@@ -8099,7 +8099,7 @@ def from_isa(alt, sat):
     if alt < H1:
         return sat - (15.0+L0*alt)
     else:
-        return None
+        return sat - (15.0+L0*H1)
 
 #---------------------------------------------------------------------------
 # Computation modules use AeroCalc structure and are called from the Derived

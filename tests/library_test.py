@@ -8182,7 +8182,7 @@ class TestFromIsa(unittest.TestCase):
         self.assertEqual(from_isa(0.0, 0.0), -15.0)
         self.assertAlmostEqual(from_isa(5000.0, 0.0), -5.094)
         self.assertAlmostEqual(from_isa(5000.0, -30), -35.094)
-        self.assertEqual(from_isa(40000.0, 0.0), None)
+        self.assertAlmostEqual(from_isa(40000.0, 0.0), 56.5, places=3)
 
 
 class TestLevelOffIndex(unittest.TestCase):
