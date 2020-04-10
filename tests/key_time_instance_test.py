@@ -838,6 +838,15 @@ class TestTakeoffAccelerationStart(unittest.TestCase):
         instance.derive(aspd, takeoff,None)
         self.assertEqual(instance[0].index, 0.0)
 
+    def test_takeoff_acceleration_start_airspeed_masked(self):
+        airspeed_data = np.ma.array(np.ones(50) * 250)
+        airspeed_data[:40] = np.ma.masked
+        takeoff = buildsection('Takeoff', 3, len(airspeed_data))
+        aspd = P('Airspeed', airspeed_data)
+        instance = TakeoffAccelerationStart()
+        instance.derive(aspd, takeoff,None)
+        self.assertEqual(len(instance), 0)
+
 
 class TestTakeoffTurnOntoRunway(unittest.TestCase):
     def test_can_operate(self):

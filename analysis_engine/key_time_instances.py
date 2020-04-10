@@ -1211,6 +1211,8 @@ class TakeoffAccelerationStart(KeyTimeInstanceNode):
                 '''
                 #pc = peak_curvature(speed.array[takeoff.slice])
                 p, m, c = coreg(speed.array[takeoff.slice])
+                if p is None:
+                    continue
                 start_accel = max(takeoff.slice.start - c / m, 0.0)
 
             # FIXME: coreg can return values larger than the parameter size (segment hash 18c141e479fc2412539b017b9340e67f78c86e6443c3cabd8f9839be0eadfbd5)
