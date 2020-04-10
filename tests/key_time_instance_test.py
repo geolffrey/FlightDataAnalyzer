@@ -863,6 +863,15 @@ class TestTakeoffTurnOntoRunway(unittest.TestCase):
         expected = [KeyTimeInstance(index=21.5, name='Takeoff Turn Onto Runway')]
         self.assertEqual(instance, expected)
 
+    def test_takeoff_turn_onto_runway_no_fast_section_after_takeoff(self):
+        instance = TakeoffTurnOntoRunway()
+        head = P('Heading Continuous',np.ma.arange(5))
+        takeoff = buildsection('Takeoff',1.7,5.5)
+        fast = buildsection('Fast', 0.1, 1.5)
+        instance.derive(head, takeoff, fast)
+        expected = [KeyTimeInstance(index=1.7, name='Takeoff Turn Onto Runway')]
+        self.assertEqual(instance, expected)
+
 
 class TestTAWSGlideslopeCancelPressed(unittest.TestCase):
 

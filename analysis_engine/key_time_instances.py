@@ -1142,7 +1142,8 @@ class TakeoffTurnOntoRunway(KeyTimeInstanceNode):
             # backwards, but in case there is a problem with the phases,
             # use the midpoint. This avoids identifying the heading
             # change immediately after liftoff as a turn onto the runway.
-            start_search = fast.get_next(toff.slice.start).slice.start
+            next_fast = fast.get_next(toff.slice.start)
+            start_search = next_fast.slice.start if next_fast else None
             if (start_search is None) or (start_search > toff.slice.stop):
                 start_search = (toff.slice.start + toff.slice.stop) / 2
             peak_bend = peak_curvature(head.array, slice(
