@@ -1779,8 +1779,8 @@ class TestAltitudeVisualizationWithGroundOffset(unittest.TestCase, NodeTest):
             np.zeros(5)
         ))
         self.alt_aal = P(name='Altitude AAL', array=array)
-        self.t_apt = A(name='FDR Takeoff Runway', value={'end': {'elevation': 1050}})
-        self.l_apt = A(name='FDR Landing Runway', value={'start': {'elevation': 4100}})
+        self.t_rwy = A(name='FDR Takeoff Runway', value={'end': {'elevation': 1050}})
+        self.l_rwy = A(name='FDR Landing Runway', value={'start': {'elevation': 4100}})
 
         self.climbs = buildsection('Climb', 7, 19)
         self.descents = buildsection('Descent', 24, 35)
@@ -1809,8 +1809,8 @@ class TestAltitudeVisualizationWithGroundOffset(unittest.TestCase, NodeTest):
 
     def test_alt_std_adjustment(self):
         alt_qnh = self.node_class()
-        alt_qnh.derive(self.alt_aal, self.alt_std, self.l_apt, self.t_apt,
-                       self.climbs, self.descents, None, self.apps)
+        alt_qnh.derive(self.alt_aal, self.alt_std, self.l_rwy, None,
+                       self.t_rwy, None, self.climbs, self.descents, None, self.apps)
         self.assertEqual(alt_qnh.array[2], 1050.0)  # Takeoff elevation
         self.assertEqual(alt_qnh.array[36], 4100.0)  # Landing elevation
         self.assertEqual(alt_qnh.array[22], 15000.0)  # Cruise at STD
@@ -1822,12 +1822,12 @@ class TestAltitudeVisualizationWithGroundOffset(unittest.TestCase, NodeTest):
                         airport={},
                         approach_runway=None)
                 ])
-        l_apt = A(name='FDR Landing Runway', value=None)
+        l_rwy = A(name='FDR Landing Runway', value=None)
         alt_qnh = self.node_class()
 
         with self.assertLogs(self.logger, level='WARNING') as cm:
-            alt_qnh.derive(self.alt_aal, self.alt_std, l_apt, self.t_apt,
-                           self.climbs, self.descents, None, apps)
+            alt_qnh.derive(self.alt_aal, self.alt_std, l_rwy, None, self.t_rwy,
+                           None, self.climbs, self.descents, None, apps)
             self.assertEqual(
                 cm.output,
                 [f'WARNING:{self.logger}:No landing elevation, using 1050 ft from takeoff airport.']
@@ -1838,12 +1838,12 @@ class TestAltitudeVisualizationWithGroundOffset(unittest.TestCase, NodeTest):
         self.assertEqual(alt_qnh.array[22], 15000.0)  # Cruise at STD
 
     def test_no_takeoff_rwy_info(self):
-        t_apt = A(name='FDR Takeoff Runway', value=None)
+        t_rwy = A(name='FDR Takeoff Runway', value=None)
         alt_qnh = self.node_class()
 
         with self.assertLogs(self.logger, level='WARNING') as cm:
-            alt_qnh.derive(self.alt_aal, self.alt_std, self.l_apt, t_apt,
-                           self.climbs, self.descents, None, self.apps)
+            alt_qnh.derive(self.alt_aal, self.alt_std, self.l_rwy, None, t_rwy,
+                           None, self.climbs, self.descents, None, self.apps)
             self.assertEqual(
                 cm.output,
                 [f'WARNING:{self.logger}:No takeoff elevation, using 4100 ft from landing airport.']
@@ -1854,7 +1854,7 @@ class TestAltitudeVisualizationWithGroundOffset(unittest.TestCase, NodeTest):
         self.assertEqual(alt_qnh.array[22], 15000.0)  # Cruise at STD
 
     def test_no_takeoff_rwy_elevation(self):
-        t_apt = A(name='FDR Takeoff Runway', value={
+        t_rwy = A(name='FDR Takeoff Runway', value={
             'id': 0,
             'start': {'latitude': 20, 'longitude': 10},
             'end': {'latitude': 20.1, 'longitude': 10.2},
@@ -1862,8 +1862,8 @@ class TestAltitudeVisualizationWithGroundOffset(unittest.TestCase, NodeTest):
         alt_qnh = self.node_class()
 
         with self.assertLogs(self.logger, level='WARNING') as cm:
-            alt_qnh.derive(self.alt_aal, self.alt_std, self.l_apt, t_apt,
-                           self.climbs, self.descents, None, self.apps)
+            alt_qnh.derive(self.alt_aal, self.alt_std, self.l_rwy, None, t_rwy,
+                           None, self.climbs, self.descents, None, self.apps)
             self.assertEqual(
                 cm.output,
                 [f'WARNING:{self.logger}:No takeoff elevation, using 4100 ft from landing airport.']
@@ -1884,8 +1884,8 @@ class TestAltitudeVisualizationWithGroundOffset(unittest.TestCase, NodeTest):
         descents = buildsection('Descent', 24, 32)
         alt_qnh = self.node_class()
         self.assertRaises(ValueError, alt_qnh.derive,
-            self.alt_aal, self.alt_std, self.l_apt,
-            self.t_apt, climbs, descents, None, apps
+            self.alt_aal, self.alt_std, self.l_rwy, None,
+            self.t_rwy, None, climbs, descents, None, apps
         )
 
     def test_2_approaches(self):
@@ -1913,8 +1913,8 @@ class TestAltitudeVisualizationWithGroundOffset(unittest.TestCase, NodeTest):
             np.zeros(4)  # Landing
         ))
         alt_aal = P(name='Altitude AAL', array=array)
-        t_apt = A(name='FDR Takeoff Runway', value={'end': {'elevation': 1050}})
-        l_apt = A(name='FDR Landing Runway', value={'start': {'elevation': 4100}})
+        t_rwy = A(name='FDR Takeoff Runway', value={'end': {'elevation': 1050}})
+        l_rwy = A(name='FDR Landing Runway', value={'start': {'elevation': 4100}})
         climbs = buildsection('Climb', 7, 19)
         descents = buildsections('Descent', [24, 35], [45, 53])
         tocs = KTI('Top Of Climb', items=[
@@ -1931,12 +1931,38 @@ class TestAltitudeVisualizationWithGroundOffset(unittest.TestCase, NodeTest):
                     approach_runway={'start': {'elevation': 0.0}}),
         ])
         alt_qnh = self.node_class()
-        alt_qnh.derive(alt_aal, alt_std, l_apt, t_apt,
-                       climbs, descents, tocs, apps)
+        alt_qnh.derive(alt_aal, alt_std, l_rwy, None, t_rwy,
+                       None, climbs, descents, tocs, apps)
         self.assertEqual(alt_qnh.array[2], 1050.0)  # Takeoff elevation
         self.assertEqual(alt_qnh.array[36], 4100.0)  # Touch and go elevation
         self.assertEqual(alt_qnh.array[52], 0.0)  # Landing elevation
         self.assertEqual(alt_qnh.array[20], 15000.0)  # Alt STD in cruise
+
+    def test_missing_tkof_rwy(self):
+        t_apt = A(name='FDR Takeoff Airport', value={'elevation': 1020})
+        t_rwy = A(name='FDR Takeoff Runway', value=None)
+        alt_qnh = self.node_class()
+        alt_qnh.derive(self.alt_aal, self.alt_std, self.l_rwy, None,
+                           t_rwy, t_apt, self.climbs, self.descents, None, self.apps)
+        self.assertEqual(alt_qnh.array[2], 1020.0)  # Takeoff elevation
+        self.assertEqual(alt_qnh.array[36], 4100.0)  # Landing elevation
+        self.assertEqual(alt_qnh.array[22], 15000.0)  # Cruise at STD
+
+    def test_missing_ldg_rwy_and_app_rwy_info(self):
+        l_apt = A(name='FDR Landing Airport', value={'elevation': 4150})
+        l_rwy = A(name='FDR Landing Runway', value=None)
+        apps = App(items=[
+            ApproachItem(
+                'LANDING', slice(27, 33),
+                airport={},
+                approach_runway=None)
+        ])
+        alt_qnh = self.node_class()
+        alt_qnh.derive(self.alt_aal, self.alt_std, l_rwy, l_apt,
+                       self.t_rwy, None, self.climbs, self.descents, None, apps)
+        self.assertEqual(alt_qnh.array[2], 1050.0)  # Takeoff elevation
+        self.assertEqual(alt_qnh.array[36], 4150.0)  # Landing elevation
+        self.assertEqual(alt_qnh.array[22], 15000.0)  # Cruise at STD
 
 
 class TestAltitudeVisualizationWithoutGroundOffset(unittest.TestCase, NodeTest):

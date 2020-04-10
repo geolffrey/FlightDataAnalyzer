@@ -1358,16 +1358,20 @@ class AltitudeVisualizationWithGroundOffset(DerivedParameterNode):
     def derive(self,
                alt_aal=P('Altitude AAL'),
                alt_std=P('Altitude STD Smoothed'),
-               l_apt=A('FDR Landing Runway'),
-               t_apt=A('FDR Takeoff Runway'),
+               l_rwy=A('FDR Landing Runway'),
+               l_apt=A('FDR Landing Airport'),
+               t_rwy=A('FDR Takeoff Runway'),
+               t_apt=A('FDR Takeoff Airport'),
                climbs=S('Climb'),
                descents=S('Descent'),
                tocs=KTI('Top Of Climb'),
                apps=App('Approach Information')):
 
         # Attempt to determine elevations at takeoff and landing:
-        t_elev = t_apt.value.get('end', {}).get('elevation') if t_apt else None
-        l_elev = l_apt.value.get('start', {}).get('elevation') if l_apt else None
+        t_elev = t_rwy.value.get('end', {}).get('elevation') if t_rwy else None
+        t_elev = t_elev or (t_apt.value.get('elevation') if t_apt else None)
+        l_elev = l_rwy.value.get('start', {}).get('elevation') if l_rwy else None
+        l_elev = l_elev or (l_apt.value.get('elevation') if l_apt else None)
 
         if apps is None:
             self.warning('No Approach information, using Altitude AAL.')
