@@ -16080,6 +16080,14 @@ class TestFlapOrConfigurationMaxOrMin(unittest.TestCase):
             flap, np.arange(10), max_value, [])
         self.assertEqual(result, [])
 
+    def test_flap_or_conf_max_or_min_fully_masked_flap(self):
+        flap = M('Flap', array=np.ma.zeros(10), values_mapping={0: '0'})
+        flap.array[:] = np.ma.masked
+        aspd = P('Airspeed', np.arange(10))
+        result = FlapOrConfigurationMaxOrMin.flap_or_conf_max_or_min(
+            flap, aspd, max_value)
+        self.assertEqual(result, [])
+
 
 class TestFlapWithGearUpMax(unittest.TestCase, NodeTest):
 

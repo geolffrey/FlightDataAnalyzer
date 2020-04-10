@@ -189,6 +189,8 @@ class FlapOrConfigurationMaxOrMin(object):
         data = []
         # We need to repair the conflap otherwise we would create multiple
         # KPV for the same duration that the flap was selected.
+        if conflap.array.mask.all():
+            return data
         repair_mask(conflap.array, method='fill_start')
 
         for detent in conflap.values_mapping.values():
