@@ -7139,6 +7139,33 @@ class TestVerticalSpeedInertial(unittest.TestCase):
         # to 4, hence 100 is a clear divide between success and failure.
         self.assertGreater(np.ma.average(np.ma.abs(vsi.array)), 100.0)
 
+    def test_masked_alt_std(self):
+        time = np.arange(100)
+        zero = np.array([0]*50)
+        acc_values = np.concatenate([zero, np.cos(time*np.pi*0.02), zero])
+        vel_values = np.concatenate([zero, np.sin(time*np.pi*0.02), zero])
+        ht_values = np.concatenate([zero, 1.0-np.cos(time*np.pi*0.02), zero])
+
+        # For a 0-400ft leap over 100 seconds, the scaling is 200ft amplitude and 2*pi/100 for each differentiation.
+        amplitude = 200.0
+        diff = 2.0 * np.pi / 100.0
+        ht_values *= amplitude
+        vel_values *= amplitude * diff * 60.0 # fpm
+        acc_values *= amplitude * diff**2.0 / GRAVITY_IMPERIAL # g
+
+        az = P('Acceleration Vertical', acc_values)
+        alt_std = P('Altitude STD Smoothed', ht_values + 30.0) # Pressure offset
+        alt_rad = P('Altitude STD Smoothed', ht_values-2.0) #Oleo compression
+        fast = buildsection('Fast', 10, len(acc_values)-10)
+        # Mask alt_std in Fast section
+        alt_std.array[fast[0].slice] = np.ma.masked
+        ac_type = A(name='Aircraft Type', value = 'aeroplane')
+
+        vsi = VerticalSpeedInertial()
+        vsi.derive(az, alt_std, alt_rad, fast, ac_type)
+
+        np.testing.assert_array_equal(vsi.array.mask, np.ones(vsi.array.shape))
+
 
 class TestRudder(unittest.TestCase):
     def test_can_operate(self):

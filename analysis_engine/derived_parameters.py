@@ -5763,6 +5763,9 @@ class VerticalSpeedInertial(DerivedParameterNode):
         hz = az.frequency
 
         for speedy in fast:
+            if az.array[speedy.slice].mask.all() or alt_std.array[speedy.slice].mask.all():
+                # Fully masked array in this slice. Cannot do anything
+                continue
             # Fix minor dropouts
             az_repair = repair_mask(az.array[speedy.slice], frequency=hz)
             alt_rad_repair = repair_mask(alt_rad.array[speedy.slice], frequency=hz,
