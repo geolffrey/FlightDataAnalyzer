@@ -414,6 +414,16 @@ class TestClimbAccelerationStart(unittest.TestCase):
         # Falls back to 800 Ft
         self.assertAlmostEqual(node[0].index, 527, places=0)
 
+    def test_empty_initial_climb(self):
+        array = np.ma.concatenate((np.ones(15) * 110, np.ones(20) * 180))
+        spd_sel = Parameter('Airspeed Selected', array=array)
+        init_climbs = S('Initial Climb')
+        alt_climbing = AltitudeWhenClimbing(
+            items=[KeyTimeInstance(29, name='4000 Ft Climbing')]
+        )
+        node = self.node_class()
+        node.derive(None, init_climbs, alt_climbing, spd_sel, None, None, None, None, None, None)
+        self.assertEqual(len(node), 0)
 
 class TestClimbThrustDerateDeselected(unittest.TestCase):
     def test_can_operate(self):
