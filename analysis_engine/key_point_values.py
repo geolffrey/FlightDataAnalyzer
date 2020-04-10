@@ -7866,6 +7866,8 @@ class RunwayOverrunWithoutSlowingDuration(KeyPointValueNode):
                     distance_at_tdn = runway_distance_from_end(
                         rwy.value, lat_tdn.get_last().value,
                         lon_tdn.get_last().value)
+                    if distance_at_tdn is None:
+                        continue
                     dist_from_td = integrate(gspd.array[land_roll], gspd.hz, scale=scale)
                     time_to_end = (distance_at_tdn - dist_from_td) / speed
                 if len(time_to_end) == 0:
