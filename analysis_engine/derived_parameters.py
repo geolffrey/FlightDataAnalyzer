@@ -557,7 +557,7 @@ class AltitudeAAL(DerivedParameterNode):
                                             endpoint='closing')
             check_slice = slices_int(lowest_index, lowest_index + still_airborne)
             # What was the maximum pitch attitude reached in the last 50ft of the descent?
-            max_pitch = max(land_pitch[check_slice])
+            max_pitch = max(land_pitch[check_slice], default=None)
             # and the last index at this attitude is given by:
             if max_pitch:
                 max_pch_idx = (land_pitch[check_slice] == max_pitch).nonzero()[-1][0]
