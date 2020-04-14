@@ -1414,7 +1414,9 @@ class AltitudeVisualizationWithGroundOffset(DerivedParameterNode):
                 continue
 
             if app.approach_runway is not None:
-                l_elev = app.approach_runway['start']['elevation']
+                rwy_elev = app.approach_runway.get('start', {}).get('elevation')
+                if rwy_elev is not None:
+                    l_elev = rwy_elev
 
             descent = slice(descent.slice.stop - 1, descent.slice.start - 1, -1)
             adjust_down = self._qnh_adjust(alt_aal.array[descent],

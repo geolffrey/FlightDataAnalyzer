@@ -8372,6 +8372,25 @@ class TestQNHDifferenceDuringApproach(unittest.TestCase):
         self.assertAlmostEqual(node[1].value, 0, delta=0.2)
         self.assertAlmostEqual(node[1].index, 6 + 1/3., delta=0.01)
 
+    def test_missing_app_rwy_info(self):
+        alt_qnh = P(name='Altitude QNH',
+                    array=np.ma.array([1326, 1296, 1276, 1256, 1236, 1216]))
+        alt_all = P('Altitude AAL',
+                    array=np.ma.array([110, 80, 60, 40, 20, 0]))
+        apps = App(
+            'Approach Information',
+            items=[
+                ApproachItem(
+                    'LANDING', slice(0, 6), airport=self.airport, landing_runway=self.runway,
+                    approach_runway={'start': {}}
+                )
+            ]
+        )
+
+        node = self.node_class()
+        node.derive(alt_qnh, alt_all, apps)
+        self.assertEqual(len(node), 0)
+
 
 class TestQNHDifferenceDuringTakeoff(unittest.TestCase):
     def setUp(self):
@@ -8412,6 +8431,23 @@ class TestQNHDifferenceDuringTakeoff(unittest.TestCase):
         takeoff = buildsection('Takeoff', 0, 6)
 
         to_runway = A('FDR Takeoff Runway', None)
+
+        node = self.node_class()
+        node.derive(alt_qnh, alt_aal, takeoff, to_runway)
+
+        self.assertEqual(len(node), 0)
+
+
+    def test_missing_takeoff_airport_elevation(self):
+        alt_qnh = P(name='Altitude QNH',
+                    array=np.ma.array([1216, 1236, 1256, 1276, 1296, 1326]))
+
+        alt_aal = P('Altitude AAL',
+                    array=np.ma.array([0, 20, 40, 60, 80, 110]))
+
+        takeoff = buildsection('Takeoff', 0, 6)
+
+        to_runway = A('FDR Takeoff Runway', {'start': {}})
 
         node = self.node_class()
         node.derive(alt_qnh, alt_aal, takeoff, to_runway)

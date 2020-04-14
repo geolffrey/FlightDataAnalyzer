@@ -1964,6 +1964,22 @@ class TestAltitudeVisualizationWithGroundOffset(unittest.TestCase, NodeTest):
         self.assertEqual(alt_qnh.array[36], 4150.0)  # Landing elevation
         self.assertEqual(alt_qnh.array[22], 15000.0)  # Cruise at STD
 
+    def test_missing_app_rwy_info(self):
+        l_apt = A(name='FDR Landing Airport', value={'elevation': 4150})
+        l_rwy = A(name='FDR Landing Runway', value={'start': {'elevation': 4100}})
+        apps = App(items=[
+            ApproachItem(
+                'LANDING', slice(27, 33),
+                airport={},
+                approach_runway={'start': {}})  # Missing 'elevation'
+        ])
+        alt_qnh = self.node_class()
+        alt_qnh.derive(self.alt_aal, self.alt_std, l_rwy, l_apt,
+                       self.t_rwy, None, self.climbs, self.descents, None, apps)
+        self.assertEqual(alt_qnh.array[2], 1050.0)  # Takeoff elevation
+        self.assertEqual(alt_qnh.array[36], 4100.0)  # Landing elevation
+        self.assertEqual(alt_qnh.array[22], 15000.0)  # Cruise at STD
+
 
 class TestAltitudeVisualizationWithoutGroundOffset(unittest.TestCase, NodeTest):
 
