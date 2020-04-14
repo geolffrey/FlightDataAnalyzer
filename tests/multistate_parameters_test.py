@@ -3343,6 +3343,100 @@ class TestStableApproach(unittest.TestCase):
         #index: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15,16,17,18,19,20
                [0, 1, 1, 4, 9, 2, 8, 6, 5, 5, 5, 3, 3, 5, 5, 5, 5, 5, 5, 5, 0])
 
+    def test_vertical_speed_masked(self):
+        stable = StableApproach()
+        apps = App()
+        apps.create_approach('LANDING', slice(15, 20),
+                             gs_est=True, loc_est=True,
+                             landing_runway={'localizer':{'is_offset':False}})
+
+        # Arrays will be 20 seconds long, index 4, 13,14,15 are stable
+        #0. first and last values are not in approach slice
+        phases = S()
+        phases.create_section(slice(1,20))
+        #1. gear up for index 0-2
+        g = [ 0,  0,  0,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1]
+        gear = M(array=np.ma.array(g), values_mapping={1:'Down'})
+        #2. landing flap invalid index 0, 5
+        # Setting 30 is ignored as it's above 1,000ft
+        f = [ 5, 15, 30, 15, 15,  0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15]
+        flap = P(array=np.ma.array(f))
+        #3. trackk deviation stays within limits except for index 11-12, although we weren't on the track sample 15 (masked out)
+        h = [20, 20,  2,  3,  4,  8,  0,  0,  0,  0,  2, 20, 20,  8,  2,  0,  1,  1,  1,  1,  1]
+        hm= [ 1,  1,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0,  0,  0]
+        track = P(array=np.ma.array(h, mask=hm))
+        #4. airspeed relative within limits for periods except 0-3
+        a = [50, 50, 50, 45,  9,  8,  3, 7,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0]
+        aspd = P(array=np.ma.array(a))
+        #5. glideslope deviation is out for index 8, index 10-11 ignored as under 200ft, last 4 values ignored due to alt cutoff
+        g = [ 6,  6,  6,  6,  0, .5, .5,-.5,1.2,0.9,1.4,1.3,  0,  0,  0,  0,  0, -2, -2, -2, -2]
+        gm= [ 1,  1,  1,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0]
+        glide = P(array=np.ma.array(g, mask=gm))
+        #6. localizer deviation is out for index 7, index 10 ignored as just under 200ft, last 4 values ignored due to alt cutoff
+        l = [ 0,  0,  0,  0,  0,  0,  0,  2,  0.8, 0.1, -3,  0,  0,  0,  0,  0,  0, -2, -2, -2, -2]
+        loc = P(array=np.ma.array(l))
+        #7. Vertical Speed too great at index 8, but change is smoothed out and at 17 (59ft)
+        v = [-500] * 20
+        v[6] = -2000
+        v[18:19] = [-2000]*1
+        vert_spd = P(array=np.ma.array(v))
+        vert_spd.array[:] = np.ma.masked
+
+        #TODO: engine cycling at index 12?
+
+        #8. Engine power too low at index 5-12
+        e = [80, 80, 80, 80, 80, 30, 20, 30, 20, 30, 20, 30, 44, 40, 80, 80, 80, 50, 50, 50, 50]
+        eng = P(array=np.ma.array(e))
+
+        # Altitude for cutoff heights, 9th element is 200 below, last 4 values are below 100ft last 2 below 50ft
+        al = list(range(2000,219,-200)) + list(range(219,18, -20)) + [0]
+        # == [2000, 1800, 1600, 1400, 1200, 1000, 800, 600, 400, 219, 199, 179, 159, 139, 119, 99, 79, 59, 39, 19]
+        alt = P(array=np.ma.array(al))
+        # DERIVE without using Vapp (using Vref limits)
+        stable.derive(apps, phases, gear, flap, track, aspd, None, vert_spd, glide, loc, eng, None, alt, None)
+        self.assertEqual(len(stable.array), len(alt.array))
+        self.assertEqual(len(stable.array), len(track.array))
+
+        self.assertEqual(list(stable.array.data),
+        #index: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15,16,17,18,19,20
+               [0, 1, 1, 4, 9, 2, 8, 6, 5, 8, 8, 3, 3, 9, 9, 9, 9, 9, 9, 9, 0])
+        self.assertEqual(list(stable.array.mask),
+               [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1])
+
+        #========== NO GLIDESLOPE ==========
+        # Test without the use of Glideslope (not established according to
+        # Approach) therefore instability for index 7-10 is now due to low
+        # Engine Power
+        glide2 = P(array=np.ma.array([3.5]*20))
+        apps[0].gs_est = False
+        stable.derive(apps, phases, gear, flap, track, aspd, None, vert_spd, glide2, loc, eng, None, alt, None)
+        self.assertEqual(list(stable.array.data),
+        #index: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15,16,17,18,19,20
+               [0, 1, 1, 4, 9, 2, 8, 8, 8, 8, 8, 3, 3, 9, 9, 9, 9, 9, 9, 9, 0])
+
+        #========== VERTICAL SPEED ==========
+        # Test with a lot of vertical speed (rather than just gusts above)
+        # Note: Glideslope still not established.
+        v2 = [-1800] * 20
+        vert_spd2 = P(array=np.ma.array(v2))
+        stable.derive(apps, phases, gear, flap, track, aspd, None, vert_spd2, glide2, loc, eng, None, alt, None)
+        self.assertEqual(list(stable.array.data),
+        #index: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15,16,17,18,19,20
+               [0, 1, 1, 4, 7, 2, 7, 7, 7, 7, 7, 3, 3, 7, 7, 7, 7, 7, 7, 7, 0])
+
+        #========== UNSTABLE GLIDESLOPE JUST ABOVE 200ft ==========
+        # Test that with unstable glideslope just before 200ft, this stability
+        # reason is continued to touchdown. Higher level checks (Track Dev at 3)
+        # still take priority at indexes 11-12
+        #                                        219ft == 1.5 dots
+        apps[0].gs_est = True
+        g3 = [ 6,  6,  6,  6,  0, .5, .5,-.5,1.2,1.5,1.4,1.3,  0,  0,  0,  0,  0, -2, -2, -2, -2]
+        gm = [ 1,  1,  1,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0]
+        glide3 = P(array=np.ma.array(g3, mask=gm))
+        stable.derive(apps, phases, gear, flap, track, aspd, None, vert_spd, glide3, loc, eng, None, alt, None)
+        self.assertEqual(list(stable.array.data),
+        #index: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15,16,17,18,19,20
+               [0, 1, 1, 4, 9, 2, 8, 6, 5, 5, 5, 3, 3, 5, 5, 5, 5, 5, 5, 5, 0])
 
     def test_with_real_data(self):
         apps = App()
