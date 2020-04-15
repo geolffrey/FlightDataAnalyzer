@@ -456,31 +456,19 @@ class AccelerationLateralOffset(KeyPointValueNode):
 
     units = ut.G
 
-    @classmethod
-    def can_operate(cls, available):
-        return all_of(('Acceleration Lateral', 'Altitude AAL', 'Heading Rate'), available) or \
-               all_of(('Acceleration Lateral', 'Taxiing', 'Turning On Ground'), available)
-
     def derive(self,
                acc_lat=P('Acceleration Lateral'),
-               alt=P('Altitude AAL'),
-               hdg_rate=P('Heading Rate'),
                taxiing=S('Taxiing'),
-               turns=S('Turning On Ground'),):
+               turns=S('Turning On Ground')):
         '''
         This KPV computes the lateral accelerometer datum offset, as for
         AccelerationNormalOffset. The more complex slicing statement ensures we
         only accumulate error estimates when taxiing in a straight line.
         '''
-        if taxiing is not None and turns is not None:
-            sections = slices_and_not(taxiing.get_slices(), turns.get_slices())
-            if not sections:
-                return
-            unmasked_data = np.concatenate([np.ma.compressed(acc_lat.array[slices_int(s)]) for s in sections])
-        else:
-            unmasked_data = np.ma.compressed(acc_lat.array[(np.ma.abs(np.ma.ediff1d(acc_lat.array, to_end=0)) < 0.005) &
-                                                           ((alt.array == 0) & (hdg_rate.array < 0.1))])
-
+        sections = slices_and_not(taxiing.get_slices(), turns.get_slices())
+        if not sections:
+            return
+        unmasked_data = np.concatenate([np.ma.compressed(acc_lat.array[slices_int(s)]) for s in sections])
         if len(unmasked_data) > 20:
             delta = np.sum(unmasked_data) / len(unmasked_data)
             self.create_kpv(0, delta)
