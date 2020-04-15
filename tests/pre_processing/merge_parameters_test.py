@@ -1,16 +1,18 @@
 # -*- coding: utf-8 -*-
 
+from flightdatautilities import masked_array_testutils as ma_test
 import numpy as np
 import unittest
 
-from analysis_engine.node import P
+from analysis_engine.node import A, P
 
 from analysis_engine.pre_processing.merge_parameters import (
     Groundspeed,
     LatitudePrepared,
     LongitudePrepared,
 )
-from numpy.ma.testutils import assert_array_equal
+
+from analysis_engine.derived_parameters import CoordinatesStraighten
 
 
 class TestGroundspeed(unittest.TestCase):
@@ -28,7 +30,7 @@ class TestGroundspeed(unittest.TestCase):
         gs = Groundspeed()
         gs.derive(one, two)
         # Note: end samples are not 100 & 350 due to method of merging.
-        assert_array_equal(gs.array[1:-1], np.array([150, 200, 250, 300]))
+        ma_test.assert_masked_array_equal(gs.array[1:-1], np.ma.array([150, 200, 250, 300]))
         self.assertEqual(gs.frequency, 1.0)
         self.assertEqual(gs.offset, 0.0)
 
@@ -39,9 +41,36 @@ class TestLatitudePrepared(unittest.TestCase):
         expected_combinations = [('Longitude', 'Latitude', 'Aircraft Type')]
         self.assertEqual(combinations, expected_combinations)
 
-    @unittest.skip('Test Not Implemented')
+    @unittest.skip('Test Does Not Work')
+    def test_upsample(self):
+        lat = P('Latitude', np.ma.array(data=[1, 0, 0, 0, 0, 2.0],
+                                        mask=[0,1,1,1,1,0]),
+                frequency=0.25)
+        lon = P('Longitude', np.ma.array(data=[0,0,0,2,2,2.0],
+                                        mask=[1,1,1,0,0,0]),
+                frequency=0.25)
+        ac_type = A('Aircraft Type', 'aeroplane')
+        lp = LatitudePrepared()
+        lp.derive(lon, lat, ac_type)
+        self.assertEqual(len(lp.array), 24)
+        self.assertEqual(lp.frequency, 1.0)
+
     def test_derive(self):
-        self.assertTrue(False, msg='Test not implemented.')
+        # Check with partially masked data
+        lat = P('Latitude', np.ma.array(data=[0,0,0,3,0,3.0],
+                                        mask=[1,1,1,0,1,0]))
+        lon = P('Longitude', np.ma.array(data=[0,0,0,2,2,2.0],
+                                        mask=[1,1,1,0,0,0]))
+        ac_type = A('Aircraft Type', 'aeroplane')
+        lp = LatitudePrepared()
+        expected = np.ma.array([3,3,3,3,3,3])
+        lp.derive(lon, lat, ac_type)
+        ma_test.assert_masked_array_equal(lp.array, expected)
+        # And the fully masked data should give the same result
+        lon = P('Latitude', np.ma.array(data=[0,0,0,3,0,3.0],
+                                        mask=[1,1,1,1,1,1]))
+        lp.derive(lon, lat, ac_type)
+        ma_test.assert_masked_array_equal(lp.array, expected)
 
 
 class TestLongitudePrepared(unittest.TestCase):
@@ -50,6 +79,19 @@ class TestLongitudePrepared(unittest.TestCase):
         expected_combinations = [('Longitude', 'Latitude', 'Aircraft Type')]
         self.assertEqual(combinations, expected_combinations)
 
-    @unittest.skip('Test Not Implemented')
     def test_derive(self):
-        self.assertTrue(False, msg='Test not implemented')
+        lat = P('Latitude', np.ma.array(data=[0,0,0,3,3,3.0],
+                                        mask=[1,1,1,0,0,0]))
+        lon = P('Longitude', np.ma.array(data=[0,0,0,2,2,2.0],
+                                        mask=[1,1,1,0,0,0]))
+        ac_type = A('Aircraft Type', 'helicopter')
+        lp = LongitudePrepared()
+        expected = np.ma.array([2,2,2,2,2,2])
+        # Try with partially masked data
+        lp.derive(lon, lat, ac_type)
+        ma_test.assert_masked_array_equal(lp.array, expected)
+        # And the fully masked data should give the same result
+        lon = P('Longitude', np.ma.array(data=[0,0,0,2,2,2.0],
+                                        mask=[1,1,1,1,1,1]))
+        lp.derive(lon, lat, ac_type)
+        ma_test.assert_masked_array_equal(lp.array, expected)
