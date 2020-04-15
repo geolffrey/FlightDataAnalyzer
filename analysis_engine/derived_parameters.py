@@ -12,7 +12,7 @@ from datetime import date
 import itertools
 from math import radians
 from operator import attrgetter
-from scipy import interp
+from scipy import interp, stats
 from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.signal import medfilt
 
@@ -5891,12 +5891,21 @@ class CoordinatesStraighten(object):
         :returns: coord1 smoothed.
         :rtype: np.ma.masked_array
         """
-        coord1_s = repair_mask(coord1.array, coord1.frequency, repair_duration=600)
-        coord2_s = repair_mask(coord2.array, coord2.frequency, repair_duration=600)
+        def ll_repair(coord):
+            try:
+                coord = repair_mask(coord.array, coord.frequency, repair_duration=600, extrapolate=True)
+            except ValueError:
+                # Where the data is fully masked, we substitute the most common value as a fixed point
+                modal_non_zero = stats.mode(np.trim_zeros(coord.array.data))
+                coord = np_ma_ones_like(coord.array) * modal_non_zero.mode[0]
+            return coord
+
+        coord1_s = ll_repair(coord1)
+        coord2_s = ll_repair(coord2)
 
         # Join the masks, so that we only consider positional data when both are valid:
-        coord1_s.mask = np.ma.logical_or(np.ma.getmaskarray(coord1.array),
-                                         np.ma.getmaskarray(coord2.array))
+        coord1_s.mask = np.ma.logical_or(np.ma.getmaskarray(coord1_s),
+                                         np.ma.getmaskarray(coord2_s))
         coord2_s.mask = np.ma.getmaskarray(coord1_s)
         # Preload the output with masked values to keep dimension correct
         array = np_ma_masked_zeros_like(coord1_s)
@@ -5913,12 +5922,10 @@ class CoordinatesStraighten(object):
         for ro in list(coord1_roll_overs)+list(coord2_roll_overs):
             tracks = slices_split(tracks, ro)
         for track in tracks:
-            # Reject any data with invariant positions, i.e. sitting on stand.
-            if np.ma.ptp(coord1_s[track]) > 0.0 and np.ma.ptp(coord2_s[track]) > 0.0:
-                coord1_s_track, coord2_s_track, cost = \
-                    smooth_track(coord1_s[track], coord2_s[track], ac_type,
-                                 coord1.frequency)
-                array[track] = coord1_s_track
+            coord1_s_track, coord2_s_track, cost = \
+                smooth_track(coord1_s[track], coord2_s[track], ac_type,
+                             coord1.frequency)
+            array[track] = coord1_s_track
         return array
 
 
