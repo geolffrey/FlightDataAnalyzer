@@ -609,6 +609,7 @@ from analysis_engine.key_point_values import (
     RateOfClimbMax,
     RateOfClimbAtHeightBeforeAltitudeSelected,
     RateOfClimbAtHeightBeforeLevelFlight,
+    RateOfClimbInRVSMAtHeightBeforeLevelFlight,
     RateOfDescent10000To5000FtMax,
     RateOfDescent1000To500FtMax,
     RateOfDescent2000To1000FtMax,
@@ -625,6 +626,7 @@ from analysis_engine.key_point_values import (
     RateOfDescentTopOfDescentTo10000FtMax,
     RateOfDescentAtHeightBeforeAltitudeSelected,
     RateOfDescentAtHeightBeforeLevelFlight,
+    RateOfDescentInRVSMAtHeightBeforeLevelFlight,
     Roll1000To300FtMax,
     Roll20FtToTouchdownMax,
     Roll20To400FtMax,
@@ -18370,6 +18372,67 @@ class TestRateOfClimbAtHeightBeforeLevelOff(unittest.TestCase):
         self.assertEqual(node, expected)
 
 
+class TestRateOfClimbInRVSMAtHeightBeforeLevelOff(unittest.TestCase):
+
+    def setUp(self):
+        self.node_class = RateOfClimbInRVSMAtHeightBeforeLevelFlight
+
+    def test_can_operate(self):
+        opts = self.node_class.get_operational_combinations()
+        self.assertEqual(opts,
+                         [('Vertical Speed',
+                           'Altitude STD Smoothed',
+                           'Altitude Before Level Flight When Climbing')])
+
+    def test_derive(self):
+        roc_array = np.ma.concatenate((np.ones(19) * 250, [437, 625, 812, 1000, 1125,
+                                                           625, 475, 500, 125, 375,
+                                                           275, 0, 0, 0]))
+        roc_array = np.ma.concatenate((roc_array, 1-roc_array[::-1]))
+        vert_spd = P('Vertical Speed', roc_array)
+
+        alt = P('Altitude STD Smoothed', array=np.arange(29_000, 32_300, 100))
+        heights = AltitudeBeforeLevelFlightWhenClimbing(
+            'Altitude Before Level Flight When Climbing',
+            items=[KeyTimeInstance(22,
+                                   '2000 Ft Before Level Flight Climbing'),
+                   KeyTimeInstance(24,
+                                   '1000 Ft Before Level Flight Climbing'),
+                   ])
+        node = self.node_class()
+        node.derive(vert_spd, alt, heights)
+
+        expected = KPV('Rate Of Climb In RVSM At Height Before Level Flight', items=[
+            KeyPointValue(name='Rate Of Climb In RVSM At 2000 Ft Before Level Off',
+                          index=22,
+                          value=1000),
+            KeyPointValue(name='Rate Of Climb In RVSM At 1000 Ft Before Level Off',
+                          index=24,
+                          value=625),
+        ])
+        self.assertEqual(node, expected)
+
+    def test_below_rvsm(self):
+        roc_array = np.ma.concatenate((np.ones(19) * 250, [437, 625, 812, 1000, 1125,
+                                                           625, 475, 500, 125, 375,
+                                                           275, 0, 0, 0]))
+        roc_array = np.ma.concatenate((roc_array, 1-roc_array[::-1]))
+        vert_spd = P('Vertical Speed', roc_array)
+
+        alt = P('Altitude STD Smoothed', array=np.arange(19_000, 22_300, 100))
+        heights = AltitudeBeforeLevelFlightWhenClimbing(
+            'Altitude Before Level Flight When Climbing',
+            items=[KeyTimeInstance(22,
+                                   '2000 Ft Before Level Flight Climbing'),
+                   KeyTimeInstance(24,
+                                   '1000 Ft Before Level Flight Climbing'),
+                   ])
+        node = self.node_class()
+        node.derive(vert_spd, alt, heights)
+
+        self.assertEqual(len(node), 0)
+
+
 class TestRateOfClimbAtHeightBeforeAltitudeSelected(unittest.TestCase):
 
     def setUp(self):
@@ -18865,6 +18928,68 @@ class TestRateOfDescentAtHeightBeforeLevelOff(unittest.TestCase):
                           value=-625),
         ])
         self.assertEqual(node, expected)
+
+
+class TestRateOfDescentInRVSMAtHeightBeforeLevelOff(unittest.TestCase):
+
+    def setUp(self):
+        self.node_class = RateOfDescentInRVSMAtHeightBeforeLevelFlight
+
+    def test_can_operate(self):
+        opts = self.node_class.get_operational_combinations()
+        self.assertEqual(opts,
+                         [('Vertical Speed',
+                           'Altitude STD Smoothed',
+                           'Altitude Before Level Flight When Descending')])
+
+    def test_derive(self):
+        roc_array = np.ma.concatenate((np.ones(19) * 250, [437, 625, 812, 1000, 1125,
+                                                           625, 475, 500, 125, 375,
+                                                           275, 0, 0, 0]))
+        roc_array = np.ma.concatenate((roc_array, 1-roc_array[::-1]))
+        vert_spd = P('Vertical Speed', -roc_array)
+        alt = P('Altitude STD Smoothed', array=np.arange(32_300, 29_000, -100))
+        heights = AltitudeBeforeLevelFlightWhenDescending(
+            'Altitude Before Level Flight When Descending',
+            items=[
+                KeyTimeInstance(22,
+                                '2000 Ft Before Level Flight Descending'),
+                KeyTimeInstance(24,
+                                '1000 Ft Before Level Flight Descending'),
+            ])
+        node = self.node_class()
+        node.derive(vert_spd, alt, heights)
+
+        expected = KPV('Rate Of Descent In RVSM At Height Before Level Flight', items=[
+            KeyPointValue(name='Rate Of Descent In RVSM At 2000 Ft Before Level Off',
+                          index=22,
+                          value=-1000),
+            KeyPointValue(name='Rate Of Descent In RVSM At 1000 Ft Before Level Off',
+                          index=24,
+                          value=-625),
+        ])
+        self.assertEqual(node, expected)
+
+
+    def test_below_rvsm(self):
+        roc_array = np.ma.concatenate((np.ones(19) * 250, [437, 625, 812, 1000, 1125,
+                                                           625, 475, 500, 125, 375,
+                                                           275, 0, 0, 0]))
+        roc_array = np.ma.concatenate((roc_array, 1-roc_array[::-1]))
+        vert_spd = P('Vertical Speed', -roc_array)
+        alt = P('Altitude STD Smoothed', array=np.arange(22_300, 19_000, -100))
+        heights = AltitudeBeforeLevelFlightWhenDescending(
+            'Altitude Before Level Flight When Descending',
+            items=[
+                KeyTimeInstance(22,
+                                '2000 Ft Before Level Flight Descending'),
+                KeyTimeInstance(24,
+                                '1000 Ft Before Level Flight Descending'),
+            ])
+        node = self.node_class()
+        node.derive(vert_spd, alt, heights)
+
+        self.assertEqual(len(node), 0)
 
 
 class TestRateOfDescentAtHeightBeforeAltitudeSelected(unittest.TestCase):

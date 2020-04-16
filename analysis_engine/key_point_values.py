@@ -15973,6 +15973,38 @@ class RateOfClimbAtHeightBeforeLevelFlight(KeyPointValueNode):
                                 replace_values={'altitude': altitude})
 
 
+class RateOfClimbInRVSMAtHeightBeforeLevelFlight(KeyPointValueNode):
+    '''
+    Rate of climb at various altitudes before level off within RVSM airspace.
+
+    RVSM airspace is defined as an altitude band between FL285 and FL415, irrespective
+    of the geographical location.
+    Uses altitude STD smoothed.
+    '''
+
+    NAME_FORMAT = 'Rate Of Climb In RVSM At %(altitude)d Ft Before Level Off'
+    NAME_VALUES = {'altitude': [2000, 1000]}
+
+    units = ut.FPM
+
+    def derive(self, vert_spd=P('Vertical Speed'),
+               alt=P('Altitude STD Smoothed'),
+               heights=KTI('Altitude Before Level Flight When Climbing')):
+
+        rvsm = np.ma.clump_unmasked(np.ma.masked_outside(alt.array, 28_500, 41_500))
+        if not rvsm:
+            return
+        for altitude in self.NAME_VALUES['altitude']:
+            ktis = heights.get(
+                name='%d Ft Before Level Flight Climbing' % altitude,
+                within_slices=rvsm
+            )
+            for kti in ktis:
+                value = value_at_index(vert_spd.array, kti.index)
+                self.create_kpv(kti.index, value,
+                                replace_values={'altitude': altitude})
+
+
 class RateOfClimbAtHeightBeforeAltitudeSelected(KeyPointValueNode):
     '''
     Rate of climb at various altitudes before reaching Altitude Selected.
@@ -16381,6 +16413,37 @@ class RateOfDescentAtHeightBeforeLevelFlight(KeyPointValueNode):
         for altitude in self.NAME_VALUES['altitude']:
             ktis = heights.get(name='%d Ft Before Level Flight Descending'
                                % altitude)
+            for kti in ktis:
+                value = value_at_index(vert_spd.array, kti.index)
+                self.create_kpv(kti.index, value,
+                                replace_values={'altitude': altitude})
+
+
+class RateOfDescentInRVSMAtHeightBeforeLevelFlight(KeyPointValueNode):
+    '''
+    Rate of descent at various altitudes before level off within RVSM airspace.
+
+    RVSM airspace is defined as an altitude band between FL285 and FL415, irrespective
+    of the geographical location.
+    '''
+
+    NAME_FORMAT = 'Rate Of Descent In RVSM At %(altitude)d Ft Before Level Off'
+    NAME_VALUES = {'altitude': [2000, 1000]}
+
+    units = ut.FPM
+
+    def derive(self, vert_spd=P('Vertical Speed'),
+               alt=P('Altitude STD Smoothed'),
+               heights=KTI('Altitude Before Level Flight When Descending')):
+
+        rvsm = np.ma.clump_unmasked(np.ma.masked_outside(alt.array, 28_500, 41_500))
+        if not rvsm:
+            return
+        for altitude in self.NAME_VALUES['altitude']:
+            ktis = heights.get(
+                name='%d Ft Before Level Flight Descending' % altitude,
+                within_slices=rvsm
+            )
             for kti in ktis:
                 value = value_at_index(vert_spd.array, kti.index)
                 self.create_kpv(kti.index, value,
