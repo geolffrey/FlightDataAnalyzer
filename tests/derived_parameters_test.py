@@ -4068,6 +4068,8 @@ class TestGroundspeedSigned(unittest.TestCase):
         gs.derive(gspd, running, precision, taxiing, lat, lon)
         assert_equal(gs.array[4], -1.0)
         assert_equal(gs.array[24], 1.0)
+        # Make sure we did not mutate gspd
+        assert_equal(gspd.array, np.ma.ones(30))
 
     def test_early_start(self):
         gspd = P('Groundspeed', np.ma.concatenate((np.ones(15), np.zeros(10), np.arange(15))))

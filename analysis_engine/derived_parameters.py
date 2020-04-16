@@ -4208,7 +4208,7 @@ class GroundspeedSigned(DerivedParameterNode):
                lon=P('Longitude Prepared'),
                ):
 
-        self.array = gspd.array
+        self.array = gspd.array.copy()
         # Ignore the pushback, when the aircraft can have a groundspeed
         # recorded, but in effect it's negative.
         no_power = np.ma.clump_masked(np.ma.masked_less(power.array, 1))

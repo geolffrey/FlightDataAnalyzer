@@ -3745,6 +3745,7 @@ class AirspeedWithFlapDuringClimbMax(KeyPointValueNode, FlapOrConfigurationMaxOr
         # to ensure that the parameter is called flap with the name hack below:
         flap_avail = flap_lever or flap_synth
         if flap_avail:
+            original_name = flap_avail.name
             flap_avail.name = 'Flap'
 
         for flap in (flap_avail, flap_inc_trans, flap_exc_trans):
@@ -3755,6 +3756,10 @@ class AirspeedWithFlapDuringClimbMax(KeyPointValueNode, FlapOrConfigurationMaxOr
             data = self.flap_or_conf_max_or_min(flap, airspeed, max_value, scope)
             for index, value, detent in data:
                 self.create_kpv(index, value, parameter=flap.name, flap=detent)
+
+        if flap_avail:
+            # Revert to original name
+            flap_avail.name = original_name
 
 
 class AirspeedWithFlapDuringClimbMin(KeyPointValueNode, FlapOrConfigurationMaxOrMin):
@@ -3842,6 +3847,7 @@ class AirspeedWithFlapDuringDescentMax(KeyPointValueNode, FlapOrConfigurationMax
         # to ensure that the parameter is called flap with the name hack below:
         flap_avail = flap_lever or flap_synth
         if flap_avail:
+            original_name = flap_avail.name
             flap_avail.name = 'Flap'
 
         for flap in (flap_avail, flap_inc_trans, flap_exc_trans):
@@ -3852,6 +3858,10 @@ class AirspeedWithFlapDuringDescentMax(KeyPointValueNode, FlapOrConfigurationMax
             data = self.flap_or_conf_max_or_min(flap, airspeed, max_value, scope)
             for index, value, detent in data:
                 self.create_kpv(index, value, parameter=flap.name, flap=detent)
+
+        if flap_avail:
+             # Revert to original name
+            flap_avail.name = original_name
 
 
 class AirspeedWithFlapDuringDescentMin(KeyPointValueNode, FlapOrConfigurationMaxOrMin):

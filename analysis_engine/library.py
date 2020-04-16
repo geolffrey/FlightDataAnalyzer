@@ -767,7 +767,7 @@ def calculate_surface_angle(mode, param, detents):
     freq = param.frequency * freq_multiplier
     # No need to re-align if high frequency.
     offset = param.offset / freq_multiplier
-    param.array = align_args(
+    angle = align_args(
         param.array,
         param.frequency,
         param.offset,
@@ -775,7 +775,6 @@ def calculate_surface_angle(mode, param, detents):
         offset,
     )
 
-    angle = param.array
     mask = angle.mask.copy()
     # Repair the array to avoid extreme values affecting the algorithm.
     # Extrapolation included to avoid problems of corrupt data at end of flight and/or testing.

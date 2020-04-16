@@ -5322,24 +5322,30 @@ class TestAirspeedWithFlapDuringClimbMax(unittest.TestCase, NodeTest):
         array = np.ma.array((0, 0, 5, 10, 10, 10, 15, 15, 15, 30))
         mapping = {int(f): str(f) for f in np.ma.unique(array)}
         flap_inc_trans = M('Flap Including Transition', array, values_mapping=mapping)
+        flap_lever = M('Flap Lever', array, values_mapping=mapping)
         array = np.ma.array((0, 0, 5, 10, 15, 30, 30, 15, 10, 0))
         mapping = {int(f): str(f) for f in np.ma.unique(array)}
         flap_exc_trans = M('Flap Excluding Transition', array, values_mapping=mapping)
         airspeed = P('Airspeed', np.ma.arange(0, 100, 10))
         climb = buildsection('Climbing', 2, 7)
         node = self.node_class()
-        node.derive(airspeed, None, None, flap_inc_trans, flap_exc_trans, climb)
+        node.derive(airspeed, flap_lever, None, flap_inc_trans, flap_exc_trans, climb)
         self.assertEqual(node.get_ordered_by_index(), [
+            KeyPointValue(index=2.0, value=20.0, name='Airspeed With Flap 5 During Climb Max'),
             KeyPointValue(index=2.0, value=20.0, name='Airspeed With Flap Including Transition 5 During Climb Max'),
             KeyPointValue(index=2.0, value=20.0, name='Airspeed With Flap Excluding Transition 5 During Climb Max'),
             KeyPointValue(index=3.0, value=30.0, name='Airspeed With Flap Excluding Transition 10 During Climb Max'),
             KeyPointValue(index=4.0, value=40.0, name='Airspeed With Flap Excluding Transition 15 During Climb Max'),
+            KeyPointValue(index=5.0, value=50.0, name='Airspeed With Flap 10 During Climb Max'),
             KeyPointValue(index=5.0, value=50.0, name='Airspeed With Flap Including Transition 10 During Climb Max'),
             KeyPointValue(index=6.0, value=60.0, name='Airspeed With Flap Excluding Transition 30 During Climb Max'),
             KeyPointValue(index=7.0, value=70.0, name='Airspeed With Flap Excluding Transition 15 During Climb Max'),
+            KeyPointValue(index=8.0, value=80.0, name='Airspeed With Flap 15 During Climb Max'),
             KeyPointValue(index=8.0, value=80.0, name='Airspeed With Flap Including Transition 15 During Climb Max'),
             KeyPointValue(index=8.0, value=80.0, name='Airspeed With Flap Excluding Transition 10 During Climb Max'),
         ])
+        # Make sure we did not change Flap Lever name
+        self.assertEqual(flap_lever.name, 'Flap Lever')
 
 
 class TestAirspeedWithFlapDuringClimbMin(unittest.TestCase, NodeTest):
@@ -5371,23 +5377,29 @@ class TestAirspeedWithFlapDuringDescentMax(unittest.TestCase, NodeTest):
         array = np.ma.array((0, 0, 5, 10, 10, 10, 15, 15, 15, 30))
         mapping = {int(f): str(f) for f in np.ma.unique(array)}
         flap_inc_trans = M('Flap Including Transition', array, values_mapping=mapping)
+        flap_lever = M('Flap Lever', array, values_mapping=mapping)
         array = np.ma.array((0, 0, 5, 10, 15, 30, 30, 15, 10, 0))
         mapping = {int(f): str(f) for f in np.ma.unique(array)}
         flap_exc_trans = M('Flap Excluding Transition', array, values_mapping=mapping)
         airspeed = P('Airspeed', np.ma.arange(100, 0, -10))
         desc = buildsection('Descending', 2, 7)
         node = self.node_class()
-        node.derive(airspeed, None, None, flap_inc_trans, flap_exc_trans, desc)
+        node.derive(airspeed, flap_lever, None, flap_inc_trans, flap_exc_trans, desc)
         self.assertEqual(node.get_ordered_by_index(), [
+            KeyPointValue(index=2.0, value=80.0, name='Airspeed With Flap 5 During Descent Max'),
             KeyPointValue(index=2.0, value=80.0, name='Airspeed With Flap Including Transition 5 During Descent Max'),
             KeyPointValue(index=2.0, value=80.0, name='Airspeed With Flap Excluding Transition 5 During Descent Max'),
+            KeyPointValue(index=3.0, value=70.0, name='Airspeed With Flap 10 During Descent Max'),
             KeyPointValue(index=3.0, value=70.0, name='Airspeed With Flap Including Transition 10 During Descent Max'),
             KeyPointValue(index=3.0, value=70.0, name='Airspeed With Flap Excluding Transition 10 During Descent Max'),
             KeyPointValue(index=4.0, value=60.0, name='Airspeed With Flap Excluding Transition 15 During Descent Max'),
             KeyPointValue(index=5.0, value=50.0, name='Airspeed With Flap Excluding Transition 30 During Descent Max'),
+            KeyPointValue(index=6.0, value=40.0, name='Airspeed With Flap 15 During Descent Max'),
             KeyPointValue(index=6.0, value=40.0, name='Airspeed With Flap Including Transition 15 During Descent Max'),
             KeyPointValue(index=7.0, value=30.0, name='Airspeed With Flap Excluding Transition 15 During Descent Max'),
             KeyPointValue(index=8.0, value=20.0, name='Airspeed With Flap Excluding Transition 10 During Descent Max'),])
+        # Make sure we did not change Flap Lever name
+        self.assertEqual(flap_lever.name, 'Flap Lever')
 
 
 class TestAirspeedWithFlapDuringDescentMin(unittest.TestCase, NodeTest):
