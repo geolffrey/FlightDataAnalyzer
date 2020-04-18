@@ -3613,6 +3613,8 @@ class StableApproachStages(object):
         #== 7. Vertical Speed ==
         # prepare data for this appproach:
         # apply quite a large moving average to smooth over peaks and troughs
+        if vspd.array[_slice].mask.all():
+            return stable
         vertical_speed = moving_average(self.repair(vspd.array, _slice), 11)
         runway = approach.approach_runway
 

@@ -2940,6 +2940,16 @@ class TestFindTocTod(unittest.TestCase):
         ccd=slice(0,7,None)
         self.assertEqual(find_toc_tod(alt, ccd, 0.1, 'toc'), 0)
 
+    def test_masked_descent(self):
+        alt = np.ma.concatenate((np.ma.arange(10), np.ma.arange(10, 0, -1)))
+        alt = alt.astype(float)
+        alt = np.tile(alt, 2)
+        alt[20:] *= 1.5
+        alt *= 100
+        alt[11:20] = np.ma.masked
+        ccd = slice(0, 20, None)
+        self.assertEqual(find_toc_tod(alt, ccd, 0.1, 'tod'), 10)
+
 class TestFirstOrderLag(unittest.TestCase):
 
     # first_order_lag (in_param, time_constant, hz, gain = 1.0, initial_value = 0.0)
@@ -8182,7 +8192,7 @@ class TestFromIsa(unittest.TestCase):
         self.assertEqual(from_isa(0.0, 0.0), -15.0)
         self.assertAlmostEqual(from_isa(5000.0, 0.0), -5.094)
         self.assertAlmostEqual(from_isa(5000.0, -30), -35.094)
-        self.assertEqual(from_isa(40000.0, 0.0), None)
+        self.assertAlmostEqual(from_isa(40000.0, 0.0), 56.5, places=3)
 
 
 class TestLevelOffIndex(unittest.TestCase):

@@ -189,6 +189,8 @@ class FlapOrConfigurationMaxOrMin(object):
         data = []
         # We need to repair the conflap otherwise we would create multiple
         # KPV for the same duration that the flap was selected.
+        if conflap.array.mask.all():
+            return data
         repair_mask(conflap.array, method='fill_start')
 
         for detent in conflap.values_mapping.values():
@@ -6695,7 +6697,9 @@ class QNHDifferenceDuringApproach(KeyPointValueNode):
             if index is None:
                 continue
             final_alt = alt_aal.array[int(index)]
-            rwy_elevation = app.approach_runway['start']['elevation']
+            rwy_elevation = app.approach_runway.get('start', {}).get('elevation')
+            if rwy_elevation is None:
+                continue
             ref = rwy_elevation + final_alt
             alt_qnh_lo = alt_qnh.array[int(index)]
             diff = alt_qnh_lo - ref
@@ -6720,7 +6724,9 @@ class QNHDifferenceDuringTakeoff(KeyPointValueNode):
             final_alt = alt_aal.array[int(index)]
             if to_runway.value is None:
                 continue
-            rwy_elevation = to_runway.value['start']['elevation']
+            rwy_elevation = to_runway.value.get('start', {}).get('elevation')
+            if rwy_elevation is None:
+                continue
             ref = rwy_elevation + final_alt
             alt_qnh_lo = alt_qnh.array[int(index)]
             diff = alt_qnh_lo - ref
@@ -7917,6 +7923,8 @@ class RunwayOverrunWithoutSlowingDuration(KeyPointValueNode):
                     distance_at_tdn = runway_distance_from_end(
                         rwy.value, lat_tdn.get_last().value,
                         lon_tdn.get_last().value)
+                    if distance_at_tdn is None:
+                        continue
                     dist_from_td = integrate(gspd.array[land_roll], gspd.hz, scale=scale)
                     time_to_end = (distance_at_tdn - dist_from_td) / speed
                 if len(time_to_end) == 0:

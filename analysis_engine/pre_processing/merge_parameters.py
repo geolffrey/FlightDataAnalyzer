@@ -92,7 +92,7 @@ class Latitude(DerivedParameterNode):
 
         sources = [
             source for source in [src_1, src_2, src_3] if source is not None \
-            and np.count_nonzero(source.array) > len(source.array)/2
+            and np.count_nonzero(np.ma.compressed(source.array)) > len(source.array)/2
         ]
 
         if len(sources) == 1:
@@ -135,7 +135,7 @@ class Longitude(DerivedParameterNode):
 
         sources = [
             source for source in [src_1, src_2, src_3] if source is not None \
-            and np.count_nonzero(source.array) > len(source.array)/2
+            and np.count_nonzero(np.ma.compressed(source.array)) > len(source.array)/2
         ]
         if len(sources) > 1:
             for source in sources:
