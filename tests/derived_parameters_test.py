@@ -171,6 +171,7 @@ from analysis_engine.derived_parameters import (
     HeadingContinuous,
     HeadingRate,
     HeadingTrue,
+    HeadingTrueContinuous,
     Headwind,
     ILSFrequency,
     KineticEnergy,
@@ -6090,6 +6091,13 @@ class TestHeadingTrueContinuous(unittest.TestCase):
     @unittest.skip('Test Not Implemented')
     def test_derive(self):
         self.assertTrue(False, msg='Test not implemented.')
+
+    def test_fully_masked(self):
+        hdg = P('Heading True', array=np.ma.masked_all((40,)))
+        node = HeadingTrueContinuous()
+        node.derive(hdg)
+
+        np.testing.assert_array_equal(node.array.mask, np.ones(40))
 
 
 class TestILSGlideslope(unittest.TestCase):

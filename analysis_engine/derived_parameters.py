@@ -4739,7 +4739,7 @@ class HeadingTrueContinuous(DerivedParameterNode):
     units = ut.DEGREE
 
     def derive(self, hdg=P('Heading True')):
-        self.array = repair_mask(straighten_headings(hdg.array))
+        self.array = repair_mask(straighten_headings(hdg.array), raise_entirely_masked=False)
 
 
 class Heading(DerivedParameterNode):
