@@ -4927,8 +4927,11 @@ class TestGearUpSelected(unittest.TestCase):
             0: 'Down',
             1: 'Up',
         }
-        self.expected = M('Gear Up', array=np.ma.array([0]*5 + [1]*40 + [0]*15),
-                          values_mapping=self.values_mapping)
+        self.expected = M(
+            'Gear Up Selected',
+            array=np.ma.array([0]*5 + [1]*40 + [0]*15),
+            values_mapping=self.values_mapping
+        )
 
     def test_can_operate(self):
         combinations = self.node_class.get_operational_combinations()
@@ -4992,6 +4995,33 @@ class TestGearUpSelected(unittest.TestCase):
 
         np.testing.assert_array_equal(node.array, self.expected.array)
         self.assertEqual(node.values_mapping, self.values_mapping)
+
+    def test_derive__down_selected_low_sample_rate_with_offset(self):
+        down = M(
+            'Gear Down',
+            array=np.ma.array([1]*3 + [0]*25 + [1]*2),
+            values_mapping={0: 'Up', 1: 'Down'},
+            frequency=0.5,
+            offset=1.3
+        )
+        down_transit = M(
+            'Gear Down In Transit',
+            array=np.ma.array([0]*23 + [1]*5 + [0]*2),
+            values_mapping={0: '-', 1: 'Extending'},
+            frequency=0.5,
+            offset=1.3,
+        )
+        node = self.node_class()
+        node.get_derived((None, None, down, down_transit, None))
+
+        expected = np.ma.repeat((0, 1, 0), (6, 40, 14))
+        expected[[0, -1]] = np.ma.masked
+
+        ma_test.assert_array_equal(node.array.raw, expected)
+        np.testing.assert_array_equal(node.array.mask, expected.mask)
+        self.assertEqual(node.values_mapping, self.values_mapping)
+        self.assertEqual(node.frequency, 1)
+        self.assertAlmostEqual(node.offset, 0.3)
 
 
 class TestGearInTransit(unittest.TestCase):
