@@ -2179,8 +2179,8 @@ class GearUpSelected(MultistateDerivedParameterNode):
         aligned parameters.
         '''
 
-        self.frequency = 1
-        self.offset = args[0].offset
+        self.frequency = 1.0
+        self.offset = args[0].offset % 1.0
 
         for arg in args:
             try:
