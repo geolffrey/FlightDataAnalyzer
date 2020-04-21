@@ -3848,6 +3848,23 @@ class TestThrustReversers(unittest.TestCase):
                                 eng_2_unlocked] + [None] * 21)
         np.testing.assert_equal(self.thrust_reversers.array.data, result)
 
+    def test_derive_reversers_multistate(self):
+        values_mapping = {0: 'Stowed', 1: 'In Transit', 2: 'Deployed'}
+        e1_status = M(
+            'Eng (1) Thrust Reverser',
+            array=np.ma.repeat((0, 1, 2, 1, 0), (10, 3, 5, 3, 10)),
+            values_mapping=values_mapping
+        )
+        e2_status = M(
+            'Eng (2) Thrust Reverser',
+            array=np.ma.repeat((0, 1, 2, 1, 0), (9, 3, 5, 3, 11)),
+            values_mapping=values_mapping
+        )
+        self.thrust_reversers.derive(*[None] * 28, e1_status, e2_status, None, None)
+
+        expected = np.ma.repeat((0, 1, 2, 1, 0), (9, 4, 4, 4, 10))
+        ma_test.assert_array_equal(self.thrust_reversers.array.raw, expected)
+
 
 class TestTakeoffConfigurationWarning(unittest.TestCase):
 
