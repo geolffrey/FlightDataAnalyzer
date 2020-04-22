@@ -21432,3 +21432,27 @@ class StabilizerAtLiftoff(KeyPointValueNode):
 
     def derive(self, stabilizer=P('Stabilizer'), liftoffs=KTI('Liftoff')):
         self.create_kpvs_at_ktis(stabilizer.array, liftoffs)
+
+
+class RunwayOccupancyDuration(KeyPointValueNode):
+    '''
+    Runway occupancy time in seconds.
+    '''
+
+    units = ut.SECOND
+
+    def derive(self, begins=KTI('Distance From Threshold'),
+               ends=KTI('Landing Turn Off Runway')):
+
+        # We are not interested in go-arounds or touch and gos,
+        # so only use the last approach and hence one turnoff.
+        begin = begins.get_last(name='0 NM From Threshold')
+        if not begin:
+            return
+        begin_idx = begin.index
+        end = ends.get_next(begin_idx)
+        if not end:
+            return
+        end_idx = end.index
+        duration = (end_idx - begin_idx) / self.hz
+        self.create_kpv(index=begin_idx, value=duration)
