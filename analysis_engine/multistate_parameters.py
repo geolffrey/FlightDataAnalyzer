@@ -14,7 +14,7 @@ from flightdatautilities import aircrafttables as at, dateext, units as ut
 from hdfaccess.parameter import MappedArray
 
 from analysis_engine.node import (
-    A, M, P, S, helicopter, MultistateDerivedParameterNode, derived_param_from_hdf
+    A, KTI, M, P, S, helicopter, MultistateDerivedParameterNode, derived_param_from_hdf
 )
 
 from analysis_engine.library import (
@@ -2528,6 +2528,67 @@ class PitchDisconnect(MultistateDerivedParameterNode):
             (pitch_1, 'Disconnect'),
             (pitch_2, 'Disconnect'),
         ).any(axis=0)
+
+
+class SingleFlightPhase(MultistateDerivedParameterNode):
+    '''
+    '''
+
+    def derive(self,
+               alt=P('Altitude STD'),
+               fes = KTI('FirstEngFuelFlowStart'),
+               ob=KTI('OffBlocks'),
+               tas=KTI('TakeoffAccelerationStart'),
+               rto=KTI('RejectedTakeoffStart'),
+               ics=KTI('InitialClimbStart'),
+               cs=KTI('ClimbStart'),
+               toc=KTI('TopOfClimb'),
+               tod=KTI('TopOfDescent'),
+               app=S('Approach'),
+               fapp=S('FinalApproach'),
+               ls=KTI('LandingStart'),
+               ga=KTI('GoAround'),
+               tag=KTI('TouchAndGo'),
+               ltor=KTI('LandingTurnOffRunway'),
+               les=KTI('LastEngFuelFlowStop')):
+
+        following_phase = {'Preflight':'Preflight',
+                           'FirstEngFuelFlowStart':'Engine Start',
+                           'OffBlocks':'Taxi Out',
+                           'TakeoffAccelerationStart':'Take Off',
+                           'RejectedTakeoffStart':'Rejected',
+                           'InitialClimbStart':'Initial Climb',
+                           'ClimbStart':'Climb',
+                           'TopOfClimb':'Cruise',
+                           'TopOfDescent':'Descent',
+                           'Approach':'Approach',
+                           'FinalApproach':'Final Approach',
+                           'LandingStart':'Landing',
+                           'GoAround':'Go Around',
+                           'TouchAndGo':'Touch And Go',
+                           'LandingTurnOffRunway':'Taxi In',
+                           'LastEngFuelFlowStop':'Engine Stop'}
+
+        # The data normally starts in preflight phase
+        edges = [(0, 'Preflight')]
+        # Collate all the KTIs and starting edges of phases
+        for kti in [fes, ob, tas, rto, ics, cs, toc, tod, ls, ga, tag, ltor, les]:
+            edges.extend([(a.index, a.name) for a in kti.get()])
+        for phase in [app, fapp]:
+            edges.extend([(a.slice.start, a.name) for a in phase.get()])
+        edges.sort()
+        sfp = M(name='Single Flight Phase',
+                array = np_ma_zeros_like(alt.array),
+                values_mapping={0:'Preflight', 1:'Engine Start', 2:'Taxi Out',
+                                    3:'Take Off', 4:'Rejected', 5:'Initial Climb',
+                                    6:'Climb', 7:'Cruise', 8:'Descent', 9:'Approach',
+                                    10:'Final Approach', 11:'Landing', 12:'GoAround',
+                                    13:'TouchAndGo', 14:'Taxi In', 15:'Engine Stop'}
+                )
+        for chunk in zip(edges[:-1], edges[1:]):
+            sfp.array[chunk[0][0]:chunk[1][0]] = following_phase[chunk[0][1]]
+
+        return
 
 
 class Slat(MultistateDerivedParameterNode):

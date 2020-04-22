@@ -13,7 +13,7 @@ from flightdatautilities import masked_array_testutils as ma_test
 from analysis_engine.test_utils import buildsection, buildsections
 
 from analysis_engine.node import (
-    A, M, P, S, App, Attribute, load, Section
+    A, KTI, M, P, S, App, Attribute, KeyTimeInstance, load, Section
 )
 
 from analysis_engine.library import (
@@ -73,6 +73,7 @@ from analysis_engine.multistate_parameters import (
     PilotFlying,
     PitchAlternateLaw,
     PitchDisconnect,
+    SingleFlightPhase,
     Slat,
     SlatExcludingTransition,
     SlatFullyExtended,
@@ -2588,6 +2589,51 @@ class TestPitchDisconnect(unittest.TestCase):
         node = self.node_class()
         node.derive(pitch_disc_1, pitch_disc_2)
         np.testing.assert_array_equal(node.array, [0, 0, 1, 1, 1, 1])
+
+
+class TestSingleFlightPhase(unittest.TestCase):
+
+    def test_can_operate(self):
+        opts = SingleFlightPhase.get_operational_combinations()
+        self.assertTrue(opts == [('Altitude STD', 'FirstEngFuelFlowStart', 'OffBlocks',
+                                  'TakeoffAccelerationStart', 'RejectedTakeoffStart',
+                                  'InitialClimbStart', 'ClimbStart', 'TopOfClimb',
+                                  'TopOfDescent', 'Approach', 'FinalApproach',
+                                  'LandingStart', 'GoAround', 'TouchAndGo',
+                                  'LandingTurnOffRunway', 'LastEngFuelFlowStop')])
+
+    def test_derive(self):
+        alt = P('Altitude STD', array=[0]*130)
+        fes = KTI('FirstEngFuelFlowStart', items=[KeyTimeInstance(name='FirstEngFuelFlowStart', index=10)])
+        ob = KTI('OffBlocks', items=[KeyTimeInstance(name='OffBlocks', index=20)])
+        tas = KTI('TakeoffAccelerationStart', items=[KeyTimeInstance(name='TakeoffAccelerationStart', index=30)])
+        rto = KTI('RejectedTakeoffStart', items=[])
+        ics = KTI('InitialClimbStart', items=[KeyTimeInstance(name='InitialClimbStart', index=40)])
+        cs = KTI('ClimbStart', items=[KeyTimeInstance(name='ClimbStart', index=50)])
+        toc = KTI('TopOfClimb', items=[KeyTimeInstance(name='TopOfClimb', index=60)])
+        tod = KTI('TopOfDescent', items=[KeyTimeInstance(name='TopOfDescent', index=70)])
+        app = buildsection('Approach', 80, 100)
+        fapp = buildsection('FinalApproach', 90, 100)
+        ls = KTI('LandingStart', items=[KeyTimeInstance(name='LandingStart', index=100)])
+        ga = KTI('GoAround', items=[])
+        tag = KTI('TouchAndGo', items=[])
+        ltor = KTI('LandingTurnOffRunway', items=[KeyTimeInstance(name='LandingTurnOffRunway', index=110)])
+        les = KTI('LastEngFuelFlowStop', items=[KeyTimeInstance(name='LastEngFuelFlowStop', index=120)])
+
+        node = SingleFlightPhase()
+        node.derive(alt, fes, ob, tas, rto, ics, cs, toc, tod, app, fapp, ls, ga, tag, ltor, les)
+        expected = M('Single Flight Phase',
+                      np.ma.array([0]*10 + [1]*10 + [2]*10 + [3]*10 + [5]*10 +
+                                  [6]*10 + [7]*10 + [8]*10 + [9]*10 + [10]*10 +
+                                  [11]*10 + [14]*10 + [15]*10),
+                      values_mapping={0:'Preflight', 1:'Engine Start', 2:'Taxi Out',
+                                      3:'Take Off', 4:'Rejected', 5:'Initial Climb',
+                                      6:'Climb', 7:'Cruise', 8:'Descent', 9:'Approach',
+                                      10:'Final Approach', 11:'Landing', 12:'Go Around',
+                                      13:'Touch And Go', 14:'Taxi In', 15:'Engine Stop'})
+
+        np.testing.assert_array_equal(node.array, expected)
+
 
 
 class TestSlat(unittest.TestCase, NodeTest):
