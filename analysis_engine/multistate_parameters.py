@@ -2532,63 +2532,101 @@ class PitchDisconnect(MultistateDerivedParameterNode):
 
 class SingleFlightPhase(MultistateDerivedParameterNode):
     '''
+    A simplified form of flight phase, built from the consitutent parts.
+
+    To extend this, simply add KTIs or Flight Phases to the list of arguments,
+    and add a suitable name in the following_phase array. For example, you
+    might add lines:
+
+        ils_loc=S('ILS Localizer Established'),
+    and
+        'ILS Localizer Established':'ILS Captured',
+
+    then the Single Flight Phase would include a period "ILS Captured" between
+    the start of ILS Localizer Established and the Final Approach or
+    Landing Start, whichever came next.
     '''
+
+    @classmethod
+    def can_operate(cls, available):
+        return True
 
     def derive(self,
                alt=P('Altitude STD'),
-               fes = KTI('FirstEngFuelFlowStart'),
-               ob=KTI('OffBlocks'),
-               tas=KTI('TakeoffAccelerationStart'),
-               rto=KTI('RejectedTakeoffStart'),
-               ics=KTI('InitialClimbStart'),
-               cs=KTI('ClimbStart'),
-               toc=KTI('TopOfClimb'),
-               tod=KTI('TopOfDescent'),
+               fes = KTI('First Eng Fuel Flow Start'),
+               ob=KTI('Off Blocks'),
+               tas=KTI('Takeoff Acceleration Start'),
+               rto=KTI('Rejected Takeoff Start'),
+               ics=KTI('Initial Climb Start'),
+               cs=KTI('Climb Start'),
+               toc=KTI('Top Of Climb'),
+               tod=KTI('Top Of Descent'),
                app=S('Approach'),
-               fapp=S('FinalApproach'),
-               ls=KTI('LandingStart'),
-               ga=KTI('GoAround'),
-               tag=KTI('TouchAndGo'),
-               ltor=KTI('LandingTurnOffRunway'),
-               les=KTI('LastEngFuelFlowStop')):
+               fapp=S('Final Approach'),
+               ls=KTI('Landing Start'),
+               gas=S('Go Around And Climbout'),
+               tag=KTI('Touch And Go'),
+               ltor=KTI('Landing Turn Off Runway'),
+               les=KTI('Last Eng Fuel Flow Stop')):
 
         following_phase = {'Preflight':'Preflight',
-                           'FirstEngFuelFlowStart':'Engine Start',
-                           'OffBlocks':'Taxi Out',
-                           'TakeoffAccelerationStart':'Take Off',
-                           'RejectedTakeoffStart':'Rejected',
-                           'InitialClimbStart':'Initial Climb',
-                           'ClimbStart':'Climb',
-                           'TopOfClimb':'Cruise',
-                           'TopOfDescent':'Descent',
+                           'First Eng Fuel Flow Start':'Engine Start',
+                           'Off Blocks':'Taxi Out',
+                           'Takeoff Acceleration Start':'Take Off',
+                           'Rejected Takeoff Start':'Rejected',
+                           'Initial Climb Start':'Initial Climb',
+                           'Climb Start':'Climb',
+                           'Top Of Climb':'Cruise',
+                           'Top Of Descent':'Descent',
                            'Approach':'Approach',
-                           'FinalApproach':'Final Approach',
-                           'LandingStart':'Landing',
-                           'GoAround':'Go Around',
-                           'TouchAndGo':'Touch And Go',
-                           'LandingTurnOffRunway':'Taxi In',
-                           'LastEngFuelFlowStop':'Engine Stop'}
+                           'Final Approach':'Final Final Approach',
+                           'Landing Start':'Landing',
+                           'Touch And Go':'Touch And Go',
+                           'Landing Turn Off Runway':'Taxi In',
+                           'Last Eng Fuel Flow Stop':'Engine Stop'}
 
-        # The data normally starts in preflight phase
-        edges = [(0, 'Preflight')]
-        # Collate all the KTIs and starting edges of phases
-        for kti in [fes, ob, tas, rto, ics, cs, toc, tod, ls, ga, tag, ltor, les]:
-            edges.extend([(a.index, a.name) for a in kti.get()])
-        for phase in [app, fapp]:
-            edges.extend([(a.slice.start, a.name) for a in phase.get()])
+        # Find the list of items to scan through
+        items = locals().copy()
+        # The data always starts in preflight phase
+        edges = [(0, 'Preflight')] # Array indexes
+        values_mapping = {0:'Preflight'}
+        # next_index is used to build the values_mapping dict
+        next_index = 1
+
+        for item in items:
+            # Skip the ones that we dont want to handle
+            if item in ['self', 'alt', 'following_phase', 'gas']:
+                continue
+            arg = items[item]
+            if not arg:
+                continue
+
+            # Collate the KTIs and Phase start edges, and record the names
+            if arg.node_type_abbr == 'KTI':
+                edges.extend([(int(a.index), a.name) for a in arg.get()])
+            elif arg.node_type_abbr == 'Phase':
+                edges.extend([(int(a.slice.start), a.name) for a in arg.get()])
+            values_mapping[next_index] = following_phase[arg.get().name]
+            next_index += 1
+
+        # Sort these, and write the index values to the mapped array
         edges.sort()
-        sfp = M(name='Single Flight Phase',
-                array = np_ma_zeros_like(alt.array),
-                values_mapping={0:'Preflight', 1:'Engine Start', 2:'Taxi Out',
-                                    3:'Take Off', 4:'Rejected', 5:'Initial Climb',
-                                    6:'Climb', 7:'Cruise', 8:'Descent', 9:'Approach',
-                                    10:'Final Approach', 11:'Landing', 12:'GoAround',
-                                    13:'TouchAndGo', 14:'Taxi In', 15:'Engine Stop'}
-                )
+        edges.append((-1, 'The End'))
+        reverse_values = {v:k for k, v in values_mapping.items()}
+        array = np_ma_zeros_like(alt.array, dtype=int)
         for chunk in zip(edges[:-1], edges[1:]):
-            sfp.array[chunk[0][0]:chunk[1][0]] = following_phase[chunk[0][1]]
+            array[chunk[0][0]:chunk[1][0]] = reverse_values[following_phase[chunk[0][1]]]
+        # OK, tacky way to handle the last sample...
+        array[-1] = array[-2]
 
-        return
+        # Finally, we overstamp Go-arounds
+        if gas:
+            values_mapping[next_index] = 'Go Around'
+            for ga in gas:
+                array[slices_int(ga.slice] = next_index
+
+        self.array = array
+        self.values_mapping = values_mapping
 
 
 class Slat(MultistateDerivedParameterNode):

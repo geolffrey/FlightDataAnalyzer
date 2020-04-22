@@ -2593,47 +2593,60 @@ class TestPitchDisconnect(unittest.TestCase):
 
 class TestSingleFlightPhase(unittest.TestCase):
 
+
     def test_can_operate(self):
         opts = SingleFlightPhase.get_operational_combinations()
-        self.assertTrue(opts == [('Altitude STD', 'FirstEngFuelFlowStart', 'OffBlocks',
-                                  'TakeoffAccelerationStart', 'RejectedTakeoffStart',
-                                  'InitialClimbStart', 'ClimbStart', 'TopOfClimb',
-                                  'TopOfDescent', 'Approach', 'FinalApproach',
-                                  'LandingStart', 'GoAround', 'TouchAndGo',
-                                  'LandingTurnOffRunway', 'LastEngFuelFlowStop')])
+        self.assertTrue(opts)
 
     def test_derive(self):
         alt = P('Altitude STD', array=[0]*130)
-        fes = KTI('FirstEngFuelFlowStart', items=[KeyTimeInstance(name='FirstEngFuelFlowStart', index=10)])
-        ob = KTI('OffBlocks', items=[KeyTimeInstance(name='OffBlocks', index=20)])
-        tas = KTI('TakeoffAccelerationStart', items=[KeyTimeInstance(name='TakeoffAccelerationStart', index=30)])
-        rto = KTI('RejectedTakeoffStart', items=[])
-        ics = KTI('InitialClimbStart', items=[KeyTimeInstance(name='InitialClimbStart', index=40)])
-        cs = KTI('ClimbStart', items=[KeyTimeInstance(name='ClimbStart', index=50)])
-        toc = KTI('TopOfClimb', items=[KeyTimeInstance(name='TopOfClimb', index=60)])
-        tod = KTI('TopOfDescent', items=[KeyTimeInstance(name='TopOfDescent', index=70)])
+        fes = KTI('First Eng Fuel Flow Start', items=[KeyTimeInstance(name='First Eng Fuel Flow Start', index=10)])
+        ob = KTI('Off Blocks', items=[KeyTimeInstance(name='Off Blocks', index=20)])
+        tas = KTI('Takeoff Acceleration Start', items=[KeyTimeInstance(name='Takeoff Acceleration Start', index=30)])
+        rto = KTI('Rejected Takeoff Start', items=[])
+        ics = KTI('Initial Climb Start', items=[KeyTimeInstance(name='Initial Climb Start', index=40)])
+        cs = KTI('Climb Start', items=[KeyTimeInstance(name='Climb Start', index=50)])
+        toc = KTI('Top Of Climb', items=[KeyTimeInstance(name='Top Of Climb', index=60)])
+        tod = KTI('Top Of Descent', items=[KeyTimeInstance(name='Top Of Descent', index=70)])
         app = buildsection('Approach', 80, 100)
-        fapp = buildsection('FinalApproach', 90, 100)
-        ls = KTI('LandingStart', items=[KeyTimeInstance(name='LandingStart', index=100)])
-        ga = KTI('GoAround', items=[])
-        tag = KTI('TouchAndGo', items=[])
-        ltor = KTI('LandingTurnOffRunway', items=[KeyTimeInstance(name='LandingTurnOffRunway', index=110)])
-        les = KTI('LastEngFuelFlowStop', items=[KeyTimeInstance(name='LastEngFuelFlowStop', index=120)])
+        fapp = buildsection('Final Approach', 90, 100)
+        ls = KTI('Landing Start', items=[KeyTimeInstance(name='Landing Start', index=100)])
+        ga = S('Go Around And Climbout', items=[])
+        tag = KTI('Touch And Go', items=[])
+        ltor = KTI('Landing Turn Off Runway', items=[KeyTimeInstance(name='Landing Turn Off Runway', index=110)])
+        les = KTI('Last Eng Fuel Flow Stop', items=[KeyTimeInstance(name='Last Eng Fuel Flow Stop', index=120)])
 
         node = SingleFlightPhase()
         node.derive(alt, fes, ob, tas, rto, ics, cs, toc, tod, app, fapp, ls, ga, tag, ltor, les)
         expected = M('Single Flight Phase',
-                      np.ma.array([0]*10 + [1]*10 + [2]*10 + [3]*10 + [5]*10 +
-                                  [6]*10 + [7]*10 + [8]*10 + [9]*10 + [10]*10 +
-                                  [11]*10 + [14]*10 + [15]*10),
+                      np.ma.array([0]*10 + [1]*10 + [2]*10 + [3]*10 + [4]*10 +
+                                  [5]*10 + [6]*10 + [7]*10 + [8]*10 + [9]*10 +
+                                  [10]*10 + [11]*10 + [12]*10),
                       values_mapping={0:'Preflight', 1:'Engine Start', 2:'Taxi Out',
-                                      3:'Take Off', 4:'Rejected', 5:'Initial Climb',
-                                      6:'Climb', 7:'Cruise', 8:'Descent', 9:'Approach',
-                                      10:'Final Approach', 11:'Landing', 12:'Go Around',
-                                      13:'Touch And Go', 14:'Taxi In', 15:'Engine Stop'})
+                                      3:'Take Off', 4:'Initial Climb',
+                                      5:'Climb', 6:'Cruise', 7:'Descent', 8:'Approach',
+                                      9:'Final Approach', 10:'Landing',
+                                      11:'Taxi In', 12:'Engine Stop'})
 
-        np.testing.assert_array_equal(node.array, expected)
+        np.testing.assert_array_equal(node.array.data, expected.array.data)
 
+    def test_with_go_around(self):
+        alt = P('Altitude STD', array=[0]*130)
+        ob = KTI('Off Blocks', items=[KeyTimeInstance(name='Off Blocks', index=20)])
+        tas = KTI('Takeoff Acceleration Start', items=[KeyTimeInstance(name='Takeoff Acceleration Start', index=30)])
+        rto = KTI('Rejected Takeoff Start', items=[KeyTimeInstance(name='Rejected Takeoff Start', index=35)])
+        cs = KTI('Climb Start', items=[KeyTimeInstance(name='Climb Start', index=50)])
+        toc = KTI('Top Of Climb', items=[KeyTimeInstance(name='Top Of Climb', index=60)])
+        tod = KTI('Top Of Descent', items=[KeyTimeInstance(name='Top Of Descent', index=70)])
+        app = buildsection('Approach', 80, 100)
+        fapp = buildsection('Final Approach', 90, 100)
+        ls = KTI('Landing Start', items=[KeyTimeInstance(name='Landing Start', index=100)])
+        ga = buildsection('Go Around And Climbout', 75, 85)
+        tag = KTI('Touch And Go', items=[KeyTimeInstance(name='Touch And Go', index=102)])
+        ltor = KTI('Landing Turn Off Runway', items=[KeyTimeInstance(name='Landing Turn Off Runway', index=110)])
+        node = SingleFlightPhase()
+        node.derive(alt, None, ob, tas, rto, None, cs, toc, tod, app, fapp, ls, ga, tag, ltor, None)
+        self.assertEqual(node.array[77], 'Go Around')
 
 
 class TestSlat(unittest.TestCase, NodeTest):
