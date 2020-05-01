@@ -306,8 +306,8 @@ class LandingAirport(FlightAttributeNode):
         return any_of(('Approach Information', 'AFR Landing Airport'), available)
 
     def derive(self,
-               approaches=KPV('Approach Information'),
-               land_afr_apt=App('AFR Landing Airport')):
+               approaches=App('Approach Information'),
+               land_afr_apt=A('AFR Landing Airport')):
         '''
         '''
         # 1. If we have Approach Information use this as hardwork already done.

@@ -265,6 +265,9 @@ class ClimbAccelerationStart(KeyTimeInstanceNode):
                spd=P('Airspeed'),
                flap=KTI('Flap Lever Set')):
 
+        if not initial_climbs.get_first():
+            return
+
         if spd_sel and spd_sel.frequency >= 0.125:
             # Use first Airspeed Selected change in Initial Climb up to 4000 Ft
             _slice = initial_climbs.get_aligned(spd_sel).get_first().slice
@@ -294,9 +297,6 @@ class ClimbAccelerationStart(KeyTimeInstanceNode):
                 self.offset = offset
                 self.create_kti(index + (_slice.start or 0))
                 return
-
-        if not initial_climbs.get_first():
-            return
 
         if spd and flap:
             # Base on airspeed increase after first flap retraction
@@ -390,10 +390,7 @@ class ClimbThrustDerateDeselected(KeyTimeInstanceNode):
     '''
     @classmethod
     def can_operate(cls, available, ac_family=A('Family')):
-        if ac_family and ac_family.value == 'B787':
-            return True
-
-        return False
+        return ac_family and ac_family.value == 'B787'
 
     def derive(self, climb_derate_1=P('AT Climb 1 Derate'),
                climb_derate_2=P('AT Climb 2 Derate'),):
@@ -1145,7 +1142,8 @@ class TakeoffTurnOntoRunway(KeyTimeInstanceNode):
             # backwards, but in case there is a problem with the phases,
             # use the midpoint. This avoids identifying the heading
             # change immediately after liftoff as a turn onto the runway.
-            start_search = fast.get_next(toff.slice.start).slice.start
+            next_fast = fast.get_next(toff.slice.start)
+            start_search = next_fast.slice.start if next_fast else None
             if (start_search is None) or (start_search > toff.slice.stop):
                 start_search = (toff.slice.start + toff.slice.stop) / 2
             peak_bend = peak_curvature(head.array, slice(
@@ -1213,6 +1211,8 @@ class TakeoffAccelerationStart(KeyTimeInstanceNode):
                 '''
                 #pc = peak_curvature(speed.array[takeoff.slice])
                 p, m, c = coreg(speed.array[takeoff.slice])
+                if p is None:
+                    continue
                 start_accel = max(takeoff.slice.start - c / m, 0.0)
 
             # FIXME: coreg can return values larger than the parameter size (segment hash 18c141e479fc2412539b017b9340e67f78c86e6443c3cabd8f9839be0eadfbd5)

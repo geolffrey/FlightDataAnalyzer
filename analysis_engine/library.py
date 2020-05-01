@@ -767,7 +767,7 @@ def calculate_surface_angle(mode, param, detents):
     freq = param.frequency * freq_multiplier
     # No need to re-align if high frequency.
     offset = param.offset / freq_multiplier
-    param.array = align_args(
+    angle = align_args(
         param.array,
         param.frequency,
         param.offset,
@@ -775,7 +775,6 @@ def calculate_surface_angle(mode, param, detents):
         offset,
     )
 
-    angle = param.array
     mask = angle.mask.copy()
     # Repair the array to avoid extreme values affecting the algorithm.
     # Extrapolation included to avoid problems of corrupt data at end of flight and/or testing.
@@ -1988,7 +1987,7 @@ def find_toc_tod(alt_data, ccd_slice, frequency, mode=None):
     if mode == 'tod':
         # The first part is where the point of interest lies
         if section_2.start == mid_index:
-            return np.ma.argmax(alt_data)
+            return np.ma.argmax(alt_data[section_2]) + (section_2.start or 0)
         section_4 = slice(section_2.start, mid_index)
     else:
         # we need to scan the second part of this half.
@@ -8099,7 +8098,7 @@ def from_isa(alt, sat):
     if alt < H1:
         return sat - (15.0+L0*alt)
     else:
-        return None
+        return sat - (15.0+L0*H1)
 
 #---------------------------------------------------------------------------
 # Computation modules use AeroCalc structure and are called from the Derived

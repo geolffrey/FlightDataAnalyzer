@@ -557,7 +557,7 @@ class AltitudeAAL(DerivedParameterNode):
                                             endpoint='closing')
             check_slice = slices_int(lowest_index, lowest_index + still_airborne)
             # What was the maximum pitch attitude reached in the last 50ft of the descent?
-            max_pitch = max(land_pitch[check_slice])
+            max_pitch = max(land_pitch[check_slice], default=None)
             # and the last index at this attitude is given by:
             if max_pitch:
                 max_pch_idx = (land_pitch[check_slice] == max_pitch).nonzero()[-1][0]
@@ -1358,16 +1358,20 @@ class AltitudeVisualizationWithGroundOffset(DerivedParameterNode):
     def derive(self,
                alt_aal=P('Altitude AAL'),
                alt_std=P('Altitude STD Smoothed'),
-               l_apt=A('FDR Landing Runway'),
-               t_apt=A('FDR Takeoff Runway'),
+               l_rwy=A('FDR Landing Runway'),
+               l_apt=A('FDR Landing Airport'),
+               t_rwy=A('FDR Takeoff Runway'),
+               t_apt=A('FDR Takeoff Airport'),
                climbs=S('Climb'),
                descents=S('Descent'),
                tocs=KTI('Top Of Climb'),
                apps=App('Approach Information')):
 
         # Attempt to determine elevations at takeoff and landing:
-        t_elev = t_apt.value.get('end')['elevation'] if t_apt else None
-        l_elev = l_apt.value.get('start')['elevation'] if l_apt else None
+        t_elev = t_rwy.value.get('end', {}).get('elevation') if t_rwy else None
+        t_elev = t_elev or (t_apt.value.get('elevation') if t_apt else None)
+        l_elev = l_rwy.value.get('start', {}).get('elevation') if l_rwy else None
+        l_elev = l_elev or (l_apt.value.get('elevation') if l_apt else None)
 
         if apps is None:
             self.warning('No Approach information, using Altitude AAL.')
@@ -1410,7 +1414,9 @@ class AltitudeVisualizationWithGroundOffset(DerivedParameterNode):
                 continue
 
             if app.approach_runway is not None:
-                l_elev = app.approach_runway['start']['elevation']
+                rwy_elev = app.approach_runway.get('start', {}).get('elevation')
+                if rwy_elev is not None:
+                    l_elev = rwy_elev
 
             descent = slice(descent.slice.stop - 1, descent.slice.start - 1, -1)
             adjust_down = self._qnh_adjust(alt_aal.array[descent],
@@ -4208,7 +4214,7 @@ class GroundspeedSigned(DerivedParameterNode):
                lon=P('Longitude Prepared'),
                ):
 
-        self.array = gspd.array
+        self.array = gspd.array.copy()
         # Ignore the pushback, when the aircraft can have a groundspeed
         # recorded, but in effect it's negative.
         no_power = np.ma.clump_masked(np.ma.masked_less(power.array, 1))
@@ -4733,7 +4739,7 @@ class HeadingTrueContinuous(DerivedParameterNode):
     units = ut.DEGREE
 
     def derive(self, hdg=P('Heading True')):
-        self.array = repair_mask(straighten_headings(hdg.array))
+        self.array = repair_mask(straighten_headings(hdg.array), raise_entirely_masked=False)
 
 
 class Heading(DerivedParameterNode):
@@ -5759,6 +5765,9 @@ class VerticalSpeedInertial(DerivedParameterNode):
         hz = az.frequency
 
         for speedy in fast:
+            if az.array[speedy.slice].mask.all() or alt_std.array[speedy.slice].mask.all():
+                # Fully masked array in this slice. Cannot do anything
+                continue
             # Fix minor dropouts
             az_repair = repair_mask(az.array[speedy.slice], frequency=hz)
             alt_rad_repair = repair_mask(alt_rad.array[speedy.slice], frequency=hz,
@@ -5907,8 +5916,6 @@ class CoordinatesStraighten(object):
         coord1_s.mask = np.ma.logical_or(np.ma.getmaskarray(coord1_s),
                                          np.ma.getmaskarray(coord2_s))
         coord2_s.mask = np.ma.getmaskarray(coord1_s)
-        # Preload the output with masked values to keep dimension correct
-        array = np_ma_masked_zeros_like(coord1_s)
 
         # Now we just smooth the valid sections.
         tracks = np.ma.clump_unmasked(coord1_s)

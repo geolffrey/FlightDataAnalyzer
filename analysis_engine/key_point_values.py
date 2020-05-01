@@ -189,6 +189,8 @@ class FlapOrConfigurationMaxOrMin(object):
         data = []
         # We need to repair the conflap otherwise we would create multiple
         # KPV for the same duration that the flap was selected.
+        if conflap.array.mask.all():
+            return data
         repair_mask(conflap.array, method='fill_start')
 
         for detent in conflap.values_mapping.values():
@@ -882,7 +884,7 @@ class AccelerationNormalAboveWeightHighLimitAtTouchdown(KeyPointValueNode):
 
 class LoadFactorThresholdAtTouchdown(KeyPointValueNode):
     '''
-    A Boeing 767/757/737 specific KPV, which returns the difference between
+    A Boeing 777/767/757/737 specific KPV, which returns the difference between
     acceleration normal at touchdown and load factor threshold based on roll
     and weight. A positive value indicates the amount over the load factor
     threshold and therefore a hard landing which needs maintenance action.
@@ -898,7 +900,8 @@ class LoadFactorThresholdAtTouchdown(KeyPointValueNode):
     @classmethod
     def get_landing_weight(cls, series=None, model=None, mods=None):
         '''
-        From the tamplate LMX000 (Maint.) Landing weight high at touchdown
+        From the template LMX000 (Maint.) Landing weight high at touchdown
+
         Series       Model          Modification                     Weight(KG)
         B757-200     (F),(PF)       MOD Aircraft Line Numbers 1-209       89992
         B757-200     (PCF)          MOD Aircraft Line Numbers 1-209       89811
@@ -914,16 +917,22 @@ class LoadFactorThresholdAtTouchdown(KeyPointValueNode):
         B767-300     None           Freighter Conversion                 147871
         B767-300     None           None                                 145149
         B767-400     (ER)           None                                 158757
+        B777-200     None           None                                 201840
+        B777-200     (ER)           None                                 213180
+        B777-200     (LR)           None                                 223168
+        B777-300     None           None                                 237680
+        B777-300     (ER)           None                                 251290
+        B777-F       None           None                                 260816
+
         Return the weight in KG when match is found else None
         '''
         if None in (series, model, mods):
             return None
-        re_series = re.match(r'^B7[365]7-[2346789][05][0E]', series)
-        if not re_series and series != 'B737-MAX-8':
+        re_series = re.match(r'^B7[3567]7-[2346789][05][0E]', series)
+        if not re_series and series not in ['B737-MAX-8', 'B777-F'] :
             return None
-        re_model = re.search(r'\((F|PF|PCF|ER)\)$', model)
+        re_model = re.search(r'\((F|PF|PCF|ER|LR)\)$', model)
         model_ending = re_model.group() if re_model else None
-
         if 'B757-200' in series and model_ending in ['(F)', '(PF)'] and \
            'MOD Aircraft Line Numbers 1-209' in mods:
             return 89992
@@ -953,6 +962,18 @@ class LoadFactorThresholdAtTouchdown(KeyPointValueNode):
             return 145149
         elif 'B767-400' in series and model_ending in ['(ER)',]:
             return 158757
+        elif 'B777-200' in series and model_ending in ['(ER)',]:
+            return 213180
+        elif 'B777-200' in series and model_ending in ['(LR)',]:
+            return 223168
+        elif 'B777-200' in series:
+            return 201840
+        elif 'B777-300' in series and model_ending in ['(ER)',]:
+            return 251290
+        elif 'B777-300' in series:
+            return 237680
+        elif 'B777-F' in series:
+            return 260816
         elif 'B737-600' in series:
             return 55205
         elif 'B737-700' in series and 'Increased Gross Weight' in mods:
@@ -972,7 +993,6 @@ class LoadFactorThresholdAtTouchdown(KeyPointValueNode):
         else:
             return None
 
-    # This KPV is specific to 767 aircraft
     @classmethod
     def can_operate(cls, available, model=A('Model'), series=A('Series'),
                     mods=A('Modifications')):
@@ -1002,7 +1022,9 @@ class LoadFactorThresholdAtTouchdown(KeyPointValueNode):
         # roll_repaired = repair_mask(roll.array, frequency=roll.frequency,
                                     # extrapolate=True, repair_duration=6)
         ac_type = series.value[:4]
-        if ac_type == 'B767':
+        if ac_type == 'B777':
+            weight_threshold = mlw + 1800.0 # Based on B777 manual
+        elif ac_type == 'B767':
             weight_threshold = mlw + 1133.981  # B767 manual: 2500LB --> 1133.981KG
         elif ac_type == 'B757':
             weight_threshold = mlw + 1133.981  # Based on B767 manual
@@ -1010,7 +1032,12 @@ class LoadFactorThresholdAtTouchdown(KeyPointValueNode):
             weight_threshold = mlw + 454.0 # B737 manual states 1000lb = 454kg.
 
         freq_8hz = land_vert_acc.frequency == 8.0
+        freq_10hz = land_vert_acc.frequency == 10.0
         freq_16hz = land_vert_acc.frequency == 16.0
+
+        if not any((freq_8hz, freq_10hz, freq_16hz)):
+            return
+
         for idx, tdwn in enumerate(tdwns+touch_and_go):
             # Find the maximum roll in the second prior to the touchdown.
             ratio = roll.frequency / self.frequency
@@ -1032,7 +1059,24 @@ class LoadFactorThresholdAtTouchdown(KeyPointValueNode):
 
             overweight = weight > weight_threshold
 
-            if ac_type in ['B757', 'B767']:
+            if ac_type in ['B777']:
+                if not overweight and freq_16hz:
+                    ld_factor_grph = np.ma.concatenate((np.array([2.10, 2.10]),
+                                                       np.linspace(2.10, 1.55, 5),
+                                                       np.array([1.55, 1.55])))
+                elif not overweight and (freq_8hz or freq_10hz):
+                    ld_factor_grph = np.ma.concatenate((np.array([1.90, 1.90]),
+                                                       np.linspace(1.90, 1.45, 5),
+                                                       np.array([1.45, 1.45])))
+                elif overweight and freq_16hz:
+                    ld_factor_grph = np.ma.concatenate((np.array([1.70,]),
+                                                       np.linspace(1.70, 1.35, 6),
+                                                       np.array([1.35, 1.35])))
+                elif overweight and (freq_8hz or freq_10hz):
+                    ld_factor_grph = np.ma.concatenate((np.array([1.55,]),
+                                                       np.linspace(1.55, 1.28, 6),
+                                                       np.array([1.28, 1.28])))
+            elif ac_type in ['B757', 'B767']:
                 if not overweight and freq_16hz:
                     ld_factor_grph = np.ma.append(np.array([1.90, 1.90]),
                                                   np.linspace(1.90, 1.45, 5))
@@ -1065,8 +1109,10 @@ class LoadFactorThresholdAtTouchdown(KeyPointValueNode):
                 # Use roll_tdwn as the index for ld_factor_grph
                 load_factor = value_at_index(ld_factor_grph, roll_tdwn,
                                              interpolate=True)
-                # At 6 deg the graph drops to zero.
-                if roll_tdwn > 6.0:
+                # At 6/8 deg the graph drops to zero.
+                if ac_type not in ['B777'] and roll_tdwn > 6.0:
+                    load_factor = 0.0
+                elif roll_tdwn > 8.0:
                     load_factor = 0.0
 
                 self.create_kpv(tdwn.index, load_factor)
@@ -1074,7 +1120,7 @@ class LoadFactorThresholdAtTouchdown(KeyPointValueNode):
 
 class AccelerationNormalMinusLoadFactorThresholdAtTouchdown(KeyPointValueNode):
     '''
-    A Boeing 767/757/737 specific KPV, which returns the difference between
+    A Boeing 777/767/757/737 specific KPV, which returns the difference between
     acceleration normal at touchdown and load factor threshold based on roll
     and weight. A positive value indicates the amount over the load factor
     threshold and therefore a hard landing which needs maintenance action.
@@ -1087,7 +1133,6 @@ class AccelerationNormalMinusLoadFactorThresholdAtTouchdown(KeyPointValueNode):
     '''
     units = ut.G
 
-    # This KPV is specific to 767 aircraft
     @classmethod
     def can_operate(cls, available, model=A('Model'), series=A('Series'),
                     mods=A('Modifications')):
@@ -3745,6 +3790,7 @@ class AirspeedWithFlapDuringClimbMax(KeyPointValueNode, FlapOrConfigurationMaxOr
         # to ensure that the parameter is called flap with the name hack below:
         flap_avail = flap_lever or flap_synth
         if flap_avail:
+            original_name = flap_avail.name
             flap_avail.name = 'Flap'
 
         for flap in (flap_avail, flap_inc_trans, flap_exc_trans):
@@ -3755,6 +3801,10 @@ class AirspeedWithFlapDuringClimbMax(KeyPointValueNode, FlapOrConfigurationMaxOr
             data = self.flap_or_conf_max_or_min(flap, airspeed, max_value, scope)
             for index, value, detent in data:
                 self.create_kpv(index, value, parameter=flap.name, flap=detent)
+
+        if flap_avail:
+            # Revert to original name
+            flap_avail.name = original_name
 
 
 class AirspeedWithFlapDuringClimbMin(KeyPointValueNode, FlapOrConfigurationMaxOrMin):
@@ -3842,6 +3892,7 @@ class AirspeedWithFlapDuringDescentMax(KeyPointValueNode, FlapOrConfigurationMax
         # to ensure that the parameter is called flap with the name hack below:
         flap_avail = flap_lever or flap_synth
         if flap_avail:
+            original_name = flap_avail.name
             flap_avail.name = 'Flap'
 
         for flap in (flap_avail, flap_inc_trans, flap_exc_trans):
@@ -3852,6 +3903,10 @@ class AirspeedWithFlapDuringDescentMax(KeyPointValueNode, FlapOrConfigurationMax
             data = self.flap_or_conf_max_or_min(flap, airspeed, max_value, scope)
             for index, value, detent in data:
                 self.create_kpv(index, value, parameter=flap.name, flap=detent)
+
+        if flap_avail:
+             # Revert to original name
+            flap_avail.name = original_name
 
 
 class AirspeedWithFlapDuringDescentMin(KeyPointValueNode, FlapOrConfigurationMaxOrMin):
@@ -6642,7 +6697,9 @@ class QNHDifferenceDuringApproach(KeyPointValueNode):
             if index is None:
                 continue
             final_alt = alt_aal.array[int(index)]
-            rwy_elevation = app.approach_runway['start']['elevation']
+            rwy_elevation = app.approach_runway.get('start', {}).get('elevation')
+            if rwy_elevation is None:
+                continue
             ref = rwy_elevation + final_alt
             alt_qnh_lo = alt_qnh.array[int(index)]
             diff = alt_qnh_lo - ref
@@ -6667,7 +6724,9 @@ class QNHDifferenceDuringTakeoff(KeyPointValueNode):
             final_alt = alt_aal.array[int(index)]
             if to_runway.value is None:
                 continue
-            rwy_elevation = to_runway.value['start']['elevation']
+            rwy_elevation = to_runway.value.get('start', {}).get('elevation')
+            if rwy_elevation is None:
+                continue
             ref = rwy_elevation + final_alt
             alt_qnh_lo = alt_qnh.array[int(index)]
             diff = alt_qnh_lo - ref
@@ -7864,6 +7923,8 @@ class RunwayOverrunWithoutSlowingDuration(KeyPointValueNode):
                     distance_at_tdn = runway_distance_from_end(
                         rwy.value, lat_tdn.get_last().value,
                         lon_tdn.get_last().value)
+                    if distance_at_tdn is None:
+                        continue
                     dist_from_td = integrate(gspd.array[land_roll], gspd.hz, scale=scale)
                     time_to_end = (distance_at_tdn - dist_from_td) / speed
                 if len(time_to_end) == 0:
@@ -15973,6 +16034,38 @@ class RateOfClimbAtHeightBeforeLevelFlight(KeyPointValueNode):
                                 replace_values={'altitude': altitude})
 
 
+class RateOfClimbInRVSMAtHeightBeforeLevelFlight(KeyPointValueNode):
+    '''
+    Rate of climb at various altitudes before level off within RVSM airspace.
+
+    RVSM airspace is defined as an altitude band between FL285 and FL415, irrespective
+    of the geographical location.
+    Uses altitude STD smoothed.
+    '''
+
+    NAME_FORMAT = 'Rate Of Climb In RVSM At %(altitude)d Ft Before Level Off'
+    NAME_VALUES = {'altitude': [2000, 1000]}
+
+    units = ut.FPM
+
+    def derive(self, vert_spd=P('Vertical Speed'),
+               alt=P('Altitude STD Smoothed'),
+               heights=KTI('Altitude Before Level Flight When Climbing')):
+
+        rvsm = np.ma.clump_unmasked(np.ma.masked_outside(alt.array, 28_500, 41_500))
+        if not rvsm:
+            return
+        for altitude in self.NAME_VALUES['altitude']:
+            ktis = heights.get(
+                name='%d Ft Before Level Flight Climbing' % altitude,
+                within_slices=rvsm
+            )
+            for kti in ktis:
+                value = value_at_index(vert_spd.array, kti.index)
+                self.create_kpv(kti.index, value,
+                                replace_values={'altitude': altitude})
+
+
 class RateOfClimbAtHeightBeforeAltitudeSelected(KeyPointValueNode):
     '''
     Rate of climb at various altitudes before reaching Altitude Selected.
@@ -16381,6 +16474,37 @@ class RateOfDescentAtHeightBeforeLevelFlight(KeyPointValueNode):
         for altitude in self.NAME_VALUES['altitude']:
             ktis = heights.get(name='%d Ft Before Level Flight Descending'
                                % altitude)
+            for kti in ktis:
+                value = value_at_index(vert_spd.array, kti.index)
+                self.create_kpv(kti.index, value,
+                                replace_values={'altitude': altitude})
+
+
+class RateOfDescentInRVSMAtHeightBeforeLevelFlight(KeyPointValueNode):
+    '''
+    Rate of descent at various altitudes before level off within RVSM airspace.
+
+    RVSM airspace is defined as an altitude band between FL285 and FL415, irrespective
+    of the geographical location.
+    '''
+
+    NAME_FORMAT = 'Rate Of Descent In RVSM At %(altitude)d Ft Before Level Off'
+    NAME_VALUES = {'altitude': [2000, 1000]}
+
+    units = ut.FPM
+
+    def derive(self, vert_spd=P('Vertical Speed'),
+               alt=P('Altitude STD Smoothed'),
+               heights=KTI('Altitude Before Level Flight When Descending')):
+
+        rvsm = np.ma.clump_unmasked(np.ma.masked_outside(alt.array, 28_500, 41_500))
+        if not rvsm:
+            return
+        for altitude in self.NAME_VALUES['altitude']:
+            ktis = heights.get(
+                name='%d Ft Before Level Flight Descending' % altitude,
+                within_slices=rvsm
+            )
             for kti in ktis:
                 value = value_at_index(vert_spd.array, kti.index)
                 self.create_kpv(kti.index, value,

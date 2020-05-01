@@ -414,6 +414,16 @@ class TestClimbAccelerationStart(unittest.TestCase):
         # Falls back to 800 Ft
         self.assertAlmostEqual(node[0].index, 527, places=0)
 
+    def test_empty_initial_climb(self):
+        array = np.ma.concatenate((np.ones(15) * 110, np.ones(20) * 180))
+        spd_sel = Parameter('Airspeed Selected', array=array)
+        init_climbs = S('Initial Climb')
+        alt_climbing = AltitudeWhenClimbing(
+            items=[KeyTimeInstance(29, name='4000 Ft Climbing')]
+        )
+        node = self.node_class()
+        node.derive(None, init_climbs, alt_climbing, spd_sel, None, None, None, None, None, None)
+        self.assertEqual(len(node), 0)
 
 class TestClimbThrustDerateDeselected(unittest.TestCase):
     def test_can_operate(self):
@@ -828,6 +838,15 @@ class TestTakeoffAccelerationStart(unittest.TestCase):
         instance.derive(aspd, takeoff,None)
         self.assertEqual(instance[0].index, 0.0)
 
+    def test_takeoff_acceleration_start_airspeed_masked(self):
+        airspeed_data = np.ma.array(np.ones(50) * 250)
+        airspeed_data[:40] = np.ma.masked
+        takeoff = buildsection('Takeoff', 3, len(airspeed_data))
+        aspd = P('Airspeed', airspeed_data)
+        instance = TakeoffAccelerationStart()
+        instance.derive(aspd, takeoff,None)
+        self.assertEqual(len(instance), 0)
+
 
 class TestTakeoffTurnOntoRunway(unittest.TestCase):
     def test_can_operate(self):
@@ -851,6 +870,15 @@ class TestTakeoffTurnOntoRunway(unittest.TestCase):
         takeoff = buildsection('Takeoff',4,75)
         instance.derive(head, takeoff, fast)
         expected = [KeyTimeInstance(index=21.5, name='Takeoff Turn Onto Runway')]
+        self.assertEqual(instance, expected)
+
+    def test_takeoff_turn_onto_runway_no_fast_section_after_takeoff(self):
+        instance = TakeoffTurnOntoRunway()
+        head = P('Heading Continuous',np.ma.arange(5))
+        takeoff = buildsection('Takeoff',1.7,5.5)
+        fast = buildsection('Fast', 0.1, 1.5)
+        instance.derive(head, takeoff, fast)
+        expected = [KeyTimeInstance(index=1.7, name='Takeoff Turn Onto Runway')]
         self.assertEqual(instance, expected)
 
 
