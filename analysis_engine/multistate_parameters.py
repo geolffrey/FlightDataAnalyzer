@@ -2623,7 +2623,7 @@ class SingleFlightPhase(MultistateDerivedParameterNode):
         if gas:
             values_mapping[next_index] = 'Go Around'
             for ga in gas:
-                array[slices_int(ga.slice] = next_index
+                array[slices_int(ga.slice)] = next_index
 
         self.array = array
         self.values_mapping = values_mapping
