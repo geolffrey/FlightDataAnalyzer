@@ -5928,6 +5928,9 @@ class CoordinatesStraighten(object):
         # as it is always used in the cost function algorithm.
         for ro in list(coord1_roll_overs)+list(coord2_roll_overs):
             tracks = slices_split(tracks, ro)
+
+        # Preload the output with masked values to keep dimension correct
+        array = np_ma_masked_zeros_like(coord1_s)
         for track in tracks:
             coord1_s_track, coord2_s_track, cost = \
                 smooth_track(coord1_s[track], coord2_s[track], ac_type,
