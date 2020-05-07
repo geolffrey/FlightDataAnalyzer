@@ -6774,6 +6774,17 @@ class TestBrakeTempAfterTouchdownDelta(unittest.TestCase):
         self.assertEqual(dt[0].value, 6)
         self.assertEqual(dt[0].index, 8)
 
+    def test_missing_touchdown(self):
+        array = np.ma.concatenate((np.arange(200, 130, -1), np.arange(130, 300, 10), np.arange(300, 280, -1)))
+
+        brake_temp = P('Brake (*) Temp Avg', array)
+        touchdown = KTI(name='Touchdown', items=[])
+
+        node = self.node_class()
+        node.derive(brake_temp, touchdown)
+        self.assertEqual(len(node), 0)
+
+
 class TestBrakePressureInTakeoffRollMax(unittest.TestCase,
                                         CreateKPVsWithinSlicesTest):
     def setUp(self):
@@ -18661,6 +18672,20 @@ class TestRateOfClimbAtHeightBeforeAltitudeSelected(unittest.TestCase):
         ])
         self.assertEqual(node, expected)
 
+    def test_fully_masked_alt_qnh(self):
+        roc_array = np.ma.arange(3000, -100, -100)
+        vert_spd = P('Vertical Speed', roc_array)
+        alt = P('Altitude QNH', array=np.ma.arange(2000, 5100, 100))
+        alt.array[:] = np.ma.masked
+        alt_sel = P('Altitude Selected', array=np.ma.ones(31) * 5000)
+        airborne = buildsection('Airborne', 0, 31)
+        node = self.node_class()
+        node.derive(alt, alt_sel, vert_spd, airborne, None, None, None, None)
+
+        expected = KPV('Rate Of Climb At Height Before Altitude Selected', items=[])
+        self.assertEqual(node, expected)
+
+
 ##############################################################################
 # Rate of Descent
 
@@ -24699,6 +24724,23 @@ class TestAltitudeDeviationfromAltitudeSelectedMax(unittest.TestCase, NodeTest):
         node = self.node_class()
         node.derive(alt, alt_sel, airborne, apps, None, None, None, None)
         self.assertEqual(len(node), 0)
+
+    def test_fully_masked_alt_qnh(self):
+        airborne = buildsection('Airborne', 0, 50)
+        alt_sel = P('Altitude Selected', array=np.ma.concatenate((
+            np.ma.ones(30) * 4000,
+            np.ma.ones(20) * 5000
+        )))
+        alt = P('Altitude QNH', array=np.ma.concatenate((
+            np.ma.ones(25) * 4000,
+            np.linspace(4000, 0, num=25)
+        )))
+        alt.array[:] = np.ma.masked
+        apps = buildsection('Approach And Landing', 10, 50)
+        node = self.node_class()
+        node.derive(alt, alt_sel, airborne, apps, None, None, None, None)
+        self.assertEqual(len(node), 0)
+
 
 if __name__ == '__main__':
     unittest.main()

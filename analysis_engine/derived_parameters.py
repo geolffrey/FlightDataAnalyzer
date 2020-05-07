@@ -1320,20 +1320,18 @@ class AltitudeVisualizationWithGroundOffset(DerivedParameterNode):
     referenced to the landing airfield elevation.
 
     If we can only determine the takeoff elevation, the landing elevation
-    will using the same value as the error will be the difference in pressure
-    altitude between the takeoff and landing airports on the day which is
-    likely to be less than forcing it to 0. Therefore landing elevation is
-    used if the takeoff elevation cannot be determined.
+    will default to what Altitude STD Smoothed measured on that day, as if QNH setting
+    had been 1013. The same goes if the takeoff elevation cannot be determined.
 
     If we are unable to determine either the takeoff or landing elevations,
-    we use the Altitude AAL parameter.
+    we use the Altitude STD Smoothed parameter.
     '''
 
     units = ut.FT
 
     @classmethod
     def can_operate(cls, available):
-        return 'Altitude AAL' in available
+        return all_of(('Altitude AAL', 'Altitude STD Smoothed'), available)
 
     @classmethod
     def _qnh_adjust(cls, aal, std, elev, mode):
@@ -1373,20 +1371,14 @@ class AltitudeVisualizationWithGroundOffset(DerivedParameterNode):
         l_elev = l_rwy.value.get('start', {}).get('elevation') if l_rwy else None
         l_elev = l_elev or (l_apt.value.get('elevation') if l_apt else None)
 
-        if apps is None:
-            self.warning('No Approach information, using Altitude AAL.')
-            self.array = np.ma.copy(alt_aal.array)
-            return
         if t_elev is None and l_elev is None:
-            self.warning('No takeoff or landing elevation, using Altitude AAL.')
-            self.array = np.ma.copy(alt_aal.array)
+            self.warning('No takeoff and landing elevation, using Altitude STD Smoothed.')
+            self.array = np.ma.copy(alt_std.array)
             return
         if t_elev is None and l_elev is not None:
-            self.warning('No takeoff elevation, using %d ft from landing airport.', l_elev)
-            t_elev = l_elev
+            self.warning('No takeoff elevation, using Altitude STD Smoothed for climb.')
         elif l_elev is None and t_elev is not None:
-            self.warning('No landing elevation, using %d ft from takeoff airport.', t_elev)
-            l_elev = t_elev
+            self.warning('No landing elevation, using Altitude STD Smoothed for descent.')
 
         # We adjust the height during the climbs and descents so that the cruise is at pressure altitudes.
 
@@ -1394,7 +1386,7 @@ class AltitudeVisualizationWithGroundOffset(DerivedParameterNode):
 
         alt_qnh = np_ma_masked_zeros_like(alt_aal.array)
 
-        if climbs:
+        if climbs and t_elev is not None:
             # Climb phase adjustment
             first_climb = slice(climbs[0].slice.start, climbs[0].slice.stop)
             adjust_up = self._qnh_adjust(alt_aal.array[first_climb],
@@ -1418,6 +1410,8 @@ class AltitudeVisualizationWithGroundOffset(DerivedParameterNode):
                 if rwy_elev is not None:
                     l_elev = rwy_elev
 
+            if l_elev is None:
+                continue
             descent = slice(descent.slice.stop - 1, descent.slice.start - 1, -1)
             adjust_down = self._qnh_adjust(alt_aal.array[descent],
                                            alt_std.array[descent],
@@ -5299,7 +5293,7 @@ class CoordinatesSmoothed(object):
                 except ValueError:
                     join_idx = None
 
-                if join_idx and (len(lat_adj) > join_idx): # We have some room to extend over.
+                if join_idx and (len(lat_adj) > join_idx) and end > join_idx: # We have some room to extend over.
 
                     if precise:
                         # Set up the point of handover

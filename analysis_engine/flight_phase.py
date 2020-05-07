@@ -259,9 +259,10 @@ class Holding(FlightPhaseNode):
                 _, hold_dist = bearing_and_distance(
                     lat.array[start], lon.array[start],
                     lat.array[stop], lon.array[stop])
-                average_speed = ut.convert(hold_dist / hold_sec, ut.METER_S, ut.KT)
-                if average_speed > HOLDING_MAX_GSPD:
-                    continue
+                if hold_dist is not None:
+                    average_speed = ut.convert(hold_dist / hold_sec, ut.METER_S, ut.KT)
+                    if average_speed > HOLDING_MAX_GSPD:
+                        continue
                 angle_of_turn = head.array[stop] - head.array[start]
                 if np.ma.abs(angle_of_turn) < HOLDING_MIN_TURN:
                     continue

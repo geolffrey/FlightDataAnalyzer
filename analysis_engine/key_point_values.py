@@ -5380,7 +5380,10 @@ class BrakeTempAfterTouchdownDelta(KeyPointValueNode):
     units = ut.CELSIUS
 
     def derive(self, brakes=P('Brake (*) Temp Avg'), touchdowns=S('Touchdown')):
-        touchdown = int(touchdowns.get_last().index)
+        last_touchdown = touchdowns.get_last()
+        if not last_touchdown:
+            return
+        touchdown = int(last_touchdown.index)
         max_temp_idx = np.ma.argmax(brakes.array[touchdown:]) + touchdown
         max_temp = value_at_index(brakes.array, max_temp_idx)
         min_temp = np.ma.min(brakes.array[slices_int(touchdown,max_temp_idx + 1)])
@@ -16105,6 +16108,8 @@ class RateOfClimbAtHeightBeforeAltitudeSelected(KeyPointValueNode):
                bar_sel_fo=P('Baro Setting Selection (FO)'),
                bar_cor_isis=P('Baro Correction (ISIS)')):
 
+        if not np.ma.count(alt.array):
+            return
         # Round Altitude Selected to the next 100 ft
         alt_sel_rounded = np.ma.ceil(alt_sel.array / 100) * 100
         repair_mask(alt.array, frequency=alt.hz)
@@ -19680,6 +19685,9 @@ class ThrustAsymmetryDuringApproachDuration(KeyPointValueNode):
     def derive(self, ta=P('Thrust Asymmetry'), approaches=S('Approach')):
         for approach in approaches:
             asymmetry = np.ma.masked_less(ta.array[approach.slice], 10.0)
+            if not asymmetry.size:
+                # asymetry is an empty array
+                continue
             slices = np.ma.clump_unmasked(asymmetry)
             slices = shift_slices(slices, approach.slice.start)
             self.create_kpvs_from_slice_durations(slices, self.frequency)
@@ -21076,6 +21084,8 @@ class AltitudeDeviationFromAltitudeSelectedMax(KeyPointValueNode):
                bar_sel_fo=P('Baro Setting Selection (FO)'),
                bar_cor_isis=P('Baro Correction (ISIS)')):
 
+        if not np.ma.count(alt.array):
+            return
         # Round Altitude Selected to the next 100 ft
         alt_sel_rounded = np.ma.ceil(alt_sel.array / 100) * 100
         repair_mask(alt.array, frequency=alt.hz)

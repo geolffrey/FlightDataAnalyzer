@@ -3961,7 +3961,7 @@ class TAWSAlert(MultistateDerivedParameterNode):
             (taws_pull_up, 'Warning'),
             (taws_sink_rate, 'Warning'),
             (taws_terrain_pull_up, 'Warning'),
-            (taws_terrain_caution, 'Warning'),
+            (taws_terrain_caution, 'Caution'),
             (taws_terrain_warning, 'Warning'),
             (taws_terrain, 'Warning'),
             (taws_too_low_flap, 'Warning'),

@@ -1735,7 +1735,6 @@ class TestHolding(unittest.TestCase):
         hold.derive(alt, hdg, alt_max, lat, lon)
         self.assertEqual(len(hold), 0)
 
-
     def test_single_turn_rejected(self):
         rot=np.ma.concatenate((
             np.zeros(600),
@@ -1763,6 +1762,37 @@ class TestHolding(unittest.TestCase):
         hold=Holding()
         hold.derive(alt, hdg, alt_max, lat, lon)
         self.assertEqual(len(hold), 1)
+
+    def test_hold_detected_with_masked_lat_long(self):
+        rot=np.ma.concatenate((
+            np.zeros(600),
+            np.tile(np.concatenate((np.ones(60) * 3, np.zeros(60))), 6),
+            np.zeros(2180),
+            np.tile(np.concatenate((np.ones(60) * 3, np.zeros(60))), 6),
+            np.zeros(2180),
+            np.tile(np.concatenate((np.ones(120) * 1.5, np.zeros(120))), 6),
+            np.zeros(2180),
+            np.tile(np.concatenate((np.ones(120) * 1.5, np.zeros(120))), 6),
+            np.zeros(600),
+        ))
+        alt=P('Altitude AAL For Flight Phases', np.ones(11880) * 4000)
+        hdg=P('Heading Increasing', integrate(rot,1.0))
+        alt_max=KPV('Altitude Max', items=[
+            KeyPointValue(index=200, value=40000.0),])
+        lat=P('Latitude Smoothed', np.ma.ones(11880) * 24.0)
+        lat.array[:] = np.ma.masked
+        lon=P('Longitude Smoothed', np.ma.ones(11880) * 24.0)
+        lon.array[:] = np.ma.masked
+        hold=Holding()
+        hold.derive(alt, hdg, alt_max, lat, lon)
+        self.assertAlmostEqual(hold[0].slice.start, 600, delta=3)
+        self.assertAlmostEqual(hold[0].slice.stop, 1260, delta=3)
+        self.assertAlmostEqual(hold[1].slice.start, 3500, delta=3)
+        self.assertAlmostEqual(hold[1].slice.stop, 4160, delta=3)
+        self.assertAlmostEqual(hold[2].slice.start, 6400, delta=3)
+        self.assertAlmostEqual(hold[2].slice.stop, 7720, delta=3)
+        self.assertAlmostEqual(hold[3].slice.start, 10020, delta=3)
+        self.assertAlmostEqual(hold[3].slice.stop, 11340, delta=3)
 
 
 class TestLanding(unittest.TestCase):

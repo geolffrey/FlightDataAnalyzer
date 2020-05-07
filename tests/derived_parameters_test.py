@@ -1751,7 +1751,6 @@ class TestAltitudeVisualizationWithGroundOffset(unittest.TestCase, NodeTest):
     def setUp(self):
         self.node_class = AltitudeVisualizationWithGroundOffset
         self.operational_combinations = [
-            ('Altitude AAL', ),
             ('Altitude AAL', 'Altitude STD Smoothed'),
             ('Altitude AAL', 'Altitude STD Smoothed', 'FDR Landing Runway'),
             ('Altitude AAL', 'Altitude STD Smoothed', 'FDR Takeoff Runway'),
@@ -1795,18 +1794,18 @@ class TestAltitudeVisualizationWithGroundOffset(unittest.TestCase, NodeTest):
         self.logger = 'analysis_engine.derived_parameters.AltitudeVisualizationWithGroundOffset'
 
     def test_no_rwy_info(self):
-        # Check no runway information results in a fully masked copy of Altitude AAL
+        # Check no runway information results in a copy of Altitude STD Smoothed
         alt_qnh = self.node_class()
         with self.assertLogs(self.logger, level='WARNING') as cm:
-            alt_qnh.derive(self.alt_aal)
+            alt_qnh.derive(self.alt_aal, self.alt_std)
             self.assertEqual(
                 cm.output,
-                [f'WARNING:{self.logger}:No takeoff or landing elevation, using Altitude AAL.']
+                [f'WARNING:{self.logger}:No takeoff and landing elevation, using Altitude STD Smoothed.']
             )
 
-        ma_test.assert_masked_array_approx_equal(alt_qnh.array, self.alt_aal.array)
-        self.assertEqual(alt_qnh.offset, self.alt_aal.offset)
-        self.assertEqual(alt_qnh.frequency, self.alt_aal.frequency)
+        ma_test.assert_masked_array_approx_equal(alt_qnh.array, self.alt_std.array)
+        self.assertEqual(alt_qnh.offset, self.alt_std.offset)
+        self.assertEqual(alt_qnh.frequency, self.alt_std.frequency)
 
     def test_alt_std_adjustment(self):
         alt_qnh = self.node_class()
@@ -1831,11 +1830,11 @@ class TestAltitudeVisualizationWithGroundOffset(unittest.TestCase, NodeTest):
                            None, self.climbs, self.descents, None, apps)
             self.assertEqual(
                 cm.output,
-                [f'WARNING:{self.logger}:No landing elevation, using 1050 ft from takeoff airport.']
+                [f'WARNING:{self.logger}:No landing elevation, using Altitude STD Smoothed for descent.']
             )
 
         self.assertEqual(alt_qnh.array[2], 1050.0)  # Takeoff elevation
-        self.assertEqual(alt_qnh.array[35], 1050.0)  # Landing elevation
+        self.assertEqual(alt_qnh.array[35], 4000.0)  # Landing elevation
         self.assertEqual(alt_qnh.array[22], 15000.0)  # Cruise at STD
 
     def test_no_takeoff_rwy_info(self):
@@ -1847,10 +1846,10 @@ class TestAltitudeVisualizationWithGroundOffset(unittest.TestCase, NodeTest):
                            None, self.climbs, self.descents, None, self.apps)
             self.assertEqual(
                 cm.output,
-                [f'WARNING:{self.logger}:No takeoff elevation, using 4100 ft from landing airport.']
+                [f'WARNING:{self.logger}:No takeoff elevation, using Altitude STD Smoothed for climb.']
             )
 
-        self.assertEqual(alt_qnh.array[2], 4100.0)  # Takeoff elevation
+        self.assertEqual(alt_qnh.array[2], 1000.0)  # Takeoff elevation
         self.assertEqual(alt_qnh.array[35], 4100.0)  # Landing elevation
         self.assertEqual(alt_qnh.array[22], 15000.0)  # Cruise at STD
 
@@ -1867,10 +1866,10 @@ class TestAltitudeVisualizationWithGroundOffset(unittest.TestCase, NodeTest):
                            None, self.climbs, self.descents, None, self.apps)
             self.assertEqual(
                 cm.output,
-                [f'WARNING:{self.logger}:No takeoff elevation, using 4100 ft from landing airport.']
+                [f'WARNING:{self.logger}:No takeoff elevation, using Altitude STD Smoothed for climb.']
             )
 
-        self.assertEqual(alt_qnh.array[2], 4100.0)  # Takeoff elevation
+        self.assertEqual(alt_qnh.array[2], 1000.0)  # Takeoff elevation
         self.assertEqual(alt_qnh.array[35], 4100.0)  # Landing elevation
         self.assertEqual(alt_qnh.array[22], 15000.0)  # Cruise at STD
 
