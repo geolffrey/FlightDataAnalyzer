@@ -4204,3 +4204,19 @@ class Transmitting(MultistateDerivedParameterNode):
         )))
         self.array = stacked.any(axis=0)
         self.array.mask = stacked.mask.any(axis=0)
+
+
+class GPSOperational(MultistateDerivedParameterNode):
+
+    name = 'GPS Operational'
+    units = None
+    values_mapping = {0: '-', 1: 'Operational'}
+
+    def derive(self,
+               gps_cpt=M('GPS Operational (Capt)'),
+               gps_fo=M('GPS Operational (FO)')):
+
+        self.array = vstack_params_where_state(
+            (gps_cpt, 'Operational'),
+            (gps_fo, 'Operational'),
+        ).any(axis=0)

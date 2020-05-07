@@ -21225,3 +21225,31 @@ class AltitudeDeviationFromAltitudeSelectedMax(KeyPointValueNode):
             on_final_slice = below_clumps[-1]
             on_final_slice = shift_slice(on_final_slice, slice_.start)
             dist_array[on_final_slice] = np.ma.masked
+
+
+class GPSSignalLostDuration(KeyPointValueNode):
+    '''
+    Duration during which GPS Operational is inoperative.
+
+    Restricted to Airborne sections only and for signal lost of at least 60 seconds
+    which occured while airborne.
+    '''
+
+    name = 'GPS Signal Lost Duration'
+    units = ut.SECOND
+
+    def derive(self, gps=M('GPS Operational'), airs=S('Airborne')):
+        gps_signal_lost = gps.array == '-'
+        gps_inop_slices = runs_of_ones(gps_signal_lost)
+        # Filter out when GPS signal was lost on the ground. We only want to capture
+        # signal losses while airborne.
+        air_slices = airs.get_slices()
+        gps_inop_air_slices = [
+            s for s in gps_inop_slices if is_index_within_slices(s.start, air_slices)
+        ]
+        # Only consider remaining slices within Airborne slices
+        gps_inop_air_slices = slices_and(gps_inop_air_slices, air_slices)
+
+        self.create_kpvs_from_slice_durations(
+            gps_inop_air_slices, frequency=gps.frequency, min_duration=60.0, mark='start'
+        )

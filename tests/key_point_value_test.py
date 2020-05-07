@@ -447,6 +447,7 @@ from analysis_engine.key_point_values import (
     GearDownToLandingFlapConfigurationDuration,
     GearExtensionDuration,
     GearRetractionDuration,
+    GPSSignalLostDuration,
     GreatCircleDistance,
     GrossWeightAtLiftoff,
     GrossWeightAtTouchdown,
@@ -24844,6 +24845,84 @@ class TestAltitudeDeviationfromAltitudeSelectedMax(unittest.TestCase, NodeTest):
         node = self.node_class()
         node.derive(alt, alt_sel, airborne, apps, None, None, None, None)
         self.assertEqual(len(node), 0)
+
+
+class TestGPSSignalLostDuration:
+    def test_gps_inop_in_flight(self):
+        gps = M(
+            'GPS Operational',
+            array=np.ma.repeat([1, 0, 1], [100, 100, 100]),
+            values_mapping={0: '-', 1: 'Operational'}
+        )
+        airs = buildsection('Airborne', 30, 270)
+        node = GPSSignalLostDuration()
+        node.derive(gps, airs)
+        assert len(node) == 1
+        assert node[0].index == 100
+        assert node[0].value == 100
+
+    def test_gps_shortly_inop_in_flight(self):
+        gps = M(
+            'GPS Operational',
+            array=np.ma.repeat([1, 0, 1], [140, 20, 140]),
+            values_mapping={0: '-', 1: 'Operational'}
+        )
+        airs = buildsection('Airborne', 30, 270)
+        node = GPSSignalLostDuration()
+        node.derive(gps, airs)
+        assert len(node) == 0
+
+    def test_gps_inop_on_ground_and_during_flight(self):
+        "We don't want to capture GPS not working throughout the entire flight"
+        gps = M(
+            'GPS Operational',
+            array=np.ma.repeat([1, 0, 1], [20, 140, 140]),
+            values_mapping={0: '-', 1: 'Operational'}
+        )
+        airs = buildsection('Airborne', 30, 270)
+        node = GPSSignalLostDuration()
+        node.derive(gps, airs)
+        assert len(node) == 0
+
+    def test_gps_inop_end_of_flight(self):
+        "We only want to get the duration while airborne"
+        gps = M(
+            'GPS Operational',
+            array=np.ma.repeat([1, 0], [100, 200]),
+            values_mapping={0: '-', 1: 'Operational'}
+        )
+        airs = buildsection('Airborne', 30, 270)
+        node = GPSSignalLostDuration()
+        node.derive(gps, airs)
+        assert len(node) == 1
+        assert node[0].index == 100
+        assert node[0].value == 170
+
+    def test_signal_masked(self):
+        gps = M(
+            'GPS Operational',
+            array=np.ma.repeat([1, 0, 1], [100, 100, 100]),
+            values_mapping={0: '-', 1: 'Operational'}
+        )
+        gps.array[150:] = np.ma.masked
+        airs = buildsection('Airborne', 30, 270)
+        node = GPSSignalLostDuration()
+        node.derive(gps, airs)
+        assert len(node) == 0
+
+    def test_signal_lost_and_masked(self):
+        gps = M(
+            'GPS Operational',
+            array=np.ma.repeat([1, 0, 1], [100, 100, 100]),
+            values_mapping={0: '-', 1: 'Operational'}
+        )
+        gps.array[170:] = np.ma.masked
+        airs = buildsection('Airborne', 30, 270)
+        node = GPSSignalLostDuration()
+        node.derive(gps, airs)
+        assert len(node) == 1
+        assert node[0].index == 100
+        assert node[0].value == 70
 
 
 if __name__ == '__main__':

@@ -5,6 +5,7 @@ import unittest
 import inspect
 
 from mock import patch
+import pytest
 from numpy.ma.testutils import assert_array_equal
 
 from hdfaccess.parameter import MappedArray
@@ -65,6 +66,7 @@ from analysis_engine.multistate_parameters import (
     GearUpInTransit,
     GearUpSelected,
     Gear_RedWarning,
+    GPSOperational,
     KeyVHFCapt,
     KeyVHFFO,
     MasterCaution,
@@ -5151,4 +5153,33 @@ class TestTransmitting(unittest.TestCase):
                          ['-', 'Transmit', 'Transmit', 'Transmit', '-', 'Transmit', '-'])
 
 
+class TestGPSOperational:
+    def multistate(name, data):
+        values_mapping = {0: "-", 1: "Operational"}
+        return M(name, MappedArray(data), values_mapping=values_mapping)
 
+    params = [
+        pytest.param(
+            multistate("GPS Operational (Capt)", [0, 0, 0, 0, 1, 1, 1]),
+            multistate("GPS Operational (FO)", [1, 1, 1, 0, 0, 0, 1]),
+            np.ma.array([1, 1, 1, 0, 1, 1, 1]),
+            id='normal inputs'
+        ),
+        pytest.param(
+            multistate(
+                "GPS Operational (Capt)",
+                np.ma.array([0, 0, 0, 0, 1, 1, 1], mask=[0, 0, 0, 1, 1, 0, 0]),
+            ),
+            multistate("GPS Operational (FO)", [1, 1, 1, 0, 0, 0, 1]),
+            np.ma.array([1, 1, 1, 0, 1, 1, 1], mask=[0, 0, 0, 1, 1, 0, 0]),
+            id='masked inputs'
+        ),
+    ]
+
+    @pytest.mark.parametrize('capt, fo, expected', params)
+    def test_capt_and_fo_gps(self, capt, fo, expected):
+        node = GPSOperational()
+        node.derive(capt, fo)
+
+        assert_array_equal(node.array, expected)
+        assert node.name == 'GPS Operational'
