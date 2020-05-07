@@ -3916,7 +3916,8 @@ class TAWSAlert(MultistateDerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return any_of(['TAWS Caution Terrain',
+        return any_of(['TAWS Recorded Alert',
+                       'TAWS Caution Terrain',
                        'TAWS Caution',
                        'TAWS Dont Sink',
                        'TAWS Glideslope',
@@ -3935,6 +3936,7 @@ class TAWSAlert(MultistateDerivedParameterNode):
                       available)
 
     def derive(self, airs=S('Airborne'),
+               taws_recorded_alert=M('TAWS Recorded Alert'),
                taws_caution_terrain=M('TAWS Caution Terrain'),
                taws_caution=M('TAWS Caution'),
                taws_dont_sink=M('TAWS Dont Sink'),
@@ -3952,6 +3954,7 @@ class TAWSAlert(MultistateDerivedParameterNode):
                taws_windshear_warning=M('TAWS Windshear Warning')):
 
         params_state = vstack_params_where_state(
+            (taws_recorded_alert, 'Alert'),
             (taws_caution_terrain, 'Caution'),
             (taws_caution, 'Caution'),
             (taws_dont_sink, 'Warning'),

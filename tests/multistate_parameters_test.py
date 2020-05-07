@@ -3881,22 +3881,23 @@ class TestTakeoffConfigurationWarning(unittest.TestCase):
 
 class TestTAWSAlert(unittest.TestCase):
     def test_can_operate(self):
-        parameters = ['TAWS Caution Terrain',
-                       'TAWS Caution',
-                       'TAWS Dont Sink',
-                       'TAWS Glideslope',
-                       'TAWS Predictive Windshear',
-                       'TAWS Pull Up',
-                       'TAWS Sink Rate',
-                       'TAWS Terrain',
-                       'TAWS Terrain Caution',
-                       'TAWS Terrain Pull Up',
-                       'TAWS Terrain Warning',
-                       'TAWS Too Low Flap',
-                       'TAWS Too Low Gear',
-                       'TAWS Too Low Terrain',
-                       'TAWS Windshear Warning',
-                       ]
+        parameters = ['TAWS Recorded Alert',
+                      'TAWS Caution Terrain',
+                      'TAWS Caution',
+                      'TAWS Dont Sink',
+                      'TAWS Glideslope',
+                      'TAWS Predictive Windshear',
+                      'TAWS Pull Up',
+                      'TAWS Sink Rate',
+                      'TAWS Terrain',
+                      'TAWS Terrain Caution',
+                      'TAWS Terrain Pull Up',
+                      'TAWS Terrain Warning',
+                      'TAWS Too Low Flap',
+                      'TAWS Too Low Gear',
+                      'TAWS Too Low Terrain',
+                      'TAWS Windshear Warning',
+                      ]
         for p in parameters:
             self.assertTrue(TAWSAlert.can_operate([p]))
 
@@ -3914,6 +3915,7 @@ class TestTAWSAlert(unittest.TestCase):
         result = [0,0,0,0,0,0,0,0,1,0,1,1,1,0,0,0,0,0,0,0]
 
         self.taws_alert.get_derived((self.airs,
+                                     None,
                                 None,
                                 None,
                                 None,
@@ -3937,6 +3939,7 @@ class TestTAWSAlert(unittest.TestCase):
         self.terrain.array[10] = np.ma.masked
 
         self.taws_alert.get_derived((self.airs,
+                                     None,
                                 None,
                                 None,
                                 None,
@@ -3963,6 +3966,7 @@ class TestTAWSAlert(unittest.TestCase):
         caution.array.mask = True
 
         self.taws_alert.get_derived((self.airs,
+                                     None,
                                      caution,
                                      None,
                                      None,
@@ -3974,6 +3978,33 @@ class TestTAWSAlert(unittest.TestCase):
                                      None,
                                      None,
                                      self.terrain,
+                                     None,
+                                     None,
+                                     None,
+                                     None,))
+        np.testing.assert_equal(self.taws_alert.array.data, result)
+
+    def test_derive_alert(self):
+        result = [0,0,0,0,0,0,0,0,1,0,1,1,1,0,0,0,0,0,0,0]
+
+        tra_array = [0,0,0,0,0,0,0,0,1,0,1,1,1,0,0,0,0,0,0,0]
+
+        caution = M(name='TAWS Recorded Alert', array=np.ma.array(tra_array), values_mapping={0:'-', 1:'Alert'})
+        caution.array.mask = False
+
+        self.taws_alert.get_derived((self.airs,
+                                     caution,
+                                     None,
+                                     None,
+                                     None,
+                                     None,
+                                     None,
+                                     None,
+                                     None,
+                                     None,
+                                     None,
+                                     None,
+                                     None,
                                      None,
                                      None,
                                      None,
