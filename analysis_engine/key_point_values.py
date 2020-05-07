@@ -14363,6 +14363,53 @@ class FuelQtyWingDifference787Max(KeyPointValueNode):
             max_abs_value)
 
 
+class FuelQtyWingDifferenceOverThresholdMax(KeyPointValueNode):
+    '''
+    Maximum permitted imbalance.
+
+    If the value is positive that indicates more fuel in the right wing's tank,
+    if negative - in the left wing's tank.
+
+    Only record imbalance above allowed limit which is a function of the total wing
+    tank fuel quantity.
+    '''
+
+    units = ut.KG
+
+    @classmethod
+    def can_operate(cls, available, family=A('Family')):
+        try:
+            at.get_fuel_imbalance_limits(family=family.value)
+        except AttributeError:
+            return False
+        except KeyError as err:
+            cls.warning(str(err))
+            return False
+        return all_deps(cls, available)
+
+    def derive(self,
+               left_wing=P('Fuel Qty (L)'),
+               right_wing=P('Fuel Qty (R)'),
+               airbornes=S('Airborne'),
+               family=A('Family')):
+
+        diff = right_wing.array - left_wing.array
+        total = right_wing.array + left_wing.array
+
+        # at.get_fuel_imbalance_limits returns
+        # ((fuel_qt_low, fuel_qt_high), (imbal_limit_high, imbal_limit_low))
+        imbalance_limit = np.interp(total, *at.get_fuel_imbalance_limits(family=family.value))
+
+        diff = np.ma.masked_where(abs(diff) < imbalance_limit, diff)
+
+        # Second_window needs a time window that is a binary power of the sample rate
+        # we want to use second window over a window of minimum 10 seconds.
+        self.create_kpv_from_slices(
+            second_window(diff, left_wing.frequency, 10, extend_window=True),
+            airbornes.get_slices(),
+            max_abs_value)
+
+
 class FuelQtyLowWarningDuration(KeyPointValueNode):
     '''
     Measures the duration of the Fuel Quantity Low warning discretes.

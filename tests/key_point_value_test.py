@@ -442,6 +442,7 @@ from analysis_engine.key_point_values import (
     FuelQtyLowWarningDuration,
     FuelQtyWingDifferenceMax,
     FuelQtyWingDifference787Max,
+    FuelQtyWingDifferenceOverThresholdMax,
     GearboxChipDetectorWarningDuration,
     GearDownToLandingFlapConfigurationDuration,
     GearExtensionDuration,
@@ -16732,6 +16733,109 @@ class TestFuelQtyWingDifference787Max(unittest.TestCase):
         node = FuelQtyWingDifference787Max()
         node.derive(qty_l, qty_r, airs)
         self.assertEqual(len(node), 0)
+
+
+class TestFuelQtyWingDifferenceOverThresholdMax(unittest.TestCase):
+    def setUp(self):
+        self.node_class = FuelQtyWingDifferenceOverThresholdMax
+
+    @patch('analysis_engine.key_point_values.at')
+    def test_can_operate(self, at):
+        at.get_fuel_imbalance_limits.return_value = ((21_772, 36_197), (1_134, 680))
+        opts = self.node_class.get_operational_combinations(
+            family=A('Family', value='B767')
+        )
+        self.assertEqual(opts, [('Fuel Qty (L)', 'Fuel Qty (R)', 'Airborne', 'Family')])
+
+        self.assertFalse(
+            self.node_class.can_operate(
+                [('Fuel Qty (L)', 'Fuel Qty (R)', 'Airborne', 'Family')],
+                None)
+        )
+
+    @patch('analysis_engine.key_point_values.at')
+    def test_can_operate_unknown_model_logs_warning(self, at):
+        at.get_fuel_imbalance_limits.side_effect = KeyError('Error Message')
+        with self.assertLogs(None, level='WARNING') as cm:
+            self.node_class.can_operate(
+                [('Fuel Qty (L)', 'Fuel Qty (R)', 'Airborne', 'Family')],
+                A('Family', value='B707'))
+        expected = (
+        "WARNING:analysis_engine.key_point_values.FuelQtyWingDifferenceOverThresholdMax:"
+        "'Error Message'"
+        )
+        self.assertEqual(cm.output, [expected])
+
+    @patch('analysis_engine.key_point_values.at')
+    def test_low_imbal_low_total_fuel(self, at):
+        at.get_fuel_imbalance_limits.return_value = ((21_772, 36_197), (1_134, 680))
+        left_wing = P('Fuel Qty (L)', array=np.ma.ones(10) * 10_000, frequency=1/4)
+        right_wing = P('Fuel Qty (R)', array=np.ma.ones(10) * (10_000 - 1_133), frequency=1/4)
+        airbornes = buildsection('Airborne', 0, 10)
+        airbornes.frequency = 1/4
+        family = A('Family', value='B767')
+        node = self.node_class()
+        node.get_derived((left_wing, right_wing, airbornes, family))
+
+        self.assertEqual(len(node), 0)
+
+    @patch('analysis_engine.key_point_values.at')
+    def test_high_imbal_low_total_fuel(self, at):
+        at.get_fuel_imbalance_limits.return_value = ((21_772, 36_197), (1_134, 680))
+        left_wing = P('Fuel Qty (L)', array=np.ma.ones(10) * 10_000, frequency=1/4)
+        right_wing = P('Fuel Qty (R)', array=np.ma.ones(10) * (10_000 - 2_000), frequency=1/4)
+        airbornes = buildsection('Airborne', 0, 10)
+        airbornes.frequency = 1/4
+        family = A('Family', value='B767')
+        node = self.node_class()
+        node.get_derived((left_wing, right_wing, airbornes, family))
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 0)
+        self.assertEqual(node[0].value, -2_000)
+
+    @patch('analysis_engine.key_point_values.at')
+    def test_low_imbal_high_total_fuel(self, at):
+        at.get_fuel_imbalance_limits.return_value = ((21_772, 36_197), (1_134, 680))
+        left_wing = P('Fuel Qty (L)', array=np.ma.ones(10) * 18_500, frequency=1/4)
+        right_wing = P('Fuel Qty (R)', array=np.ma.ones(10) * (18_500 - 679), frequency=1/4)
+        airbornes = buildsection('Airborne', 0, 10)
+        airbornes.frequency = 1/4
+        family = A('Family', value='B767')
+        node = self.node_class()
+        node.get_derived((left_wing, right_wing, airbornes, family))
+
+        self.assertEqual(len(node), 0)
+
+    @patch('analysis_engine.key_point_values.at')
+    def test_high_imbal_high_total_fuel(self, at):
+        at.get_fuel_imbalance_limits.return_value = ((21_772, 36_197), (1_134, 680))
+        left_wing = P('Fuel Qty (L)', array=np.ma.ones(10) * 18_500, frequency=1/4)
+        right_wing = P('Fuel Qty (R)', array=np.ma.ones(10) * (18_500 - 800), frequency=1/4)
+        airbornes = buildsection('Airborne', 0, 10)
+        airbornes.frequency = 1/4
+        family = A('Family', value='B767')
+        node = self.node_class()
+        node.get_derived((left_wing, right_wing, airbornes, family))
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 0)
+        self.assertEqual(node[0].value, -800)
+
+    @patch('analysis_engine.key_point_values.at')
+    def test_high_imbal_interpolation(self, at):
+        at.get_fuel_imbalance_limits.return_value = ((21_772, 36_197), (1_134, 680))
+        left_wing = P('Fuel Qty (L)', array=np.ma.ones(10) * 15_500 - 1_000, frequency=1/64)
+        right_wing = P('Fuel Qty (R)', array=np.ma.ones(10) * 15_500, frequency=1/64)
+        airbornes = buildsection('Airborne', 0, 10)
+        airbornes.frequency = 1/64
+        family = A('Family', value='B767')
+        node = self.node_class()
+        node.get_derived((left_wing, right_wing, airbornes, family))
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 0)
+        self.assertEqual(node[0].value, 1_000)
 
 
 class TestFuelJettisonDuration(unittest.TestCase, CreateKPVsWhereTest):
