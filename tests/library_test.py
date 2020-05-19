@@ -4221,8 +4221,19 @@ class TestIntegrate (unittest.TestCase):
     def test_integration_simple_values(self):
         data = np.ma.ones(5)
         result = integrate(data, 1)
-
         assert_array_equal(result.data, [0, 1, 2, 3, 4])
+
+    def test_integration_reverse_extended(self):
+        data = np.ma.array([7, 5, 3, 1])
+        result = integrate(data, 1.0, direction='reverse', extend=True)
+        np.testing.assert_array_equal(result.data, [13.0, 7.0, 3.0, 1.0])
+
+    def test_integration_backwards_extended(self):
+        data = np.ma.array([7, 5, 3, 1])
+        result = integrate(data, 1.0, direction='backwards', extend=True)
+        np.testing.assert_array_equal(result.data, [-13.0, -7.0, -3.0, -1.0])
+
+    #TODO: test for mask repair
 
     def test_integration_increasing_values(self):
         data = np.ma.arange(5)

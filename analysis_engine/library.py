@@ -3226,8 +3226,12 @@ def integrate(array, frequency, initial_value=0.0, scale=1.0,
     result.mask = mask
 
     if extend:
-        first_value = integrand[start_edge]
-        result += first_value * 2. * s * k
+        if direction == 'forwards':
+            edge_value = integrand[start_edge]
+        else:
+            edge_value = integrand[stop_edge]
+
+        result += edge_value * 2. * s * k
 
     return result
 
