@@ -2643,6 +2643,8 @@ KTI = KeyTimeInstanceNode
 
 aeroplane = A('Aircraft Type', 'aeroplane')
 helicopter = A('Aircraft Type', 'helicopter')
+simulator = A('Simulator', True)
+
 
 @classmethod
 def aeroplane_only(cls, available, ac_type=A('Aircraft Type')):
@@ -2652,6 +2654,11 @@ def aeroplane_only(cls, available, ac_type=A('Aircraft Type')):
 @classmethod
 def helicopter_only(cls, available, ac_type=A('Aircraft Type')):
     return ac_type == helicopter and all_deps(cls, available)
+
+
+@classmethod
+def simulator_only(cls, available, is_simulator=A('Simulator')):
+    return is_simulator and all_deps(cls, available)
 
 
 # OPT: Define set for Node subclass lookups to avoid issubclass (200x speedup).

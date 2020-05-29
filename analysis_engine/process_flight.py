@@ -564,6 +564,9 @@ def process_flight(segment_info, tail_number, aircraft_info={}, achieved_flight_
     if aircraft_info['Aircraft Type'] == 'helicopter':
         node_modules = settings.NODE_MODULES + \
             settings.NODE_HELICOPTER_MODULE_PATHS + additional_modules
+    elif aircraft_info['Simulator']:
+        node_modules = settings.NODE_MODULES + \
+            settings.NODE_SIMULATOR_MODULE_PATHS + additional_modules
     else:
         node_modules = settings.NODE_MODULES + additional_modules
     # go through modules to get derived nodes
