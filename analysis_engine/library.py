@@ -6004,10 +6004,11 @@ def slices_of_runs(array, min_samples=None, flat=False):
     :param flat: yield a flat list of unordered slices
     :type flat: bool
     '''
-    for value in np.ma.sort(np.ma.unique(array)):
+    mapped_array = hasattr(array, 'values_mapping')
+    for value in np.ma.sort(np.ma.unique(array.raw if mapped_array else array)):
         if value is np.ma.masked:
             continue
-        if hasattr(array, 'values_mapping'):
+        if mapped_array:
             value = array.values_mapping[value]
         runs = runs_of_ones(array == value, min_samples=min_samples)
         if flat:
