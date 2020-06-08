@@ -1404,6 +1404,16 @@ class TestFast(unittest.TestCase):
         self.assertEqual(node[1].slice.start, 10000)
         self.assertEqual(node[1].slice.stop, 14976)
 
+    def test_spike_airspd(self):
+        spd_array = np.ma.arange(0, 120)
+        spd_array[:60] = np.ma.masked
+        spd_array[2] = 100  # Spike
+        ias = Parameter('Airspeed', spd_array, 1.0, 0.0)
+        phase_fast = Fast()
+        phase_fast.derive(ias, None, None, None)
+        expected = buildsection('Fast', 80, 120)
+        self.assertEqual(phase_fast.get_slices(), expected.get_slices())
+
 
 class TestGrounded(unittest.TestCase):
     def test_can_operate(self):
