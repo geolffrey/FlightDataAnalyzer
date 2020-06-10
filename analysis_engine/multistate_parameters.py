@@ -1200,8 +1200,7 @@ class Flap(MultistateDerivedParameterNode):
 
         frame_name = frame.value if frame else None
         family_name = family.value if family else None
-
-        if frame_name == 'L382-Hercules' or family_name == 'C208':
+        if frame_name == 'L382-Hercules' or family_name in {'C208', 'DA40 Diamond Star', 'DA42 Twin Star'}:
             return 'Altitude AAL' in available
 
         if family_name == 'Citation VLJ':
@@ -1251,7 +1250,7 @@ class Flap(MultistateDerivedParameterNode):
             return
 
         if family_name == 'Citation VLJ' and duration:
-            self.values_mapping = {0: '0', 15: '15', 30: '30'}
+            self.values_mapping = {x: str(x) for x in (0, 15, 30)}
             self.array = np.ma.zeros(int(duration * self.frequency))
             for toff in toffs:
                 self.array[toff.slice] = 15
@@ -1259,10 +1258,10 @@ class Flap(MultistateDerivedParameterNode):
                 self.array[land.slice] = 30
             return
 
-        if family_name == 'C208':
-            self.values_mapping = {0: '0', 10: '10', 20: '20', 40: '40'}
+        if family_name in {'C208', 'DA40 Diamond Star', 'DA42 Twin Star'}:
+            self.values_mapping = {x: str(x) for x in ((0, 10, 20, 40) if family_name == 'C208' else (0, 20, 42))}
             self.array = np_ma_zeros_like(alt_aal.array)
-            self.array[alt_aal.array < 500.0] = 40
+            self.array[alt_aal.array < 500.0] = max(self.values_mapping)
             self.frequency, self.offset = alt_aal.frequency, alt_aal.offset
             return
 

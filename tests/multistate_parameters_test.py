@@ -1546,19 +1546,27 @@ class TestFlap(unittest.TestCase, NodeTest):
         self.assertIsInstance(node.array, MappedArray)
         ma_test.assert_masked_array_equal(node.array, np.ma.array((50, 50, 50, 0, 0, 0, 0, 0, 50, 50, 100, 100)))
 
-    def test_derive__c208(self):
-        at.get_flap_map.return_value = {0: '0', 10: '10', 20: '20', 40: '40'}
-        _am = A('Model', None)
-        _as = A('Series', None)
-        _af = A('Family', 'C208')
-        _fr = A('Frame', None)
-        array = np.ma.array((0, 0, 50, 450, 1000, 1500, 2500, 1500, 1000, 450, 50, 50))
-        alt_aal = P(name='Altitude AAL', array=array)
-        node = self.node_class()
-        node.derive(None, _am, _as, _af, _fr, alt_aal)
-        self.assertEqual(node.units, ut.DEGREE)
-        self.assertIsInstance(node.array, MappedArray)
-        ma_test.assert_masked_array_equal(node.array, np.ma.array((40, 40, 40, 40, 0, 0, 0, 0, 0, 40, 40, 40)))
+    def test_derive__c208_da40_da42(self):
+        da_flap_settings = [0, 20, 42]
+        for family_name, flap_settings in [
+            ('C208', [0, 10, 20, 40]),
+            ('DA40 Diamond Star', da_flap_settings),
+            ('DA42 Twin Star', da_flap_settings),
+        ]:
+            max_flap = max(flap_settings)
+            at.get_flap_map.return_value = {x: str(x) for x in flap_settings}
+            _am = A('Model', None)
+            _as = A('Series', None)
+            _af = A('Family', family_name)
+            _fr = A('Frame', None)
+            array = np.ma.array((0, 0, 50, 450, 1000, 1500, 2500, 1500, 1000, 450, 50, 50))
+            alt_aal = P(name='Altitude AAL', array=array)
+            node = self.node_class()
+            node.derive(None, _am, _as, _af, _fr, alt_aal)
+            self.assertEqual(node.units, ut.DEGREE)
+            self.assertIsInstance(node.array, MappedArray)
+            ma_test.assert_masked_array_equal(node.array, np.ma.array(
+                (max_flap, max_flap, max_flap, max_flap, 0, 0, 0, 0, 0, max_flap, max_flap, max_flap)))
 
     def test_derive__citation(self):
         _am = A('Model', None)
