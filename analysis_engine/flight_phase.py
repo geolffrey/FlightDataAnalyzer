@@ -736,7 +736,7 @@ class Fast(FlightPhaseNode):
             fast_slices = np.ma.clump_unmasked(fast)
         else:
             if eng_prop and eng_prop.value == 'PROP':
-                spd_threshold = 50
+                spd_threshold = 60
             else:
                 spd_threshold = AIRSPEED_THRESHOLD
 

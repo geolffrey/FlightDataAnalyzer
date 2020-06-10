@@ -1375,7 +1375,7 @@ class TestFast(unittest.TestCase):
         phase_fast = Fast()
         phase_fast.derive(ias, None, None, A('Engine Propulsion', 'PROP'))
 
-        expected = buildsection('Fast', 1, 316)
+        expected = buildsection('Fast', 2, 315)
         self.assertEqual(phase_fast.get_slices(), expected.get_slices())
 
     def test_fast_real_data_1(self):
