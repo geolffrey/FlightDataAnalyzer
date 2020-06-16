@@ -666,6 +666,7 @@ from analysis_engine.key_point_values import (
     SpeedbrakeDeployedWithGearDownDuration,
     SpeedbrakeDeployedWithPowerOnDuration,
     SpoilersDeployedDurationDuringLanding,
+    StabilizerAtLiftoff,
     StallWarningDuration,
     StickPusherActivatedDuration,
     StickShakerActivatedDuration,
@@ -24923,6 +24924,52 @@ class TestGPSSignalLostDuration:
         assert len(node) == 1
         assert node[0].index == 100
         assert node[0].value == 70
+
+
+class TestStabilizerAtLiftoff:
+    def test_derive(self):
+        stab = P(
+            'Stabilizer',
+            array=np.arange(0, 10, 0.1)
+        )
+        liftoffs = KTI('Liftoff', items=[
+            KeyTimeInstance(name='Liftoff', index=60)
+        ])
+        node = StabilizerAtLiftoff()
+        node.derive(stab, liftoffs)
+
+        assert len(node) == 1
+        assert node[0].index == 60
+        assert node[0].value == 6.0
+
+    def test_multiple_liftoffs(self):
+        stab = P(
+            'Stabilizer',
+            array=np.tile(np.arange(0, 10, 0.1), 2)
+        )
+        liftoffs = KTI('Liftoff', items=[
+            KeyTimeInstance(name='Liftoff', index=60),
+            KeyTimeInstance(name='Liftoff', index=130),
+        ])
+        node = StabilizerAtLiftoff()
+        node.derive(stab, liftoffs)
+
+        assert len(node) == 2
+        assert node[0].index == 60
+        assert node[0].value == 6.0
+        assert node[1].index == 130
+        assert node[1].value == 3.0
+
+    def test_missing_liftoff(self):
+        stab = P(
+            'Stabilizer',
+            array=np.arange(0, 10, 0.1)
+        )
+        liftoffs = KTI('Liftoff', items=[])
+        node = StabilizerAtLiftoff()
+        node.derive(stab, liftoffs)
+
+        assert len(node) == 0
 
 
 if __name__ == '__main__':
