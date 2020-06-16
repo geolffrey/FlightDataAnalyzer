@@ -21253,3 +21253,16 @@ class GPSSignalLostDuration(KeyPointValueNode):
         self.create_kpvs_from_slice_durations(
             gps_inop_air_slices, frequency=gps.frequency, min_duration=60.0, mark='start'
         )
+
+
+class StabilizerAtLiftoff(KeyPointValueNode):
+    '''
+    This is a measure of the stabilizer angle at the point of liftoff.
+
+    This is a useful value in relation with the pitch rate at takeoff.
+    '''
+
+    units = ut.DEGREE
+
+    def derive(self, stabilizer=P('Stabilizer'), liftoffs=KTI('Liftoff')):
+        self.create_kpvs_at_ktis(stabilizer.array, liftoffs)
