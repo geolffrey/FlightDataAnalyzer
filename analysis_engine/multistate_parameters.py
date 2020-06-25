@@ -3873,6 +3873,7 @@ class ThrustReversers(MultistateDerivedParameterNode):
 
 
 class ThrustReversersEffective(MultistateDerivedParameterNode):
+    align = False
     units = None
     values_mapping = {0: '-', 1: 'Effective'}
 
@@ -3883,16 +3884,25 @@ class ThrustReversersEffective(MultistateDerivedParameterNode):
 
     def derive(self,
                tr=M('Thrust Reversers'),
-               eng_epr=P('Eng (*) EPR Max'),  # must come before N1 where available
                eng_n1=P('Eng (*) N1 Max'),
-               landings=S('Landing')):
+               eng_epr=P('Eng (*) EPR Max'),
+               landings=S('Landing'),
+               recorded_n1=P('Eng (1) N1'),
+               recorded_epr=P('Eng (1) EPR')):
 
-        if eng_epr:
+        # Use EPR only if it has a better sample rate than N1
+        n1_hz = recorded_n1.hz if recorded_n1 else 0
+        use_epr = not eng_n1 or (recorded_epr and recorded_epr.hz > n1_hz)
+        if use_epr:
             power = eng_epr
             threshold = REVERSE_THRUST_EFFECTIVE_EPR
         else:
             power = eng_n1
             threshold = REVERSE_THRUST_EFFECTIVE_N1
+
+        # Now align needed parameters to Thrust Reversers
+        power = power.get_aligned(tr)
+        landings = landings.get_aligned(tr)
 
         self.array = np_ma_zeros_like(tr.array)
         high_power = np.ma.masked_less(power.array, threshold)
