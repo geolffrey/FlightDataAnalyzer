@@ -4607,14 +4607,21 @@ class TestHeading(unittest.TestCase):
 
 class TestHeadingTrue(unittest.TestCase):
     def test_can_operate(self):
-        self.assertEqual(HeadingTrue.get_operational_combinations(),
-            [('Heading Continuous', 'Magnetic Variation From Runway'),])
+        self.assertEqual(
+            set(HeadingTrue.get_operational_combinations()),
+            {
+                ('Heading Continuous', 'Magnetic Variation From Runway', 'Magnetic Variation'),
+                ('Heading Continuous', 'Magnetic Variation From Runway'),
+                ('Heading Continuous', 'Magnetic Variation'),
+            }
+        )
 
     def test_from_runway_used_in_preference(self):
         head = P('Heading Continuous', np.ma.array([0,5,6,355,356]))
         rwy_var = P('Magnetic Variation From Runway',np.ma.array([0,1,2,3,4]))
+        mag_var = P('Magnetic Variation', np.ma.array([6, 7, 8, 9, 10]))
         true = HeadingTrue()
-        true.derive(head, rwy_var)
+        true.derive(head, rwy_var, mag_var)
         expected = P('Heading True', np.ma.array([0, 6, 8, 358, 0]))
         assert_array_equal(true.array, expected.array)
 
@@ -6311,8 +6318,8 @@ class TestMagneticVariation(unittest.TestCase):
 
 
 class TestMagneticVariationFromRunway(unittest.TestCase):
-    def test_can_operate(self):
-        opts = MagneticVariationFromRunway.get_operational_combinations()
+    def test_can_operate_aeroplane(self):
+        opts = MagneticVariationFromRunway.get_operational_combinations(ac_type=aeroplane)
         self.assertEqual(opts,
                     [('Magnetic Variation',
                      'Heading During Takeoff',
@@ -6320,6 +6327,10 @@ class TestMagneticVariationFromRunway(unittest.TestCase):
                      'FDR Takeoff Runway',
                      'FDR Landing Runway',
                      )])
+
+    def test_cannot_operate_helicopter(self):
+        opts = MagneticVariationFromRunway.get_operational_combinations(ac_type=helicopter)
+        self.assertFalse(opts)
 
     def test_derive_both_runways(self):
         # Updates to the derived parameter. New data from

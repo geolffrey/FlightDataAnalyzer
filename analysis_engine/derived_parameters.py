@@ -21,7 +21,8 @@ from flightdatautilities import aircrafttables as at, units as ut
 from analysis_engine.exceptions import DataFrameError
 
 from analysis_engine.node import (
-    A, M, P, S, KPV, KTI, aeroplane, App, DerivedParameterNode, helicopter
+    A, M, P, S, KPV, KTI, aeroplane, aeroplane_only, App, DerivedParameterNode, helicopter,
+
 )
 
 from analysis_engine.library import (
@@ -4765,9 +4766,18 @@ class HeadingTrue(DerivedParameterNode):
 
     units = ut.DEGREE
 
+    @classmethod
+    def can_operate(cls, available):
+        mag_var =  any_of(
+            ['Magnetic Variation From Runway', 'Magnetic Variation'],
+            available
+        )
+        return mag_var and 'Heading Continuous' in available
+
     def derive(self, head=P('Heading Continuous'),
-               rwy_var=P('Magnetic Variation From Runway')):
-        var = rwy_var.array
+               rwy_var=P('Magnetic Variation From Runway'),
+               mag_var=P('Magnetic Variation')):
+        var = rwy_var.array if rwy_var else mag_var.array
         self.array = (head.array + var) % 360.0
 
 
@@ -5582,10 +5592,15 @@ class MagneticVariationFromRunway(DerivedParameterNode):
     aircraft compass values to work out the variation, we inherently
     accommodate compass drift for that day.
 
+    This cannot work for helicopters as their heading during takeoff or landing
+    might not be aligned with the runway.
+
     Example: A Magnetic Variation of +5 deg means one adds 5 degrees to
     the Magnetic Heading to obtain the True Heading.
     '''
     units = ut.DEGREE
+
+    can_operate = aeroplane_only
 
     def derive(self,
                mag=P('Magnetic Variation'),
