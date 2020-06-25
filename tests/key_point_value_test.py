@@ -192,7 +192,7 @@ from analysis_engine.key_point_values import (
     AirspeedWithFlapMin,
     AirspeedWithGearDownMax,
     AirspeedWithSpeedbrakeDeployedMax,
-    AirspeedWithThrustReversersDeployedMin,
+    AirspeedWithThrustReversersEffectiveMin,
     AlphaFloorDuration,
     AlternateLawDuration,
     AltitudeAtAPDisengagedSelection,
@@ -470,7 +470,7 @@ from analysis_engine.key_point_values import (
     GroundspeedWhileTaxiingStraightMax,
     GroundspeedWhileTaxiingTurnMax,
     GroundspeedWithThrustReversersDeployedAnyPowerMin,
-    GroundspeedWithThrustReversersDeployedMin,
+    GroundspeedWithThrustReversersEffectiveMin,
     HeadingAtLowestAltitudeDuringApproach,
     HeadingChange,
     HeadingDeviationFromRunwayAt50FtDuringLanding,
@@ -5659,55 +5659,43 @@ class TestAirspeedAtGearDownSelection(unittest.TestCase, CreateKPVsAtKTIsTest):
 class TestAirspeedWithThrustReversersDeployedMin(unittest.TestCase, NodeTest):
 
     def setUp(self):
-        self.node_class = AirspeedWithThrustReversersDeployedMin
+        self.node_class = AirspeedWithThrustReversersEffectiveMin
         self.operational_combinations = [
-            ('Airspeed True', 'Thrust Reversers', 'Eng (*) EPR Max', 'Eng (*) N1 Max', 'Landing'),
-            ('Airspeed True', 'Thrust Reversers', 'Eng (*) N1 Max', 'Landing'),
-            ('Airspeed True', 'Thrust Reversers', 'Eng (*) EPR Max', 'Landing')]
+            ('Airspeed True', 'Thrust Reversers Effective'),
+        ]
 
-    def test_derive_basic(self):
-        air_spd=P('Airspeed True', array = np.ma.arange(100,0,-10))
-        tr=M('Thrust Reversers', array=np.ma.array([0]*3+[1]+[2]*4+[1,0]),
-             values_mapping = {0: 'Stowed', 1: 'In Transit', 2: 'Deployed'})
-        n1=P('Eng (*) N1 Max', array=np.ma.array([40]*5+[70]*5))
-        landings=buildsection('Landing', 2, 9)
-        node = AirspeedWithThrustReversersDeployedMin()
-        node.derive(air_spd, tr, None, n1, landings)
+    def test_derive_one_landing(self):
+        spd=P('Airspeed True', array = np.ma.arange(100, 0, -10))
+        tr=M(
+            'Thrust Reversers Effective',
+            array=np.ma.concatenate((np.ma.zeros(2), np.ma.ones(6), np.ma.zeros(3),)),
+            values_mapping = {0: '-', 1: 'Effective'}
+        )
+        node =self.node_class()
+        node.derive(spd, tr)
         self.assertEqual(len(node), 1)
         self.assertEqual(node[0], KeyPointValue(
-            index=7, value=30.0, name='Airspeed With Thrust Reversers Deployed Min'))
+            index=7, value=30.0,
+            name='Airspeed With Thrust Reversers Effective Min'))
 
-    def test_derive_with_epr(self):
-        air_spd = P('Airspeed True', array = np.ma.arange(100,0,-10))
-        tr = M('Thrust Reversers', array=np.ma.array([0]*3+[1]+[2]*4+[1,0]),
-               values_mapping = {0: 'Stowed', 1: 'In Transit', 2: 'Deployed'})
-        epr = P('Eng (*) EPR Max', array=np.ma.array([1.0]*5+[1.26]*3+[1.0]*2))
-        landings=buildsection('Landing', 2, 9)
-        node = AirspeedWithThrustReversersDeployedMin()
-        node.derive(air_spd, tr, epr, None, landings)
-        self.assertEqual(len(node), 1)
+    def test_derive_two_landings(self):
+        spd=P('Airspeed', array = np.tile(np.ma.arange(100, 0, -10), 2))
+        tr=M(
+            'Thrust Reversers Effective',
+            array=np.tile(
+                np.ma.concatenate((np.ma.zeros(2), np.ma.ones(6), np.ma.zeros(2))), 2
+            ),
+            values_mapping = {0: '-', 1: 'Effective'}
+        )
+        node = self.node_class()
+        node.derive(spd, tr)
+        self.assertEqual(len(node), 2)
         self.assertEqual(node[0], KeyPointValue(
-            index=7, value=30.0, name='Airspeed With Thrust Reversers Deployed Min'))
-
-    def test_derive_inadequate_power(self):
-        air_spd=P('Airspeed True',array = np.ma.arange(100,0,-10))
-        tr=M('Thrust Reversers', array=np.ma.array([0]*3+[1]+[2]*4+[1,0]),
-             values_mapping = {0: 'Stowed', 1: 'In Transit', 2: 'Deployed'})
-        n1=P('Eng (*) N1 Max', array=np.ma.array([40]*10))
-        landings=buildsection('Landing', 2, 9)
-        node = AirspeedWithThrustReversersDeployedMin()
-        node.derive(air_spd, tr, None, n1, landings)
-        self.assertEqual(len(node), 0)
-
-    def test_derive_not_deployed(self):
-        air_spd=P('Airspeed True',array = np.ma.arange(100,0,-10))
-        tr=M('Thrust Reversers', array=np.ma.array([0]*3+[1]*6+[0]),
-             values_mapping = {0: 'Stowed', 1: 'In Transit', 2: 'Deployed'})
-        n1=P('Eng (*) N1 Max', array=np.ma.array([40]*5+[70]*5))
-        landings=buildsection('Landing', 2, 9)
-        node = AirspeedWithThrustReversersDeployedMin()
-        node.derive(air_spd, tr, None, n1, landings)
-        self.assertEqual(len(node), 0)
+            index=7, value=30.0,
+            name='Airspeed With Thrust Reversers Effective Min'))
+        self.assertEqual(node[1], KeyPointValue(
+            index=17, value=30.0,
+            name='Airspeed With Thrust Reversers Effective Min'))
 
 
 class TestAirspeedAtThrustReversersSelection(unittest.TestCase, NodeTest):
@@ -17125,104 +17113,44 @@ class TestGroundspeedAtTOGA(unittest.TestCase, NodeTest):
 class TestGroundspeedWithThrustReversersDeployedMin(unittest.TestCase, NodeTest):
 
     def setUp(self):
-        self.node_class = GroundspeedWithThrustReversersDeployedMin
+        self.node_class = GroundspeedWithThrustReversersEffectiveMin
         self.operational_combinations = [
-            ('Groundspeed', 'Thrust Reversers', 'Eng (*) EPR Max',
-             'Eng (*) N1 Max', 'Landing'),
-            ('Groundspeed', 'Thrust Reversers', 'Eng (*) EPR Max', 'Landing'),
-            ('Groundspeed', 'Thrust Reversers', 'Eng (*) N1 Max', 'Landing')]
+            ('Groundspeed', 'Thrust Reversers Effective'),
+        ]
 
-    def test_derive_basic(self):
-        spd=P('Groundspeed True', array = np.ma.arange(100, 0, -10))
-        tr=M('Thrust Reversers',
-             array=np.ma.array([0] * 3 + [1] + [2] * 4 + [1,0]),
-             values_mapping = {0: 'Stowed', 1: 'In Transit', 2: 'Deployed'})
-        # half the frequency of spd
-        n1=P('Eng (*) N1 Max', frequency=0.5,
-             array=np.ma.array([40] * 2 + [70] * 3))
-        landings=buildsection('Landing', 2, 9)
-        node = GroundspeedWithThrustReversersDeployedMin()
-        node.derive(spd, tr, None, n1, landings)
+    def test_derive_one_landing(self):
+        spd=P('Groundspeed', array = np.ma.arange(100, 0, -10))
+        tr=M(
+            'Thrust Reversers Effective',
+            array=np.ma.concatenate((np.ma.zeros(2), np.ma.ones(6), np.ma.zeros(3),)),
+            values_mapping = {0: '-', 1: 'Effective'}
+        )
+        node = self.node_class()
+        node.derive(spd, tr)
         self.assertEqual(len(node), 1)
         self.assertEqual(node[0], KeyPointValue(
             index=7, value=30.0,
-            name='Groundspeed With Thrust Reversers Deployed Min'))
+            name='Groundspeed With Thrust Reversers Effective Min'))
 
-    def test_derive_with_epr(self):
-        spd = P('Groundspeed True', array = np.ma.arange(100, 0, -10))
-        tr = M('Thrust Reversers',
-               array=np.ma.array([0] * 3 + [1] + [2] * 4 + [1,0]),
-               values_mapping = {0: 'Stowed', 1: 'In Transit', 2: 'Deployed'})
-        # half the frequency of spd
-        epr = P('Eng (*) EPR Max', frequency=0.5,
-                array=np.ma.array([1.0] * 2 + [1.26] * 2 + [1.0] * 1))
-        landings=buildsection('Landing', 2, 9)
-        node = GroundspeedWithThrustReversersDeployedMin()
-        node.derive(spd, tr, epr, None, landings, None)
-        self.assertEqual(len(node), 1)
-        self.assertEqual(node[0], KeyPointValue(
-            index=6, value=40.0,
-            name='Groundspeed With Thrust Reversers Deployed Min'))
-
-    def test_derive_with_epr_n1_equal_freq(self):
-        spd = P('Groundspeed True', array = np.ma.arange(100, 0, -10))
-        tr = M('Thrust Reversers',
-               array=np.ma.array([0] * 3 + [1] + [2] * 4 + [1,0]),
-               values_mapping = {0: 'Stowed', 1: 'In Transit', 2: 'Deployed'})
-        # half the frequency of spd
-        epr = P('Eng (*) EPR Max', frequency=0.5,
-                array=np.ma.array([1.0] * 2 + [1.26] * 2 + [1.0] * 1))
-        n1=P('Eng (*) N1 Max', frequency=4, # Frequency set to 4 as the derived N1 freq should be ignored anyway
-             array=np.ma.array([40] * 16 + [70] * 24))
-        n1_recorded=P('Eng (1) N1', frequency=0.5,
-                      array=np.ma.array([40] * 2 + [70] * 3))
-        landings=buildsection('Landing', 2, 9)
-        node = GroundspeedWithThrustReversersDeployedMin()
-        node.derive(spd, tr, epr, n1, landings, n1_recorded)
-        self.assertEqual(len(node), 1)
-        self.assertEqual(node[0], KeyPointValue(
-            index=6, value=40.0,
-            name='Groundspeed With Thrust Reversers Deployed Min'))
-
-    def test_derive_with_epr_freq_higher(self):
-        spd = P('Groundspeed True', array = np.ma.arange(100, 0, -10))
-        tr = M('Thrust Reversers',
-               array=np.ma.array([0] * 3 + [1] + [2] * 4 + [1,0]),
-               values_mapping = {0: 'Stowed', 1: 'In Transit', 2: 'Deployed'})
-        # half the frequency of spd
-        epr = P('Eng (*) EPR Max', frequency=0.5,
-                array=np.ma.array([1.0] * 2 + [1.26] * 2 + [1.0] * 1))
-        n1=P('Eng (*) N1 Max', frequency=4, # Frequency set to 4 as the derived N1 freq should be ignored anyway
-             array=np.ma.array([40] * 16 + [70] * 24))
-        n1_recorded=P('Eng (1) N1', frequency=0.25,
-                      array=np.ma.array([40] * 2 + [70] * 3))
-        landings=buildsection('Landing', 2, 9)
-        node = GroundspeedWithThrustReversersDeployedMin()
-        node.derive(spd, tr, epr, n1, landings, n1_recorded)
-        self.assertEqual(len(node), 1)
-        self.assertEqual(node[0], KeyPointValue(
-            index=6, value=40.0,
-            name='Groundspeed With Thrust Reversers Deployed Min'))
-
-    def test_derive_with_n1_freq_higher(self):
-        spd = P('Groundspeed True', array = np.ma.arange(100, 0, -10))
-        tr = M('Thrust Reversers',
-               array=np.ma.array([0] * 3 + [1] + [2] * 4 + [1,0]),
-               values_mapping = {0: 'Stowed', 1: 'In Transit', 2: 'Deployed'})
-        # half the frequency of spd
-        epr = P('Eng (*) EPR Max', frequency=0.25,
-                array=np.ma.array([1.0] * 2 + [1.26] * 2 + [1.0] * 1))
-        n1=P('Eng (*) N1 Max', frequency=4, # Frequency set to 4 as the derived N1 freq should be ignored anyway
-             array=np.ma.array([40] * 16 + [70] * 24))
-        n1_recorded=P('Eng (1) N1', frequency=0.5,
-                      array=np.ma.array([40] * 2 + [70] * 3))
-        landings=buildsection('Landing', 2, 9)
-        node = GroundspeedWithThrustReversersDeployedMin()
-        node.derive(spd, tr, epr, n1, landings, n1_recorded)
-        self.assertEqual(len(node), 1)
+    def test_derive_two_landings(self):
+        spd=P('Groundspeed', array = np.tile(np.ma.arange(100, 0, -10), 2))
+        tr=M(
+            'Thrust Reversers Effective',
+            array=np.tile(
+                np.ma.concatenate((np.ma.zeros(2), np.ma.ones(6), np.ma.zeros(2))), 2
+            ),
+            values_mapping = {0: '-', 1: 'Effective'}
+        )
+        node = self.node_class()
+        node.derive(spd, tr)
+        self.assertEqual(len(node), 2)
         self.assertEqual(node[0], KeyPointValue(
             index=7, value=30.0,
-            name='Groundspeed With Thrust Reversers Deployed Min'))
+            name='Groundspeed With Thrust Reversers Effective Min'))
+        self.assertEqual(node[1], KeyPointValue(
+            index=17, value=30.0,
+            name='Groundspeed With Thrust Reversers Effective Min'))
+
 
 class TestGroundspeedStabilizerOutOfTrimDuringTakeoffMax(unittest.TestCase,
                                                          NodeTest):

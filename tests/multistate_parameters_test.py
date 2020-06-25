@@ -101,6 +101,7 @@ from analysis_engine.multistate_parameters import (
     TCASFailure,
     TCASRA,
     ThrustReversers,
+    ThrustReversersEffective,
     Transmitting
 )
 
@@ -3855,6 +3856,78 @@ class TestThrustReversers(unittest.TestCase):
                                 None,
                                 eng_2_unlocked] + [None] * 21)
         np.testing.assert_equal(self.thrust_reversers.array.data, result)
+
+
+class TestThrustReversersEffective(unittest.TestCase, NodeTest):
+    def setUp(self):
+        self.node_class = ThrustReversersEffective
+        self.operational_combinations = [
+            ('Eng (*) EPR Max', 'Thrust Reversers', 'Landing'),
+            ('Eng (*) N1 Max', 'Thrust Reversers', 'Landing'),
+            ('Eng (*) EPR Max', 'Eng (*) N1 Max', 'Thrust Reversers', 'Landing'),
+        ]
+        values_mapping={0: 'Stowed', 1: 'In Transit', 2: 'Deployed'}
+        array = np.ma.concatenate((
+            np.ma.zeros(10),
+            np.ma.ones(10),
+            np.ma.ones(10) * 2
+        ))
+        self.tr = M('Thrust Reversers', values_mapping=values_mapping, array=array)
+        self.eng_epr = P('Eng (*) EPR Max', array=np.ma.ones(30) * 1.25)
+        self.eng_n1 = P('Eng (*) N1 Max', array=np.ma.ones(30) * 65)
+        self.landing = buildsection('Landing', 0, 30)
+
+    def test_effective_n1(self):
+        node = self.node_class()
+        node.derive(self.tr, self.eng_n1, None, self.landing, None, None)
+
+        expected = np.ma.concatenate((np.ma.zeros(20), np.ma.ones(10)))
+        np.testing.assert_equal(node.array.data, expected)
+
+    def test_effective_epr(self):
+        node = self.node_class()
+        node.derive(self.tr, None, self.eng_epr, self.landing, None, None)
+
+        expected = np.ma.concatenate((np.ma.zeros(20), np.ma.ones(10)))
+        np.testing.assert_equal(node.array.data, expected)
+
+    def test_temporarily_effective_n1(self):
+        eng_n1 = P('Eng (*) N1 Max',
+                   array=np.ma.concatenate((np.ma.ones(25) * 60, np.ma.ones(5) * 65))
+        )
+        node = self.node_class()
+        node.derive(self.tr, eng_n1, None, self.landing, None, None)
+
+        expected = np.ma.concatenate((np.ma.zeros(25), np.ma.ones(5)))
+        np.testing.assert_equal(node.array.data, expected)
+
+    def test_priority_to_n1(self):
+        eng_n1 = P('Eng (*) N1 Max',
+                   array=np.ma.concatenate((np.ma.ones(25) * 60, np.ma.ones(5) * 65))
+        )
+        eng1_n1 = P('Eng (1) N1', array=eng_n1.array)
+        eng1_epr = P('Eng (1) EPR', array=self.eng_epr.array)
+        node = self.node_class()
+        node.derive(self.tr, eng_n1, self.eng_epr, self.landing, eng1_n1, eng1_epr)
+
+        expected = np.ma.concatenate((np.ma.zeros(25), np.ma.ones(5)))
+        np.testing.assert_equal(node.array.data, expected)
+
+    def test_epr_better_sample_rate(self):
+        eng_epr = P('Eng (*) EPR Max',
+                   array=np.ma.concatenate((np.ma.ones(25) * 1.2, np.ma.ones(5) * 1.25)),
+        )
+        eng_n1 = P('Eng (*) N1 Max',
+                   array=np.ma.concatenate((np.ma.ones(13) * 60, np.ma.ones(2) * 65)),
+                   frequency=0.5
+        )
+        eng1_epr = P('Eng (1) EPR', array=eng_epr.array)
+        eng1_n1 = P('Eng (1) N1', array=eng_n1.array, frequency=eng_n1.hz)
+        node = self.node_class()
+        node.get_derived((self.tr, eng_n1, eng_epr, self.landing, eng1_n1, eng1_epr))
+
+        expected = np.ma.concatenate((np.ma.zeros(25), np.ma.ones(5)))
+        np.testing.assert_equal(node.array.data, expected)
 
 
 class TestTakeoffConfigurationWarning(unittest.TestCase):
