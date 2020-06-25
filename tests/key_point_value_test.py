@@ -2938,17 +2938,17 @@ class TestAirspeedBelowAirspeedSelectedDurationMax(unittest.TestCase, NodeTest):
 
     def setUp(self):
         self.node_class = AirspeedBelowAirspeedSelectedDurationMax
-        self.operational_combinations = [('Airspeed', 'Airspeed Selected', 'Airborne')]
+        self.operational_combinations = [('Airspeed', 'Airspeed Selected', 'Level Flight')]
 
     def test_derive(self):
         array = np.ma.ones(50) * 130
         spd_sel = P('Airspeed Selected', array=array)
         array = np.ma.arange(140, 90, -1)
         spd = P('Airpseed', array=array)
-        airs = buildsection('Airborne', 0, 50)
+        levels = buildsection('Level Flight', 0, 50)
 
         node = self.node_class()
-        node.derive(spd, spd_sel, airs)
+        node.derive(spd, spd_sel, levels)
 
         self.assertEqual(len(node), 1)
         self.assertEqual(node[0].index, 20)
@@ -2962,16 +2962,16 @@ class TestAirspeedBelowAirspeedSelectedDurationMax(unittest.TestCase, NodeTest):
             np.linspace(140, 80, num=60),
             ])
         spd = P('Airpseed', array=array)
-        airs = buildsection('Airborne', 0, 100)
+        levels = buildsection('Level Flight', 0, 100)
 
         node = self.node_class()
-        node.derive(spd, spd_sel, airs)
+        node.derive(spd, spd_sel, levels)
 
         self.assertEqual(len(node), 1)
         self.assertEqual(node[0].index, 60)
         self.assertEqual(node[0].value, 40)
 
-    def test_within_airborne(self):
+    def test_within_level_flight(self):
         array = np.ma.ones(120) * 130
         spd_sel = P('Airspeed Selected', array=array)
         array = np.ma.concatenate([
@@ -2979,10 +2979,10 @@ class TestAirspeedBelowAirspeedSelectedDurationMax(unittest.TestCase, NodeTest):
             np.linspace(140, 75, num=65),
             ])
         spd = P('Airpseed', array=array)
-        airs = buildsection('Airborne', 0, 70)
+        levels = buildsection('Level Flight', 0, 70)
 
         node = self.node_class()
-        node.derive(spd, spd_sel, airs)
+        node.derive(spd, spd_sel, levels)
 
         self.assertEqual(len(node), 1)
         self.assertEqual(node[0].index, 20)
@@ -2993,11 +2993,11 @@ class TestAirspeedBelowAirspeedSelectedDurationMax(unittest.TestCase, NodeTest):
         spd_sel = P('Airspeed Selected', array=array, frequency=0.5)
         array = np.ma.arange(140, 90, -1)
         spd = P('Airpseed', array=array, frequency=0.5)
-        airs = buildsection('Airborne', 0, 50)
-        airs.frequency = 0.5
+        levels = buildsection('Level Flight', 0, 50)
+        levels.frequency = 0.5
 
         node = self.node_class()
-        node.get_derived((spd, spd_sel, airs))
+        node.get_derived((spd, spd_sel, levels))
 
         self.assertEqual(len(node), 1)
         self.assertEqual(node[0].index, 20)
@@ -3008,10 +3008,10 @@ class TestAirspeedBelowAirspeedSelectedDurationMax(unittest.TestCase, NodeTest):
         spd_sel = P('Airspeed Selected', array=array)
         array = np.ma.arange(150, 100, -1)
         spd = P('Airpseed', array=array)
-        airs = buildsection('Airborne', 0, 50)
+        levels = buildsection('Level Flight', 0, 50)
 
         node = self.node_class()
-        node.derive(spd, spd_sel, airs)
+        node.derive(spd, spd_sel, levels)
 
         self.assertEqual(len(node), 0)
 
@@ -3020,10 +3020,10 @@ class TestAirspeedBelowAirspeedSelectedDurationMax(unittest.TestCase, NodeTest):
         spd_sel = P('Airspeed Selected', array=array)
         array = np.ma.ones(50) * 125
         spd = P('Airpseed', array=array)
-        airs = buildsection('Airborne', 0, 50)
+        levels = buildsection('Level Flight', 0, 50)
 
         node = self.node_class()
-        node.derive(spd, spd_sel, airs)
+        node.derive(spd, spd_sel, levels)
 
         self.assertEqual(len(node), 0)
 
