@@ -1416,8 +1416,8 @@ class AirspeedGustsDuringFinalApproach(KeyPointValueNode):
 class AirspeedBelowAirspeedSelectedDurationMax(KeyPointValueNode):
     '''
     Duration when Airspeed dropped below Airspeed Selected by at least 10 kt
-    and constantly decreased. This helps identify low airspeed trends away
-    from Airspeed Selected.
+    and constantly decreased while in Level Flight. This helps identify low airspeed
+    trends away from Airspeed Selected.
 
     Only durations of at least 20 seconds are considered.
     '''
@@ -1426,12 +1426,12 @@ class AirspeedBelowAirspeedSelectedDurationMax(KeyPointValueNode):
 
     def derive(self, spd=P('Airspeed'),
                spd_sel=P('Airspeed Selected'),
-               airs=S('Airborne')):
+               levels=S('Level Flight')):
 
         mov_spd_array = moving_average(spd.array)
 
         dist = mov_spd_array - spd_sel.array
-        dist = mask_outside_slices(dist, airs.get_slices())
+        dist = mask_outside_slices(dist, levels.get_slices())
         # Mask out when Airspeed Selected is changing
         spd_sel_change = np.ma.ediff1d(spd_sel.array, to_end=0.0)
         dist[np.ma.abs(spd_sel_change) > 1.0] = np.ma.masked
