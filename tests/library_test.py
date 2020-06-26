@@ -2182,6 +2182,11 @@ class TestCalculateTimebase(unittest.TestCase):
         start_dt = calculate_timebase(years, months, days, hours, mins, secs)
         self.assertEqual(start_dt, datetime(2012, 12, 30, 8, 20, 36, tzinfo=pytz.utc))
 
+    def test_masked_values_are_ignored(self):
+        # If masked values are interpreted as 0, the start_dt is incorrectly calculated as 2001
+        start_dt = calculate_timebase(*load_compressed(os.path.join(test_data_path, 'calculate_timebase_01.npz')))
+        self.assertEqual(start_dt, datetime(2020, 1, 31, 0, 1, 37, tzinfo=pytz.utc))
+
     @unittest.skip("Implement if this is a requirement, currently "
                    "all parameters are aligned before this is being used.")
     def test_using_offset_for_seconds(self):
