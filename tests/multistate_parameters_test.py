@@ -50,6 +50,7 @@ from analysis_engine.multistate_parameters import (
     Eng_Fire,
     Eng_Oil_Press_Warning,
     EventMarker,
+    FDMaster,
     Flap,
     FlapExcludingTransition,
     FlapIncludingTransition,
@@ -5264,3 +5265,157 @@ class TestGPSOperational:
 
         assert_array_equal(node.array, expected)
         assert node.name == 'GPS Operational'
+
+
+class TestFDMaster:
+    def test__fd_engaged_capt(self):
+        fd_master = FDMaster()
+        fd_capt = M(
+            'FD (A) Engaged',
+            array=np.ma.repeat([0, 1], [10, 10]),
+            values_mapping={0: '-', 1: 'Engaged'}
+        )
+        fd_capt.array[17:] = np.ma.masked
+        fd_fo = M(
+            'FD (B) Engaged',
+            array=np.ma.repeat([0, 1], [12, 8]),
+            values_mapping={0: '-', 1:'Engaged'}
+        )
+        fd_fo.array[17:] = np.ma.masked
+        fd_master.derive(fd_capt, fd_fo)
+        np.testing.assert_array_equal(fd_master.array, np.repeat([0, 1], [10, 10]))
+        np.testing.assert_array_equal(fd_master.array.mask, np.repeat([0, 1], [17, 3]))
+
+    def test__fd_engaged_capt_switching(self):
+        fd_master = FDMaster()
+        fd_capt = M(
+            'FD (A) Engaged',
+            array=np.ma.repeat([0, 1], [10, 10]),
+            values_mapping={0: '-', 1: 'Engaged'}
+        )
+        fd_fo = M(
+            'FD (B) Engaged',
+            array=np.ma.repeat([1, 0, 1], [2, 10, 8]),
+            values_mapping={0: '-', 1:'Engaged'}
+        )
+        fd_master.derive(fd_capt, fd_fo)
+        np.testing.assert_array_equal(fd_master.array, np.repeat([2, 0, 1], [2, 8, 10]))
+        np.testing.assert_array_equal(fd_master.array.mask, np.zeros(20))
+
+    def test__fd_engaged_masked(self):
+        fd_master = FDMaster()
+        fd_capt = M(
+            'FD (A) Engaged',
+            array=np.ma.repeat([0, 1], [10, 10]),
+            values_mapping={0: '-', 1: 'Engaged'}
+        )
+        fd_capt.array[14:16] = np.ma.masked
+        fd_fo = M(
+            'FD (B) Engaged',
+            array=np.ma.repeat([0, 1], [12, 8]),
+            values_mapping={0: '-', 1:'Engaged'}
+        )
+        fd_fo.array[14:16] = np.ma.masked
+        fd_master.derive(fd_capt, fd_fo)
+        np.testing.assert_array_equal(fd_master.array, np.repeat([0, 1], [10, 10]))
+        np.testing.assert_array_equal(fd_master.array.mask, np.repeat([0, 1, 0], [14, 2, 4]))
+
+    def test__fd_engaged_one_fd_masked(self):
+        fd_master = FDMaster()
+        fd_capt = M(
+            'FD (A) Engaged',
+            array=np.ma.repeat([0, 1], [5, 15]),
+            values_mapping={0: '-', 1: 'Engaged'}
+        )
+        fd_capt.array[10:13] = np.ma.masked
+        fd_fo = M(
+            'FD (B) Engaged',
+            array=np.ma.repeat([0, 1], [7, 13]),
+            values_mapping={0: '-', 1:'Engaged'}
+        )
+        fd_master.derive(fd_capt, fd_fo)
+        np.testing.assert_array_equal(fd_master.array, np.repeat([0, 1], [5, 15]))
+        np.testing.assert_array_equal(fd_master.array.mask, np.repeat([0, 1, 0], [10, 3, 7]))
+
+    def test__fd_engaged_masked_while_both_engaged(self):
+        fd_master = FDMaster()
+        fd_capt = M(
+            'FD (A) Engaged',
+            array=np.ma.repeat([0, 1], [10, 10]),
+            values_mapping={0: '-', 1: 'Engaged'}
+        )
+        fd_capt.array[13] = np.ma.masked
+        fd_fo = M(
+            'FD (B) Engaged',
+            array=np.ma.repeat([0, 1], [12, 8]),
+            values_mapping={0: '-', 1:'Engaged'}
+        )
+        fd_fo.array[13] = np.ma.masked
+        fd_master.derive(fd_capt, fd_fo)
+        np.testing.assert_array_equal(fd_master.array, np.repeat([0, 1], [10, 10]))
+        np.testing.assert_array_equal(fd_master.array.mask, np.repeat([0, 1, 0], [13, 1, 6]))
+
+    def test__fd_engaged_both_fd_fully_masked(self):
+        fd_master = FDMaster()
+        fd_capt = M(
+            'FD (A) Engaged',
+            array=np.ma.repeat([0, 1], [10, 10]),
+            values_mapping={0: '-', 1: 'Engaged'}
+        )
+        fd_capt.array[:] = np.ma.masked
+        fd_fo = M(
+            'FD (B) Engaged',
+            array=np.ma.repeat([0, 1], [12, 8]),
+            values_mapping={0: '-', 1:'Engaged'}
+        )
+        fd_fo.array[:] = np.ma.masked
+        fd_master.derive(fd_capt, fd_fo)
+        np.testing.assert_array_equal(fd_master.array.mask, np.ones(20))
+
+    def test__no_fd_engaged(self):
+        fd_master = FDMaster()
+        fd_capt = M(
+            'FD (A) Engaged',
+            array=np.ma.zeros(20),
+            values_mapping={0: '-', 1: 'Engaged'}
+        )
+        fd_fo = M(
+            'FD (B) Engaged',
+            array=np.ma.zeros(20),
+            values_mapping={0: '-', 1:'Engaged'}
+        )
+        fd_master.derive(fd_capt, fd_fo)
+        np.testing.assert_array_equal(fd_master.array, np.zeros(20))
+        np.testing.assert_array_equal(fd_master.array.mask, np.zeros(20))
+
+    def test__both_fd_engaged(self):
+        fd_master = FDMaster()
+        fd_capt = M(
+            'FD (A) Engaged',
+            array=np.ma.ones(20),
+            values_mapping={0: '-', 1: 'Engaged'}
+        )
+        fd_fo = M(
+            'FD (B) Engaged',
+            array=np.ma.ones(20),
+            values_mapping={0: '-', 1:'Engaged'}
+        )
+        fd_master.derive(fd_capt, fd_fo)
+        np.testing.assert_array_equal(fd_master.array, np.zeros(20))
+        np.testing.assert_array_equal(fd_master.array.mask, np.zeros(20))
+
+    def test__both_fd_engaged_at_start(self):
+        fd_master = FDMaster()
+        fd_capt = M(
+            'FD (A) Engaged',
+            array=np.ma.repeat([1, 0], [10, 10]),
+            values_mapping={0: '-', 1: 'Engaged'}
+        )
+        fd_fo = M(
+            'FD (B) Engaged',
+            array=np.ma.repeat([1, 0], [11, 9]),
+            values_mapping={0: '-', 1:'Engaged'}
+        )
+        fd_master.derive(fd_capt, fd_fo)
+        np.testing.assert_array_equal(fd_master.array, np.repeat([0, 2, 0], [10, 1, 9]))
+        np.testing.assert_array_equal(fd_master.array.mask, np.zeros(20))

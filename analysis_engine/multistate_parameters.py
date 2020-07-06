@@ -2489,6 +2489,42 @@ class PilotFlying(MultistateDerivedParameterNode):
         self.array = pilot_flying
 
 
+class FDMaster(MultistateDerivedParameterNode):
+    '''
+    Determine which Flight Director is the master.
+
+    The first flight director engaged is the master and is on the PF side. If the
+    second FD is engaged, the first FD remains master. If the first FD would be
+    disengaged while the second one was engaged, the second one would become master.
+    In other words, the first FD to become engaged remains the master for as long
+    as the FD remains engaged.
+    '''
+    units = None
+    name = 'FD Master'
+    values_mapping={0: '-', 1: 'Captain', 2: 'First Officer'}
+
+    def derive(self, fd_capt=M('FD (A) Engaged'), fd_fo=M('FD (B) Engaged')):
+        # Create an array with 1 for Captain, 2 for FO and 3 for both selected
+        fd_master = fd_capt.array.raw + 2 * fd_fo.array.raw
+        mask = fd_master.mask.copy()
+
+        dual = fd_master == 3
+        # We mask sections where they were both selected
+        # We first fill in with 0 in case we cannot repair the array with fill_start
+        # This would mean we have not seen a single FD engaged to start with
+        fd_master[dual] = 0
+        fd_master[dual] = np.ma.masked
+        # We repair the mask with the fill_start method, using the value found before
+        # the section where both FD were engaged.
+        repair_mask(
+            fd_master, repair_duration=None,
+            method='fill_start', raise_entirely_masked=False
+        )
+        # Retain the original mask
+        fd_master.mask = mask
+        self.array = fd_master
+
+
 class PitchAlternateLaw(MultistateDerivedParameterNode):
     '''
     Combine Pitch Alternate Law from sources (1) and/or (2).

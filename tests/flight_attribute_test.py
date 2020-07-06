@@ -9,7 +9,7 @@ from mock import Mock, call, patch
 from analysis_engine import __version__, settings
 from analysis_engine.library import align
 from analysis_engine.node import (
-    A, App, KPV, KTI, P, S,
+    A, App, M, KPV, KTI, P, S,
     load,
     KeyPointValue,
     KeyTimeInstance,
@@ -42,6 +42,7 @@ from analysis_engine.flight_attribute import (
 )
 
 from flightdatautilities import api
+from flightdatautilities.numpy_utils import slices_int
 
 from analysis_engine.test_utils import buildsection
 
@@ -70,200 +71,174 @@ class NodeTest(object):
 
 
 class TestDeterminePilot(unittest.TestCase):
+    def setUp(self):
+        import logging
+        # warning method is normally initialised with Node superclass in one of
+        # the DeterminePilot's ancestors
+        DeterminePilot.warning = logging.warning
+        DeterminePilot.info = logging.info
+        self.pilot_flying = M(
+            'Pilot Flying',
+            array=np.ma.repeat([0, 1], [10, 40]),
+            values_mapping = {0: '-', 1: 'Captain', 2: 'First Officer'}
+        )
+        self.fd_master = M(
+            'FD Master',
+            array=np.ma.repeat([0, 1], [10, 40]),
+            values_mapping={0: '-', 1: 'Captain', 2: 'First Officer'}
+        )
+        self.ap1_eng = M(
+            'AP (1) Engaged',
+            array=np.ma.repeat([0, 1], [30, 20]),
+            values_mapping={0: '-', 1: 'Engaged'}
+        )
+        self.ap2_eng = M(
+            'AP (2) Engaged',
+            array=np.ma.zeros(50),
+            values_mapping={0: '-', 1: 'Engaged'}
+        )
+        self.ap_channels = M(
+            'AP Channels Engaged',
+            array=np.ma.repeat([0, 1], [30, 20]),
+            values_mapping={0: '-', 1: 'Single', 2: 'Dual', 3: 'Triple'}
+        )
+        self.cc_capt = P(
+            'Control Column Force (Capt)',
+            array=np.ma.array(
+                data=np.sin(np.linspace(0, np.pi, 50)) * 10
+            )
+        )
+        self.cc_fo = P(
+            'Control Column Force (FO)',
+            array=np.ma.array(
+                data=np.sin(np.linspace(0, np.pi, 50)) * 7
+            )
+        )
+        self.takeoff = Section(
+            name='Takeoff', slice=slice(1, 20), start_edge=1, stop_edge=20
+        )
+        self.takeoff_and_climb = slice(1, 39)
 
-    def test__autopilot_engaged(self):
+    def test__1_autopilot_engaged(self):
         determine_pilot = DeterminePilot()
-        # No autopilots engaged:
-        pilot = determine_pilot._autopilot_engaged(0, 0)
-        self.assertEqual(pilot, None)
-        # Autopilot 1 engaged:
-        pilot = determine_pilot._autopilot_engaged(1, 0)
+        ap1_eng = M(
+            'AP (1) Engaged',
+            array=np.ma.repeat([0, 1], [10, 30]),
+            values_mapping={0: '-', 1: 'Engaged'}
+        )
+        ap2_eng = M(
+            'AP (2) Engaged',
+            array=np.ma.zeros(40),
+            values_mapping={0: '-', 1: 'Engaged'}
+        )
+        ap_channels = M(
+            'AP Channels Engaged',
+            array=np.ma.repeat([0, 1], [10, 30]),
+            values_mapping={0: '-', 1: 'Single', 2: 'Dual', 3: 'Triple'}
+        )
+        phase = slice(0, 40)
+        pilot = determine_pilot._autopilot_engaged(ap1_eng, ap2_eng, ap_channels, phase)
         self.assertEqual(pilot, 'Captain')
-        # Autopilot 2 engaged:
-        pilot = determine_pilot._autopilot_engaged(0, 1)
-        self.assertEqual(pilot, 'First Officer')
-        # Autopilots 1 & 2 engaged:
-        pilot = determine_pilot._autopilot_engaged(1, 1)
-        self.assertEqual(pilot, None)
 
-    def test__controls_changed(self):
+    def test__2_autopilots_initially_engaged(self):
+        # Before landing, dual channel approach selected
         determine_pilot = DeterminePilot()
-        slice_ = slice(0, 3)
-        below_tolerance = np.ma.array([
-            settings.CONTROLS_IN_USE_TOLERANCE / 4.0, 0, 0,
-            settings.CONTROLS_IN_USE_TOLERANCE / 2.0, 0, 0,
-        ])
-        above_tolerance = np.ma.array([
-            settings.CONTROLS_IN_USE_TOLERANCE * 4.0, 0, 0,
-            settings.CONTROLS_IN_USE_TOLERANCE * 2.0, 0, 0,
-        ])
-        # Both pitch and roll below tolerance:
-        pitch, roll = below_tolerance, below_tolerance
-        change = determine_pilot._controls_changed(slice_, pitch, roll)
-        self.assertFalse(change)
-        # Pitch above tolerance:
-        pitch, roll = above_tolerance, below_tolerance
-        change = determine_pilot._controls_changed(slice_, pitch, roll)
-        self.assertTrue(change)
-        # Roll above tolerance:
-        pitch, roll = below_tolerance, above_tolerance
-        change = determine_pilot._controls_changed(slice_, pitch, roll)
-        self.assertTrue(change)
-        # Both pitch and roll above tolerance:
-        pitch, roll = above_tolerance, above_tolerance
-        change = determine_pilot._controls_changed(slice_, pitch, roll)
-        self.assertTrue(change)
-        # Both pitch and roll above tolerance outside of slice:
-        slice_ = slice(1, 3)
-        pitch, roll = above_tolerance, above_tolerance
-        change = determine_pilot._controls_changed(slice_, pitch, roll)
-        self.assertFalse(change)
+        ap1_eng = M(
+            'AP (1) Engaged',
+            array=np.ma.repeat([0, 1], [30, 10]),
+            values_mapping={0: '-', 1: 'Engaged'}
+        )
+        ap2_eng = M(
+            'AP (2) Engaged',
+            array=np.ma.repeat([0, 1], [10, 30]),
+            values_mapping={0: '-', 1: 'Engaged'}
+        )
+        ap_channels = M(
+            'AP Channels Engaged',
+            array=np.ma.repeat([0, 1, 2], [10, 20, 10]),
+            values_mapping={0: '-', 1: 'Single', 2: 'Dual', 3: 'Triple'}
+        )
+        phase = slice(40, 0, -1)
+        pilot = determine_pilot._autopilot_engaged(ap1_eng, ap2_eng, ap_channels, phase)
+        self.assertEqual(pilot, 'First Officer')
 
-    def test__controls_in_use(self):
-        pitch_capt = Mock()
-        pitch_fo = Mock()
-        roll_capt = Mock()
-        roll_fo = Mock()
+    def test__center_autopilot_used_and_ap1_in_multi_channel(self):
+        # Before landing, dual channel approach selected
+        determine_pilot = DeterminePilot()
+        ap1_eng = M(
+            'AP (1) Engaged',
+            array=np.ma.repeat([0, 1, 0], [20, 10, 10]),
+            values_mapping={0: '-', 1: 'Engaged'}
+        )
+        ap2_eng = M(
+            'AP (2) Engaged',
+            array=np.ma.zeros(40),
+            values_mapping={0: '-', 1: 'Engaged'}
+        )
+        ap_channels = M(
+            'AP Channels Engaged',
+            array=np.ma.repeat([1, 2, 0], [20, 10, 10]),
+            values_mapping={0: '-', 1: 'Single', 2: 'Dual', 3: 'Triple'}
+        )
+        phase = slice(40, 0, -1)
+        pilot = determine_pilot._autopilot_engaged(ap1_eng, ap2_eng, ap_channels, phase)
+        self.assertIsNone(pilot)
 
-        section = Section('Takeoff', slice(0, 3), 0, 3)
-
-        # Note: We instantiate one of the subclasses of DeterminePilot as we
-        #       use logging methods not defined in this abstract superclass.
-        determine_pilot = LandingPilot()
-        determine_pilot._controls_changed = Mock()
-
-        # Neither pilot's controls changed:
-        determine_pilot._controls_changed.reset_mock()
-        determine_pilot._controls_changed.side_effect = [False, False]
-        pilot = determine_pilot._controls_in_use(pitch_capt, pitch_fo, roll_capt, roll_fo, section)
-        determine_pilot._controls_changed.assert_has_calls([
-            call(section.slice, pitch_capt, roll_capt),
-            call(section.slice, pitch_fo, roll_fo),
-        ])
-        self.assertEqual(pilot, None)
-         # Only captain's controls changed:
-        determine_pilot._controls_changed.reset_mock()
-        determine_pilot._controls_changed.side_effect = [True, False]
-        pilot = determine_pilot._controls_in_use(pitch_capt, pitch_fo, roll_capt, roll_fo, section)
-        determine_pilot._controls_changed.assert_has_calls([
-            call(section.slice, pitch_capt, roll_capt),
-            call(section.slice, pitch_fo, roll_fo),
-        ])
+    def test__fd_engaged_capt(self):
+        determine_pilot = DeterminePilot()
+        fd_master = M(
+            'FD Master',
+            array=np.ma.repeat([0, 1], [2, 18]),
+            values_mapping={0: '-', 1: 'Captain', 2: 'First Officer'}
+        )
+        section = Section('Takeoff', slice(10, 20), 10, 20)
+        pilot = determine_pilot._fd_in_use(fd_master, section)
         self.assertEqual(pilot, 'Captain')
-        # Only first Officer's controls changed:
-        determine_pilot._controls_changed.reset_mock()
-        determine_pilot._controls_changed.side_effect = [False, True]
-        pilot = determine_pilot._controls_in_use(pitch_capt, pitch_fo, roll_capt, roll_fo, section)
-        determine_pilot._controls_changed.assert_has_calls([
-            call(section.slice, pitch_capt, roll_capt),
-            call(section.slice, pitch_fo, roll_fo),
-        ])
-        self.assertEqual(pilot, 'First Officer')
-        # Both pilot's controls changed:
-        determine_pilot._controls_changed.reset_mock()
-        determine_pilot._controls_changed.side_effect = [True, True]
-        pilot = determine_pilot._controls_in_use(pitch_capt, pitch_fo, roll_capt, roll_fo, section)
-        determine_pilot._controls_changed.assert_has_calls([
-            call(section.slice, pitch_capt, roll_capt),
-            call(section.slice, pitch_fo, roll_fo),
-        ])
-        self.assertEqual(pilot, None)
 
-    def test__determine_pilot(self):
+    def test__fd_engaged_masked(self):
         determine_pilot = DeterminePilot()
+        fd_master = M(
+            'FD Master',
+            array=np.ma.repeat([0, 1], [2, 18]),
+            values_mapping={0: '-', 1: 'Captain', 2: 'First Officer'}
+        )
+        fd_master.array[9:13] = np.ma.masked
+        section = Section('Takeoff', slice(10, 20), 10, 20)
+        pilot = determine_pilot._fd_in_use(fd_master, section)
+        self.assertIsNone(pilot)
 
-        pitch_capt = Mock()
-        pitch_fo = Mock()
-        roll_capt = Mock()
-        roll_fo = Mock()
-        cc_capt = Mock()
-        cc_fo = Mock()
-        pitch_capt.array = Mock()
-        pitch_fo.array = Mock()
-        roll_capt.array = Mock()
-        roll_fo.array = Mock()
-        cc_capt.array = Mock()
-        cc_fo.array = Mock()
-        ap1 = Mock()
-        ap2 = Mock()
-        phase = Mock()
+    def test__determine_pilot_with_pilot_flying(self):
+        determine_pilot = DeterminePilot()
+        pilot = determine_pilot._determine_pilot(
+            self.pilot_flying, None, None, None, None, None, None,
+            self.takeoff, self.takeoff_and_climb
+        )
+        self.assertEqual(pilot, 'Captain')
 
-        determine_pilot._autopilot_engaged = Mock()
-        determine_pilot._controls_in_use = Mock()
-        determine_pilot._control_column_in_use = Mock()
-        determine_pilot.set_flight_attr = Mock()
+    def test__determine_pilot_with_fd_master(self):
+        determine_pilot = DeterminePilot()
+        pilot = determine_pilot._determine_pilot(
+            None, self.fd_master, self.ap1_eng, self.ap2_eng, self.ap_channels,
+            self.cc_capt, self.cc_fo, self.takeoff, self.takeoff_and_climb
+        )
+        self.assertEqual(pilot, 'Captain')
 
-        def reset_all_mocks():
-            determine_pilot._autopilot_engaged.reset_mock()
-            determine_pilot._controls_in_use.reset_mock()
-            determine_pilot._control_column_in_use.reset_mock()
-            determine_pilot.set_flight_attr.reset_mock()
+    def test__determine_pilot_with_ap_engaged(self):
+        determine_pilot = DeterminePilot()
+        pilot = determine_pilot._determine_pilot(
+            None, None, self.ap1_eng, self.ap2_eng, self.ap_channels,
+            self.cc_capt, self.cc_fo, self.takeoff, self.takeoff_and_climb
+        )
+        self.assertEqual(pilot, 'Captain')
 
-        # Controls in use, no phase.
-        reset_all_mocks()
+    def test__determine_pilot_with_control_column(self):
+        determine_pilot = DeterminePilot()
+        determine_pilot.info = Mock()
         pilot = determine_pilot._determine_pilot(
-            None, pitch_capt, pitch_fo, roll_capt, roll_fo, cc_capt, cc_fo,
-            None, None, None)
-        self.assertFalse(determine_pilot._autopilot_engaged.called)
-        self.assertFalse(determine_pilot._controls_in_use.called)
-        self.assertEqual(pilot, None)
-        # Controls in use with phase. Pilot cannot be discerned.
-        reset_all_mocks()
-        determine_pilot._controls_in_use.return_value = None
-        determine_pilot._control_column_in_use.return_value = None
-        pilot = determine_pilot._determine_pilot(
-            None, pitch_capt, pitch_fo, roll_capt, roll_fo, cc_capt, cc_fo,
-            phase, None, None)
-        self.assertFalse(determine_pilot._autopilot_engaged.called)
-        determine_pilot._controls_in_use.assert_called_once_with(
-            pitch_capt.array, pitch_fo.array, roll_capt.array, roll_fo.array,
-            phase)
-        determine_pilot._control_column_in_use.assert_called_once_with(
-            cc_capt.array, cc_fo.array, phase)
-        self.assertEqual(pilot, determine_pilot._controls_in_use.return_value)
-        # Controls in use with phase. Pilot returned
-        reset_all_mocks()
-        determine_pilot._controls_in_use.return_value = 'Captain'
-        pilot = determine_pilot._determine_pilot(
-            None, pitch_capt, pitch_fo, roll_capt, roll_fo, cc_capt, cc_fo, phase,
-            None, None)
-        self.assertFalse(determine_pilot._autopilot_engaged.called)
-        determine_pilot._controls_in_use.assert_called_once_with(pitch_capt.array, pitch_fo.array, roll_capt.array, roll_fo.array, phase)
-        self.assertEqual(pilot, determine_pilot._controls_in_use.return_value)
-        # Only Autopilot.
-        reset_all_mocks()
-        determine_pilot._autopilot_engaged.return_value = 'Captain'
-        pilot = determine_pilot._determine_pilot(None, None, None, None, None,
-                                                 None, None, None, ap1, ap2)
-        determine_pilot._autopilot_engaged.assert_called_once_with(ap1, ap2)
-        self.assertFalse(determine_pilot._controls_in_use.called)
-        self.assertEqual(pilot, determine_pilot._autopilot_engaged.return_value)
-        # Controls in Use overrides Autopilot.
-        reset_all_mocks()
-        determine_pilot._controls_in_use.return_value = 'Captain'
-        determine_pilot._autopilot_engaged.return_value = 'First Officer'
-        pilot = determine_pilot._determine_pilot(
-            None, pitch_capt, pitch_fo, roll_capt, roll_fo, cc_capt, cc_fo,
-            phase, ap1, ap2)
-        self.assertFalse(determine_pilot._autopilot_engaged.called)
-        determine_pilot._controls_in_use.assert_called_once_with(
-            pitch_capt.array, pitch_fo.array, roll_capt.array, roll_fo.array, phase)
-        self.assertEqual(pilot, determine_pilot._controls_in_use.return_value)
-        # Autopilot is used when Controls in Use does not provide an answer.
-        reset_all_mocks()
-        determine_pilot._autopilot_engaged.return_value = 'First Officer'
-        determine_pilot._controls_in_use.return_value = None
-        determine_pilot._control_column_in_use.return_value = None
-        pilot = determine_pilot._determine_pilot(
-            None, pitch_capt, pitch_fo, roll_capt, roll_fo, cc_capt, cc_fo, phase,
-            ap1, ap2)
-        determine_pilot._autopilot_engaged.assert_called_once_with(ap1, ap2)
-        determine_pilot._controls_in_use.assert_called_once_with(
-            pitch_capt.array, pitch_fo.array, roll_capt.array, roll_fo.array,
-            phase)
-        self.assertEqual(pilot,
-                         determine_pilot._autopilot_engaged.return_value)
-
+            None, None, None, None, None,
+            self.cc_capt, self.cc_fo, self.takeoff, self.takeoff_and_climb
+        )
+        self.assertEqual(pilot, 'Captain')
 
     def get_params(self, hdf_path, _slice, phase_name):
         import shutil
@@ -304,28 +279,15 @@ class TestDeterminePilot(unittest.TestCase):
         '''
         Use Control Column Force (*) to determine the flying pilot
         '''
-        import logging
-
         determine_pilot = DeterminePilot()
-        # warning method is normally initialised with Node superclass in one of
-        # the DeterminePilot's ancestors
-        determine_pilot.warning = logging.warning
-        determine_pilot.info = logging.info
 
         def test_from_file(hdf_path, _slice, phase_name, expected_pilot):
             (pitch_capt, pitch_fo, roll_capt, roll_fo, cc_capt, cc_fo,
              phase) = self.get_params(hdf_path, _slice, phase_name)
 
             pilot = determine_pilot._determine_pilot(
-                None, pitch_capt, pitch_fo, roll_capt, roll_fo, None, None,
-                phase, None, None)
-
-            # pitch and roll are not enough to determine the pilot
-            self.assertIsNone(pilot)
-
-            pilot = determine_pilot._determine_pilot(
-                None, pitch_capt, pitch_fo, roll_capt, roll_fo, cc_capt,
-                cc_fo, phase, None, None)
+                None, None, None, None, None, cc_capt,
+                cc_fo, phase, slices_int(phase.slice))
 
             # control column force should allow to determine the pilot
             self.assertEqual(pilot, expected_pilot)
@@ -590,63 +552,92 @@ class TestLandingGrossWeight(unittest.TestCase):
 
 class TestLandingPilot(unittest.TestCase):
 
+    def setUp(self):
+        self.pilot_flying = M(
+            'Pilot Flying',
+            array=np.ma.repeat([1, 0], [40, 10]),
+            values_mapping = {0: '-', 1: 'Captain', 2: 'First Officer'}
+        )
+        self.fd_master = M(
+            'FD Master',
+            array=np.ma.repeat([1, 0], [40, 10]),
+            values_mapping={0: '-', 1: 'Captain', 2: 'First Officer'}
+        )
+        self.ap1_eng = M(
+            'AP (1) Engaged',
+            array=np.ma.repeat([1, 0], [40, 10]),
+            values_mapping={0: '-', 1: 'Engaged'}
+        )
+        self.ap2_eng = M(
+            'AP (2) Engaged',
+            array=np.ma.repeat([0, 1, 0], [20, 20, 10]),
+            values_mapping={0: '-', 1: 'Engaged'}
+        )
+        self.ap_channels = M(
+            'AP Channels Engaged',
+            array=np.ma.repeat([1, 3, 0], [20, 20, 10]),
+            values_mapping={0: '-', 1: 'Single', 2: 'Dual', 3: 'Triple'}
+        )
+        self.cc_capt = P(
+            'Control Column Force (Capt)',
+            array=np.ma.array(
+                data=np.sin(np.linspace(0, np.pi, 50)) * 10
+            )
+        )
+        self.cc_fo = P(
+            'Control Column Force (FO)',
+            array=np.ma.array(
+                data=np.sin(np.linspace(0, np.pi, 50)) * 7
+            )
+        )
+        self.landings = buildsection('Landing', 30, 49)
+
+        self.tods = KTI('Top Of Descent', items=[
+            KeyTimeInstance(index=2, name='Top Of Descent')
+        ])
+
     def test_can_operate(self):
-        opts = LandingPilot.get_operational_combinations()
+        opts = list(map(set, LandingPilot.get_operational_combinations()))
         combinations = [
             # Only AFR
             ('AFR Landing Pilot',),
             # Only Pilot Flying
             ('Pilot Flying', 'Landing'),
-            # Only Controls:
-            ('Pitch (Capt)', 'Pitch (FO)', 'Roll (Capt)', 'Roll (FO)', 'Landing'),
+            # Only FD Master
+            ('FD Master', 'Landing'),
+            # Only Autopilot:
+            ('AP (1) Engaged', 'AP (2) Engaged', 'AP Channels Engaged', 'Landing', 'Top Of Descent'),
             # Only Control Column Forces:
             ('Control Column Force (Capt)', 'Control Column Force (FO)', 'Landing'),
-            # Only Autopilot:
-            ('AP (1) Engaged', 'AP (2) Engaged', 'Touchdown'),
             # Everything:
             ('Pilot Flying',
-             'Pitch (Capt)', 'Pitch (FO)', 'Roll (Capt)', 'Roll (FO)',
+             'FD Master', 'AP Channels Engaged',
              'Control Column Force (Capt)', 'Control Column Force (FO)',
-             'AP (1) Engaged', 'AP (2) Engaged', 'Landing', 'Touchdown'),
+             'AP (1) Engaged', 'AP (2) Engaged', 'Landing', 'Top Of Descent'),
         ]
         for combination in combinations:
-            self.assertIn(combination, opts, msg=combination)
+            self.assertIn(set(combination), opts, msg=combination)
 
-    @patch('analysis_engine.library.value_at_index')
-    def test_derive(self, value_at_index):
-        ap1 = Mock()
-        ap2 = Mock()
-        phase = Mock()
-
-        pitch_capt = Mock()
-        pitch_fo = Mock()
-        roll_capt = Mock()
-        roll_fo = Mock()
-
-        ap1_eng = Mock()
-        ap2_eng = Mock()
-        value_at_index.side_effect = [ap1, ap2]
-
-        landings = Mock()
-        landings.get_last = Mock()
-        landings.get_last.return_value = phase
-
-        touchdowns = Mock()
-        touchdowns.get_last = Mock()
-        touchdowns.get_last.return_value = Mock()
-
+    def test_derive_landing(self):
         pilot = LandingPilot()
-        pilot._determine_pilot = Mock()
-        pilot._determine_pilot.return_value = Mock()
+        pilot.derive(None, None, self.ap1_eng, self.ap2_eng, self.ap_channels,
+                     None, None, self.landings, self.tods, None)
 
-        pilot.derive(
-            pitch_capt, pitch_fo, roll_capt, roll_fo, ap1_eng, ap2_eng, None, None, landings, touchdowns, None)
+        self.assertEqual(pilot.value, 'Captain')
 
-        self.assertEqual(pilot.value, pilot._determine_pilot.return_value)
+    def test_derive_landing_empty_tod(self):
+        pilot = LandingPilot()
+        pilot.derive(None, None, self.ap1_eng, self.ap2_eng, self.ap_channels,
+                     self.cc_capt, self.cc_fo, self.landings, S('Top Of Descent'), None)
 
-        pilot.derive(pitch_capt, pitch_fo, roll_capt, roll_fo, ap1_eng, ap2_eng, None, None, None, landings,
-                     touchdowns, A('AFR Landing Pilot', 'FIRST_OFFICER'))
-        self.assertEqual(pilot.value, 'First Officer')
+        self.assertEqual(pilot.value, 'Captain')
+
+    def test_derive_no_landing(self):
+        pilot = LandingPilot()
+        pilot.derive(None, None, self.ap1_eng, self.ap2_eng, self.ap_channels,
+                     self.cc_capt, self.cc_fo, S('Landing'), S('Top Of Descent'), None)
+
+        self.assertIsNone(pilot.value)
 
 
 class TestLandingRunway(unittest.TestCase, NodeTest):
@@ -911,65 +902,100 @@ class TestTakeoffGrossWeight(unittest.TestCase):
 
 class TestTakeoffPilot(unittest.TestCase):
 
+    def setUp(self):
+        self.pilot_flying = M(
+            'Pilot Flying',
+            array=np.ma.repeat([0, 1], [10, 40]),
+            values_mapping = {0: '-', 1: 'Captain', 2: 'First Officer'}
+        )
+        self.fd_master = M(
+            'FD Master',
+            array=np.ma.repeat([0, 1], [10, 40]),
+            values_mapping={0: '-', 1: 'Captain', 2: 'First Officer'}
+        )
+        self.ap1_eng = M(
+            'AP (1) Engaged',
+            array=np.ma.repeat([0, 1], [30, 20]),
+            values_mapping={0: '-', 1: 'Engaged'}
+        )
+        self.ap2_eng = M(
+            'AP (2) Engaged',
+            array=np.ma.zeros(50),
+            values_mapping={0: '-', 1: 'Engaged'}
+        )
+        self.ap_channels = M(
+            'AP Channels Engaged',
+            array=np.ma.repeat([0, 1], [30, 20]),
+            values_mapping={0: '-', 1: 'Single', 2: 'Dual', 3: 'Triple'}
+        )
+        self.cc_capt = P(
+            'Control Column Force (Capt)',
+            array=np.ma.array(
+                data=np.sin(np.linspace(0, np.pi, 50)) * 10
+            )
+        )
+        self.cc_fo = P(
+            'Control Column Force (FO)',
+            array=np.ma.array(
+                data=np.sin(np.linspace(0, np.pi, 50)) * 7
+            )
+        )
+        self.takeoffs = buildsection('Takeoff', 10, 20)
+
+        self.tocs = KTI('Top Of Climb', items=[
+            KeyTimeInstance(index=39, name='Top Of Climb')
+        ])
+
     def test_can_operate(self):
-        opts = TakeoffPilot.get_operational_combinations()
+        opts = list(map(set, TakeoffPilot.get_operational_combinations()))
         combinations = [
             # Only AFR
             ('AFR Takeoff Pilot',),
             # Only Pilot Flying
             ('Pilot Flying', 'Takeoff'),
-            # Only Controls:
-            ('Pitch (Capt)', 'Pitch (FO)', 'Roll (Capt)', 'Roll (FO)', 'Takeoff'),
+            # Only FD Master
+            ('FD Master', 'Takeoff'),
+            # Only Autopilot:
+            ('AP (1) Engaged', 'AP (2) Engaged', 'AP Channels Engaged', 'Takeoff', 'Top Of Climb'),
             # Only Control Column Forces:
             ('Control Column Force (Capt)', 'Control Column Force (FO)', 'Takeoff'),
-            # Only Autopilot:
-            ('AP (1) Engaged', 'AP (2) Engaged', 'Liftoff'),
             # Everything:
             ('Pilot Flying',
-             'Pitch (Capt)', 'Pitch (FO)', 'Roll (Capt)', 'Roll (FO)',
+             'FD Master', 'AP Channels Engaged',
              'Control Column Force (Capt)', 'Control Column Force (FO)',
-             'AP (1) Engaged', 'AP (2) Engaged', 'Takeoff', 'Liftoff'),
+             'AP (1) Engaged', 'AP (2) Engaged', 'Takeoff', 'Top Of Climb'),
         ]
         for combination in combinations:
-            self.assertIn(combination, opts, msg=combination)
+            self.assertIn(set(combination), opts, msg=combination)
 
-    @patch('analysis_engine.library.value_at_index')
-    def test_derive(self, value_at_index):
-        ap1 = Mock()
-        ap2 = Mock()
-        ap3 = Mock()
-        phase = Mock()
-
-        pitch_capt = Mock()
-        pitch_fo = Mock()
-        roll_capt = Mock()
-        roll_fo = Mock()
-
-        ap1_eng = Mock()
-        ap2_eng = Mock()
-        ap3_eng = Mock()
-        value_at_index.side_effect = [ap1, ap2, ap3]
-
-        takeoffs = Mock()
-        takeoffs.get_first = Mock()
-        takeoffs.get_first.return_value = phase
-
-        liftoffs = Mock()
-        liftoffs.get_first = Mock()
-        liftoffs.get_first.return_value = Mock()
-
+    def test_derive_takeoff(self):
         pilot = TakeoffPilot()
-        pilot._determine_pilot = Mock()
-        pilot._determine_pilot.return_value = Mock()
+        pilot.derive(None, None, self.ap1_eng, self.ap2_eng, self.ap_channels,
+                     None, None, self.takeoffs, None, self.tocs, None)
 
-        pilot.derive(pitch_capt, pitch_fo, roll_capt, roll_fo, ap1_eng, ap2_eng, ap3_eng, None, None, takeoffs,
-                     liftoffs, None, None)
+        self.assertEqual(pilot.value, 'Captain')
 
-        self.assertEqual(pilot.value, pilot._determine_pilot.return_value)
+    def test_derive_rto(self):
+        pilot = TakeoffPilot()
+        rtos = buildsection('Rejected Takeoff', 10, 20)
+        pilot.derive(None, self.fd_master, None, None, None,
+                     None, None, S('Takeoff'), rtos, S('Top Of Climb'), None)
 
-        pilot.derive(pitch_capt, pitch_fo, roll_capt, roll_fo, ap1_eng, ap2_eng, ap3_eng, None, None, takeoffs,
-                     liftoffs, None, A('AFR Takeoff Pilot', 'FIRST_OFFICER'))
-        self.assertEqual(pilot.value, 'First Officer')
+        self.assertEqual(pilot.value, 'Captain')
+
+    def test_derive_takeoff_empty_toc(self):
+        pilot = TakeoffPilot()
+        pilot.derive(None, None, self.ap1_eng, self.ap2_eng, self.ap_channels,
+                     self.cc_capt, self.cc_fo, self.takeoffs, None, S('Top Of Climb'), None)
+
+        self.assertEqual(pilot.value, 'Captain')
+
+    def test_derive_no_takeoff_no_rto(self):
+        pilot = TakeoffPilot()
+        pilot.derive(None, None, self.ap1_eng, self.ap2_eng, self.ap_channels,
+                     self.cc_capt, self.cc_fo, S('Takeoff'), None, S('Top Of Climb'), None)
+
+        self.assertIsNone(pilot.value)
 
 
 class TestTakeoffRunway(unittest.TestCase, NodeTest):

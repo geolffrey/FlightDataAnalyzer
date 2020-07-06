@@ -25,6 +25,8 @@ from analysis_engine.library import (
 )
 from analysis_engine.node import A, App, KTI, KPV, FlightAttributeNode, M, P, S
 
+from flightdatautilities.numpy_utils import slices_int
+
 
 ##############################################################################
 # Superclasses
@@ -36,10 +38,10 @@ class DeterminePilot(object):
     flight (expects takeoff or landing). The order is:
 
     1. Pilot Flying parameter (Airbus AFPS analysis of sidestick movement)
-    2. Pitch / Roll inputs where signals are recorded for Capt/FO seperately
-    3. Control Column force where one force is at least ?% greater than the
+    2. Flight Director selection. The first selected FD is the master.
+    3. Autopilot usage attributed to the Capt or FO's side
+    4. Control Column force where one force is at least ?% greater than the
        other
-    4. Autopilot usage attributed to the Capt or FO's side
 
 
     Note: Use of VHF is not used as convention is:
@@ -48,26 +50,50 @@ class DeterminePilot(object):
     * VHF 3/C is for ACARS data comms / backup
     '''
 
-    def _autopilot_engaged(self, ap1, ap2):
+    def _fd_in_use(self, fd_master, phase):
         '''
-        This is a best guess assuming that if AP1 is in use, the Captain is PF.
-
-        When the FO is PF, the right autopilot should be used. When the Capt
-        is PF, the autopilot should alternate vetween Left and Center
-        autopilots (to detect potential defects in center autopilot)
-
-        TODO: Support Center auto-pilot usage
+        Check if a Flight Director has been detected as master. This would be the PF
+        side.
         '''
-        if ap1 and (not ap2):
-            return 'Captain'
-        if (not ap1) and ap2:
+        value = fd_master.array[int(phase.slice.start)]
+        if value is np.ma.masked or value == '-':
+            return None
+        self.info("PF was detected using FD Master.")
+        return value
+
+    def _autopilot_engaged(self, ap1_eng, ap2_eng, ap_channels, ap_slice):
+        '''
+        This is a best guess assuming that if AP1 is in use, the Captain is PF and if
+        AP2 is in use, First Officer is PF.
+
+        We cannot make any guesses for AP3 usage as its use is company dependent.
+
+        We scan through the ap_slice to find the first engagement of a single AP channel.
+        For landing, we will receive the slice reversed, starting from end of landing
+        until the beginning of top of descent. In case of multi-channel approach, we
+        will keep on scanning further until we can find a single AP channel engaged.
+        '''
+        ap1 = (ap1_eng.array[ap_slice] != 0) & (ap_channels.array[ap_slice] == 1)
+        ap2 = (ap2_eng.array[ap_slice] != 0) & (ap_channels.array[ap_slice] == 1)
+
+        ap1_first = ap1.argmax() if ap1.any() else None
+        ap2_first = ap2.argmax() if ap2.any() else None
+
+        if ap1_first is None and ap2_first is None:
+            return None
+        if ap1_first is None:
+            self.info("First Officer was detected as PF as AP (2) was engaged.")
             return 'First Officer'
-        return None
+        if ap2_first is None:
+            self.info("Captain was detected as PF as AP (1) was engaged.")
+            return 'Captain'
 
-    def _controls_changed(self, slice_, pitch, roll):
-        # Check if either pitch or roll changed during provided slice:
-        return pitch[slice_].ptp() > settings.CONTROLS_IN_USE_TOLERANCE or \
-            roll[slice_].ptp() > settings.CONTROLS_IN_USE_TOLERANCE
+        if ap2_first < ap1_first:
+            self.info("First Officer was detected as PF as AP (2) was engaged first.")
+            return 'First Officer'
+        else:
+            self.info("Captain was detected as PF as AP (1) was engaged first.")
+            return 'Captain'
 
     def _control_column_in_use(self, cc_capt, cc_fo, phase):
         '''
@@ -92,64 +118,36 @@ class DeterminePilot(object):
                 "changes during '%s' slice.", phase.name)
             return None
 
-    def _controls_in_use(self, pitch_capt, pitch_fo, roll_capt, roll_fo,
-                         phase):
-        capt_flying = self._controls_changed(phase.slice, pitch_capt,
-                                             roll_capt)
-        fo_flying = self._controls_changed(phase.slice, pitch_fo, roll_fo)
+    def _determine_pilot(self, pilot_flying, fd_master, ap1_eng, ap2_eng, ap_channels,
+                         cc_capt, cc_fo, phase, ap_slice):
 
-        # 1. Cannot determine who is flying - both sets of controls have input:
-        if capt_flying and fo_flying:
-            self.warning(
-                "Cannot determine whether captain or first officer "
-                "was at the controls because both controls change during '%s' "
-                "slice.", phase.name)
-            return None
-
-        # 2. The captain was flying the aircraft:
-        if capt_flying:
-            return 'Captain'
-
-        # 3. The first officer was flying the aircraft:
-        if fo_flying:
-            return 'First Officer'
-
-        # 4. No change in captain or first officer controls:
-        self.warning(
-            "Both captain and first officer controls do not change "
-            "during '%s' slice.", phase.name)
-        return None
-
-    def _determine_pilot(self, pilot_flying, pitch_capt, pitch_fo, roll_capt,
-                         roll_fo, cc_capt, cc_fo, phase, ap1, ap2):
-
+        # 1. Check for Pilot Flying using sidestick
         if pilot_flying:
             # this is the most reliable measurement, use this and no other
             pf = pilot_flying.array[phase.slice]
             pf[pf == '-'] = np.ma.masked
+            self.info("PF was detected using Sidestick inputs.")
             return most_common_value(pf)
 
-        #FIXME: Skip over the Pitch and Control Column parts!
-        # 1. Check for change in pitch and roll controls during the phase:
-        if all((pitch_capt, pitch_fo, roll_capt, roll_fo, phase)):
-            pilot = self._controls_in_use(
-                pitch_capt.array, pitch_fo.array, roll_capt.array,
-                roll_fo.array, phase)
+        # 2. Check for FD Master
+        if fd_master:
+            pilot = self._fd_in_use(fd_master, phase)
             if pilot:
                 return pilot
 
-        # 1. Check for changes in control column during the phase:
+        # 3. Check for AP usage
+        if ap1_eng and ap2_eng and ap_channels:
+            pilot = self._autopilot_engaged(ap1_eng, ap2_eng, ap_channels, ap_slice)
+            if pilot:
+                return pilot
+
+        # 4. Check for changes in control column during the phase:
         if all((cc_capt, cc_fo, phase)):
             pilot = self._control_column_in_use(cc_capt.array, cc_fo.array,
                                                 phase)
             if pilot:
                 return pilot
 
-        # 2. Check which autopilot is engaged:
-        if all((ap1, ap2)):
-            pilot = self._autopilot_engaged(ap1, ap2)
-            if pilot:
-                return pilot
 
         return None
 
@@ -589,59 +587,61 @@ class TakeoffPilot(FlightAttributeNode, DeterminePilot):
             'Pilot Flying',
             'Takeoff',
         ), available)
-        controls = all_of((
-            'Pitch (Capt)',
-            'Pitch (FO)',
-            'Roll (Capt)',
-            'Roll (FO)',
+        fd = all_of((
+            'FD Master',
+            'Takeoff'
+        ), available)
+        autopilot = all_of((
+            'AP (1) Engaged',
+            'AP (2) Engaged',
+            'AP Channels Engaged',
             'Takeoff',
+            'Top Of Climb'
+            # Optional: 'AP (3) Engaged'
         ), available)
         forces = all_of((
             'Control Column Force (Capt)',
             'Control Column Force (FO)',
             'Takeoff',
         ), available)
-        autopilot = all_of((
-            'AP (1) Engaged',
-            'AP (2) Engaged',
-            'Liftoff',
-            # Optional: 'AP (3) Engaged'
-        ), available)
-        return 'AFR Takeoff Pilot' in available or pilot_flying or controls or forces or autopilot
+        return 'AFR Takeoff Pilot' in available or pilot_flying or fd or autopilot or forces
 
     def derive(self,
                pilot_flying=M('Pilot Flying'),
-               pitch_capt=P('Pitch (Capt)'),
-               pitch_fo=P('Pitch (FO)'),
-               roll_capt=P('Roll (Capt)'),
-               roll_fo=P('Roll (FO)'),
-               cc_capt=P('Control Column Force (Capt)'),
-               cc_fo=P('Control Column Force (FO)'),
+               fd_master=M('FD Master'),
                ap1_eng=M('AP (1) Engaged'),
                ap2_eng=M('AP (2) Engaged'),
+               ap_channels=M('AP Channels Engaged'),
+               cc_capt=P('Control Column Force (Capt)'),
+               cc_fo=P('Control Column Force (FO)'),
                takeoffs=S('Takeoff'),
-               liftoffs=KTI('Liftoff'),
                rejected_toffs=S('Rejected Takeoff'),
+               tocs=KTI('Top Of Climb'),
                afr_takeoff_pilot=A('AFR Takeoff Pilot')):
 
         if afr_takeoff_pilot and afr_takeoff_pilot.value:
             self.set_flight_attr(afr_takeoff_pilot.value.replace('_', ' ').title())
             return
 
-        #TODO: Tidy
-        phase = takeoffs or rejected_toffs or None
-        if phase is None:
-            # Nothing to do as no attempt to takeoff
-            return
-        lift = liftoffs.get_first() if liftoffs else None
-        if lift and ap1_eng and ap2_eng:
-            # check AP state at the floored index (just before lift)
-            ap1 = ap1_eng.array[int(lift.index)] == 'Engaged'
-            ap2 = ap2_eng.array[int(lift.index)] == 'Engaged'
+        if takeoffs is None or not len(takeoffs):
+            # Check if there is a RTO
+            if rejected_toffs is None or not len(rejected_toffs):
+                # Nothing to do as no attempt to takeoff
+                return
+            first_rto = rejected_toffs.get_first()
+            args = (pilot_flying, fd_master, ap1_eng, ap2_eng, ap_channels,
+                    cc_capt, cc_fo, first_rto, slices_int(first_rto.slice))
         else:
-            ap1 = ap2 = None
-        args = (pilot_flying, pitch_capt, pitch_fo, roll_capt, roll_fo,
-                cc_capt, cc_fo, phase.get_first(), ap1, ap2)
+            tkoff = takeoffs.get_first()
+            tkoff_and_climb = slices_int(tkoff.slice)
+            if tocs:
+                toc = tocs.get_first()
+                if toc:
+                    tkoff_and_climb = slice(int(tkoff.slice.start), int(toc.index))
+
+            args = (pilot_flying, fd_master, ap1_eng, ap2_eng, ap_channels,
+                    cc_capt, cc_fo, tkoff, tkoff_and_climb)
+
         self.set_flight_attr(self._determine_pilot(*args))
 
 
@@ -910,11 +910,6 @@ class LandingGrossWeight(FlightAttributeNode):
             self.set_flight_attr(None)
 
 
-# FIXME: Check parameters for pitch and roll for captain and first officer!
-#        What about 'Pitch Command (*)' and 'Sidestick [Pitch|Roll] (*)'?
-# FIXME: This code does not identify the pilot correctly. Roll (FO) is the roll
-#        attitude from the right side instrument, not the Airbus first officer
-#        sidestick roll input. Needs a rewrite.
 class LandingPilot(FlightAttributeNode, DeterminePilot):
     '''
     Pilot flying at landing - may be the captain, first officer or none.
@@ -928,54 +923,54 @@ class LandingPilot(FlightAttributeNode, DeterminePilot):
             'Pilot Flying',
             'Landing',
         ), available)
-        controls = all_of((
-            'Pitch (Capt)',
-            'Pitch (FO)',
-            'Roll (Capt)',
-            'Roll (FO)',
+        fd_master = all_of((
+            'FD Master',
             'Landing',
+        ), available)
+        autopilot = all_of((
+            'AP (1) Engaged',
+            'AP (2) Engaged',
+            'AP Channels Engaged',
+            'Landing',
+            'Top Of Descent'
         ), available)
         forces = all_of((
             'Control Column Force (Capt)',
             'Control Column Force (FO)',
             'Landing',
         ), available)
-        autopilot = all_of((
-            'AP (1) Engaged',
-            'AP (2) Engaged',
-            'Touchdown',
-            # Optional: 'AP (3) Engaged'
-        ), available)
-        return 'AFR Landing Pilot' in available or pilot_flying or controls or forces or autopilot
+        return 'AFR Landing Pilot' in available or pilot_flying or fd_master or autopilot or forces
 
     def derive(self,
                pilot_flying=M('Pilot Flying'),
-               pitch_capt=P('Pitch (Capt)'),
-               pitch_fo=P('Pitch (FO)'),
-               roll_capt=P('Roll (Capt)'),
-               roll_fo=P('Roll (FO)'),
-               cc_capt=P('Control Column Force (Capt)'),
-               cc_fo=P('Control Column Force (FO)'),
+               fd_master=M('FD Master'),
                ap1_eng=M('AP (1) Engaged'),
                ap2_eng=M('AP (2) Engaged'),
+               ap_channels=M('AP Channels Engaged'),
+               cc_capt=P('Control Column Force (Capt)'),
+               cc_fo=P('Control Column Force (FO)'),
                landings=S('Landing'),
-               touchdowns=KTI('Touchdown'),
+               tods=KTI('Top Of Descent'),
                afr_landing_pilot=A('AFR Landing Pilot')):
 
         if afr_landing_pilot and afr_landing_pilot.value:
             self.set_flight_attr(afr_landing_pilot.value.replace('_', ' ').title())
             return
 
-        phase = landings.get_last() if landings else None
-        tdwn = touchdowns.get_last() if touchdowns else None
-        if tdwn and ap1_eng and ap2_eng:
-            # check AP state at the floored index (just before tdwn)
-            ap1 = ap1_eng.array[int(tdwn.index)] == 'Engaged'
-            ap2 = ap2_eng.array[int(tdwn.index)] == 'Engaged'
-        else:
-            ap1 = ap2 = None
-        args = (pilot_flying, pitch_capt, pitch_fo, roll_capt, roll_fo,
-                cc_capt, cc_fo, phase, ap1, ap2)
+        if landings is None or not len(landings):
+            return
+
+        ldg = landings.get_last()
+        ldg_back_to_tod = slice(
+            int(ldg.slice.stop - 1), int(ldg.slice.start - 1), -1
+        )
+        if tods:
+            tod = tods.get_last()
+            if tod:
+                ldg_back_to_tod = slice(ldg_back_to_tod.start, int(tod.index), -1)
+
+        args = (pilot_flying, fd_master, ap1_eng, ap2_eng, ap_channels,
+                cc_capt, cc_fo, ldg, ldg_back_to_tod)
         self.set_flight_attr(self._determine_pilot(*args))
 
 
