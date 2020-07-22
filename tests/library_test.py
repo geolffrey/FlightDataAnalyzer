@@ -4570,37 +4570,6 @@ class TestBlendParameters(unittest.TestCase):
         ma_test.assert_masked_array_almost_equal(result, np.ma.array(data=np.arange(10), mask=[1]+[0]*4+[1]*5) * 4 / 3.0)
 
 
-class TestBlendParametersWeighting(unittest.TestCase):
-    def test_weighting(self):
-        array=np.ma.array(data=[0,0,0,0,0,0,0,0,0,0,0,0,0],
-                          mask=[1,1,0,1,0,0,0,1,1,1,0,0,0])
-        result = blend_parameters_weighting(array, 1.0)
-        expected = [0.0,0.0,0.05,0.0,0.05,1.0,0.05,0.0,0.0,0.0,0.05,1.0,1.0]
-        assert_equal(result.data, expected)
-
-    def test_weighting_increased_freq(self):
-        array=np.ma.array(data=[0,0,0,0,0,0],
-                          mask=[1,1,1,0,0,0])
-        result = blend_parameters_weighting(array, 2.0)
-        expected = np.ma.masked_array([0.0, 0.0, 0.0, 0.0, 0.0, 0.05, 0.1, 0.3, 0.5, 0.5, 0.5, 0.5])
-        ma_test.assert_masked_array_almost_equal(result, expected)
-
-    def test_weighting_decreased_freq(self):
-        array=np.ma.array(data=[0,0,0,0,0,0],
-                          mask=[1,1,1,0,0,0])
-        result = blend_parameters_weighting(array, 0.5)
-        expected = np.ma.array([0.0, 0.05, 2.0])
-        ma_test.assert_masked_array_almost_equal(result, expected)
-
-    def test_weighting_decreased_freq_odd_samples(self):
-        array=np.ma.array(data=[0,0,0,0,0,0,0],
-                          mask=[1,1,1,0,0,0,0])
-        result = blend_parameters_weighting(array, 0.5)
-        expected = np.ma.array([0.0, 0.05, 2.0])
-        # When first run, the length of this array was 4, not 3 (!)
-        ma_test.assert_masked_array_almost_equal(result, expected)
-
-
 class TestBlendTwoParameters(unittest.TestCase):
     def test_blend_two_parameters_p2_before_p1_equal_spacing(self):
         p1 = P(array=[0,0,0,1.0], frequency=1, offset=0.9)
