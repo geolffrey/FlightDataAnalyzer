@@ -26,6 +26,7 @@ from scipy.signal import medfilt
 import flightdataaccessor as fda
 
 from flightdatautilities import aircrafttables as at, units as ut
+from flightdatautilities.data.masked_array import blend_parameters_weighting
 from flightdatautilities.data.scalar import is_power2, is_power2_fraction
 from flightdatautilities.geometry import cross_track_distance, great_circle_distance__haversine
 from flightdatautilities.numpy_utils import py2round, slices_int
@@ -4916,43 +4917,6 @@ def blend_parameters_cubic(frequency, offset, params, result_slice, tolerance=No
         result = np_ma_masked_zeros_like(new_t)
 
     return result
-
-def blend_parameters_weighting(array, wt):
-    '''
-    A small function to relate masks to weights. Used by
-    blend_parameters_cubic above.
-
-    :param array: array to compute weights for
-    :type array: numpy masked array
-    :param wt: weighting factor =  ratio of sample rates
-    :type wt: float
-    '''
-    mask = np.ma.getmaskarray(array)
-    param_weight = (1.0 - mask)
-    result_weight = np_ma_masked_zeros_like(np.ma.arange(floor(len(param_weight) * wt)))
-    final_weight = np_ma_masked_zeros_like(np.ma.arange(floor(len(param_weight) * wt)))
-    result_weight[0] = param_weight[0] / wt
-    result_weight[-1] = param_weight[-1] / wt
-
-    for i in range(1, len(param_weight) - 1):
-        if param_weight[i] == 0.0:
-            result_weight[int(i * wt)] = 0.0
-            continue
-        if param_weight[i - 1] == 0.0 or param_weight[i + 1] == 0.0:
-            result_weight[int(i * wt)] = 0.1 # Low weight to tail of valid data. Non-zero to avoid problems of overlapping invalid sections.
-            continue
-        result_weight[int(i * wt)] = 1.0 / wt
-
-    for i in range(1, len(result_weight) - 1):
-        if result_weight[i-1]==0.0 or result_weight[i + 1] == 0.0:
-            final_weight[i]=result_weight[i]/2.0
-        else:
-            final_weight[i]=result_weight[i]
-    final_weight[0]=result_weight[0]
-    final_weight[-1]=result_weight[-1]
-
-    return repair_mask(final_weight, repair_duration=None)
-
 
 
 def most_points_cost(coefs, x, y):
