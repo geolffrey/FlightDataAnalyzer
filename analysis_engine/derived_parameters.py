@@ -8947,6 +8947,7 @@ class AirspeedMinusVLS(DerivedParameterNode):
         vls = first_valid_parameter(vls_recorded, vls_lookup, phases=phases)
 
         if vls is None:
+            self.array = array
             return
 
         for phase in phases:
