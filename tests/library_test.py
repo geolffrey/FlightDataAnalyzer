@@ -123,7 +123,6 @@ from analysis_engine.library import (
     level_off_index,
     localizer_scale,
     lookup_table,
-    MappedArray,
     mask_inside_slices,
     mask_outside_slices,
     max_abs_value,
@@ -5195,6 +5194,7 @@ class TestOverflowCorrectionArray(unittest.TestCase):
         my_good_slices = [slice(20,24), slice(31,35), slice(40,45)]
         result = pin_to_ground(array, my_good_slices, my_fast_slices, hz=1.0)
         self.assertEqual(True, True) # Simply getting here is a pass!
+
 """
 
 class TestPeakCurvature(unittest.TestCase):
@@ -7651,9 +7651,7 @@ class TestTrimSlices(unittest.TestCase):
                          [slice(12, 18)])
 
 
-"""
-For the Truck and Trailer algorithm, see TestPeakCurvature above.
-"""
+# For the Truck and Trailer algorithm, see TestPeakCurvature above.
 
 class TestUniqueValue(unittest.TestCase):
     def test_unique_values(self):
@@ -8839,3 +8837,4 @@ class TestMaxMaintainedValue(unittest.TestCase):
             index, value = max_maintained_value(array, sec, hz, phase)
             self.assertAlmostEqual(index, idx, places=0)
             self.assertAlmostEqual(value, val, places=3)
+"""
