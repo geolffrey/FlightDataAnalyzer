@@ -2017,6 +2017,47 @@ class DistanceToLanding(DerivedParameterNode):
             self.array.mask = True
 
 
+class DistanceToAimingPoint(DerivedParameterNode):
+    '''
+    Ground distance to cover before Aiming Point.
+
+    Aiming Point is either the point abeam the glideslope antenna on the runway
+    or 1,000 ft beyond the runway threshold when no glideslope antenna is installed.
+    Note: This parameter gets closer to zero approaching each Aiming Point,
+    but then increases as the aircraft decelerates on the runway after crossing
+    the aiming point.
+    '''
+
+    units = ut.NM
+
+    def derive(self,
+               aiming=P('Aiming Point Range'),
+               dist=P('Distance Travelled'),
+               tdwns=KTI('Touchdown')):
+        self.array = np_ma_masked_zeros_like(aiming.array)
+        if tdwns:
+            last_tdwn = 0
+            for tdwn in tdwns.get_ordered_by_index():
+                ref = np.ma.masked
+                this_tdwn = int(tdwn.index)
+                aiming_tdwn = aiming.array[this_tdwn]
+                if aiming_tdwn is not np.ma.masked:
+                    if aiming_tdwn < 0:
+                        slice_ = slice(this_tdwn, last_tdwn, -1)
+                    else:
+                        slice_ = slice(this_tdwn, None)
+                    aiming_idx = index_at_value(aiming.array, 0.0, _slice=slice_)
+                    if aiming_idx is not None:
+                        ref = value_at_index(dist.array, aiming_idx) or np.ma.masked
+
+                self.array[last_tdwn:this_tdwn+1] = np.ma.abs(
+                    dist.array[last_tdwn:this_tdwn+1] - ref
+                )
+                last_tdwn = this_tdwn+1
+
+            self.array[last_tdwn:] = np.ma.abs(dist.array[last_tdwn:] - ref)
+
+
 class DistanceFlown(DerivedParameterNode):
     '''
     Distance flown in Nautical Miles. Calculated using integral of
@@ -4573,13 +4614,15 @@ class SlopeToAimingPoint(DerivedParameterNode, _SlopeMixin):
     '''
     Slope to the Aiming Point.
 
+    The distance to aiming point is taken along the aircraft flight path.
+
     Amended June 2019 to allow for changes in SAT from ISA standard.
     '''
 
     units = None
 
     def derive(self, alt_aal=P('Altitude AAL'),
-               dist=P('Aiming Point Range'),
+               dist=P('Distance To Aiming Point'),
                alt_std=P('Altitude STD'),
                sat=P('SAT'),
                apps=S('Approach')):
@@ -4603,44 +4646,13 @@ class ApproachFlightPathAngle(DerivedParameterNode):
     '''
     This parameter calculates the slope angle (in degrees) of a landing.
 
-    It initially uses Slope Angle To Landing but gradually transitions to Slope Angle
-    To Aiming Point between 500ft and 200ft.
+    It uses Slope Angle To Aiming Point but masks values below 200ft.
     '''
     units = ut.DEGREE
 
-    @classmethod
-    def can_operate(cls, available):
-        return all_of(('Altitude AAL', 'Approach And Landing'),
-                      available) and \
-               any_of(('Slope Angle To Landing', 'Slope Angle To Aiming Point'), available)
-
     def derive(self, alt_aal=P('Altitude AAL'),
-               slope_ldg=P('Slope Angle To Landing'),
-               slope_aim=P('Slope Angle To Aiming Point'),
-               apps=S('Approach And Landing')):
-        slope = slope_ldg or slope_aim
-        self.array = np.ma.masked_where(alt_aal.array <= 200, slope.array)
-        if slope_ldg is None or slope_aim is None:
-            # Only one slope reference. Nothing more to do
-            return
-
-        # Let's make the transition from 'slope angle to landing' to 'slope angle to
-        # aiming point' between 500ft and 200ft.
-        for app in apps:
-            app_slice = slices_int(app.slice)
-            if not np.ma.count(alt_aal.array[app_slice]):
-                continue
-
-            _, bands = slices_from_to(alt_aal.array[app_slice], 500, 200)
-            if not bands:
-                continue
-
-            alt_band = shift_slice(bands[0], app_slice.start)
-            # Linear interpolation between slope_ldg and slope_aim between 500ft and 200ft
-            self.array[alt_band] = 1 / (500 - 200) * (
-                slope_ldg.array[alt_band] * (alt_aal.array[alt_band] - 200) +
-                slope_aim.array[alt_band] * (500 - alt_aal.array[alt_band])
-            )
+               slope_aim=P('Slope Angle To Aiming Point')):
+        self.array = np.ma.masked_where(alt_aal.array <= 200, slope_aim.array)
 
 
 '''

@@ -112,6 +112,7 @@ from analysis_engine.derived_parameters import (
     CoordinatesSmoothed,
     DescendForFlightPhases,
     DistanceFlown,
+    DistanceToAimingPoint,
     DistanceToLanding,
     DistanceTravelled,
     Drift,
@@ -3072,6 +3073,110 @@ class TestDistanceToLanding(unittest.TestCase):
         dtl.derive(distance_travelled, tdwns)
         expected_result = np.ma.array(data=np.zeros(10), mask=True)
         ma_test.assert_masked_array_equal(dtl.array, expected_result)
+
+
+class TestDistanceToAimingPoint(unittest.TestCase):
+
+    def test_can_operate(self):
+        expected = [('Aiming Point Range', 'Distance Travelled', 'Touchdown')]
+        opts = DistanceToAimingPoint.get_operational_combinations()
+        self.assertEqual(opts, expected)
+
+    def test_derive(self):
+        distance_travelled = P('Distance Travelled', array=np.ma.arange(0, 100))
+        aiming = P('Aiming Point Range', array=np.ma.arange(65, -35, -1))
+        tdwns = KTI('Touchdown', items=[KeyTimeInstance(70, 'Touchdown')])
+
+        expected_result = np.ma.concatenate((np.arange(65, -1, -1), np.arange(1, 35)))
+        dtap = DistanceToAimingPoint()
+        dtap.derive(aiming, distance_travelled, tdwns)
+        assert_array_equal(dtap.array, expected_result)
+
+    def test_no_touchdown(self):
+        distance_travelled = P('Distance Travelled', array=np.ma.arange(0, 100))
+        aiming = P('Aiming Point Range', array=np.ma.arange(65, -35, -1))
+        tdwns = KTI('Touchdown', items=[KeyTimeInstance(70, 'Touchdown')])
+
+        expected_result = np.ma.concatenate((np.arange(65, -1, -1), np.arange(1, 35)))
+        dtap = DistanceToAimingPoint()
+        dtap.derive(aiming, distance_travelled, tdwns)
+        assert_array_equal(dtap.array, expected_result)
+
+    def test_masked_distance_at_aiming_point(self):
+        distance_travelled = P('Distance Travelled', array=np.ma.arange(0, 100))
+        aiming = P('Aiming Point Range', array=np.ma.arange(65, -35, -1))
+        aiming.array[60:70] = np.ma.masked
+        tdwns = KTI('Touchdown', items=[KeyTimeInstance(70, 'Touchdown')])
+
+        expected_result = np.ma.concatenate((np.arange(65, -1, -1), np.arange(1, 35)))
+        expected_result[:] = np.ma.masked
+        dtap = DistanceToAimingPoint()
+        dtap.derive(aiming, distance_travelled, tdwns)
+        assert_array_equal(dtap.array, expected_result)
+        assert_array_equal(dtap.array.mask, expected_result.mask)
+
+    def test_2_touchdowns(self):
+        distance_travelled = P('Distance Travelled', array=np.ma.arange(0, 200))
+        aiming = P('Aiming Point Range', array=np.ma.concatenate((
+            np.ma.arange(65, -35, -1),
+            np.ma.arange(80, -20, -1),
+        )))
+        tdwns = KTI('Touchdown', items=[
+            KeyTimeInstance(70, 'Touchdown'),
+            KeyTimeInstance(140, 'Touchdown'),
+        ])
+
+        expected_result = np.ma.concatenate((
+            np.arange(65, -1, -1), np.arange(1, 6),
+            np.arange(109, -1, -1), np.arange(1, 20)
+        ))
+        dtap = DistanceToAimingPoint()
+        dtap.derive(aiming, distance_travelled, tdwns)
+        assert_array_equal(dtap.array, expected_result)
+
+    def test_2_touchdowns_aiming_point_range_masked_on_first_app(self):
+        distance_travelled = P('Distance Travelled', array=np.ma.arange(0, 200))
+        aiming = P('Aiming Point Range', array=np.ma.concatenate((
+            np.ma.arange(65, -35, -1),
+            np.ma.arange(80, -20, -1),
+        )))
+        aiming.array[60:80] = np.ma.masked
+        tdwns = KTI('Touchdown', items=[
+            KeyTimeInstance(70, 'Touchdown'),
+            KeyTimeInstance(140, 'Touchdown'),
+        ])
+
+        expected_result = np.ma.concatenate((
+            np.arange(65, -1, -1), np.arange(1, 6),
+            np.arange(109, -1, -1), np.arange(1, 20)
+        ))
+        expected_result[:71] = np.ma.masked
+        dtap = DistanceToAimingPoint()
+        dtap.derive(aiming, distance_travelled, tdwns)
+        assert_array_equal(dtap.array, expected_result)
+        assert_array_equal(dtap.array.mask, expected_result.mask)
+
+    def test_2_touchdowns_aiming_point_range_masked_on_second_app(self):
+        distance_travelled = P('Distance Travelled', array=np.ma.arange(0, 200))
+        aiming = P('Aiming Point Range', array=np.ma.concatenate((
+            np.ma.arange(65, -35, -1),
+            np.ma.arange(80, -20, -1),
+        )))
+        aiming.array[130:150] = np.ma.masked
+        tdwns = KTI('Touchdown', items=[
+            KeyTimeInstance(70, 'Touchdown'),
+            KeyTimeInstance(140, 'Touchdown'),
+        ])
+
+        expected_result = np.ma.concatenate((
+            np.arange(65, -1, -1), np.arange(1, 6),
+            np.arange(109, -1, -1), np.arange(1, 20)
+        ))
+        expected_result[71:] = np.ma.masked
+        dtap = DistanceToAimingPoint()
+        dtap.derive(aiming, distance_travelled, tdwns)
+        assert_array_equal(dtap.array, expected_result)
+        assert_array_equal(dtap.array.mask, expected_result.mask)
 
 
 class TestDistanceFlown(unittest.TestCase):
@@ -6914,7 +7019,7 @@ class TestSlopeToAimingPoint(unittest.TestCase):
         combinations = self.node_class.get_operational_combinations()
         self.assertEqual(len(combinations), 1)
         combination = set(combinations[0])
-        self.assertSetEqual(combination, {'Altitude AAL', 'Aiming Point Range',
+        self.assertSetEqual(combination, {'Altitude AAL', 'Distance To Aiming Point',
                                           'Altitude STD', 'SAT', 'Approach'})
 
     def test_derive(self):
@@ -6928,7 +7033,7 @@ class TestSlopeToAimingPoint(unittest.TestCase):
         alt_aal = P('Altitude AAL', array=alt * 1.04)
         alt_std = P('Altitude STD', array=alt + 3000)
         apps = buildsection('Approach And Landing', 1, 4)
-        dist = P('Aiming Point Range', array=np.ma.array([9.42, 6.28, 3.14, 0.0]))
+        dist = P('Distance To Aiming', array=np.ma.array([9.42, 6.28, 3.14, 0.0]))
         node = self.node_class()
         node.derive(alt_aal, dist, alt_std, sat, apps)
 
@@ -6958,40 +7063,20 @@ class TestApproachFlightPathAngle(unittest.TestCase):
         self.node_class = ApproachFlightPathAngle
 
     def test_can_operate(self):
+        expected = [('Altitude AAL', 'Slope Angle To Aiming Point')]
         opts = self.node_class.get_operational_combinations()
-        self.assertAlmostEqual(len(opts), 3)
-        for opt in opts:
-            self.assertIn('Altitude AAL', opt)
-            self.assertIn('Approach And Landing', opt)
-            self.assertTrue('Slope Angle To Landing' in opt or
-                            'Slope Angle To Aiming Point' in opt)
+        self.assertEqual(opts, expected)
 
-    def test_only_slope_to_landing(self):
-
+    def test_slope_masked_below_200ft(self):
         alt_aal = P('Altitude AAL', np.ma.arange(1000, -10, -10))
-        slope_ldg = P('Slope Angle To Landing', np.ma.ones(101) * 2.9)
-        apps = buildsection('Approach And Landing', 1, 101)
+        slope_aim = P('Slope Angle To Aiming Point', np.ma.ones(101) * 2.9)
 
         node = self.node_class()
-        node.derive(alt_aal, slope_ldg, None, apps)
+        node.derive(alt_aal, slope_aim)
 
         self.assertEqual(node.name, "Approach Flight Path Angle")
-        np.testing.assert_almost_equal(node.array, slope_ldg.array)
-
-    def test_both_slopes_available(self):
-
-        alt_aal = P('Altitude AAL', np.ma.arange(1000, -10, -10))
-        slope_ldg = P('Slope Angle To Landing', np.ma.ones(101) * 2.9)
-        slope_aim = P('Slope Angle To Aiming Point', np.ma.ones(101) * 3.1)
-        apps = buildsection('Approach And Landing', 0, 100)
-
-        node = self.node_class()
-        node.derive(alt_aal, slope_ldg, slope_aim, apps)
-
-        expected = np.ma.ones(101) * 2.9
-        expected[50:80] = np.linspace(2.9, 3.1, 30, endpoint=False)
-        expected[80:] = np.ma.masked
-        np.testing.assert_almost_equal(node.array, expected)
+        np.testing.assert_almost_equal(node.array, slope_aim.array)
+        np.testing.assert_equal(node.array.mask, np.repeat((False, True), (80, 21)))
 
 
 class TestSpeedbrake(unittest.TestCase):
