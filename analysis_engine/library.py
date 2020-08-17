@@ -8562,7 +8562,6 @@ def nearest_runway(airport, heading, ilsfreq=None, latitude=None, longitude=None
         assert np.all(-90 <= latitude) and np.all(latitude <= 90), 'Latitude must be between -90 and 90 degrees.'
         assert np.all(-180 < longitude) and np.all(longitude <= 180), 'Longitude must be between -180 and 180 degrees.'
         p3y, p3x = latitude, longitude
-        distance = float('inf')
         runway = None
         close_runways = []
         for r in runways:
@@ -8578,19 +8577,28 @@ def nearest_runway(airport, heading, ilsfreq=None, latitude=None, longitude=None
             # have landed on a runway crossing. W create a list of such runways and then pick the one which magnetic
             # heading is closer to the aircraft heading - since we're looking at the lowest point, even with crosswind
             # the aircraft will likely be post de-crab at this stage.
-            if abs_dxt < 30:
-                close_runways.append(r)
-            if abs_dxt < distance:
-                distance = abs_dxt
-                runway = r
+            close_runways.append((abs_dxt, r))
 
-        if len(close_runways) > 1:
-            hdg_diff = float('inf')
-            for r in close_runways:
-                diff = abs(heading - r.get('magnetic_heading'))
-                if diff < hdg_diff:
-                    hdg_diff = diff
-                    runway = r
+        if close_runways:
+            # Choose the nearest runway
+            close_runways.sort()
+            _, runway = close_runways[0]
+
+            if len(close_runways) > 1:
+                if hint:
+                    # Non-precise aircrafts
+                    if close_runways[1][0] < 150:
+                        # If the second nearest is closer than 150m, fall back to not
+                        # identifying which parallel runway it was.
+                        runway = None
+                else:
+                    # Precise aircrafts
+                    if close_runways[1][0] < 30:
+                        # For precise planes, more than 1 runway within 30m means it
+                        # must be crossing runways. Choose the one within 30 meters with
+                        # the nearest magnetic heading.
+                        close_runways[:] = [r for dist, r in close_runways if dist < 30]
+                        runway = min(close_runways, key=lambda r:abs(heading - float(r['magnetic_heading'])))
 
         if runway:
             logger.info("Runway '%s' selected: Closest to provided coordinates.", runway['identifier'])

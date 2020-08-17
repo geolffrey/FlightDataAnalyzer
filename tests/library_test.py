@@ -9147,7 +9147,24 @@ class TestNearestRunway(unittest.TestCase):
                           'latitude': 50.942072718495965,
                           'longitude': -1.3613830932541067
                           },
-            'strip': {'id': 5586, 'length': 5653, 'surface': u'ASP', 'width': 120}},
+            'strip': {'id': 5586, 'length': 5653, 'surface': u'ASP', 'width': 120}
+        },
+        '019': {
+            'id': 13275,
+            'identifier': '10*',
+            'magnetic_heading': Decimal('99.0'),
+            'start': {'latitude': 26.681188999999996,
+                      'longitude': -80.10628899999999,
+                      'elevation': 19
+                      },
+            'end': {'latitude': 26.68076099999998,
+                    'longitude': -80.096461,
+                    'elevation': 19
+                    },
+            'glideslope': {'elevation': 19},
+            'localizer': {'elevation': 19, 'is_offset': False},
+            'strip': {'id': 6638, 'length': 3213, 'surface': 'ASP', 'width': 75}
+        },
     }
 
     def test_find_nearest_with_valid_heading(self):
@@ -9196,6 +9213,23 @@ class TestNearestRunway(unittest.TestCase):
         '''
         runway = nearest_runway(self._airports['001'], 270.5, latitude=51.464927, longitude=-0.440458)
         self.assertEqual(runway, self._expected['002'])
+
+    def test_find_nearest_parallel_with_non_precise_valid_coordinates(self):
+        '''
+        Test finding nearest parallel runway with non-precise valid coordinates.
+        Take the nearest runway.
+        '''
+        runway = nearest_runway(self._airports['001'], 270.5, latitude=51.465527, longitude=-0.440458, hint='landing')
+        self.assertEqual(runway, self._expected['002'])
+
+    def test_undetermined_parallel_with_non_precise_valid_coordinates(self):
+        '''
+        Test finding nearest parallel runway with non-precise valid coordinates.
+        As both parallel runways are less than 150 meters from the touchdown
+        position, we fall back to undetermined runway: 10*.
+        '''
+        runway = nearest_runway(self._airports['006'], 99.8, latitude=26.681671, longitude=-80.101372, hint='landing')
+        self.assertEqual(runway, self._expected['019'])
 
     def test_find_nearest_with_invalid_latitude(self):
         '''
