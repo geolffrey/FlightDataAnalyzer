@@ -825,7 +825,7 @@ def get_dt_arrays(hdf, fallback_dt, validation_dt, valid_slices=[]):
 
         if fallback_dt:
             precise = False
-            array = [getattr(dt, name.lower()) for dt in fallback_dts]
+            array = np.ma.array([getattr(dt, name.lower()) for dt in fallback_dts])
             logger.warning("%s not available, using range from %d to %d from fallback_dt %s",
                            name, array[0], array[-1], fallback_dt)
             dt_arrays.append(array)
