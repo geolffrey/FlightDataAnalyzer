@@ -873,7 +873,7 @@ def calculate_timebase(years, months, days, hours, mins, secs):
     # Calculate current year here and pass into
     # convert_two_digit_to_four_digit_year to save calculating year for every
     # second of flight
-    current_year = str(datetime.utcnow().year)
+    current_year = datetime.utcnow().year
     # OrderedDict so if all values are the same, max will consistently take the
     # first val on repeated runs
     clock_variation = OrderedDict()
@@ -883,12 +883,14 @@ def calculate_timebase(years, months, days, hours, mins, secs):
         raise ValueError("Arrays must be of same length")
 
     # Fill masked values with negative numbers to speed up iteration
-    years = years.filled(fill_value=-1).astype(int)
-    months = months.filled(fill_value=-1).astype(int)
-    days = days.filled(fill_value=-1).astype(int)
-    hours = hours.filled(fill_value=-1).astype(int)
-    mins = mins.filled(fill_value=-1).astype(int)
-    secs = secs.filled(fill_value=-1).astype(int)
+    years = np.ma.asanyarray(years).filled(fill_value=-1).astype(int)
+    months = np.ma.asanyarray(months).filled(fill_value=-1).astype(int)
+    days = np.ma.asanyarray(days).filled(fill_value=-1).astype(int)
+    hours = np.ma.asanyarray(hours).filled(fill_value=-1).astype(int)
+    mins = np.ma.asanyarray(mins).filled(fill_value=-1).astype(int)
+    secs = np.ma.asanyarray(secs).filled(fill_value=-1).astype(int)
+
+    convert_two_digit_to_four_digit_year(years, current_year)
 
     for step, (yr, mth, day, hr, mn, sc) in enumerate(np.stack((years, months, days, hours, mins, secs), axis=-1)):
         #TODO: Try using numpy datetime functions for speedup?
@@ -897,10 +899,6 @@ def calculate_timebase(years, months, days, hours, mins, secs):
         #except np.core._mx_datetime_parser.RangeError  :
             #continue
         # same for time?
-
-        if 0 <= yr < 100:
-            yr = convert_two_digit_to_four_digit_year(yr, current_year)
-
         try:
             dt = datetime(yr, mth, day, hr, mn, sc, tzinfo=pytz.utc)
         except (ValueError, TypeError):
@@ -912,7 +910,7 @@ def calculate_timebase(years, months, days, hours, mins, secs):
             base_dt = dt # store reference datetime
         # calc diff from base
         diff = dt - base_dt - timedelta(seconds=step)
-        ##print("%02d - %s %s" % (step, dt, diff))
+        #print("%02d - %s %s" % (step, dt, diff))
         try:
             clock_variation[diff] += 1
         except KeyError:
@@ -938,14 +936,60 @@ def convert_two_digit_to_four_digit_year(yr, current_year):
     12 = 2012
     11 = 2011
     01 = 2001
+
+    :param yr: Appropriate 1Hz time elements
+    :type yr: np.ndarray
+    :returns: most frequent datetime
+    :rtype: datetime
+    :raises: InvalidDatetime if no valid timestamps provided
     """
-    # convert to 4 digit year
-    century = int(current_year[:2]) * 100
-    yy = int(current_year[2:])
-    if yr > yy:
-        return century - 100 + yr
-    else:
-        return century + yr
+    to_convert = (0 <= yr) & (yr < 100)
+    century = (current_year // 100) * 100
+    yy = current_year % 100
+
+    yr[to_convert & (yr > yy)] -= 100
+    yr[to_convert] += century
+
+
+def get_most_frequent_datetime(years, months, days, hours, mins, secs):
+    """
+    Determines the most common timestamp in the array of timestamps.
+
+    Accepts arrays and numpy arrays at 1Hz.
+
+    Supports years as a 2 digits - e.g. "11" is "2011"
+
+    :param years, months, days, hours, mins, secs: Appropriate 1Hz time elements
+    :type years, months, days, hours, mins, secs: np.ma.MaskedArray
+    :returns: Most frequent datetime
+    :rtype: datetime
+    :raises: InvalidDatetime if no valid timestamps provided
+    """
+    years = np.ma.asanyarray(years).astype(int)
+    months = np.ma.asanyarray(months).astype(int)
+    days = np.ma.asanyarray(days).astype(int)
+    hours = np.ma.asanyarray(hours).astype(int)
+    mins = np.ma.asanyarray(mins).astype(int)
+    secs = np.ma.asanyarray(secs).astype(int)
+
+    convert_two_digit_to_four_digit_year(years, datetime.utcnow().year)
+
+    datetimes = np.ma.stack((years, months, days, hours, mins, secs), axis=-1)
+    # Filter any rows with a masked value
+    valid = (~datetimes.mask).all(axis=1)
+    if (~valid).all():
+        # No valid datetime data found!
+        raise InvalidDatetime("No valid datestamps found")
+
+    # Count each unique datetimes
+    values, counts = np.unique(datetimes[valid], return_counts=True, axis=0)
+    # Get the most frequent one
+    most_frequent = values[np.argmax(counts)]
+    try:
+        timebase = datetime(*most_frequent, tzinfo=pytz.utc)
+    except ValueError:
+        raise InvalidDatetime(f"Invalid most frequent datestamps found: {most_frequent}") from None
+    return timebase
 
 
 def coreg(y, indep_var=None, force_zero=False):

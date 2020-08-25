@@ -20,7 +20,9 @@ from analysis_engine.library import (align,
                                      blend_parameters,
                                      calculate_timebase,
                                      find_runs,
+                                     get_most_frequent_datetime,
                                      hash_array,
+                                     InvalidDatetime,
                                      min_value,
                                      mask_outside_slices,
                                      normalise,
@@ -973,7 +975,10 @@ def _calculate_start_datetime(hdf, fallback_dt, validation_dt):
 
     # establish timebase for start of data
     if has_constant_time(hdf):
-        timebase = fallback_dt
+        try:
+            timebase = get_most_frequent_datetime(*dt_arrays)
+        except InvalidDatetime:
+            timebase = fallback_dt
     else:
         try:
             timebase = calculate_timebase(*dt_arrays)

@@ -94,6 +94,7 @@ from analysis_engine.library import (
     first_valid_parameter,
     first_valid_sample,
     from_isa,
+    get_most_frequent_datetime,
     groundspeed_from_position,
     ground_track,
     ground_track_precise,
@@ -117,6 +118,7 @@ from analysis_engine.library import (
     interleave,
     interpolate,
     interpolate_coarse,
+    InvalidDatetime,
     is_index_within_slice,
     is_index_within_slices,
     is_power2,
@@ -2260,14 +2262,103 @@ class TestCalculateTimebase(unittest.TestCase):
         self.assertEqual(start_dt, datetime(2019, 12, 24, 23, 59, 59-6, tzinfo=pytz.utc))
 
 
-class TestConvertTwoDigitToFourDigitYear(unittest.TestCase):
+class TestConvertTwoDigitToFourDigitYear:
     def test_convert_two_digit_to_four_digit_year(self):
-        # WARNING - this test will fail next year(!)
-        self.assertEqual(convert_two_digit_to_four_digit_year(99, '2012'), 1999)
-        self.assertEqual(convert_two_digit_to_four_digit_year(13, '2012'), 1913)
-        self.assertEqual(convert_two_digit_to_four_digit_year(12, '2012'), 2012) # will break next year
-        self.assertEqual(convert_two_digit_to_four_digit_year(11, '2012'), 2011)
-        self.assertEqual(convert_two_digit_to_four_digit_year(1, '2012'), 2001)
+        """
+        if current year is 2012
+        13 = 1913
+        12 = 2012
+        11 = 2011
+        01 = 2001
+        """
+        years = np.array([99, 13, 12, 11, 1])
+        expected = np.array([1999, 1913, 2012, 2011, 2001])
+        convert_two_digit_to_four_digit_year(years, 2012)
+        np.testing.assert_array_equal(years, expected)
+
+    def test_convert_masked_years(self):
+        years = np.ma.array([99, 13, 12, 11, 1])
+        years[3:] = np.ma.masked
+        expected = np.ma.array([1999, 1913, 2012, 2011, 2001], mask=[0, 0, 0, 1, 1])
+        convert_two_digit_to_four_digit_year(years, 2012)
+        np.testing.assert_array_equal(years, expected)
+        np.testing.assert_array_equal(years.mask, expected.mask)
+
+
+class TestGetMostFrequentDatetime:
+    def test_unique_datetime(self):
+        years = np.ma.repeat(2020, 50)
+        months = np.ma.repeat(8, 50)
+        days = np.ma.repeat(15, 50)
+        hours = np.ma.repeat(12, 50)
+        mins = np.ma.repeat(55, 50)
+        secs = np.ma.repeat(32, 50)
+        dt = get_most_frequent_datetime(years, months, days, hours, mins, secs)
+        assert dt == datetime(2020, 8, 15, 12, 55, 32, tzinfo=pytz.utc)
+
+    def test_two_datetimes(self):
+        years = np.ma.repeat(2020, 50)
+        months = np.ma.repeat(8, 50)
+        days = np.ma.repeat(15, 50)
+        hours = np.ma.repeat(12, 50)
+        mins = np.ma.repeat((22, 55), (10, 40))
+        secs = np.ma.repeat(32, 50)
+        dt = get_most_frequent_datetime(years, months, days, hours, mins, secs)
+        assert dt == datetime(2020, 8, 15, 12, 55, 32, tzinfo=pytz.utc)
+
+    def test_some_invalid_datetimes(self):
+        years = np.ma.repeat(2020, 50)
+        months = np.ma.repeat(8, 50)
+        days = np.ma.repeat(15, 50)
+        hours = np.ma.repeat(12, 50)
+        mins = np.ma.repeat((22, 55), (10, 40))
+        secs = np.ma.repeat(32, 50)
+
+        # Let's mask most of the rows where mins is 55. This leaves us with the most
+        # frequent being at mins 22
+        months[15:24] = np.ma.masked
+        days[25:] = np.ma.masked
+
+        dt = get_most_frequent_datetime(years, months, days, hours, mins, secs)
+        assert dt == datetime(2020, 8, 15, 12, 22, 32, tzinfo=pytz.utc)
+
+    def test_some_empty_arrays(self):
+        with pytest.raises(InvalidDatetime):
+            get_most_frequent_datetime([], [], [], [], [], [])
+
+    def test_all_invalid_datetimes(self):
+        years = np.ma.repeat(2020, 50)
+        months = np.ma.repeat(8, 50)
+        days = np.ma.repeat(15, 50)
+        hours = np.ma.repeat(12, 50)
+        mins = np.ma.repeat((22, 55), (10, 40))
+        secs = np.ma.repeat(32, 50)
+
+        years[:] = np.ma.masked
+        months[:] = np.ma.masked
+        days[:] = np.ma.masked
+        hours[:] = np.ma.masked
+        mins[:] = np.ma.masked
+        secs[:] = np.ma.masked
+
+        with pytest.raises(InvalidDatetime):
+            get_most_frequent_datetime(years, months, days, hours, mins, secs)
+
+    @mock.patch('analysis_engine.library.datetime')
+    def test_unique_datetime_with_year_2_digits(self, mock_dt):
+        # Just mock the utcnow() function
+        mock_dt.utcnow.return_value = datetime(2020,1,1)
+        # But preserves datimetime functionality
+        mock_dt.side_effect = lambda *args, **kw: datetime(*args, **kw)
+
+        years = np.ma.repeat(20, 50)
+        months = np.ma.repeat(8, 50)
+        days = np.ma.repeat(15, 50)
+        hours = np.ma.repeat(12, 50)
+        mins = np.ma.repeat(55, 50)
+        secs = np.ma.repeat(32, 50)
+        dt = get_most_frequent_datetime(years, months, days, hours, mins, secs)
+        assert dt == datetime(2020, 8, 15, 12, 55, 32, tzinfo=pytz.utc)
 
 
 class TestCoReg(unittest.TestCase):
