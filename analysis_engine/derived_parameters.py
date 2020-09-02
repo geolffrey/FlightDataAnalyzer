@@ -6060,9 +6060,8 @@ class LongitudePrepared(DerivedParameterNode, CoordinatesStraighten):
             return
 
         _, lon_array = air_track(
-            lat_lift.get_first().value, lon_lift.get_first().value,
-            lat_land.get_last().value, lon_land.get_last().value,
-            speed.array, hdg.array, alt_aal.array, tas.frequency)
+            *coords, speed.array, hdg.array, alt_aal.array, tas.frequency
+        )
         self.array = lon_array
 
 
@@ -6148,9 +6147,8 @@ class LatitudePrepared(DerivedParameterNode, CoordinatesStraighten):
             return
 
         lat_array, _ = air_track(
-            lat_lift.get_first().value, lon_lift.get_first().value,
-            lat_land.get_last().value, lon_land.get_last().value,
-            speed.array, hdg.array, alt_aal.array, tas.frequency)
+            *coords, speed.array, hdg.array, alt_aal.array, tas.frequency
+        )
         self.array = lat_array
 
 

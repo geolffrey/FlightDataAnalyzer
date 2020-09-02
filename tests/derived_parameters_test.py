@@ -6465,7 +6465,8 @@ class TestLatitudePrepared(unittest.TestCase):
             hdg_mag, None, tas, gspd, alt_aal, lat_lift, lon_lift, lat_land, lon_land
         )
         air_track.assert_called_with(
-            20, 120, 50, 70, gspd.array, hdg_mag.array, alt_aal.array, 2
+            lat_lift[0], lon_lift[0], lat_land[0], lon_land[0],
+            gspd.array, hdg_mag.array, alt_aal.array, 2
         )
 
     @patch("analysis_engine.derived_parameters.air_track", return_value=(None, None))
@@ -6560,7 +6561,8 @@ class TestLongitudePrepared(unittest.TestCase):
             hdg_mag, None, tas, gspd, alt_aal, lat_lift, lon_lift, lat_land, lon_land
         )
         air_track.assert_called_with(
-            20, 120, 50, 70, gspd.array, hdg_mag.array, alt_aal.array, 2
+            lat_lift[0], lon_lift[0], lat_land[0], lon_land[0],
+            gspd.array, hdg_mag.array, alt_aal.array, 2
         )
 
     @patch("analysis_engine.derived_parameters.air_track", return_value=(None, None))

@@ -116,13 +116,14 @@ def air_track(lat_start, lon_start, lat_end, lon_end, spd, hdg, alt_aal, frequen
     airspeed may be used.
 
     :param lat_start: Fixed latitude point at the origin.
-    :type lat_start: float, latitude degrees.
+
+    :type lat_start: KeyPointValue, with value as latitude degrees.
     :param lon_start: Fixed longitude point at the origin.
-    :type lon_start: float, longitude degrees.
+    :type lon_start:  KeyPointValue, with value as longitude degrees.
     :param lat_end: Fixed latitude point at the destination.
-    :type lat_end: float, latitude degrees.
+    :type lat_end:  KeyPointValue, with value as latitude degrees.
     :param lon_end: Fixed longitude point at the destination.
-    :type lon_end: float, longitude degrees.
+    :type lon_end:  KeyPointValue, with value as longitude degrees.
     :param spd: Speed (air or ground) in knots
     :type spd: Numpy masked array.
     :param hdg: Heading (ideally true) in degrees.
@@ -141,40 +142,66 @@ def air_track(lat_start, lon_start, lat_end, lon_end, spd, hdg, alt_aal, frequen
     :Invalid mode fails with ValueError
     :Mismatched array lengths fails with ValueError
     """
-    def compute_track(lat_start, lon_start, lat_end, lon_end, spd, hdg, alt_aal, frequency):
+    def compute_track(lat_start, lon_start, lat_end, lon_end, idx_start, spd, hdg, alt_aal, frequency):
 
         def measure_jump(arr, n):
             # For an array, the jump from n-1 to n rejecting mean slope is:
             d = (arr[n-2] - 3*arr[n-1] + 3*arr[n] - arr[n+1])/2.0
             return d
 
+        assert lat_start.index == lon_start.index
+        assert lat_end.index == lon_end.index
+        start_idx = max(0, int(lat_start.index) - idx_start)
+        end_idx = min(int(lat_end.index) - idx_start, len(spd))
+
         lat = np_ma_zeros_like(spd)
         lon = np_ma_zeros_like(spd)
         half_len = int(len(spd)/2.0)
-        lat[0]=lat_start
-        lon[0]=lon_start
-        lat[-1]=lat_end
-        lon[-1]=lon_end
 
         spd_north = spd * np.ma.cos(hdg_rad)
         spd_east = spd * np.ma.sin(hdg_rad)
 
         scale = ut.multiplier(ut.KT, ut.METER_S)
 
-        # Compute displacements in metres north and east of the starting point.
-        north_from_start = integrate(spd_north[:half_len], frequency, scale=scale)
-        east_from_start = integrate(spd_east[:half_len], frequency, scale=scale)
+        # Compute displacements in metres south and west from start of data to the starting point.
+        south_from_end = integrate(spd_north[:start_idx], frequency, scale=scale, direction='reverse')
+        west_from_end = integrate(spd_east[:start_idx], frequency, scale=scale, direction='reverse')
+        bearings = (np.ma.array(np.rad2deg(np.arctan2(west_from_end, south_from_end))) + 180.0) % 360.0
+        distances = np.ma.array(np.ma.sqrt(south_from_end**2 + west_from_end**2))
+        lat[:start_idx],lon[:start_idx] = latitudes_and_longitudes(
+            bearings, distances,
+            {'latitude':lat_start.value, 'longitude':lon_start.value}
+        )
+
+        # Compute displacements in metres north and east from the starting point to half len.
+        north_from_start = integrate(spd_north[start_idx:half_len], frequency, scale=scale)
+        east_from_start = integrate(spd_east[start_idx:half_len], frequency, scale=scale)
         bearings = np.ma.array(np.rad2deg(np.arctan2(east_from_start, north_from_start)))
         distances = np.ma.array(np.ma.sqrt(north_from_start**2 + east_from_start**2))
-        lat[:half_len],lon[:half_len] = latitudes_and_longitudes(
-            bearings, distances, {'latitude':lat_start, 'longitude':lon_start})
+        lat[start_idx:half_len],lon[start_idx:half_len] = latitudes_and_longitudes(
+            bearings, distances,
+            {'latitude':lat_start.value, 'longitude':lon_start.value}
+        )
 
-        south_from_end = integrate(spd_north[half_len:], frequency, scale=scale, direction='reverse')
-        west_from_end = integrate(spd_east[half_len:], frequency, scale=scale, direction='reverse')
-        bearings = (np.ma.array(np.rad2deg(np.arctan2(west_from_end, south_from_end)))+180.0) % 360.0
+        # Compute displacements in metres south and west from half len to the end point.
+        south_from_end = integrate(spd_north[half_len:end_idx], frequency, scale=scale, direction='reverse')
+        west_from_end = integrate(spd_east[half_len:end_idx], frequency, scale=scale, direction='reverse')
+        bearings = (np.ma.array(np.rad2deg(np.arctan2(west_from_end, south_from_end))) + 180.0) % 360.0
         distances = np.ma.array(np.ma.sqrt(south_from_end**2 + west_from_end**2))
-        lat[half_len:],lon[half_len:] = latitudes_and_longitudes(
-            bearings, distances, {'latitude':lat_end, 'longitude':lon_end})
+        lat[half_len:end_idx],lon[half_len:end_idx] = latitudes_and_longitudes(
+            bearings, distances,
+            {'latitude':lat_end.value, 'longitude':lon_end.value}
+        )
+
+        # Compute displacements in metres north and east from the end point to end of data.
+        north_from_start = integrate(spd_north[end_idx:], frequency, scale=scale)
+        east_from_start = integrate(spd_east[end_idx:], frequency, scale=scale)
+        bearings = np.ma.array(np.rad2deg(np.arctan2(east_from_start, north_from_start)))
+        distances = np.ma.array(np.ma.sqrt(north_from_start**2 + east_from_start**2))
+        lat[end_idx:],lon[end_idx:] = latitudes_and_longitudes(
+            bearings, distances,
+            {'latitude':lat_end.value, 'longitude':lon_end.value}
+        )
 
 
         # There will be a jump in the middle of the data caused by
@@ -183,14 +210,14 @@ def air_track(lat_start, lon_start, lat_end, lon_end, spd, hdg, alt_aal, frequen
         dlon = measure_jump(lon, half_len)
 
         # Compute the area under first half the altitude profile curve to weight the correction
-        profile = integrate(alt_aal[:half_len], frequency)
-        lat[:half_len] += profile * (dlat/(profile[-1] * 2.0))
-        lon[:half_len] += profile * (dlon/(profile[-1] * 2.0))
+        profile = integrate(alt_aal[start_idx:half_len], frequency)
+        lat[start_idx:half_len] += profile * (dlat/(profile[-1] * 2.0))
+        lon[start_idx:half_len] += profile * (dlon/(profile[-1] * 2.0))
 
         # Compute the area under second half the altitude profile curve
-        profile = integrate(alt_aal[half_len:], frequency, direction='backwards')
-        lat[half_len:] -= profile * (dlat/(profile[0] * 2.0))
-        lon[half_len:] -= profile * (dlon/(profile[0] * 2.0))
+        profile = integrate(alt_aal[half_len:end_idx], frequency, direction='backwards')
+        lat[half_len:end_idx] -= profile * (dlat/(profile[0] * 2.0))
+        lon[half_len:end_idx] -= profile * (dlon/(profile[0] * 2.0))
 
         return lat, lon
 
@@ -217,6 +244,7 @@ def air_track(lat_start, lon_start, lat_end, lon_end, spd, hdg, alt_aal, frequen
 
     lat[valid_slice], lon[valid_slice] = compute_track(lat_start, lon_start,
                                                        lat_end, lon_end,
+                                                       valid_slice.start,
                                                        spd[valid_slice],
                                                        hdg[valid_slice],
                                                        alt_aal[valid_slice],

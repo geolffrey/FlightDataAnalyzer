@@ -241,7 +241,9 @@ from analysis_engine.library import (
     wrap_array,
 )
 
-from analysis_engine.node import (A, P, S, load, M, KTI, KeyTimeInstance, Section)
+from analysis_engine.node import (
+    A, P, S, load, M, KTI, KeyPointValue, KeyTimeInstance, Section
+)
 
 from analysis_engine.test_utils import buildsections
 
@@ -282,7 +284,11 @@ class TestAirTrack(unittest.TestCase):
         alt = np_ma_ones_like(hdg)
         alt[0] = 0.0
         alt[-1] = 0.0
-        lat, lon = air_track(0.0, 0.0, 0.0035, 0.0035, spd, hdg, alt, 1.0)
+        lat_start = KeyPointValue(index=0, value=0.0)
+        lat_end = KeyPointValue(index=6, value=0.0035)
+        lon_start = KeyPointValue(index=0, value=0.0)
+        lon_end = KeyPointValue(index=6, value=0.0035)
+        lat, lon = air_track(lat_start, lon_start, lat_end, lon_end, spd, hdg, alt, 1.0)
         np.testing.assert_array_almost_equal(0.0035, lat[-1], decimal=4)
         np.testing.assert_array_almost_equal(0.0035, lon[-1], decimal=4)
 
@@ -290,8 +296,12 @@ class TestAirTrack(unittest.TestCase):
         spd = np.ma.array([60,60])
         hdg = np.ma.array([0,0])
         alt = np.ma.array([0,0])
+        lat_start = KeyPointValue(index=0, value=0.0)
+        lat_end = KeyPointValue(index=1, value=1.0)
+        lon_start = KeyPointValue(index=0, value=0.0)
+        lon_end = KeyPointValue(index=1, value=1.0)
         # (lat_start, lon_start, lat_end, lon_end, spd, hdg, alt_aal, frequency
-        lat, lon = air_track(0.0, 0.0, 1.0, 1.0, spd, hdg, alt, 1.0)
+        lat, lon = air_track(lat_start, lon_start, lat_end, lon_end, spd, hdg, alt, 1.0)
         self.assertEqual(lat, None)
         self.assertEqual(lon, None)
 
@@ -303,8 +313,11 @@ class TestAirTrack(unittest.TestCase):
         alt = np_ma_ones_like(hdg)
         alt[0] = 0.0
         alt[-1] = 0.0
-        lat, lon = air_track(25.751953125, -80.332374, 9.052734375, -79.453464,
-                             spd, hdg, alt, 1.0)
+        lat_start = KeyPointValue(index=0, value=25.751953125)
+        lat_end = KeyPointValue(index=9920, value=9.052734375)
+        lon_start = KeyPointValue(index=0, value=-80.332374)
+        lon_end = KeyPointValue(index=9920, value=-79.453464)
+        lat, lon = air_track(lat_start, lon_start, lat_end, lon_end, spd, hdg, alt, 1.0)
         self.assertEqual(lat[0], 25.751953125)
         self.assertEqual(lon[0], -80.332374000000002)
         self.assertAlmostEqual(lat[5000], 17.177, places=3)
@@ -312,6 +325,45 @@ class TestAirTrack(unittest.TestCase):
         self.assertAlmostEqual(lat[-1], 9.05, places=2)
         self.assertAlmostEqual(lon[-1], -79.45, places=2)
 
+    def test_air_track_lat_lon_starting_within_arrays(self):
+        "Lat / lon references a point after the start / end of the arrays."
+        # At 45 degrees, this speed result in a speed of 60 kts over each axis.
+        # Maintained for 1 hours -> 60 NM travelled = 1 degree of equator
+        spd = np.ma.repeat(84.85281374238569, 3600)
+        hdg = np.ma.repeat(45.0, 3600)
+        alt = np_ma_ones_like(hdg)
+        alt[0] = 0.0
+        alt[-1] = 0.0
+        # We travel from lat 0.0 to lat 1.0 and lon 10.0 to lon 11.0 in 1 hour
+        # The reference provided is at time 0:10 and 0:50 so this means the start lat/lon
+        # is already 1/6 of a degree further lat 0.0 and lon 10.0. The stop lat/lon is
+        # consequently 1/6 of a degree less than lat 1.0 and lon 11.0.
+        lat_start = KeyPointValue(index=600, value=1/6)
+        lat_end = KeyPointValue(index=3000, value=1.0 - 1/6)
+        lon_start = KeyPointValue(index=600, value=10 + 1/6)
+        lon_end = KeyPointValue(index=3000, value=11.0 - 1/6)
+        lat, lon = air_track(lat_start, lon_start, lat_end, lon_end, spd, hdg, alt, 1.0)
+
+        self.assertAlmostEqual(0.0, lat[0], places=3)
+        self.assertAlmostEqual(10.0, lon[0], places=3)
+        self.assertAlmostEqual(1.0, lat[-1], places=3)
+        self.assertAlmostEqual(11.0, lon[-1], places=3)
+
+    def test_air_track_spd_below_50_at_edges(self):
+        spd = np.ma.repeat((0., 260., 0.), (30, 7, 30))
+        hdg = np.ma.repeat((0., 90., 270., 0.), (33, 3, 1, 30))
+        alt = np_ma_ones_like(hdg)
+        alt[0] = 0.0
+        alt[-1] = 0.0
+        lat_start = KeyPointValue(index=30, value=0.0)
+        lat_end = KeyPointValue(index=36, value=0.0035)
+        lon_start = KeyPointValue(index=30, value=0.0)
+        lon_end = KeyPointValue(index=36, value=0.0035)
+        lat, lon = air_track(lat_start, lon_start, lat_end, lon_end, spd, hdg, alt, 1.0)
+        self.assertAlmostEqual(0.0035, lat[-1], places=4)
+        self.assertAlmostEqual(0.0035, lon[-1], places=4)
+        self.assertAlmostEqual(0.0035, lat[-3], places=4)
+        self.assertAlmostEqual(0.0035, lon[-3], places=4)
 
 class TestIsPower2(unittest.TestCase):
     def test_is_power2(self):
