@@ -9399,7 +9399,7 @@ class LongitudeAtLiftoff(KeyPointValueNode):
                 return
 
         if lon_c:
-            for lift in liftoffs:
+            for lift in ktis:
                 # Touchdown may be masked for Coarse parameter.
                 self.create_kpv(
                     lift.index,

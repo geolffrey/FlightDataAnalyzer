@@ -15825,6 +15825,18 @@ class TestLongitudeAtLiftoff(unittest.TestCase, NodeTest):
         node.create_kpv.assert_called_once_with(liftoffs[0].index, 1)
         assert not node.create_kpvs_at_ktis.called, 'method should not have been called'
 
+    def test_heli_without_liftoff(self):
+        toff_helos = KTI(
+            'Exit Transition Hover To Flight',
+            items=[KeyTimeInstance(index=10)]
+        )
+        long_c = P('Longitude (Coarse)', array=np.ma.arange(10, 20, 0.1))
+        node = self.node_class()
+        node.derive(None, None, None, None, long_c, helicopter, toff_helos)
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, toff_helos[0].index)
+        self.assertAlmostEqual(node[0].value, 11)
+
 
 class TestLatitudeOffBlocks(unittest.TestCase, NodeTest):
 
