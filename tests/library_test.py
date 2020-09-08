@@ -6232,6 +6232,13 @@ class TestSlicesAbove(unittest.TestCase):
         repaired_array, slices = slices_above(array, 5)
         self.assertEqual(slices, [slice(5, 10, None), slice(15, 18, None)])
 
+    def test_slices_above_mask_repaired(self):
+        array = np.ma.concatenate([np.arange(20), np.arange(20)])
+        array[4:18] = np.ma.masked
+        # With a frequency of 2Hz we will repair 20 samples
+        repaired_array, slices = slices_above(array, 5, frequency=2)
+        self.assertEqual(slices, [slice(5, 20, None), slice(25, 40, None)])
+
 
 class TestSlicesAfter(unittest.TestCase):
     def test_slices_after(self):
@@ -6260,6 +6267,13 @@ class TestSlicesBelow(unittest.TestCase):
         repaired_array, slices = slices_below(array, 5)
         self.assertEqual(slices, [slice(2, 6, None), slice(10, 16, None)])
 
+    def test_slices_below_mask_repaired(self):
+        array = np.ma.concatenate([np.arange(20), np.arange(20)])
+        array[4:18] = np.ma.masked
+        # With a frequency of 2Hz we will repair 20 samples
+        repaired_array, slices = slices_below(array, 15, frequency=2)
+        self.assertEqual(slices, [slice(0, 16, None), slice(20, 36, None)])
+
 
 class TestSlicesBetween(unittest.TestCase):
     def test_slices_between(self):
@@ -6267,6 +6281,13 @@ class TestSlicesBetween(unittest.TestCase):
         array.mask = [True] * 10 + [False] * 10
         repaired_array, slices = slices_between(array, 5, 15)
         self.assertEqual(slices, [slice(10, 15)])
+
+    def test_slices_between_mask_repaired(self):
+        array = np.ma.concatenate([np.arange(20), np.arange(20)])
+        array[4:18] = np.ma.masked
+        # With a frequency of 2Hz we will repair 20 samples
+        repaired_array, slices = slices_between(array, 5, 15, frequency=2)
+        self.assertEqual(slices, [slice(6, 15, None), slice(26, 35, None)])
 
 
 class TestSlicesDuration(unittest.TestCase):

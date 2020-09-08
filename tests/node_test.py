@@ -1942,9 +1942,9 @@ class TestDerivedParameterNode(unittest.TestCase):
         '''
         array = np.ma.arange(10)
         slices_above.return_value = (array, [slice(0,10)])
-        param = DerivedParameterNode('Param', array=array)
+        param = DerivedParameterNode('Param', array=array, frequency=4)
         slices = param.slices_above(5)
-        slices_above.assert_called_once_with(array, 5)
+        slices_above.assert_called_once_with(array, 5, frequency=4)
         self.assertEqual(slices, slices_above.return_value[1])
 
     @mock.patch('analysis_engine.node.slices_below')
@@ -1954,9 +1954,9 @@ class TestDerivedParameterNode(unittest.TestCase):
         '''
         array = np.ma.arange(10)
         slices_below.return_value = (array, [slice(0,10)])
-        param = DerivedParameterNode('Param', array=array)
+        param = DerivedParameterNode('Param', array=array, frequency=2)
         slices = param.slices_below(5)
-        slices_below.assert_called_once_with(array, 5)
+        slices_below.assert_called_once_with(array, 5, frequency=2)
         self.assertEqual(slices, slices_below.return_value[1])
 
     @mock.patch('analysis_engine.node.slices_between')
@@ -1966,9 +1966,9 @@ class TestDerivedParameterNode(unittest.TestCase):
         '''
         array = np.ma.arange(10)
         slices_between.return_value = (array, [slice(0, 10)])
-        param = DerivedParameterNode('Param', array=array)
+        param = DerivedParameterNode('Param', array=array, frequency=0.25)
         slices = param.slices_between(5, 15)
-        slices_between.assert_called_once_with(array, 5, 15)
+        slices_between.assert_called_once_with(array, 5, 15, frequency=0.25)
         self.assertEqual(slices, slices_between.return_value[1])
 
     @mock.patch('analysis_engine.node.slices_from_to')

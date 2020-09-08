@@ -6389,21 +6389,24 @@ def slice_samples(_slice):
         return (abs(_slice.stop - _slice.start) - 1) // abs(step) + 1
 
 
-def slices_above(array, value):
+def slices_above(array, value, frequency=1):
     '''
-    Get slices where the array is above value. Repairs the mask to avoid a
+    Get slices where the array is equal or above value. Repairs the mask to avoid a
     large number of slices being created.
 
     :param array:
     :type array: np.ma.masked_array
     :param value: Value to create slices above.
     :type value: float or int
+    :param frequency: parameter frequency. Used to repair the array for 10 seconds.
+    :type frequency: float or int
     :returns: Slices where the array is above a certain value.
     :rtype: list of slice
     '''
     if len(array) == 0:
         return array, []
-    repaired_array = repair_mask(array)
+
+    repaired_array = repair_mask(array, frequency=frequency)
     if repaired_array is None: # Array length is too short to be repaired.
         return array, []
     band = np.ma.masked_less(repaired_array, value)
@@ -6411,21 +6414,24 @@ def slices_above(array, value):
     return repaired_array, slices
 
 
-def slices_below(array, value):
+def slices_below(array, value, frequency=1):
     '''
-    Get slices where the array is below value. Repairs the mask to avoid a
+    Get slices where the array is equal or below value. Repairs the mask to avoid a
     large number of slices being created.
 
     :param array:
     :type array: np.ma.masked_array
     :param value: Value to create slices below.
     :type value: float or int
+    :param frequency: parameter frequency. Used to repair the array for 10 seconds.
+    :type frequency: float or int
     :returns: Slices where the array is below a certain value.
     :rtype: list of slice
     '''
     if len(array) == 0:
         return array, []
-    repaired_array = repair_mask(array)
+
+    repaired_array = repair_mask(array, frequency=frequency)
     if repaired_array is None: # Array length is too short to be repaired.
         return array, []
     band = np.ma.masked_greater(repaired_array, value)
@@ -6433,10 +6439,11 @@ def slices_below(array, value):
     return repaired_array, slices
 
 
-def slices_between(array, min_, max_):
+def slices_between(array, min_, max_, frequency=1):
     '''
-    Get slices where the array's values are between min_ and max_. Repairs
-    the mask to avoid a large number of slices being created.
+    Get slices where the array's values are strictly between min_ and max_.
+    Values equal to min_ or max_ are excluded from the slices.
+    Repairs the mask to avoid a large number of slices being created.
 
     :param array:
     :type array: np.ma.masked_array
@@ -6444,13 +6451,15 @@ def slices_between(array, min_, max_):
     :type min_: float or int
     :param max_: Maximum value within slices.
     :type max_: float or int
+    :param frequency: parameter frequency. Used to repair the array for 10 seconds.
+    :type frequency: float or int
     :returns: Slices where the array is above a certain value.
     :rtype: list of slice
     '''
     if np.ma.count(array) == 0:
         return array, []
     try:
-        repaired_array = repair_mask(array)
+        repaired_array = repair_mask(array, frequency=frequency)
     except ValueError:
         # data is entirely masked or too short to be repaired
         return array, []

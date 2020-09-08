@@ -712,7 +712,7 @@ class DerivedParameterNode(Node):
         :returns: Slices where the array is above a certain value.
         :rtype: list of slice
         '''
-        return slices_above(self.array, value)[1]
+        return slices_above(self.array, value, frequency=self.frequency)[1]
 
     def slices_below(self, value):
         '''
@@ -725,7 +725,7 @@ class DerivedParameterNode(Node):
         :returns: Slices where the array is below a certain value.
         :rtype: list of slice
         '''
-        return slices_below(self.array, value)[1]
+        return slices_below(self.array, value, frequency=self.frequency)[1]
 
     def slices_between(self, min_, max_):
         '''
@@ -739,7 +739,7 @@ class DerivedParameterNode(Node):
         :returns: Slices where the array is within min_ and max_.
         :rtype: list of slice
         '''
-        return slices_between(self.array, min_, max_)[1]
+        return slices_between(self.array, min_, max_, frequency=self.frequency)[1]
 
     def slices_from_to(self, from_, to, threshold=0.1):
         '''
