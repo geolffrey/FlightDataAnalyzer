@@ -8919,11 +8919,11 @@ class TestQNHDifferenceDuringApproach(unittest.TestCase):
     def test_derive_multiple_app(self):
         alt_qnh = P(name='Altitude QNH',
                     array=np.ma.array([
-                        1516, 1496, 1466, 1436, 1446, 1466,    # Go around
-                        1391, 1361, 1341, 1321, 1301, 1281]))  #  Landing
+                        1336, 1301, 1281, 1241, 1251, 1271,    # Go around
+                        1391, 1361, 1341, 1321, 1301, 1281]))  # Landing
         alt_aal = P('Altitude AAL',
                     array=np.ma.array([
-                        300, 280, 250, 220, 230, 250,  # Go around
+                        110, 80, 60, 20, 30, 50,       # Go around
                         110, 80, 60, 40, 20, 0]))      # Landing
         apps = App('Approach Information',
                    items=[ApproachItem('GO-AROUND', slice(0, 5), airport=self.airport,
@@ -8936,10 +8936,32 @@ class TestQNHDifferenceDuringApproach(unittest.TestCase):
         self.assertEqual(len(node), 2)
         # 60 ft below is roughly 2 mBar difference
         self.assertAlmostEqual(node[0].value, -2, delta=0.2)
-        self.assertEqual(node[0].index, 3)
+        self.assertAlmostEqual(node[0].index, 0.33, delta=0.01)
         # Second approach had only 5 ft diff. Almost 0 mBar difference
         self.assertAlmostEqual(node[1].value, 0, delta=0.2)
         self.assertAlmostEqual(node[1].index, 7, delta=0.01)
+
+    def test_first_app_go_around_above_100ft(self):
+        alt_qnh = P(name='Altitude QNH',
+                    array=np.ma.array([
+                        2336, 2301, 2281, 2241, 2251, 2271,    # Go around
+                        1391, 1361, 1341, 1321, 1301, 1281]))  # Landing
+        alt_aal = P('Altitude AAL',
+                    array=np.ma.array([
+                        1110, 1080, 1060, 1020, 1030, 1050,       # Go around
+                        110, 80, 60, 40, 20, 0]))      # Landing
+        apps = App('Approach Information',
+                   items=[ApproachItem('GO-AROUND', slice(0, 5), airport=self.airport,
+                                       landing_runway=None, approach_runway=self.runway),
+                          ApproachItem('LANDING', slice(6, 12), airport=self.airport,
+                                       landing_runway=self.runway, approach_runway=self.runway)])
+
+        node = self.node_class()
+        node.derive(alt_qnh, alt_aal, apps)
+        self.assertEqual(len(node), 1)
+        # Second approach had only 5 ft diff. Almost 0 mBar difference
+        self.assertAlmostEqual(node[0].value, 0, delta=0.2)
+        self.assertAlmostEqual(node[0].index, 6 + 1/3., delta=0.01)
 
     def test_missing_app_rwy_info(self):
         alt_qnh = P(name='Altitude QNH',
