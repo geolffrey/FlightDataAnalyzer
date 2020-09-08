@@ -228,12 +228,17 @@ class ClimbStart(KeyTimeInstanceNode):
 
 class ClimbAccelerationStart(KeyTimeInstanceNode):
     '''
-    Creates KTI on first change in Airspeed Selected during initial climb to
-    indicate the start of the acceleration phase of climb
+    TODO review description
+    Creates KTI on first signs of acceleration.
 
-    Alignment is performed manually because Airspeed Selected can be recorded at
-    a very low frequency and interpolation will render the find_edges algorithm
-    useless.
+    In order of preference it will be determined by:
+    - A significant increase of Airspeed Selected with the flaps not set to 0
+    - A significant rise in Airspeed prior to the first flap retraction below 5,000 ft
+    - A change in Throttle Lever position for jet engines below 4,000 ft
+    - A change in Eng Np Max for propeller engines below 4,000 ft
+    - Defaults to 800 ft for jets and 400 ft for prop
+
+    Alignment is performed manually! This allows to check actual params frequency.
 
     Dynamically create rate_of_change width from the parameter's frequency to
     avoid errors. Larger widths flatten the rate of change result.
@@ -243,7 +248,8 @@ class ClimbAccelerationStart(KeyTimeInstanceNode):
     @classmethod
     def can_operate(cls, available, eng_type=A('Engine Propulsion')):
         spd_sel = 'Airspeed Selected' in available
-        spd = all_of(('Airspeed', 'Flap Lever Set'), available)
+        spd = any_of(('Flap Lever', 'Flap Lever (Synthetic)'), available) and \
+              'Airspeed' in available
         jet = (eng_type and eng_type.value == 'JET' and
                'Throttle Levers' in available)
         prop = (eng_type and eng_type.value == 'PROP' and
@@ -253,134 +259,289 @@ class ClimbAccelerationStart(KeyTimeInstanceNode):
                (spd_sel or spd or jet or prop or alt) and \
                not (eng_type and eng_type.value == 'ROTOR')
 
-
     def derive(self, alt_aal=P('Altitude AAL For Flight Phases'),
                initial_climbs=S('Initial Climb'),
                alt_climbing=KTI('Altitude When Climbing'),
                spd_sel=P('Airspeed Selected'),
+               spd_tgt=P('Airspeed Target'),
                spd_sel_fmc=P('Airspeed Selected (FMC)'),
                eng_type=A('Engine Propulsion'),
                eng_np=P('Eng (*) Np Max'),
                throttle=P('Throttle Levers'),
                spd=P('Airspeed'),
-               flap=KTI('Flap Lever Set')):
+               flap_lever=M('Flap Lever'),
+               flap_synth=M('Flap Lever (Synthetic)'),
+               family=A('Family')):
 
         if not initial_climbs.get_first():
             return
+        flap = flap_lever or flap_synth
 
-        if spd_sel and spd_sel.frequency >= 0.125:
-            # Use first Airspeed Selected change in Initial Climb up to 4000 Ft
-            _slice = initial_climbs.get_aligned(spd_sel).get_first().slice
-            climbing_4000 = alt_climbing.get_aligned(spd_sel).get(name='4000 Ft Climbing').get_first()
-            _slice = slice(_slice.start, int(climbing_4000.index) if climbing_4000 else _slice.stop)
+        if self.derive_from_spd_sel(spd_tgt, spd_sel, initial_climbs, alt_climbing, spd_sel_fmc, flap, family):
+            return
 
-            def index_at_first_spd_sel_change():
-                for spd_ref in (spd_sel, spd_sel_fmc):
-                    if spd_ref is None:
-                        continue
-                    spd_ref.array = spd_ref.array[_slice]
+        if self.derive_from_spd_and_flap(flap, spd, initial_climbs, alt_climbing):
+            return
 
-                    spd_ref_threshold = 5 * spd_ref.frequency
-                    spd_ref_roc = rate_of_change(spd_ref, 2 * (1 / spd_ref.frequency))
-                    index = index_at_value(spd_ref_roc, spd_ref_threshold)
-                    if index:
-                        yield index, spd_ref.frequency, spd_ref.offset
+        if self.derive_from_throttle(eng_type, throttle, initial_climbs, alt_climbing):
+            return
 
-            try:
-                index, frequency, offset = min(index_at_first_spd_sel_change())
-            except ValueError:
-                # No index was found
-                index = None
+        if self.derive_from_eng_np(eng_type, eng_np, initial_climbs, alt_climbing):
+            return
 
-            if index:
-                self.frequency = frequency
-                self.offset = offset
-                self.create_kti(index + (_slice.start or 0))
-                return
+        self.derive_from_alt_aal(alt_aal, eng_type, initial_climbs)
 
-        if spd and flap:
-            # Base on airspeed increase after first flap retraction
-            # Align to Airspeed.
-            _slice = initial_climbs.get_aligned(spd).get_first().slice
-            climbing_4000 = alt_climbing.get_aligned(spd).get(name='4000 Ft Climbing').get_first()
-            if climbing_4000:
-                _slice = slice(_slice.start, int(climbing_4000.index))
+    def derive_from_spd_sel(self, spd_tgt, spd_sel, initial_climbs, alt_climbing, spd_sel_fmc, flap, family):
+        if spd_sel is None:
+            return False
+        if spd_sel.frequency < 0.125:
+            return False
+        if flap:
+            flap = flap.get_aligned(spd_sel)
+        # Use first Airspeed Selected change in Initial Climb up to 4000 Ft
+        _slice = slices_int(initial_climbs.get_aligned(spd_sel).get_first().slice)
+        climbing_4000 = alt_climbing.get_aligned(spd_sel).get(name='4000 Ft Climbing').get_first()
+        _slice = slice(_slice.start, int(climbing_4000.index) if climbing_4000 else _slice.stop)
 
-            # Find when flaps were first being retracted
-            flap = flap.get_aligned(spd)
-            flap_retraction = flap.get_next(_slice.start, within_slice=_slice)
-            if flap_retraction is not None:
-                # Find when the airspeed started to increase after first
-                # flap retraction
-                slice_stop = int(flap_retraction.index)
-                spd_array = spd.array[_slice.start:slice_stop]
-                spd_avg = moving_average(spd_array, window=7)
-                diff = np.ma.ediff1d(spd_avg)
-                if not len(diff):
-                    return  # TODO: should we create a KTI in this case?
-                # Scanning from right to left, we determine when the speed
-                # stopped decreasing. Ths is the point where the speed started
-                # to increase when looking from left to right.
-                # Negative index as we are looking from the end
-                lowest_spd_idx = - np.ma.argmax(diff[::-1] <= 0.0)
-                index = (slice_stop or len(spd_array)) + lowest_spd_idx
-                self.frequency = spd.frequency
-                self.offset = spd.offset
-                self.create_kti(index)
-                return
+        def index_at_first_spd_sel_change(spd_refs, _slice, flap):
+            '''
+            Generator that produces for each speed references the index, frequency and
+            offset where the speed  jumped by at least 8 kts for a minimum of 5
+            consecutive samples. This allows to filter out any short term changes.
 
-        if eng_type:
-            if eng_type.value == 'JET':
-                if throttle:
-                    # Base on first engine throttle change after liftoff.
-                    # Align to throttle.
-                    _slice = initial_climbs.get_aligned(throttle).get_first().slice
-                    climbing_4000 = alt_climbing.get_aligned(throttle).get(name='4000 Ft Climbing').get_first()
-                    _slice = slice(_slice.start, int(climbing_4000.index) if climbing_4000 else _slice.stop)
-                    # XXX: Width is too small for low frequency params.
-                    throttle.array = throttle.array[_slice]
-                    throttle_threshold = 2 / throttle.frequency
-                    throttle_roc = np.ma.abs(rate_of_change(throttle, 2 * (1 / throttle.frequency)))
-                    index = index_at_value(throttle_roc, throttle_threshold)
-                    if index:
-                        self.frequency = throttle.frequency
-                        self.offset = throttle.offset
-                        self.create_kti(index + (_slice.start or 0))
-                        return
+            In case of masked data, it will determine the index of the first valid sample
+            which had an increase of 8 kts for 5 samples.
+            '''
+            for spd_ref in spd_refs:
+                if spd_ref is None:
+                    continue
+                array = spd_ref.array[_slice]
+                if array.size < 6 or array.mask.all():
+                    # Size must be at least 6 samples as the np.diff will produce one
+                    # less value and we want to observe a change over 5 samples.
+                    continue
+                array = repair_mask(
+                    array, frequency=spd_ref.hz, repair_duration=300,
+                    copy=True, method='fill_start'
+                )
+                diff = np.ma.diff(array)
+                # The threshold is 8 kt per samples, except for high frequency params
+                # where we want to guarantee a threshold of 8 kt per seconds.
+                diff_threshold = 8 / max(1, spd_ref.hz)
+                # We want to find where the diff is above threshold and the sum of 5
+                # consecutive samples is still above our threshold
+                diff_sliding_window = np.lib.stride_tricks.as_strided(
+                    diff, shape=(diff.size-5, 5),
+                    strides=(diff.strides[0], diff.strides[0]),
+                    writeable=False
+                )
+                # Make diff the same length as diff_sliding_window
+                diff = diff[:-5]
+                # Find the indices of significant increase. nonzero returns a tuple
+                # with a single item as we have only 1D data.
+                increase_idxs, *_ = np.ma.nonzero(diff > diff_threshold)
+                # Sum over 5 consecutive samples wherever we had a significant increase
+                spd_increase = np.ma.sum(diff_sliding_window[increase_idxs], axis=1)
+                # Find which sliding window sum stayed above threshold, ie. the spd
+                # stayed at least 8 kt above its original value.
+                long_term_increases, *_ = np.ma.nonzero(spd_increase > diff_threshold)
+                # Get the diff indices which were sustained for 5 samples
+                indices = increase_idxs[long_term_increases]
 
-                alt = 800
+                if indices.size:
+                    index = nearest_to_flap_retraction(indices, _slice, flap)
+                    yield index, spd_ref.frequency, spd_ref.offset
 
-            elif eng_type.value == 'PROP':
-                if eng_np:
-                    # Base on first Np drop after liftoff.
-                    # Align to Np.
-                    _slice = initial_climbs.get_aligned(eng_np).get_first().slice
-                    climbing_4000 = alt_climbing.get_aligned(eng_np).get(name='4000 Ft Climbing').get_first()
-                    if climbing_4000:
-                        _slice = slice(_slice.start, int(climbing_4000.index))
-                    # XXX: Width is too small for low frequency params.
-                    eng_np.array = hysteresis(eng_np.array[_slice], 4 / eng_np.hz)
-                    eng_np_threshold = -0.5 / eng_np.frequency
-                    eng_np_roc = rate_of_change(eng_np, 2 * (1 / eng_np.frequency))
-                    index = index_at_value(eng_np_roc, eng_np_threshold)
-                    if index:
-                        self.frequency = eng_np.frequency
-                        self.offset = eng_np.offset
-                        self.create_kti(index + (_slice.start or 0))
-                        return
+        def nearest_to_flap_retraction(indices, _slice, flap):
+            '''
+            Find the index in indices which is the nearest to the first flap retraction
+            within the _slice.
 
-                alt = 400
+            The nearest index must be before the first flap retraction.
+            If for any reasons, no index before the first flap retraction can be found,
+            we return the first index in indices.
+            '''
+            if not flap:
+                return indices[0]
+            flap_array = flap.array[_slice]
+            flap_retraction = find_edges_on_state_change(
+                flap.array[int(_slice.start)], flap_array, change='leaving',
+            )
+            if not flap_retraction:
+                return indices[0]
 
-            # Base on crossing altitude threshold.
-            if alt_aal:
-                self.frequency = alt_aal.frequency
-                self.offset = alt_aal.offset
-                ics = initial_climbs.get_aligned(alt_aal)
-                if ics.get_slices():
-                    _slice = ics.get_first().slice
-                    index = index_at_value(alt_aal.array, alt, _slice=_slice)
-                    if index:
-                        self.create_kti(index)
+            flap_retraction = int(flap_retraction[0])
+            if flap_array.raw[flap_retraction] < flap_array.raw[flap_retraction + 1]:
+                return indices[0]
+
+            dist = flap_retraction - indices
+            dist = np.where(dist < 0, np.inf, dist)
+            index = indices[np.argmin(dist)]
+            return index
+
+
+        # If Airspeed Target available for B787, ignore the others.
+        if family and family.value=='B787' and spd_tgt and not spd_tgt.array.mask.all():
+            spd_tgt = spd_tgt.get_aligned(spd_sel)
+            spd_refs = [spd_tgt]
+        else:
+            # Align to spd_sel
+            spd_sel_fmc = spd_sel_fmc.get_aligned(spd_sel) if spd_sel_fmc else None
+            spd_refs = [spd_sel, spd_sel_fmc]
+
+        try:
+            index, frequency, offset = min(
+                index_at_first_spd_sel_change(spd_refs, _slice, flap)
+            )
+        except ValueError:
+            # No index was found
+            return False
+
+        index = index + (_slice.start or 0)
+        if flap:
+            # Make sure Airpseed Selected increased with some flaps selected
+            if flap.array[int(index)] in ('0', 'Lever 0'):
+                return False
+
+        self.frequency = frequency
+        self.offset = offset
+        self.create_kti(index)
+        return True
+
+    def derive_from_spd_and_flap(self, flap, spd, initial_climbs, alt_climbing):
+        if spd is None or flap is None:
+            return False
+
+        # Based on airspeed increase after first flap retraction
+        # Align to Airspeed.
+        _slice = slices_int(initial_climbs.get_aligned(spd).get_first().slice)
+        climbing_5000 = alt_climbing.get_aligned(spd).get(name='5000 Ft Climbing').get_first()
+        if climbing_5000:
+            _slice = slice(_slice.start, int(climbing_5000.index))
+
+        # Find when flaps were first being retracted
+        flap = flap.get_aligned(spd)
+        flap_retraction = find_edges_on_state_change(
+            flap.array[int(_slice.start)], flap.array, change='leaving',
+            phase=[_slice]
+        )
+        if not flap_retraction:
+            return False
+
+        flap_retraction = int(flap_retraction[0])
+        if flap.array.raw[flap_retraction] < flap.array.raw[flap_retraction + 1]:
+            # This was a flap extension. Don't know what happened.
+            return False
+
+        # Find when the airspeed started to increase after first flap retraction
+        spd_array = spd.array[_slice.start:flap_retraction]
+        spd_avg = moving_average(spd_array, window=11)
+        diff = np.ma.ediff1d(spd_avg)
+        if not len(diff):
+            return False
+
+        # Scanning from right to left
+        diff_reversed = diff[::-1]
+        # Find the first time airspeed was significantly increasing
+        first_incr_idx = np.ma.argmax(diff_reversed > 0.2)
+        # We determine when the speed started to increase, which is the moment
+        # when airspeed stopped to decrease.
+        lowest_spd_idx = np.ma.argmax(diff_reversed[first_incr_idx:] < 0.0) + first_incr_idx
+
+        # Substract lowest_spd_idx as we are looking from the end
+        index = (flap_retraction or len(spd_array)) - lowest_spd_idx
+        if spd.array[flap_retraction] - spd.array[index] < 5:
+            # Too small acceleration. We bail out from here.
+            return False
+
+        # We move the index 3 seconds earlier in time, taking into account
+        # it took some time for the pilots to lower the pitch before we could
+        # measure an acceleration.
+        index -= 3 * spd.frequency
+        self.frequency = spd.frequency
+        self.offset = spd.offset
+        self.create_kti(index)
+        return True
+
+    def derive_from_throttle(self, eng_type, throttle, initial_climbs, alt_climbing):
+        if eng_type is None or eng_type.value != 'JET':
+            return False
+
+        if throttle is None:
+            return False
+
+        # Base on first engine throttle change after liftoff.
+        # Align to throttle.
+        _slice = slices_int(initial_climbs.get_aligned(throttle).get_first().slice)
+        climbing_4000 = alt_climbing.get_aligned(throttle).get(name='4000 Ft Climbing').get_first()
+        _slice = slice(_slice.start, int(climbing_4000.index) if climbing_4000 else _slice.stop)
+        # XXX: Width is too small for low frequency params.
+        throttle.array = throttle.array[_slice]
+        throttle_threshold = 2 / throttle.frequency
+        throttle_roc = np.ma.abs(rate_of_change(throttle, 2 * (1 / throttle.frequency)))
+        index = index_at_value(throttle_roc, throttle_threshold)
+        if index is None:
+            return False
+
+        self.frequency = throttle.frequency
+        self.offset = throttle.offset
+        self.create_kti(index + (_slice.start or 0))
+        return True
+
+    def derive_from_eng_np(self, eng_type, eng_np, initial_climbs, alt_climbing):
+        if eng_type is None or eng_type.value != 'PROP':
+            return False
+
+        if eng_np is None:
+            return False
+
+        # Base on first Np drop after liftoff.
+        # Align to Np.
+        _slice = slices_int(initial_climbs.get_aligned(eng_np).get_first().slice)
+        climbing_4000 = alt_climbing.get_aligned(eng_np).get(name='4000 Ft Climbing').get_first()
+        if climbing_4000:
+            _slice = slice(_slice.start, int(climbing_4000.index))
+        # XXX: Width is too small for low frequency params.
+        eng_np.array = hysteresis(eng_np.array[_slice], 4 / eng_np.hz)
+        eng_np_threshold = -0.5 / eng_np.frequency
+        eng_np_roc = rate_of_change(eng_np, 2 * (1 / eng_np.frequency))
+        index = index_at_value(eng_np_roc, eng_np_threshold)
+        if index is None:
+            return False
+
+        self.frequency = eng_np.frequency
+        self.offset = eng_np.offset
+        self.create_kti(index + (_slice.start or 0))
+        return True
+
+    def derive_from_alt_aal(self, alt_aal, eng_type, initial_climbs):
+        if eng_type is None:
+            return False
+
+        if eng_type.value == 'JET':
+            alt = 800
+        elif eng_type.value == 'PROP':
+            alt = 400
+        else:
+            return False
+
+        # Base on crossing altitude threshold.
+        if alt_aal is None:
+            return False
+
+        self.frequency = alt_aal.frequency
+        self.offset = alt_aal.offset
+        ics = initial_climbs.get_aligned(alt_aal)
+        if ics.get_slices() is None:
+            return False
+
+        _slice = ics.get_first().slice
+        index = index_at_value(alt_aal.array, alt, _slice=_slice)
+        if index is None:
+            return False
+
+        self.create_kti(index)
+        return True
 
 
 class ClimbThrustDerateDeselected(KeyTimeInstanceNode):
