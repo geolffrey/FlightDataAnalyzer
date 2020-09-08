@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import numpy as np
+from scipy.signal import find_peaks
 import six
 
 from math import ceil, floor
@@ -1640,21 +1641,64 @@ class TouchAndGo(KeyTimeInstanceNode):
 
 class Touchdown(KeyTimeInstanceNode):
     '''
-    Touchdown is notoriously difficult to identify precisely, and a
-    suggestion from a Boeing engineer was to add a longitudinal acceleration
-    term as there is always an instantaneous drag when the mainwheels touch.
+    Touchdown is notoriously difficult to identify precisely, and a suggestion from a
+    Boeing engineer was to add a longitudinal acceleration term as there is always an
+    instantaneous drag when the mainwheels touch.
 
-    This was added in the form of three triggers, one detecting the short dip
-    in Ax, a second for the point of onset of deceleration and a third for
-    braking deceleration.
+    This was added in the form of three triggers, one detecting the short dip in Ax,
+    a second for the point of onset of deceleration and a third for braking deceleration
+    during a scanning period.
 
-    So, we look for the weight on wheels switch if this is the first indication,
-    or the second indication of:
-    * Zero feet AAL (normally derived from the radio altimeter)
-    * Sudden rise in normal acceleration bumping the ground
-    * Significant product of two samples of normal acceleration (correlating to a sudden drop in descent rate)
-    * A transient reduction in longitudinal acceleration as the wheels first spin up
-    * A large reduction in longitudinal acceleration when braking action starts
+    The scanning period should encompass the touchdown point. It is determined by a
+    start and stop. The scanning period start is defined as the first value found in the
+    given order:
+
+    - 5 ft Radio altitude before Altitude AAL reads 0 (if Altitude Radio is available)
+    - 30 ft Altitude AAL before Altitude AAL reads 0
+    - 10 seconds before Altitude AAL reads 0 or Gear On Ground is "Ground" whichever
+      comes first.
+
+    The scanning period stop is defined as the first value found in the given order:
+
+    - If both Altitude AAL reads 0 and Gear On Ground shows "Ground" we take the
+      last occurence and add 3 seconds.
+    - If any of Altitude AAL reading 0 or Gear On Ground showing "Ground" is missing,
+      we take the one we have and add 10 seconds to it. We do that as we want to make
+      sure we capture the peak deceleration when braking.
+
+    Within that scanning period, we look for our three longitudinal accelerations:
+    - The first negative peak (downward pointing peak) with a significant prominence
+    - The largest change in accel long (highest jerk)
+    - From the point with the largest negative accel long, scanning backward, find the
+      point where accel long was first negative (first point where significant braking
+      was applied)
+
+    Within the scanning period, we look for narrow peaks in acceleration normal with a
+    prominence of at least 0.1g. We must find at least 2 peaks in order to estimate the
+    touchdown.
+    If we have 2 or more peaks and if we have Altitude Radio, we are confident that the
+    first detected peak is our point of interest. Without Altitude Radio, the scanning
+    period could have started much earlier and we will select the most prominent peak
+    as our point of interest.
+
+    We sort by time of occurence our different measurements:
+    - Altitude AAL reads 0
+    - Gear On Ground shows "Ground"
+    - first negative peak in Acceleration Longitudinal
+    - largest change in Acceleration Longitudinal
+    - first point with significant braking applied
+    - Prominent peak in Acceleration Normal
+
+    and we take the second sorted item as our touchdown point.
+
+    If we have Gear On Ground, we verify that our point happened before Gear On Ground
+    indicated "Ground", otherwise we will choose Gear On Ground shows "Ground" as our
+    touchdown point.
+
+    If we do *not* have Altitude Radio, we know that we have chosen the most prominent
+    peak for Acceleration Normal. So we verify that our touchdown point did not happen
+    after, otherwise we will choose the most prominent peak in Acceleration Normal as
+    our touchdown point.
 
     http://www.flightdatacommunity.com/when-does-the-aircraft-land/
     '''
@@ -1708,8 +1752,7 @@ class Touchdown(KeyTimeInstanceNode):
 
             # initialise within loop as we dont want to carry indexes into the next landing
             index_gog = index_wheel_touch = index_brake = index_decel = None
-            index_dax = index_z = index_az = index_daz = None
-            peak_ax = peak_az = delta = 0.0
+            index_az = None
 
             # We have to have an altitude signal, so this forms an initial
             # estimate of the touchdown point.
@@ -1738,87 +1781,96 @@ class Touchdown(KeyTimeInstanceNode):
                 if flap_change_idx:
                     index_gog = int(flap_change_idx) + land.slice.start
 
-            index_ref = min([x for x in (index_alt, index_gog) if x is not None])
+            index_alt_gog = sorted(x for x in (index_alt, index_gog) if x is not None)
+            if not index_alt_gog:
+                continue
+            # Index of first of either Altitude AAL 0 or Gear On Ground
+            index_ref = index_alt_gog[0]
 
             # With an estimate from the height and perhaps gear switch, set
-            # up a period to scan across for accelerometer based
-            # indications...
-            period_end = int(ceil(index_ref + dt_post * hz))
-            period_start = max(floor(index_ref - dt_pre * hz), 0)
+            # up a period to scan across for accelerometer based indications.
+            # The start is either 5 ft radio alt, 30 ft pressure altitude or 10 sec
+            # before Altitude AAL shows 0, whichever is available in that order.
+            # The end is the last of Alitude AAL at 0 or Gear on Ground plus 3 sec. If
+            # Gear On Ground is not available, we will extend the end to Altitude AAL
+            # plus 10 sec.
             if alt_rad:
                 # only look for 5ft altitude if Radio Altitude is recorded,
                 # due to Altitude STD accuracy and ground effect.
-                alt_rad_start = index_at_value(alt.array, 5, _slice=slice(period_end, period_start, -1))
-                if alt_rad_start is not None:
-                    period_start = alt_rad_start
+                alt_start = index_at_value(
+                    alt.array, 5, _slice=slice(index_alt, land.slice.start, -1)
+                )
+            else:
+                # look for 30ft pressure altitude to make sure we don't miss the peak
+                # acceleration normal at touchdown
+                alt_start = index_at_value(
+                    alt.array, 30, _slice=slice(index_alt, land.slice.start, -1)
+                )
+
+            if alt_start is not None:
+                period_start = alt_start
+            else:
+                # defaults to 10 seconds before the reference point
+                period_start = max(floor(index_ref - dt_pre * hz), 0)
+
+            if len(index_alt_gog) > 1:
+                period_end = int(ceil(index_alt_gog[1] + dt_post * hz))
+            else:
+                # Without gear on ground, we want to extend the scanning period
+                # to the right as we want to capture the peak deceleration when braking.
+                # So we use dt_pre also for the end section which is 10 seconds.
+                period_end = int(ceil(index_ref + dt_pre * hz))
+
             period = slice(period_start, period_end)
 
             if acc_long:
-                drag = np.ma.copy(acc_long.array[slices_int(period)])
-                drag = np.ma.where(drag > 0.0, 0.0, drag)
-
+                drag = acc_long.array[slices_int(period)]
                 # Look for inital wheel contact where there is a sudden spike in Ax.
+                # Looking for a downward pointing "V" shape over half the Az sample rate.
+                # This is a common feature at the point of wheel touch.
+                # Look at scipy.signal.find_peaks documentation for a full description
+                # of peak width, relative height and prominence.
+                # https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.find_peaks.html
+                # The peak width will be wider with greater sample rate. But limit it for
+                # high sample rates nevertheless. We want to capture narrow peaks.
+                peak_width = min(1.1 * self.hz, 4.5)
+                peaks_idx, peaks_props = find_peaks(
+                    -drag, width=(None, peak_width), rel_height=0.5, prominence=0.015
+                )
+                if peaks_idx.size:
+                    index_wheel_touch = peaks_idx[0] + period.start
 
-                touch = np_ma_masked_zeros_like(drag)
-                for i in range(2, len(touch)-2):
-                    # Looking for a downward pointing "V" shape over half the
-                    # Az sample rate. This is a common feature at the point
-                    # of wheel touch.
-                    touch[i-2] = max(0.0,drag[i-2]-drag[i]) * max(0.0,drag[i+2]-drag[i])
-                peak_ax = np.max(touch)
-                # Only use this if the value was significant.
-                if peak_ax>0.0005:
-                    ix_ax2 = np.argmax(touch)
-                    ix_ax = ix_ax2
-                    # See if this was the second of a pair, with the first a little smaller.
-                    if np.ma.count(touch[:ix_ax2]) > 0:
-                        # I have some valid data to scan
-                        ix_ax1 = np.argmax(touch[:ix_ax2])
-                        if touch[ix_ax1] > peak_ax*0.2:
-                            # This earlier touch was a better guess.
-                            peak_ax = touch[ix_ax1]
-                            ix_ax = ix_ax1
-
-                    index_wheel_touch = ix_ax+1+period.start
-
-                # Look for the onset of braking
-                index_brake = np.ma.argmin(rate_of_change_array(drag, hz))
+                # Look for the onset of braking, ie. the largest change in drag
+                decel_roc = rate_of_change_array(drag, hz)
+                index_brake = np.ma.argmin(decel_roc)
                 if index_brake:
                     index_brake += period.start
 
-                # Look for substantial deceleration
-
-                index_decel = index_at_value(drag, -0.1)
+                # Look for start of maximum deceleration
+                decel_idx = np.ma.argmin(drag)
+                # Where did it start?
+                index_decel = index_at_value(
+                    decel_roc, 0.0, slice(decel_idx-1, 0, -1), endpoint='first_closing'
+                )
                 if index_decel:
                     index_decel += period.start
 
             if acc_norm:
                 lift = acc_norm.array[slices_int(period)]
-                mean = np.mean(lift)
-                lift = np.ma.masked_less(lift-mean, 0.0)
-                bump = np_ma_masked_zeros_like(lift)
-
+                peak_width = min(1.5 * self.hz, 6)
+                peaks_idx, peaks_props = find_peaks(
+                    lift, width=(None, peak_width), rel_height=0.5, prominence=0.1
+                )
                 # A firm touchdown is typified by at least two large Az samples.
-                for i in range(1, len(bump)-1):
-                    bump[i-1]=lift[i]*lift[i+1]
-                peak_az = np.max(bump)
-                if peak_az > 0.1:
-                    index_az = np.argmax(bump)+period.start
-                else:
-                    # In the absence of a clear touchdown, contact can be
-                    # indicated by an increase in g of more than 0.075
-                    for i in range(0, len(lift)-1):
-                        if lift[i] and lift[i+1]:
-                            delta=lift[i+1]-lift[i]
-                            if delta > 0.075:
-                                index_daz = i+1+period.start
-                                break
-
-            # Pick the first of the two normal accelerometer measures to
-            # avoid triggering a touchdown from a single faulty sensor:
-            index_z_list = [x for x in (index_az, index_daz) if x is not None]
-            if index_z_list:
-                index_z = min(index_z_list)
+                if len(peaks_idx) > 1:
+                    if not alt_rad:
+                        # The scan period is large so only use the most prominent peak
+                        most_prominent = np.argmax(peaks_props['prominences'])
+                        index_az = peaks_idx[most_prominent] + period.start
+                    else:
+                        # We're more confident that the first peak detected will be the
+                        # touchdown point in this case.
+                        index_az = peaks_idx[0] + period.start
 
             # ...then collect the valid estimates of the touchdown point...
             index_list = sorted_valid_list([index_alt,
@@ -1826,12 +1878,10 @@ class Touchdown(KeyTimeInstanceNode):
                                             index_wheel_touch,
                                             index_brake,
                                             index_decel,
-                                            index_dax,
-                                            index_z])
+                                            index_az])
 
             # ...to find the best estimate...
             # If we have lots of measures, bias towards the earlier ones.
-            #index_tdn = np.median(index_list[:4])
             if len(index_list) == 0:
                 # No clue where the aircraft landed. Give up.
                 return
@@ -1844,13 +1894,17 @@ class Touchdown(KeyTimeInstanceNode):
                 # ensure detected touchdown point is not after Gear on Ground indicates on ground
                 if index_gog:
                     index_tdn = min(index_tdn, index_gog)
+                # without radio altitude, we've selected the most prominent normal accel
+                # ensure touchdown point is not after this.
+                if alt_rad is None and index_az:
+                    index_tdn = min(index_tdn, index_az)
 
-            # self.create_kti(index_tdn)
+
             self.info("Touchdown: Selected index: %s @ %sHz. Complete list (index_alt: %s, "\
                       "index_gog: %s, index_wheel_touch: %s,  index_brake: %s, "\
-                      "index_decel: %s, index_dax: %s, index_z: %s)",
+                      "index_decel: %s, index_az: %s)",
                       index_tdn, self.frequency, index_alt, index_gog, index_wheel_touch,
-                      index_brake, index_decel, index_dax, index_z)
+                      index_brake, index_decel, index_az)
             self.create_kti(index_tdn)
 
             '''
