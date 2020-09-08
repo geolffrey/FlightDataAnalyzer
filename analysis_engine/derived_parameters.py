@@ -60,6 +60,7 @@ from analysis_engine.library import (
     index_at_value,
     interpolate,
     is_index_within_slice,
+    is_slice_within_slice,
     last_valid_sample,
     latitudes_and_longitudes,
     localizer_scale,
@@ -8349,6 +8350,7 @@ class Vref(DerivedParameterNode):
             'Airspeed',
             'V1-Vref',
             'Approach And Landing',
+            'Final Approach'
         ), available)
 
         return afr or embraer
@@ -8357,24 +8359,33 @@ class Vref(DerivedParameterNode):
                airspeed=P('Airspeed'),
                v1_vref=P('V1-Vref'),
                afr_vref=A('AFR Vref'),
-               approaches=S('Approach And Landing')):
+               app_lands=S('Approach And Landing'),
+               final_apps=S('Final Approach')):
 
         # Prepare a zeroed, masked array based on the airspeed:
         self.array = np_ma_masked_zeros_like(airspeed.array, np.int)
 
         # 1. Use value provided in achieved flight record (if available):
         if afr_vref and afr_vref.value >= AIRSPEED_THRESHOLD:
-            for approach in approaches:
-                self.array[slices_int(approach.slice)] = round(afr_vref.value)
+            for app_land in app_lands:
+                self.array[slices_int(app_land.slice)] = round(afr_vref.value)
             return
 
         # 2. Derive parameter for Embraer 170/190:
         if v1_vref:
-            for approach in approaches:
-                value = most_common_value(v1_vref.array[slices_int(approach.slice)].astype(np.int))
+            for app in final_apps:
+                app_slice = slices_int(app.slice)
+                value = most_common_value(v1_vref.array[app_slice].astype(np.int))
                 if value is not None:
-                    self.array[slices_int(approach.slice)] = value
-            return
+                    try:
+                        app_land = next(
+                            app_land for app_land in app_lands
+                            if is_slice_within_slice(app.slice, app_land.slice)
+                        )
+                    except StopIteration:
+                        continue
+                    app_land_slice = slices_int(app_land.slice)
+                    self.array[app_land_slice] = value
 
 
 class VrefLookup(DerivedParameterNode):

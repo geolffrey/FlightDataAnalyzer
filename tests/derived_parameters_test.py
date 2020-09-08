@@ -8042,7 +8042,8 @@ class TestVref(unittest.TestCase, NodeTest):
     def setUp(self):
         self.node_class = Vref
         self.airspeed = P('Airspeed', np.ma.repeat(200, 128))
-        self.approaches = buildsections('Approach And Landing', (2, 41), (66, 105))
+        self.app_lands = buildsections('Approach And Landing', (2, 41), (66, 105))
+        self.final_apps = buildsections('Final Approach', (2, 30), (66, 90))
 
     def test_can_operate(self):
         # AFR:
@@ -8056,12 +8057,12 @@ class TestVref(unittest.TestCase, NodeTest):
         ))
         # Embraer:
         self.assertTrue(self.node_class.can_operate(
-            ('Airspeed', 'V1-Vref', 'Approach And Landing'),
+            ('Airspeed', 'V1-Vref', 'Approach And Landing', 'Final Approach'),
         ))
 
     def test_derive__nothing(self):
         node = self.node_class()
-        node.derive(self.airspeed, None, None, self.approaches)
+        node.derive(self.airspeed, None, None, self.app_lands, None)
         expected = np.ma.repeat(0, 128)
         expected[expected == 0] = np.ma.masked
         ma_test.assert_masked_array_equal(node.array, expected)
@@ -8069,15 +8070,15 @@ class TestVref(unittest.TestCase, NodeTest):
     def test_derive__afr_vref(self):
         afr_vref = A('AFR Vref', 120)
         node = self.node_class()
-        node.derive(self.airspeed, None, afr_vref, self.approaches)
+        node.derive(self.airspeed, None, afr_vref, self.app_lands, None)
         expected = np.ma.repeat((0, 120, 0, 120, 0), (2, 40, 24, 40, 22))
         expected[expected == 0] = np.ma.masked
         ma_test.assert_masked_array_equal(node.array, expected)
 
     def test_derive__embraer(self):
-        v1_vref = P('V1-Vref', np.ma.repeat(150, 128))
+        v1_vref = P('V1-Vref', np.ma.repeat([150, 120, 150, 120], [30, 36, 26, 36]))
         node = self.node_class()
-        node.derive(self.airspeed, v1_vref, None, self.approaches)
+        node.derive(self.airspeed, v1_vref, None, self.app_lands, self.final_apps)
         expected = np.ma.repeat((0, 150, 0, 150, 0), (2, 40, 24, 40, 22))
         expected[expected == 0] = np.ma.masked
         ma_test.assert_masked_array_equal(node.array, expected)
