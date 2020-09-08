@@ -1697,9 +1697,9 @@ class ClimbForFlightPhases(DerivedParameterNode):
     def derive(self, alt_std=P('Altitude STD Smoothed'), airs=S('Fast')):
 
         self.array = np_ma_zeros(len(alt_std.array))
-        repair_mask(alt_std.array) # Remove small sections of corrupt data
+        alt_std_repaired = repair_mask(alt_std.array) # Remove small sections of corrupt data
         for air in airs:
-            deltas = np.ma.ediff1d(alt_std.array[air.slice], to_begin=0.0)
+            deltas = np.ma.ediff1d(alt_std_repaired[air.slice], to_begin=0.0)
             ups = np.ma.clump_unmasked(np.ma.masked_less(deltas,0.0))
             for up in ups:
                 self.array[air.slice][up] = np.ma.cumsum(deltas[up])
@@ -1716,9 +1716,9 @@ class DescendForFlightPhases(DerivedParameterNode):
     def derive(self, alt_std=P('Altitude STD Smoothed'), airs=S('Fast')):
 
         self.array = np_ma_zeros(len(alt_std.array))
-        repair_mask(alt_std.array) # Remove small sections of corrupt data
+        alt_std_repaired = repair_mask(alt_std.array) # Remove small sections of corrupt data
         for air in airs:
-            deltas = np.ma.ediff1d(alt_std.array[air.slice], to_begin=0.0)
+            deltas = np.ma.ediff1d(alt_std_repaired[air.slice], to_begin=0.0)
             downs = np.ma.clump_unmasked(np.ma.masked_greater(deltas,0.0))
             for down in downs:
                 self.array[air.slice][down] = np.ma.cumsum(deltas[down])
@@ -3822,10 +3822,11 @@ class FuelQty(DerivedParameterNode):
                 if valid_samples / float(invalid_samples) < MIN_VALID_FUEL:
                     continue
 
+            param = deepcopy(param)
             # Repair array masks to ensure that the summed values are not too small
             # because they do not include masked values.
             try:
-                param.array = repair_mask(param.array)
+                param.array = repair_mask(param.array, copy=False)
             except ValueError as err:
                 # Q: Should we be creating a summed Fuel Qty parameter when
                 # omitting a masked parameter? The resulting array will contain
@@ -3843,10 +3844,10 @@ class FuelQty(DerivedParameterNode):
             self.array = np.ma.sum(stacked_params, axis=0)
             self.array.mask = merge_masks([p.array.mask for p in params])
             self.offset = offset_select('mean', params)
-        except:
+        except ValueError:
             # In the case where params are all invalid or empty, return an
-            # empty array like the last (inherently recorded) array.
-            param = first_valid_parameter(*deps)
+            # empty array like the first (inherently recorded) array.
+            param = next(dep for dep in deps if dep is not None)
             self.array = np_ma_masked_zeros_like(param.array)
             self.offset = 0.0
 
@@ -4280,15 +4281,6 @@ class FlapAngle(DerivedParameterNode):
             self.frequency = sources[0].frequency
             return
 
-        if len(sources) == 3:
-            # we can only work with 2 or 4 sources to make the math easier on
-            # the hz and interpolation
-            sources = sources[:2]
-
-
-        # sort parameters into ascending offsets
-        sources = sorted(sources, key=lambda f: f.offset)
-
         # interleave data sources so that the x axes is in the correct order
         self.hz = sources[0].hz * len(sources)
         self.offset = sources[0].offset
@@ -4299,52 +4291,78 @@ class FlapAngle(DerivedParameterNode):
                          "worth merging or are taken from the same sensors.")
             self.offset = 1./self.hz - 0.00001
         base_hz = sources[0].hz
-        duration = len(sources[0].array) / float(sources[0].hz)  # duration of flight in seconds
 
-        xx = []
-        yy = []
         for flap in sources:
             assert flap.hz == base_hz, "Can only operate with same flap " \
                    "signals at same frequencies (reshape requires same " \
                    "length arrays). We have: %s which should be at the base " \
                    "frequency of %sHz" % (flap, base_hz)
+
+        if len(sources) == 3:
+            # we can only work with 2 or 4 sources to make the math easier on
+            # the hz and interpolation
+            sources = sources[:2]
+
+
+        # sort parameters into ascending offsets
+        sources = sorted(sources, key=lambda f: f.offset)
+
+        if len(sources) == 2:
+            self.array, self.frequency, self.offset = blend_two_parameters(*sources)
+            return
+
+        duration = len(sources[0].array) / float(sources[0].hz)  # duration of flight in seconds
+
+        # For sources with the same offset, blend the arrays together using the mean.
+        # This allows masked values to be ignored if another source has valid data.
+        combined_sources = []
+        for offset, flaps_same_offset in itertools.groupby(sources, lambda p: p.offset):
+            flaps_same_offset = list(flaps_same_offset)
+            if len(flaps_same_offset) > 1:
+                arrays = np.ma.vstack([p.array for p in flaps_same_offset])
+                merged = P(
+                    f'Flap {offset} Offset',
+                    array=np.ma.mean(arrays, axis=0),
+                    frequency=base_hz,
+                    offset=offset
+                )
+                combined_sources.append(merged)
+            else:
+                combined_sources.append(flaps_same_offset[0])
+
+        xx = []
+        yy = []
+        for flap in combined_sources:
             xaxis = np.arange(duration, step=1/flap.hz) + flap.offset
             xx.append(xaxis)
-            # We do not repair flap.array. If multiple sensors, blend_two_parameters
-            # will take care of filling the missing values with values from the
-            # good sensor.
             yy.append(flap.array)
-            ##scatter(xaxis, flap.array, edgecolor='none', c=col) # col was in zip with sources in for loop
-
-        # if all have the same frequency, offsets are a multiple of the
-        # values and they complete they are all equally spaced, we don't need
-        # to do any interpolation
-        ##TODO: Couldn't work out how to do this in a pretty way!
-
-
-        # else we have an incomplete set of parameters or are unequally
-        # spaced, we need to resample the data with linear interpolation
-        # between all of the signals to obtain equally spaced data.
 
         # create new x axis same length in time but with twice the frequency (step)
         new_xaxis = np.arange(duration, step=1/self.hz) + self.offset # check *2
 
-        # rearrange data into order using ravel/reshape
+
+        flap_angle = np.ma.vstack(yy).ravel(order='F')
+        # With N sources at different offsets, if at least one source has valid data,
+        # we can repair the other sources values. As the data is interleaved, N-1 masked
+        # sources would create a pattern of N-1 masked values followed by one valid sample.
+        # So we only accept to repair a maximum of N-1 consecutive samples for N sources.
+        repair_mask(flap_angle, repair_duration=len(combined_sources)-1, copy=False,
+                    raise_entirely_masked=False)
+        # rearrange data into order using ravel and fill masked values with np.nan
         new_yaxis = interp(new_xaxis,
                            np.vstack(xx).ravel(order='F'),  # numpy array works
-                           np.ma.vstack(yy).data.ravel(order='F'),
-                           ##np.ma.vstack(yy).reshape(len(flap.array)*2, order='F'),  # masked array doesn't support order argument yet!
+                           flap_angle.filled(np.nan),
                            )
+        # Convert remaining np.nan to masked array  and repair small missing gaps
+        # with `fill_start` method.
+        new_yaxis = repair_mask(np.ma.masked_invalid(new_yaxis), frequency=self.hz,
+                                method='fill_start', raise_entirely_masked=False)
         # apply median filter to remove spikes where interpolating between
-        # two similar but different values and convert to masked array
+        # two similar but different values
         if self.apply_median_filter:
-            self.array = np.ma.array(medfilt(new_yaxis, 5))
+            self.array = np.ma.array(medfilt(new_yaxis, 5), mask=new_yaxis.mask)
         else:
-            self.array = np.ma.array(new_yaxis)
-        ##scatter(new_xaxis, self.array, edgecolor='none', c='r')
-
-        if len(sources) == 2:
-            self.array, self.frequency, self.offset = blend_two_parameters(*sources)
+            self.array = new_yaxis
 
 
 class FlapSynchroAsymmetry(DerivedParameterNode):
@@ -4712,8 +4730,18 @@ class HeadingContinuous(DerivedParameterNode):
 
         else:
             if head_capt and head_fo and (head_capt.hz==head_fo.hz):
-                head_capt.array = repair_mask(straighten_headings(head_capt.array))
-                head_fo.array = repair_mask(straighten_headings(head_fo.array))
+                head_capt = P(
+                    name='Heading (Capt)',
+                    array=repair_mask(straighten_headings(head_capt.array)),
+                    frequency=head_capt.frequency,
+                    offset=head_capt.offset
+                )
+                head_fo = P(
+                    name='Heading (FO)',
+                    array=repair_mask(straighten_headings(head_fo.array)),
+                    frequency=head_fo.frequency,
+                    offset=head_fo.offset
+                )
 
                 # If two compasses start up aligned east and west of North,
                 # the blend_two_parameters can give a result 180 deg out. The
@@ -5922,8 +5950,8 @@ class CoordinatesStraighten(object):
             return array
 
         # Join the masks, so that we only consider positional data when both are valid:
-        coord1_s.mask = np.ma.logical_or(np.ma.getmaskarray(coord1.array),
-                                         np.ma.getmaskarray(coord2.array))
+        coord1_s.mask = np.ma.logical_or(np.ma.getmaskarray(coord1_s),
+                                         np.ma.getmaskarray(coord2_s))
         coord2_s.mask = np.ma.getmaskarray(coord1_s)
 
         # Now we just smooth the valid sections.

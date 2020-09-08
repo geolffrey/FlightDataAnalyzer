@@ -944,6 +944,19 @@ class TestLandingDecelerationEnd(unittest.TestCase):
         expected = [KeyTimeInstance(index=21.0, name='Landing Deceleration End')]
         self.assertEqual(kpv, expected)
 
+    def test_masked_aspd(self):
+        landing = [Section('Landing', slice(0, 28, None), 0, 28)]
+        speed = np.ma.array([
+            136, 134, 133, 134, 136, 134, 132, 131, 130, 128, 0, 0, 0, 0, 110, 108,
+            106, 102, 97, 92, 88, 85, 80, 77, 73, 68, 66, 60
+        ], dtype=np.float)
+        speed[10:14] = np.ma.masked
+        aspd = P('Airspeed',speed)
+        kpv = LandingDecelerationEnd()
+        kpv.derive(aspd, landing)
+        expected = [KeyTimeInstance(index=28.0, name='Landing Deceleration End')]
+        self.assertEqual(kpv, expected)
+
 
 class TestTakeoffPeakAcceleration(unittest.TestCase):
     def test_can_operate(self):
@@ -1418,22 +1431,22 @@ class TestATDisengagedSelection(unittest.TestCase, NodeTest):
 
 # Engine Start and Stop - may run into the ends of the valid recording.
 
-class TestEngStart(unittest.TestCase):
-
+class TestEngStart(unittest.TestCase, NodeTest):
     def test_can_operate(self):
-        combinations = EngStart.get_operational_combinations()
-        self.assertTrue(('Eng (1) N2',) in combinations)
-        self.assertTrue(('Eng (2) N2',) in combinations)
-        self.assertTrue(('Eng (3) N2',) in combinations)
-        self.assertTrue(('Eng (4) N2',) in combinations)
-        self.assertTrue(('Eng (1) N2', 'Eng (2) N2',
-                         'Eng (3) N2', 'Eng (4) N2') in combinations)
-        self.assertTrue(('Eng (1) N3',) in combinations)
-        self.assertTrue(('Eng (2) N3',) in combinations)
-        self.assertTrue(('Eng (3) N3',) in combinations)
-        self.assertTrue(('Eng (4) N3',) in combinations)
-        self.assertTrue(('Eng (1) N3', 'Eng (2) N3',
-                         'Eng (3) N3', 'Eng (4) N3') in combinations)
+        operational_combinations = [
+            ('Eng (1) N2',),
+            ('Eng (2) N2',),
+            ('Eng (3) N2',),
+            ('Eng (4) N2',),
+            ('Eng (1) N2', 'Eng (2) N2', 'Eng (3) N2', 'Eng (4) N2'),
+            ('Eng (1) N3',),
+            ('Eng (2) N3',),
+            ('Eng (3) N3',),
+            ('Eng (4) N3',),
+            ('Eng (1) N3', 'Eng (2) N3', 'Eng (3) N3', 'Eng (4) N3'),
+        ]
+        for combination in operational_combinations:
+            self.assertTrue(EngStart.can_operate(combination))
 
     def test_basic(self):
         eng2 = Parameter('Eng (2) N2', np.ma.array([0, 20, 40, 60]))
@@ -1503,6 +1516,67 @@ class TestEngStart(unittest.TestCase):
         self.assertEqual(node[0].index, 161)
         self.assertEqual(node[1].name, 'Eng (2) Start')
         self.assertEqual(node[1].index, 94)
+
+    def test_eng_start_at_start_of_recording_with_one_unmasked_sample_at_start(self):
+        n2_array = np.ma.concatenate((
+            np.arange(0, 80),
+            np.ones(50) * 80.
+        ))
+        n2_array[1:50] = np.ma.masked
+        eng_2_n2 = P('Eng (2) N2', array=n2_array)
+        node = EngStart()
+        node.derive(
+            None, None, None, None,
+            None, eng_2_n2, None, None,
+            None, None, None, None,
+            None, None, None, None,
+        )
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].name, 'Eng (2) Start')
+        self.assertEqual(node[0].index, 35)
+
+    def test_eng_start_at_start_of_recording(self):
+        n2_array = np.ma.concatenate((
+            np.zeros(350),
+            np.arange(0, 80),
+            np.ones(50) * 80.0,
+            np.arange(80, 0, -1),
+            np.zeros(1000),
+        ))
+        # Mask start of data for more than 360 sec (otherwise it's repaired)
+        n2_array[:400] = np.ma.masked
+        # Mask end of data (after eng shutdown)
+        n2_array[-1000:] = np.ma.masked
+        eng_2_n2 = P('Eng (2) N2', array=n2_array)
+        node = EngStart()
+        node.derive(
+            None, None, None, None,
+            None, eng_2_n2, None, None,
+            None, None, None, None,
+            None, None, None, None,
+        )
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].name, 'Eng (2) Start')
+        self.assertEqual(node[0].index, 399)  # Start of valid data
+
+    def test_eng_start_after_start_of_recording_with_one_unmasked_sample_at_start(self):
+        n2_array = np.ma.concatenate((
+            np.ma.zeros(500),
+            np.arange(0, 80),
+            np.ones(50) * 80.
+        ))
+        n2_array[5:540] = np.ma.masked
+        eng_2_n2 = P('Eng (2) N2', array=n2_array)
+        node = EngStart()
+        node.derive(
+            None, None, None, None,
+            None, eng_2_n2, None, None,
+            None, None, None, None,
+            None, None, None, None,
+        )
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].name, 'Eng (2) Start')
+        self.assertEqual(node[0].index, 539)
 
 
 class TestFirstEngStartBeforeLiftoff(unittest.TestCase):
@@ -1596,7 +1670,7 @@ class TestEngStop(unittest.TestCase):
         ])
         self.assertEqual(len(es), 2)
         self.assertEqual(es[0].name, 'Eng (1) Stop')
-        self.assertEqual(es[0].index, 6)
+        self.assertEqual(es[0].index, 3)
         self.assertEqual(es[1].name, 'Eng (2) Stop')
         self.assertEqual(es[1].index, 2)
 
@@ -1650,7 +1724,26 @@ class TestEngStop(unittest.TestCase):
         ])
         self.assertEqual(len(es), 1)
         self.assertEqual(es[0].name, 'Eng (1) Stop')
-        self.assertEqual(es[0].index, 4)
+        self.assertEqual(es[0].index, 3)
+
+    def test_stop_at_end_of_data_short_unmasked_zeros_at_end(self):
+        n2 = np.ma.repeat((50, 0), (100, 100))
+        n2[100:150] = np.ma.masked
+        n2[160:] = np.ma.masked
+        eng1 = Parameter('Eng (1) N2', n2)
+        eng_start = EngStart(name='Eng Start', items=[
+            KeyTimeInstance(2, 'Engine (1) Start'),
+        ])
+        es = EngStop()
+        es.get_derived([
+            None, None, None, None,
+            eng1, None, None, None,
+            None, None, None, None,
+            None, None, None, None, eng_start, None
+        ])
+        self.assertEqual(len(es), 1)
+        self.assertEqual(es[0].name, 'Eng (1) Stop')
+        self.assertEqual(es[0].index, 100)
 
 
 class TestLastEngStopAfterTouchdown(unittest.TestCase):

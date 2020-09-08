@@ -14,6 +14,7 @@ from analysis_engine.helicopter.derived_parameters import (
     ApproachRange,
     AltitudeADH,
     AltitudeAGL,
+    AltitudeAGLForFlightPhases,
     AltitudeDensity,
     CyclicAngle,
     CyclicForeAft,
@@ -131,6 +132,16 @@ class TestAltitudeAGL(unittest.TestCase):
         alt_agl = AltitudeAGL()
         alt_agl.derive(alt_rad, alt_aal, alt_baro, gog)
         assert_array_equal(alt_agl.array, alt_aal.array)
+
+
+class TestAltitudeAGLForFlightPhases:
+    def test_masked_values(self):
+        alt_agl = P('Altitude AGL', array=np.ma.sin(np.linspace(0, np.pi, 500))*1000)
+        alt_agl.array[200:240] = np.ma.masked
+        node = AltitudeAGLForFlightPhases()
+        node.derive(alt_agl)
+
+        assert not node.array.mask.any()
 
 
 class TestAltitudeDensity(unittest.TestCase):

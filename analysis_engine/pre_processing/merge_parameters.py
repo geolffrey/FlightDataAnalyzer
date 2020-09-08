@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from copy import deepcopy
 import numpy as np
 
 from flightdatautilities import units as ut
@@ -91,9 +92,11 @@ class Latitude(DerivedParameterNode):
                src_3=P('Latitude (3)')):
 
         sources = [
-            source for source in [src_1, src_2, src_3] if source is not None \
+            deepcopy(source) for source in [src_1, src_2, src_3] if source is not None \
             and np.count_nonzero(np.ma.compressed(source.array)) > len(source.array)/2
         ]
+        for source in sources:
+            source.array = repair_mask(source.array)
 
         if len(sources) == 1:
             self.offset = sources[0].offset
@@ -134,19 +137,18 @@ class Longitude(DerivedParameterNode):
                src_3=P('Longitude (3)')):
 
         sources = [
-            source for source in [src_1, src_2, src_3] if source is not None \
+            deepcopy(source) for source in [src_1, src_2, src_3] if source is not None \
             and np.count_nonzero(np.ma.compressed(source.array)) > len(source.array)/2
         ]
-        if len(sources) > 1:
-            for source in sources:
-                source.array = repair_mask(
-                    straighten_longitude(source.array) + 180.0
-                )
+        for source in sources:
+            source.array = repair_mask(
+                straighten_longitude(source.array) + 180.0
+            )
 
         if len(sources) == 1:
             self.offset = sources[0].offset
             self.frequency = sources[0].frequency
-            self.array = sources[0].array
+            self.array = sources[0].array % 360 - 180.0
 
         elif len(sources) == 2:
             blended, self.frequency, self.offset = blend_two_parameters(

@@ -191,14 +191,14 @@ class FlapOrConfigurationMaxOrMin(object):
         # KPV for the same duration that the flap was selected.
         if conflap.array.mask.all():
             return data
-        repair_mask(conflap.array, method='fill_start')
+        repaired_conflap = repair_mask(conflap.array, method='fill_start')
 
         for detent in conflap.values_mapping.values():
 
             if np.ma.is_masked(detent) or (detent in ('0', 'Lever 0') and not include_zero):
                 continue
 
-            for flap_section in runs_of_ones(conflap.array == detent):
+            for flap_section in runs_of_ones(repaired_conflap == detent):
                 # TODO: Check logical or is sensible for all values. (Probably fine
                 #       as airspeed will always be higher than max flap setting!)
                 index, value = function(parameter_array[flap_section])
@@ -1647,13 +1647,18 @@ class Airspeed1000To8000FtMaxQNH(KeyPointValueNode):
                alt_qnh=P('Altitude QNH'),
                climbs=S('Climb')):
 
-        alt_band = np.ma.masked_outside(alt_qnh.array, 1000, 8000)
-        alt_climb_sections = valid_slices_within_array(alt_band, climbs)
-        self.create_kpvs_within_slices(
-            air_spd.array,
-            alt_climb_sections,
-            max_value,
-        )
+        for climb in climbs:
+            climb_slice = slices_int(climb.slice)
+            alt_band = np.ma.clump_unmasked(
+                np.ma.masked_outside(alt_qnh.array[climb_slice], 1000, 8000)
+            )
+            scope = shift_slices(alt_band, climb_slice.start)
+            self.create_kpv_from_slices(
+                air_spd.array,
+                scope,
+                max_value,
+            )
+
 
 class Airspeed8000To10000FtMax(KeyPointValueNode):
     '''
@@ -1665,15 +1670,19 @@ class Airspeed8000To10000FtMax(KeyPointValueNode):
     def derive(self,
                air_spd=P('Airspeed'),
                alt_std=P('Altitude STD Smoothed'),
-               climb=S('Climb')):
+               climbs=S('Climb')):
 
-        alt_band = np.ma.masked_outside(alt_std.array, 8000, 10000)
-        alt_climb_sections = valid_slices_within_array(alt_band, climb)
-        self.create_kpvs_within_slices(
-            air_spd.array,
-            alt_climb_sections,
-            max_value,
-        )
+        for climb in climbs:
+            climb_slice = slices_int(climb.slice)
+            alt_band = np.ma.clump_unmasked(
+                np.ma.masked_outside(alt_std.array[climb_slice], 8_000, 10_000)
+            )
+            scope  = shift_slices(alt_band, climb_slice.start)
+            self.create_kpv_from_slices(
+                air_spd.array,
+                scope,
+                max_value,
+            )
 
 
 class Airspeed8000To10000FtMaxQNH(KeyPointValueNode):
@@ -1691,8 +1700,16 @@ class Airspeed8000To10000FtMaxQNH(KeyPointValueNode):
                climbs=S('Climb'),
                levels=S('Level Flight')):
 
-            _, climb_sections = slices_from_to(alt_qnh.array, 8000, 10000)
-            _, slices_at_10000 = slices_between(alt_qnh.array, 9500, 10000)
+        for climb in climbs:
+            climb_slice = slices_int(climb.slice)
+            climb_sections = np.ma.clump_unmasked(
+                np.ma.masked_outside(alt_qnh.array[climb_slice], 8_000, 10_000)
+            )
+            climb_sections = shift_slices(climb_sections, climb_slice.start)
+            slices_at_10000 = np.ma.clump_unmasked(
+                np.ma.masked_outside(alt_qnh.array[climb_slice], 9_500, 10_000)
+            )
+            slices_at_10000 = shift_slices(slices_at_10000, climb_slice.start)
             levels_at_10000 = slices_and(
                 slices_at_10000,
                 levels.get_slices()
@@ -1707,15 +1724,15 @@ class Airspeed8000To10000FtMaxQNH(KeyPointValueNode):
                 climb = climb[0]
                 at_10500 = index_at_value(
                     alt_qnh.array,
-                    10500,
-                    _slice=slice(lvl_at_10000.stop, climb.slice.stop),
+                    10_500,
+                    _slice=slice(lvl_at_10000.stop, climb_slice.stop),
                     endpoint='exact'
                 )
                 if at_10500 is not None:
                     levels_at_10000[i] = slice(lvl_at_10000.start, int(at_10500))
 
             climb_sections = slices_and_not(climb_sections, levels_at_10000)
-            self.create_kpvs_within_slices(
+            self.create_kpv_from_slices(
                 air_spd.array,
                 climb_sections,
                 max_value,
@@ -1812,15 +1829,19 @@ class Airspeed10000To8000FtMax(KeyPointValueNode):
     def derive(self,
                air_spd=P('Airspeed'),
                alt_std=P('Altitude STD Smoothed'),
-               descent=S('Descent')):
+               descents=S('Descent')):
 
-        alt_band = np.ma.masked_outside(alt_std.array, 10000, 8000)
-        alt_descent_sections = valid_slices_within_array(alt_band, descent)
-        self.create_kpvs_within_slices(
-            air_spd.array,
-            alt_descent_sections,
-            max_value,
-        )
+        for descent in descents:
+            descent_slice = slices_int(descent.slice)
+            alt_band = np.ma.clump_unmasked(
+                np.ma.masked_outside(alt_std.array[descent_slice], 10_000, 8_000)
+            )
+            scope = shift_slices(alt_band, descent_slice.start)
+            self.create_kpv_from_slices(
+                air_spd.array,
+                scope,
+                max_value,
+            )
 
 
 class Airspeed10000To8000FtMaxQNH(KeyPointValueNode):
@@ -1837,9 +1858,16 @@ class Airspeed10000To8000FtMaxQNH(KeyPointValueNode):
                alt_qnh=P('Altitude QNH'),
                descents=S('Descent'),
                levels=S('Level Flight')):
-
-            _, descent_sections = slices_from_to(alt_qnh.array, 10000, 8000)
-            _, slices_at_10000 = slices_between(alt_qnh.array, 9500, 10000)
+        for descent in descents:
+            descent_slice = slices_int(descent.slice)
+            descent_sections = np.ma.clump_unmasked(
+                np.ma.masked_outside(alt_qnh.array[descent_slice], 10_000, 8_000)
+            )
+            descent_sections = shift_slices(descent_sections, descent_slice.start)
+            slices_at_10000 = np.ma.clump_unmasked(
+                np.ma.masked_outside(alt_qnh.array[descent_slice], 9_500, 10_000)
+            )
+            slices_at_10000 = shift_slices(slices_at_10000, descent_slice.start)
             levels_at_10000 = slices_and(
                 slices_at_10000,
                 levels.get_slices()
@@ -1854,15 +1882,15 @@ class Airspeed10000To8000FtMaxQNH(KeyPointValueNode):
                 descent = descent[0]
                 at_10500 = index_at_value(
                     alt_qnh.array,
-                    10500,
-                    _slice=slice(lvl_at_10000.start, descent.slice.start, -1),
+                    10_500,
+                    _slice=slice(lvl_at_10000.start, descent_slice.start, -1),
                     endpoint='exact'
                 )
                 if at_10500 is not None:
                     levels_at_10000[i] = slice(int(at_10500), lvl_at_10000.stop)
 
             descent_sections = slices_and_not(descent_sections, levels_at_10000)
-            self.create_kpvs_within_slices(
+            self.create_kpv_from_slices(
                 air_spd.array,
                 descent_sections,
                 max_value,
@@ -1904,12 +1932,15 @@ class Airspeed8000To5000FtMaxQNH(KeyPointValueNode):
                air_spd=P('Airspeed'),
                alt_qnh=P('Altitude QNH'),
                descents=S('Descent')):
-
-            alt_band = np.ma.masked_outside(alt_qnh.array, 8000, 5000)
-            alt_descent_sections = valid_slices_within_array(alt_band, descents)
-            self.create_kpvs_within_slices(
+        for descent in descents:
+            descent_slice = slices_int(descent.slice)
+            alt_band = np.ma.clump_unmasked(
+                np.ma.masked_outside(alt_qnh.array[descent_slice], 8_000, 5_000)
+            )
+            scope = shift_slices(alt_band, descent_slice.start)
+            self.create_kpv_from_slices(
                 air_spd.array,
-                alt_descent_sections,
+                scope,
                 max_value,
             )
 
@@ -1923,15 +1954,19 @@ class Airspeed5000To3000FtMax(KeyPointValueNode):
     def derive(self,
                air_spd=P('Airspeed'),
                alt_aal=P('Altitude AAL For Flight Phases'),
-               descent=S('Descent')):
+               descents=S('Descent')):
+        for descent in descents:
+            descent_slice = slices_int(descent.slice)
+            alt_band = np.ma.clump_unmasked(
+                np.ma.masked_outside(alt_aal.array[descent_slice], 5_000, 3_000)
+            )
+            scope = shift_slices(alt_band, descent_slice.start)
+            self.create_kpv_from_slices(
+                air_spd.array,
+                scope,
+                max_value,
+            )
 
-        alt_band = np.ma.masked_outside(alt_aal.array, 5000, 3000)
-        alt_descent_sections = valid_slices_within_array(alt_band, descent)
-        self.create_kpvs_within_slices(
-            air_spd.array,
-            alt_descent_sections,
-            max_value,
-        )
 
 class Airspeed5000To3000FtMaxQNH(KeyPointValueNode):
     '''
@@ -1946,13 +1981,17 @@ class Airspeed5000To3000FtMaxQNH(KeyPointValueNode):
                alt_qnh=P('Altitude QNH'),
                descents=S('Descent')):
 
-        alt_band = np.ma.masked_outside(alt_qnh.array, 5000, 3000)
-        alt_descent_sections = valid_slices_within_array(alt_band, descents)
-        self.create_kpvs_within_slices(
-            air_spd.array,
-            alt_descent_sections,
-            max_value,
-        )
+        for descent in descents:
+            descent_slice = slices_int(descent.slice)
+            alt_band = np.ma.clump_unmasked(
+                np.ma.masked_outside(alt_qnh.array[descent_slice], 5_000, 3_000)
+            )
+            scope = shift_slices(alt_band, descent_slice.start)
+            self.create_kpv_from_slices(
+                air_spd.array,
+                scope,
+                max_value,
+            )
 
 
 class Airspeed3000To1000FtMax(KeyPointValueNode):
@@ -1986,13 +2025,17 @@ class Airspeed3000To1000FtMaxQNH(KeyPointValueNode):
                alt_qnh=P('Altitude QNH'),
                descents=S('Descent')):
 
-        alt_band = np.ma.masked_outside(alt_qnh.array, 3000, 1000)
-        alt_descent_sections = valid_slices_within_array(alt_band, descents)
-        self.create_kpvs_within_slices(
-            air_spd.array,
-            alt_descent_sections,
-            max_value,
-        )
+        for descent in descents:
+            descent_slice = slices_int(descent.slice)
+            alt_band = np.ma.clump_unmasked(
+                np.ma.masked_outside(alt_qnh.array[descent_slice], 3_000, 1_000)
+            )
+            scope = shift_slices(alt_band, descent_slice.start)
+            self.create_kpv_from_slices(
+                air_spd.array,
+                scope,
+                max_value,
+            )
 
 
 class Airspeed1000To500FtMax(KeyPointValueNode):
@@ -4334,7 +4377,7 @@ class AirspeedBelow10000FtDuringDescentMax(KeyPointValueNode):
                alt_std=P('Altitude STD Smoothed'),
                alt_qnh=P('Altitude QNH'),
                ldg_apt=A('FDR Landing Airport'),
-               descent=S('Descent')):
+               descents=S('Descent')):
         '''
         Outside the USA 10,000 ft relates to flight levels, whereas FAA regulations
         (and possibly others we don't currently know about) relate to height above
@@ -4350,9 +4393,13 @@ class AirspeedBelow10000FtDuringDescentMax(KeyPointValueNode):
         alt = alt_qnh.array if country == 'United States' else alt_std.array
         alt = hysteresis(alt, HYSTERESIS_FPALT)
 
-        height_bands = np.ma.clump_unmasked(np.ma.masked_greater(alt, 10000))
-        descent_bands = slices_and(height_bands, descent.get_slices())
-        self.create_kpvs_within_slices(air_spd.array, descent_bands, max_value)
+        for descent in descents:
+            descent_slice = slices_int(descent.slice)
+            height_bands = np.ma.clump_unmasked(
+                np.ma.masked_greater(alt[descent_slice], 10_000)
+            )
+            height_bands = shift_slices(height_bands, descent_slice.start)
+            self.create_kpv_from_slices(air_spd.array, height_bands, max_value)
 
 
 class AirspeedTopOfDescentTo10000FtMax(KeyPointValueNode):
@@ -4369,7 +4416,7 @@ class AirspeedTopOfDescentTo10000FtMax(KeyPointValueNode):
                alt_std=P('Altitude STD Smoothed'),
                alt_qnh=P('Altitude QNH'),
                ldg_apt=A('FDR Landing Airport'),
-               descent=S('Descent')):
+               descents=S('Descent')):
         '''
         Outside the USA 10,000 ft relates to flight levels, whereas FAA regulations
         (and possibly others we don't currently know about) relate to height above
@@ -4383,13 +4430,15 @@ class AirspeedTopOfDescentTo10000FtMax(KeyPointValueNode):
             country = ldg_apt.value.get('location', {}).get('country')
 
         alt = alt_qnh.array if country == 'United States' else alt_std.array
-        if np.ma.clump_unmasked(alt):
-            alt = hysteresis(alt, HYSTERESIS_FPALT)
+        alt = hysteresis(alt, HYSTERESIS_FPALT)
 
-            height_bands = np.ma.clump_unmasked(np.ma.masked_less(repair_mask(alt),
-                                                                  10000))
-            descent_bands = slices_and(height_bands, descent.get_slices())
-            self.create_kpvs_within_slices(air_spd.array, descent_bands, max_value)
+        for descent in descents:
+            descent_slice = slices_int(descent.slice)
+            height_bands = np.ma.clump_unmasked(
+                np.ma.masked_less(alt[descent_slice], 10_000)
+            )
+            height_bands = shift_slices(height_bands, descent_slice.start)
+            self.create_kpv_from_slices(air_spd.array, height_bands, max_value)
 
 
 class AirspeedTopOfDescentTo4000FtMax(KeyPointValueNode):
@@ -4413,20 +4462,22 @@ class AirspeedTopOfDescentTo4000FtMax(KeyPointValueNode):
                alt_std=P('Altitude STD Smoothed'),
                alt_qnh=P('Altitude QNH'),
                ldg_apt=A('FDR Landing Airport'),
-               descent=S('Descent')):
+               descents=S('Descent')):
 
         country = None
         if ldg_apt.value:
             country = ldg_apt.value.get('location', {}).get('country')
 
         alt = alt_qnh.array if country == 'United States' else alt_std.array
-        if np.ma.clump_unmasked(alt):
-            alt = hysteresis(alt, HYSTERESIS_FPALT)
+        alt = hysteresis(alt, HYSTERESIS_FPALT)
 
-            height_bands = np.ma.clump_unmasked(np.ma.masked_less(repair_mask(alt),
-                                                                  4000))
-            descent_bands = slices_and(height_bands, descent.get_slices())
-            self.create_kpvs_within_slices(air_spd.array, descent_bands, max_value)
+        for descent in descents:
+            descent_slice = slices_int(descent.slice)
+            height_bands = np.ma.clump_unmasked(
+                np.ma.masked_less(alt[descent_slice], 4_000)
+            )
+            height_bands = shift_slices(height_bands, descent_slice.start)
+            self.create_kpv_from_slices(air_spd.array, height_bands, max_value)
 
 
 class AirspeedTopOfDescentTo4000FtMin(KeyPointValueNode):
@@ -4450,21 +4501,22 @@ class AirspeedTopOfDescentTo4000FtMin(KeyPointValueNode):
                alt_std=P('Altitude STD Smoothed'),
                alt_qnh=P('Altitude QNH'),
                ldg_apt=A('FDR Landing Airport'),
-               descent=S('Descent')):
+               descents=S('Descent')):
 
         country = None
         if ldg_apt.value:
             country = ldg_apt.value.get('location', {}).get('country')
 
         alt = alt_qnh.array if country == 'United States' else alt_std.array
+        alt = hysteresis(alt, HYSTERESIS_FPALT)
 
-        if np.ma.clump_unmasked(alt):
-            alt = hysteresis(alt, HYSTERESIS_FPALT)
-
-            height_bands = np.ma.clump_unmasked(np.ma.masked_less(repair_mask(alt),
-                                                                  4000))
-            descent_bands = slices_and(height_bands, descent.get_slices())
-            self.create_kpvs_within_slices(air_spd.array, descent_bands, min_value)
+        for descent in descents:
+            descent_slice = slices_int(descent.slice)
+            height_bands = np.ma.clump_unmasked(
+                np.ma.masked_less(alt[descent_slice], 4_000)
+            )
+            height_bands = shift_slices(height_bands, descent_slice.start)
+            self.create_kpv_from_slices(air_spd.array, height_bands, min_value)
 
 
 class AirspeedDuringLevelFlightMax(KeyPointValueNode):
@@ -16118,8 +16170,8 @@ class RateOfClimbAtHeightBeforeAltitudeSelected(KeyPointValueNode):
             return
         # Round Altitude Selected to the next 100 ft
         alt_sel_rounded = np.ma.ceil(alt_sel.array / 100) * 100
-        repair_mask(alt.array, frequency=alt.hz)
-        dist = alt.array - alt_sel_rounded
+        repaired_alt = repair_mask(alt.array, frequency=alt.hz)
+        dist = repaired_alt - alt_sel_rounded
         dist = mask_outside_slices(dist, airborne.get_slices())
         # Mask out when Altitude Selected is changing
         alt_sel_change = np.ma.ediff1d(alt_sel.array, to_end=0.0) == 0.0
@@ -16567,8 +16619,8 @@ class RateOfDescentAtHeightBeforeAltitudeSelected(KeyPointValueNode):
 
         # Round Altitude Selected to the next 100 ft
         alt_sel_rounded = np.ma.ceil(alt_sel.array / 100) * 100
-        repair_mask(alt.array, frequency=alt.hz)
-        dist = alt.array - alt_sel_rounded
+        repaired_alt = repair_mask(alt.array, frequency=alt.hz)
+        dist = repaired_alt - alt_sel_rounded
         dist = mask_outside_slices(dist, airborne.get_slices())
         # Mask out when Altitude Selected is changing
         alt_sel_change = np.ma.ediff1d(alt_sel.array, to_end=0.0) == 0.0
@@ -19832,16 +19884,16 @@ class TouchdownToPitch2DegreesAbovePitchAt60KtsDuration(KeyPointValueNode):
     def derive(self, pitch=P('Pitch'), airspeed=P('Airspeed'),
                tdwns=KTI('Touchdown')):
         for tdwn in tdwns:
-            # get index where airspeed is 60 Kts
-            air_spd_end = index_at_value(airspeed.array.data, 60,
-                                         slice(tdwn.index, None))
+            # get index where airspeed is 60 Kts between touchdown and 8 min after touchdown
+            slice_ = slice(tdwn.index, tdwn.index + 480 * self.frequency)
+            air_spd_end = index_at_value(airspeed.array, 60, slice_, endpoint='nearest')
             pitch_at_60 = value_at_index(pitch.array, air_spd_end)
-            if not pitch_at_60:
+            if pitch_at_60 is None:
                 continue
             pitch_ref = pitch_at_60 + 2
             stop = index_at_value(pitch.array, pitch_ref,
                                   slice(air_spd_end, tdwn.index, -1))
-            if stop:
+            if stop is not None:
                 duration = (stop - tdwn.index) / pitch.frequency
                 self.create_kpv(stop, duration)
 
@@ -21094,8 +21146,8 @@ class AltitudeDeviationFromAltitudeSelectedMax(KeyPointValueNode):
             return
         # Round Altitude Selected to the next 100 ft
         alt_sel_rounded = np.ma.ceil(alt_sel.array / 100) * 100
-        repair_mask(alt.array, frequency=alt.hz)
-        dist = alt.array - alt_sel_rounded
+        repaired_alt = repair_mask(alt.array, frequency=alt.hz)
+        dist = repaired_alt - alt_sel_rounded
         dist = mask_outside_slices(dist, airborne.get_slices())
         # Mask out when Altitude Selected is changing
         alt_sel_change = np.ma.ediff1d(alt_sel.array, to_end=0.0) == 0.0

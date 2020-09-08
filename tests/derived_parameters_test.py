@@ -3588,12 +3588,12 @@ class TestFuelQty(unittest.TestCase):
         fuel_qty_node = FuelQty()
         fuel_qty_node.derive(fuel_qty1, fuel_qty2, fuel_qty3, None, None,
                              None, None)
-        assert_array_equal(fuel_qty_node.array,
-                                      np.ma.array([6, 12, 18]))
+        assert_array_equal(fuel_qty_node.array, np.ma.array([6, 12, 18]))
+        self.assertFalse(fuel_qty_node.array.mask.any())
         # Works without all parameters.
         fuel_qty_node.derive(fuel_qty1, *[None,]*6)
-        assert_array_equal(fuel_qty_node.array,
-                                      np.ma.array([1, 2, 3]))
+        assert_array_equal(fuel_qty_node.array, np.ma.array([1, 2, 3]))
+        self.assertFalse(fuel_qty_node.array.mask.any())
 
     def test_four_tanks(self):
         fuel_qty1 = P('Fuel Qty (L)',
@@ -3608,8 +3608,8 @@ class TestFuelQty(unittest.TestCase):
         fuel_qty_node = FuelQty()
         fuel_qty_node.derive(fuel_qty1, fuel_qty2, fuel_qty3, fuel_qty_a,
                              None, None, None)
-        assert_array_equal(fuel_qty_node.array,
-                                      np.ma.array([17, 24, 31]))
+        assert_array_equal(fuel_qty_node.array, np.ma.array([17, 24, 31]))
+        self.assertFalse(fuel_qty_node.array.mask.any())
 
     def test_masked_tank(self):
         fuel_qty1 = P('Fuel Qty (L)',
@@ -3619,8 +3619,20 @@ class TestFuelQty(unittest.TestCase):
         # Mask will be interpolated by repair_mask.
         fuel_qty_node = FuelQty()
         fuel_qty_node.derive(fuel_qty1, None, fuel_qty2, None, None, None, None)
-        assert_array_equal(fuel_qty_node.array,
-                                      np.ma.array([1, 2, 3]))
+        assert_array_equal(fuel_qty_node.array, np.ma.array([1, 2, 3]))
+        self.assertFalse(fuel_qty_node.array.mask.any())
+
+    def test_all_masked_tank(self):
+        fuel_qty1 = P('Fuel Qty (L)',
+                      array=np.ma.array([1,2,3], mask=[True, True, True]))
+        fuel_qty2 = P('Fuel Qty (R)',
+                      array=np.ma.array([2,4,6], mask=[True, True, True]))
+        # Mask will be interpolated by repair_mask.
+        fuel_qty_node = FuelQty()
+        fuel_qty_node.derive(fuel_qty1, None, fuel_qty2, None, None, None, None)
+        assert_array_equal(fuel_qty_node.array, np.ma.array([0, 0, 0]))
+        self.assertTrue(fuel_qty_node.array.mask.all())
+
 
 class TestFuelQtyC(unittest.TestCase):
 
@@ -6006,8 +6018,8 @@ class TestFlapAngle(unittest.TestCase, NodeTest):
         assert_array_equal(fa.array, fr.array)
 
     def test_with_same_offsets(self):
-        fl = P('Flap Angle (L)', array=np.ma.arange(10, 20, 2), offset=0.123, frequency=0.5)
-        fr = P('Flap Angle (R)', array=np.ma.arange(11, 21, 2), offset=1.123, frequency=0.5)
+        fl = P('Flap Angle (L)', array=np.ma.arange(10., 20, 2), offset=0.123, frequency=0.5)
+        fr = P('Flap Angle (R)', array=np.ma.arange(11., 21, 2), offset=1.123, frequency=0.5)
         fa = FlapAngle()
         fa.apply_median_filter = False
         fa.get_derived([fl, fr, None, None, None, None])
@@ -6016,10 +6028,10 @@ class TestFlapAngle(unittest.TestCase, NodeTest):
         np.testing.assert_array_almost_equal(fa.array, np.ma.arange(10, 20, 1), decimal=0)
 
     def test_with_different_offsets(self):
-        fl = P('Flap Angle (L)', array=np.ma.arange(10, 20, 1), offset=0.0001, frequency=1)
-        fr = P('Flap Angle (R)', array=np.ma.arange(10, 20, 1), offset=0, frequency=1)
+        fl = P('Flap Angle (L)', array=np.ma.arange(10., 20, 1), offset=0.0001, frequency=1)
+        fr = P('Flap Angle (R)', array=np.ma.arange(10., 20, 1), offset=0, frequency=1)
         # 3rd flap is ignored
-        fc = P('Flap Angle (C)', array=np.ma.arange(11, 21, 2), offset=0.123, frequency=1)
+        fc = P('Flap Angle (C)', array=np.ma.arange(11., 21, 2), offset=0.123, frequency=1)
         fa = FlapAngle()
         fa.apply_median_filter = False
         fa.get_derived([fl, fr, fc, None, None, None])
@@ -6035,13 +6047,90 @@ class TestFlapAngle(unittest.TestCase, NodeTest):
         Minimum Flap Angle offset is in the second half of the subframe at 1Hz.
         Upscaling the frequency to 2Hz without also changing the offset will result in an invalid parameter.
         '''
-        fl = P('Flap Angle (L)', array=np.ma.arange(10, 20, 1), offset=0.693359375, frequency=1)
-        fr = P('Flap Angle (R)', array=np.ma.arange(10, 20, 1), offset=0.697265625, frequency=1)
+        fl = P('Flap Angle (L)', array=np.ma.arange(10., 20, 1), offset=0.693359375, frequency=1)
+        fr = P('Flap Angle (R)', array=np.ma.arange(10., 20, 1), offset=0.697265625, frequency=1)
         fa = FlapAngle()
         fa.get_derived([fl, fr, None, None, None, None])
         self.assertEqual(fa.frequency, 2)
         offset = (fl.offset + fr.offset)/2.0 -0.5
         self.assertEqual(fa.offset, offset)
+
+    def test_4_sources_with_masked_values(self):
+        array = np.ma.arange(10, 20, 1)
+        array[4:7] = np.ma.masked
+        fl = P('Flap Angle (L)', array=array, offset=0.0, frequency=1)
+        fr = P('Flap Angle (R)', array=array+0.25, offset=0.25, frequency=1)
+        fc = P('Flap Angle (C)', array=array+0.5, offset=0.50, frequency=1)
+        fmcp = P('Flap Angle (MCP)', array=array+0.75, offset=0.75, frequency=1)
+        fa = FlapAngle()
+        fa.get_derived([fl, fr, fc, fmcp, None, None])
+        self.assertAlmostEqual(fa.offset, 0.0)
+        self.assertEqual(fa.frequency, 4)
+
+        # The median filter provokes repeated values at the end of the data
+        expected = np.ma.concatenate((np.arange(10, 19.25, 0.25), np.ones(3) * 19.25))
+        # The masked data has been repaired with fill_start
+        expected[4*4:7*4] = 13.75
+        np.testing.assert_array_almost_equal(fa.array, expected, decimal=3)
+        np.testing.assert_array_equal(fa.array.mask, expected.mask)
+        self.assertEqual(fa.array[-4], 19)
+
+    def test_4_sources_with_one_source_has_masked_values(self):
+        array = np.ma.arange(10, 20, 1)
+        fl = P('Flap Angle (L)', array=array, offset=0.0, frequency=1)
+        fr = P('Flap Angle (R)', array=array+0.25, offset=0.25, frequency=1)
+        fc = P('Flap Angle (C)', array=array+0.5, offset=0.50, frequency=1)
+        fmcp = P('Flap Angle (MCP)', array=array+0.75, offset=0.75, frequency=1)
+        fr.array[4:7] = np.ma.masked
+        fa = FlapAngle()
+        fa.get_derived([fl, fr, fc, fmcp, None, None])
+        self.assertAlmostEqual(fa.offset, 0.0)
+        self.assertEqual(fa.frequency, 4)
+
+        expected = np.ma.concatenate((np.arange(10, 19.25, 0.25), np.ones(3) * 19.25))
+
+        np.testing.assert_array_almost_equal(fa.array, expected, decimal=3)
+        np.testing.assert_array_equal(fa.array.mask, expected.mask)
+        self.assertEqual(fa.array[-4], 19)
+
+    def test_4_sources_same_offset_with_masked_values_in_one_source(self):
+        array = np.ma.arange(10, 20, 1)
+        fl = P('Flap Angle (L)', array=array, offset=0.0, frequency=1)
+        fr = P('Flap Angle (R)', array=array, offset=0.0, frequency=1)
+        fc = P('Flap Angle (C)', array=array, offset=0.0, frequency=1)
+        fmcp = P('Flap Angle (MCP)', array=array.copy(), offset=0.0, frequency=1)
+        # Masked value in one source with same offset as other sources should be ignored
+        fmcp.array[4:7] = np.ma.masked
+        fa = FlapAngle()
+        fa.get_derived([fl, fr, fc, fmcp, None, None])
+        self.assertAlmostEqual(fa.offset, 0.0)
+        self.assertEqual(fa.frequency, 4)
+
+        expected = np.ma.concatenate((np.arange(10, 19.25, 0.25), np.ones(3) * 19.0))
+        np.testing.assert_array_almost_equal(fa.array, expected, decimal=3)
+        np.testing.assert_array_equal(fa.array.mask, expected.mask)
+        self.assertEqual(fa.array[-4], 19)
+
+    def test_4_sources_with_masked_values_for_15_sec(self):
+        array = np.ma.concatenate((np.arange(10, 20, 0.25), np.ones(160) * 20))
+        array[20:80] = np.ma.masked
+        fl = P('Flap Angle (L)', array=array[::4], offset=0.0, frequency=1)
+        fr = P('Flap Angle (R)', array=array[1::4], offset=0.25, frequency=1)
+        fc = P('Flap Angle (C)', array=array[2::4], offset=0.50, frequency=1)
+        fmcp = P('Flap Angle (MCP)', array=array[3::4], offset=0.75, frequency=1)
+        fa = FlapAngle()
+        fa.get_derived([fl, fr, fc, fmcp, None, None])
+        self.assertAlmostEqual(fa.offset, 0.0)
+        self.assertEqual(fa.frequency, 4)
+
+        expected = np.ma.concatenate((np.arange(10, 20, 0.25), np.ones(160) * 20))
+        # The median filter provokes repeated values at the end of the data or masked
+        # values
+        expected[18:20] = 14.25
+        expected[5*4:20*4] = np.ma.masked
+
+        np.testing.assert_array_almost_equal(fa.array, expected, decimal=3)
+        np.testing.assert_array_equal(fa.array.mask, expected.mask)
 
 
 class TestFlapSynchroAsymmetry(unittest.TestCase):

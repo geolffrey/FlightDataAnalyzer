@@ -3,6 +3,7 @@
 
 from __future__ import print_function
 
+from copy import deepcopy
 import os
 import logging
 import pytz
@@ -354,7 +355,9 @@ def _rate_of_turn(heading):
     :param heading: Heading parameter.
     :type heading: Parameter
     '''
+    heading = deepcopy(heading)
     heading.array = repair_mask(straighten_headings(heading.array),
+                                copy=False,
                                 repair_duration=None)
     rate_of_turn = np.ma.abs(rate_of_change(heading, 8))
     rate_of_turn_masked = \

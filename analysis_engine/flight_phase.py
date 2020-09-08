@@ -1388,7 +1388,7 @@ class Landing(FlightPhaseNode):
             first = landing_run - (300 * alt_aal.frequency)
             # Limit first to be the latest of 5 mins or maximum altitude
             # during fast slice to account for short flights
-            first = max(first, max_value(alt_aal.array, _slice=slice(speedy.slice.start, landing_run)).index)+2
+            first = max(first, max_value(alt_aal.array, _slice=slice(speedy.slice.start, landing_run)).index)+1
             landing_begin = index_at_value(alt_aal.array,
                                            LANDING_THRESHOLD_HEIGHT,
                                            slice(landing_run, first, -1))

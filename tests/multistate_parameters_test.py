@@ -1781,9 +1781,19 @@ class TestFlapLever(unittest.TestCase, NodeTest):
             family=A('Family', 'B737 Classic')),
         )
 
-    @unittest.skip('Test not implemented.')
-    def test_derive(self):
-        pass
+    @patch('analysis_engine.multistate_parameters.at')
+    def test_derive(self, at):
+        flap_lever_angle = P(
+            'Flap Lever Angle',
+            array=np.ma.repeat((1.1, 2.8, 4.8), (18, 1, 18))
+        )
+        at.get_lever_map.return_value = {0: '0', 1: '1', 2: '2', 5: '5', 10: '10'}
+        flap_lever = self.node_class()
+        flap_lever.derive(flap_lever_angle)
+
+        expected = np.repeat((1, 2, 5), (17, 1, 19))
+        np.testing.assert_array_equal(flap_lever.array.raw, expected)
+
 
 
 '''
@@ -2200,6 +2210,35 @@ class TestFlapLeverSynthetic(unittest.TestCase, NodeTest):
         node.derive(flap, slat, None, manufacturer, model, series, family, approach, frame)
         self.assertEqual(list(node.array), list(np.repeat(expected, repeat)))
 
+    def test_masked_flap_array__b737ng(self):
+        # Prepare our generated flap array:
+        flap_array = [0.0, 0, 5, 2, 1, 0, 0, 10, 15, 25, 30, 40, 0, 0, 0]
+        flap_array = MappedArray(flap_array,
+                values_mapping={f: str(f) for f in (0, 1, 2, 5, 10, 15, 25, 30, 40)})
+        flap_array[-3:] = np.ma.masked
+
+        ### Add some noise to make our flap angles more realistic:
+        ##flap_array += np.ma.sin(range(len(flap_array))) * 0.05
+
+        # Derive the synthetic flap lever:
+        flap = M('Flap', flap_array)
+        slat = None
+        flaperon = None
+        model = A('Model', 'B737-333')
+        series = A('Series', 'B737-300')
+        family = A('Family', 'B737 Classic')
+        manufacturer = A('Manufacturer', 'Boeing')
+        node = self.node_class()
+        node.derive(flap, slat, flaperon, manufacturer, model, series, family)
+
+        # Check against an expected array of lever detents:
+        expected = [0, 0, 5, 2, 1, 0, 0, 10, 15, 25, 30, 40, 0, 0, 0]
+        mapping = {x: str(x) for x in sorted(set(expected))}
+        array = MappedArray(expected, values_mapping=mapping)
+        array[-3:] = np.ma.masked
+        np.testing.assert_array_equal(node.array, array)
+        np.testing.assert_array_equal(node.array.mask, array.mask)
+
 
 class TestFlaperon(unittest.TestCase):
     def test_can_operate(self):
@@ -2219,19 +2258,14 @@ class TestFlaperon(unittest.TestCase):
         family = A('Family', 'A330')
         flaperon = Flaperon()
         flaperon.derive(al, ar, model, series, family)
-        self.assertTrue(
-            flaperon.array.raw.tolist()[53:-4] ==
-            [10.0] * 11 +
-            [5.0] * 244 +
-            [10.0] * 584 +
-            [5.0] * 21 +
-            [0.0] * 21775 +
-            [5.0] * 11 +
-            [10.0] * 310 +
-            [0.0] * 278 +
-            [5.0] +
-            [10.0] * 260
+        np.testing.assert_array_equal(
+            flaperon.array.raw[53:-4],
+            np.repeat(
+                (10.0, 5.0, 10.0, 5.0, 0.0, 5.0, 10.0, 0.0, 5.0, 10.0),
+                (  11, 244,  584,  21,21775, 11,  310, 278,   1,  260)
+            )
         )
+
 
     def test_derive_with_rapid_aileron_cycling(self):
         al = load(os.path.join(test_data_path, 'A330_Rapid_Aileron_L_Cycle.nod'))

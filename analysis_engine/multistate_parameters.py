@@ -1469,7 +1469,8 @@ class FlapLeverSynthetic(MultistateDerivedParameterNode):
                 condition &= (flaperon.array == str(a))
             if use_conf:
                 state = at.constants.CONF_TO_LEVER[state]
-            self.array[condition] = state
+            # Only write where the have a valid mask
+            self.array[condition & ~condition.mask] = state
 
         frame_name = frame.value if frame else None
         approach_slices = slices_int(approach.get_slices()) if approach else None

@@ -250,7 +250,7 @@ class AltitudeAGLForFlightPhases(DerivedParameterNode):
 
         repair_array = repair_mask(alt_agl.array, repair_duration=None)
         hyst_array = hysteresis(repair_array, 10.0)
-        self.array = np.ma.where(alt_agl.array > 10.0, hyst_array, repair_array)
+        self.array = np.ma.where(repair_array > 10.0, hyst_array, repair_array)
 
 class AltitudeDensity(DerivedParameterNode):
     '''

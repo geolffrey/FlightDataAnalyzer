@@ -107,40 +107,40 @@ def any_one_of(names, available):
 
 def air_track(lat_start, lon_start, lat_end, lon_end, spd, hdg, alt_aal, frequency):
     """
-Computation of the air track for cases where recorded latitude and longitude
-are not available but the origin and destination airport locations are known.
+    Computation of the air track for cases where recorded latitude and longitude
+    are not available but the origin and destination airport locations are known.
 
-Note that as the data is computed for each half of the flight from the origin
-and destination coordinates, with errors due to wind and earth curvature
-appearing as a jump in the middle of the flight. Either groundspeed or
-airspeed may be used.
+    Note that as the data is computed for each half of the flight from the origin
+    and destination coordinates, with errors due to wind and earth curvature
+    appearing as a jump in the middle of the flight. Either groundspeed or
+    airspeed may be used.
 
-:param lat_start: Fixed latitude point at the origin.
-:type lat_start: float, latitude degrees.
-:param lon_start: Fixed longitude point at the origin.
-:type lon_start: float, longitude degrees.
-:param lat_end: Fixed latitude point at the destination.
-:type lat_end: float, latitude degrees.
-:param lon_end: Fixed longitude point at the destination.
-:type lon_end: float, longitude degrees.
-:param spd: Speed (air or ground) in knots
-:type spd: Numpy masked array.
-:param hdg: Heading (ideally true) in degrees.
-:type hdg: Numpy masked array.
-:param frequency: Frequency of the groundspeed and heading data
-:type frequency: Float (units = Hz)
+    :param lat_start: Fixed latitude point at the origin.
+    :type lat_start: float, latitude degrees.
+    :param lon_start: Fixed longitude point at the origin.
+    :type lon_start: float, longitude degrees.
+    :param lat_end: Fixed latitude point at the destination.
+    :type lat_end: float, latitude degrees.
+    :param lon_end: Fixed longitude point at the destination.
+    :type lon_end: float, longitude degrees.
+    :param spd: Speed (air or ground) in knots
+    :type spd: Numpy masked array.
+    :param hdg: Heading (ideally true) in degrees.
+    :type hdg: Numpy masked array.
+    :param frequency: Frequency of the groundspeed and heading data
+    :type frequency: Float (units = Hz)
 
-:returns
-:param lat_track: Latitude of computed ground track
-:type lat_track: Numpy masked array
-:param lon_track: Longitude of computed ground track
-:type lon_track: Numpy masked array.
+    :returns
+    :param lat_track: Latitude of computed ground track
+    :type lat_track: Numpy masked array
+    :param lon_track: Longitude of computed ground track
+    :type lon_track: Numpy masked array.
 
-:error conditions
-:Fewer than 5 valid data points, returns None, None
-:Invalid mode fails with ValueError
-:Mismatched array lengths fails with ValueError
-"""
+    :error conditions
+    :Fewer than 5 valid data points, returns None, None
+    :Invalid mode fails with ValueError
+    :Mismatched array lengths fails with ValueError
+    """
     def compute_track(lat_start, lon_start, lat_end, lon_end, spd, hdg, alt_aal, frequency):
 
         def measure_jump(arr, n):
@@ -208,8 +208,8 @@ airspeed may be used.
     lon = np_ma_masked_zeros_like(spd)
 
     # Do some spadework to prepare the ground
-    repair_mask(spd, repair_duration=None)
-    repair_mask(hdg, repair_duration=None)
+    spd = repair_mask(spd, repair_duration=None)
+    hdg = repair_mask(hdg, repair_duration=None)
     # Get longest slice as we want the flight not a high speed RTO
     valid_slices = np.ma.clump_unmasked(np.ma.masked_less_equal(spd, 50.0))
     valid_slice = max(valid_slices, key=lambda p: p.stop - p.start)
@@ -222,8 +222,8 @@ airspeed may be used.
                                                        alt_aal[valid_slice],
                                                        frequency)
 
-    repair_mask(lat, repair_duration=None, extrapolate=True)
-    repair_mask(lon, repair_duration=None, extrapolate=True)
+    lat = repair_mask(lat, repair_duration=None, extrapolate=True)
+    lon = repair_mask(lon, repair_duration=None, extrapolate=True)
     return lat, lon
 
 
@@ -450,6 +450,7 @@ def align_args(slave_array, slave_frequency, slave_offset, master_frequency, mas
             dur_between_slave_samples = 1.0 / slave_frequency
             return repair_mask(
                 slave_aligned,
+                copy=False,
                 frequency=master_frequency,
                 repair_duration=dur_between_slave_samples,
                 raise_entirely_masked=False,
@@ -2803,8 +2804,8 @@ def ground_track(lat_fix, lon_fix, gspd, hdg, frequency, mode):
     # otherwise overwrite the result mask.
     result = np.ma.copy(result)
 
-    repair_mask(gspd, repair_duration=None)
-    repair_mask(hdg, repair_duration=None)
+    gspd = repair_mask(gspd, repair_duration=None)
+    hdg = repair_mask(hdg, repair_duration=None)
 
     if mode == 'takeoff':
         direction = 'backwards'
@@ -3334,7 +3335,7 @@ def interpolate_coarse(array):
     array = array.copy()
     array.mask[1:] = np.ma.masked_equal(np.ma.diff(array.data), 0).mask | array.mask[1:]
     # Q: Use interpolate function instead?
-    return repair_mask(array, repair_duration=None)
+    return repair_mask(array, copy=False, repair_duration=None)
 
 
 def interleave(param_1, param_2):
@@ -5004,7 +5005,7 @@ def blend_parameters_weighting(array, wt):
     final_weight[0]=result_weight[0]
     final_weight[-1]=result_weight[-1]
 
-    return repair_mask(final_weight, repair_duration=None)
+    return repair_mask(final_weight, copy=False, repair_duration=None)
 
 
 
@@ -5829,7 +5830,7 @@ def fill_masked_edges(array, fill_value):
 
 
 def repair_mask(array, frequency=1, repair_duration=REPAIR_DURATION,
-                copy=False, extrapolate=False, repair_above=None,
+                copy=True, extrapolate=False, repair_above=None,
                 method='interpolate', raise_duration_exceedance=False,
                 raise_entirely_masked=True):
     '''
@@ -5859,7 +5860,7 @@ def repair_mask(array, frequency=1, repair_duration=REPAIR_DURATION,
     if copy:
         array = array.copy()
 
-    if repair_duration:
+    if repair_duration is not None:
         repair_samples = repair_duration * frequency
     else:
         repair_samples = None
@@ -5868,7 +5869,7 @@ def repair_mask(array, frequency=1, repair_duration=REPAIR_DURATION,
 
     for section in masked_sections:
         length = section.stop - section.start
-        if repair_samples and length > repair_samples:
+        if repair_samples is not None and length > repair_samples:
             if raise_duration_exceedance:
                 raise ValueError("Length of masked section '%s' exceeds "
                                  "repair duration '%s'." % (length * frequency,
@@ -7013,7 +7014,10 @@ def step_values(array, steps, hz=1, step_at='midpoint', rate_threshold=0.5):
             or direction == 'decrease' and step_at == 'excluding_transition'):
             #TODO: support within 0.1 rather than 90%
             # prev_midpoint (scan stop) should be after the other scan transition...
-            scan_rev = slice(flap_midpoint, prev_midpoint, -1)
+            # End of reversed slice is excluded, but we want to include prev_midpoint
+            prev_midpoint = max(0, prev_midpoint-1)
+            # If end was 0, to include it we must use None
+            scan_rev = slice(flap_midpoint, prev_midpoint if prev_midpoint else None, -1)
             ### 0.975 is within 0.1 of flap 40 and 0.
             ##idx = index_at_value_or_level_off(array, prev_flap, scan_rev,
                                               ##abs_threshold=0.2)
@@ -7636,14 +7640,21 @@ def index_at_value(array, threshold, _slice=slice(None), endpoint='exact'):
         left, right = slice(begin, end - 1, step), slice(begin + 1, end,step)
 
     elif step == -1:
-        begin = min(int(py2round(_slice.start or max_index)), max_index-1)
-        # Indexing from the end of the array results in an array length
-        # mismatch. There is a failing test to cover this case which may work
-        # with array[:end:-1] construct, but using slices appears insoluble.
-        end = max(int(_slice.stop or 0),0)
-        left = slice(begin, end, step)
-        right = slice(begin - 1, end - 1 if end > 0 else None, step)
-
+        begin = min(int(py2round(_slice.start or max_index-1)), max_index-1)
+        # With negative step, the end index cannot be expressed as an int if we
+        # want to reference the first element of the array, as it is a non-inclusive
+        # index. Python uses None for this case and we must keep that value.
+        # If array is [0, 1, 2, 3] and we use slice(2, None, -1) we will get [2, 1, 0]
+        # while using slice (2, 0, -1) will result in [2, 1] as index 0 is non-inclusive.
+        if _slice.stop is None:
+            end = None
+        else:
+            end = max(int(_slice.stop), 0)
+        # With array [0, 1, 2, 3] and slice (2, None, -1) the left slice is [1, 0] and
+        # the rigth slice is [2, 1]. It's left and right seen from the original array.
+        # Slice: [ [0, 1, 2] , 3] -- Left: [ [0, 1] , 2, 3] -- Right: [0, [1, 2] , 3]
+        left = slice(begin - 1, end, step)
+        right = slice(begin, end + 1 if end is not None else 0, step)
     else:
         raise ValueError('Step length not 1 in index_at_value')
 
@@ -7672,13 +7683,14 @@ def index_at_value(array, threshold, _slice=slice(None), endpoint='exact'):
         if endpoint in ['closing', 'first_closing']:
             # Rescan the data to find the last point where the array data is
             # closing.
+            array = repair_mask(array, repair_duration=None, raise_entirely_masked=False)
             diff = np.ma.ediff1d(array[slices_int(_slice)])
-            if _slice.step is not None and _slice.step >= 0:
-                start_index = _slice.start
-                stop_index = _slice.stop
+            if step > 0:
+                start_index = begin
+                stop_index = end
             else:
-                start_index = _slice.stop
-                stop_index = _slice.start
+                start_index = end + 1 if end is not None else 0
+                stop_index = begin + 1
             value = closest_unmasked_value(array, _slice.start or 0,
                                            start_index=start_index,
                                            stop_index=stop_index)
@@ -7703,13 +7715,13 @@ def index_at_value(array, threshold, _slice=slice(None), endpoint='exact'):
             try:
                 return (_slice.start or 0) + (step * diff_where[0][0])
             except IndexError:
-                if start_index is None or stop_index is None:
-                    return len(array) - 1
+                # As we had repaired the array without extrapolating, we're left with
+                # potential start or end of array masked.
+                start, stop = np.ma.flatnotmasked_edges(array)
+                if step > 0:
+                    return min(stop, stop_index - 1)
                 else:
-                    if step==1:
-                        return (_slice.stop - step)
-                    else:
-                        return _slice.stop
+                    return max(start, start_index)
 
         elif endpoint == 'nearest':
             closing_array = abs(array-threshold)

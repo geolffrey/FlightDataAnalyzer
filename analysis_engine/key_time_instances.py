@@ -682,17 +682,18 @@ class EngStart(KeyTimeInstanceNode):
             # Repair 360 seconds of masked data when detecting engine starts.
             array = hysteresis(
                 repair_mask(eng_nx.array,
-                            repair_duration=360 / self.frequency,
+                            frequency=eng_nx.hz,
+                            repair_duration=360,
                             extrapolate=True),
                 HYSTERESIS_ENG_START_STOP)
             below_slices = runs_of_ones(array < limit)
 
             for below_slice in below_slices:
-
-                if ((below_slice.start != 0 and
-                        slice_duration(below_slice, self.hz) < 6) or
-                        below_slice.stop == len(array) or
-                        eng_nx.array[below_slice.stop] is np.ma.masked):
+                short_dip = (below_slice.start != 0 and
+                             slice_duration(below_slice, self.hz) < 6)
+                if (short_dip or
+                    below_slice.stop == len(array) or
+                    array[below_slice.stop] is np.ma.masked):
                     # Small dip or reached the end of the array.
                     continue
 
@@ -701,13 +702,15 @@ class EngStart(KeyTimeInstanceNode):
                                 replace_values={'number': number})
 
             if not started:
-                i, v = first_valid_sample(eng_nx.array)
-                if i is not None and v >= limit:
+                idx_running = np.ma.nonzero(array > limit)[0]
+                if idx_running.size:
+                    # Get the index one sample before the first running index
+                    first_running = max(0, idx_running[0] - 1)
                     self.warning(
                         'Eng (%d) Start: `%s` spin up not detected, '
                         'set at the first valid data sample.' %
                         (number, eng_nx.name))
-                    self.create_kti(i, replace_values={'number': number})
+                    self.create_kti(first_running, replace_values={'number': number})
 
 
 class FirstEngStartBeforeLiftoff(KeyTimeInstanceNode):
@@ -830,20 +833,18 @@ class EngStop(KeyTimeInstanceNode):
             # Repair 30 seconds of masked data when detecting engine stops.
             array = hysteresis(
                 repair_mask(eng_nx.array,
-                            repair_duration=30 / self.frequency,
+                            frequency=eng_nx.hz,
+                            repair_duration=30,
                             extrapolate=True),
                 HYSTERESIS_ENG_START_STOP)
             below_slices = runs_of_ones(array < limit)
 
-            last_idx, last_value = last_valid_sample(eng_nx.array, min_samples=5)
-
             for below_slice in below_slices:
                 if (below_slice.start == 0 or
-                        eng_nx.array[below_slice.start - 1] is np.ma.masked):
+                        array[below_slice.start - 1] is np.ma.masked):
                     # start of data, or following masked data.
                     continue
-                elif (slice_duration(below_slice, self.hz) < 6 and not
-                      is_index_within_slice(last_idx, below_slice)):
+                elif slice_duration(below_slice, self.hz) < 6:
                     # Small dip not at end of data (handled later)
                     continue
 
@@ -858,12 +859,15 @@ class EngStop(KeyTimeInstanceNode):
                 stopped = False
 
             if not stopped:
-                if last_idx is not None and last_value >= limit:
+                idx_running = np.ma.nonzero(array > limit)[0]
+                if idx_running.size:
+                    # Get the index one sample beyond the last running index
+                    last_running = min(idx_running[-1] + 1, array.size - 1)
                     self.warning(
                         'Eng (%d) Stop: `%s` spin down not detected, '
                         'set at the last valid data sample.' % (number,
                                                               eng_nx.name))
-                    self.create_kti(last_idx, replace_values={'number': number})
+                    self.create_kti(last_running, replace_values={'number': number})
 
 
 class LastEngStopAfterTouchdown(KeyTimeInstanceNode):
@@ -1995,11 +1999,16 @@ class LandingDecelerationEnd(KeyTimeInstanceNode):
     '''
     def derive(self, speed=P('Airspeed'), landings=S('Landing')):
         for landing in landings:
-            end_decel = peak_curvature(speed.array, landing.slice, curve_sense='Concave')
+            repaired_spd = repair_mask(
+                speed.array[slices_int(landing.slice)],
+                frequency=speed.frequency,
+                raise_entirely_masked=False
+            )
+            end_decel = peak_curvature(repaired_spd, curve_sense='Concave')
             # Create the KTI if we have found one, otherwise point to the end
             # of the data, as sometimes recordings stop in mid-landing phase
             if end_decel:
-                self.create_kti(end_decel)
+                self.create_kti(end_decel + landing.slice.start)
             else:
                 self.create_kti(landing.stop_edge)
 
