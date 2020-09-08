@@ -1422,7 +1422,7 @@ class AirspeedBelowAirspeedSelectedDurationMax(KeyPointValueNode):
     Only durations of at least 20 seconds are considered.
     '''
 
-    units = ut.KT
+    units = ut.SECOND
 
     def derive(self, spd=P('Airspeed'),
                spd_sel=P('Airspeed Selected'),
