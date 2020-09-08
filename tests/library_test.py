@@ -4031,16 +4031,16 @@ class TestIntegrate (unittest.TestCase):
         data = np.ma.array(data = [1,1,1,1,0,2,2,2,3,3,3],
                            mask = [1,0,0,1,1,0,0,0,1,1,0])
         result = integrate(data,1.0, initial_value=5, contiguous=True)
-        np.testing.assert_array_equal(result.data, [0,0,0,0,0,0,5,7,7,7,7])
-        np.testing.assert_array_equal(result.mask, [1,1,1,1,1,1,0,0,1,1,1])
+        np.testing.assert_array_equal(result.data, [0,0,0,0,0,5,7,9,9,9,9])
+        np.testing.assert_array_equal(result.mask, [1,1,1,1,1,0,0,0,1,1,1])
 
     def test_contiguous_reversed(self):
         data = np.ma.array(data = [1,1,1,1,0,2,2,2,3,3,3],
                            mask = [1,0,0,1,1,0,0,0,1,1,0])
         result = integrate(data,1.0, initial_value=4,
                            direction='reverse', contiguous=True)
-        np.testing.assert_array_equal(result.data, [6,6,6,6,6,6,4,0,0,0,0])
-        np.testing.assert_array_equal(result.mask, [1,1,1,1,1,0,0,1,1,1,1])
+        np.testing.assert_array_equal(result.data, [8,8,8,8,8,8,6,4,0,0,0])
+        np.testing.assert_array_equal(result.mask, [1,1,1,1,1,0,0,0,1,1,1])
 
     def test_integration_masked_tail(self):
         # This test was added to assess the effect of masked values rolling back into the integrand.
@@ -4062,8 +4062,50 @@ class TestIntegrate (unittest.TestCase):
         result = integrate(data, 1.0, extend=True)
         np.testing.assert_array_equal(result.data, [1.0, 3.0, 7.0, 13.0])
 
-    #TODO: test for mask repair
+    def test_integration_surrounded_by_masked_values(self):
+        data = np.ma.array(
+            np.ones(30) * 20,
+            mask=np.repeat((1, 0, 1), (10, 10, 10))
+        )
+        result = integrate(data, 1, extend=True)
+        similar = integrate(np.ones(10) * 20, 1, extend=True)
 
+        assert_array_equal(np.ma.compressed(result), np.ma.compressed(similar))
+
+    def test_integration_simple_values(self):
+        data = np.ma.ones(5)
+        result = integrate(data, 1)
+
+        assert_array_equal(result.data, [0, 1, 2, 3, 4])
+
+    def test_integration_increasing_values(self):
+        data = np.ma.arange(5)
+        result = integrate(data, 1, initial_value=0)
+
+        assert_array_equal(result.data, [0, 0.5, 2, 4.5, 8])
+
+    def test_two_unmasked_sections(self):
+        data = np.ma.array(
+            np.ones(50),
+            mask=np.repeat((1, 0, 1, 0, 1), (10, 10, 10, 10, 10))
+        )
+        result = integrate(data, 1, initial_value=0)
+
+        assert_array_equal(result.mask, np.repeat((1, 0, 1, 0, 1), (10, 10, 10, 10, 10)))
+        assert_array_equal(result[10:20], np.arange(10))
+        assert_array_equal(result[30:40], np.arange(9, 19))
+
+    def test_two_unmasked_sections_extend(self):
+        data = np.ma.array(
+            np.ones(50),
+            mask=np.repeat((1, 0, 1, 0, 1), (10, 10, 10, 10, 10))
+        )
+        result = integrate(data, 1, initial_value=0, extend=True)
+
+        assert_array_equal(result.mask, np.repeat((1, 0, 1, 0, 1), (10, 10, 10, 10, 10)))
+        assert_array_equal(result[10:20], np.arange(1, 11))
+        assert_array_equal(result[30:40], np.arange(11, 21))
+    #TODO: test for mask repair
 
 class TestIsSliceWithinSlice(unittest.TestCase):
     def test_is_slice_within_slice(self):

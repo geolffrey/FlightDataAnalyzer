@@ -3151,14 +3151,18 @@ def integrate(array, frequency, initial_value=0.0, scale=1.0,
     values have a positive slope following integration using this function.
 
     Normal integration over n points will result in n-1 trapezoidal intervals
-    being summed. This can be extended to provide n intervals by extending
-    the first values by an integration step if required. The effect is to
-    make the initial value the preceding value to the integral.
+    being summed. We start the array with the initial value, and add the n-1 summations.
+
+    If `extend` is True, we will add to the initial value an integration step with the
+    first unmasked value. We will include in the integration half intervals at either
+    end of boundaries of unmasked values. The effect is to make the initial value the
+    preceding value to the integral.
 
     :returns integral: Result of integration by time
     :type integral: Numpy masked array.
     """
-
+    direction = direction.lower()
+    array = np.asanyarray(array)
     if np.ma.count(array)==0:
         return np_ma_masked_zeros_like(array)
 
@@ -3170,64 +3174,61 @@ def integrate(array, frequency, initial_value=0.0, scale=1.0,
                                 copy=True)
     elif contiguous:
         blocks = np.ma.clump_unmasked(array)
-        longest_index = None
-        longest_slice = 0
-        for n, block in enumerate(blocks):
-            slice_length = block.stop-block.start
-            if slice_length > longest_slice:
-                longest_slice = slice_length
-                longest_index = n
+        longest_block = max(blocks, key=lambda s: s.stop - s.start)
         integrand = np_ma_masked_zeros_like(array)
-        integrand[blocks[longest_index]] = array[blocks[longest_index]]
+        integrand[longest_block] = array[longest_block]
     else:
         integrand = array
 
-    if direction.lower() == 'forwards':
+    if direction == 'forwards':
         d = +1
         s = +1
-    elif direction.lower() == 'reverse':
+    elif direction == 'reverse':
         d = -1
         s = +1
-    elif direction.lower() == 'backwards':
+    elif direction == 'backwards':
         d = -1
         s = -1
     else:
         raise ValueError("Invalid direction '%s'" % direction)
 
     k = (scale * 0.5)/frequency
-    to_int = k * (integrand + np.roll(integrand, d))
-    edges = np.ma.flatnotmasked_edges(to_int)
-    # In some cases to_int and the rolled version may result in a completely masked result.
-    if edges is None:
-        return np_ma_masked_zeros_like(array)
 
-    if direction == 'forwards':
-        if edges[0] == 1:
-            to_int[0] = initial_value
-        else:
-            to_int[edges[0]] = initial_value
+    mask = np.ma.getmask(integrand)
+    start_edge, stop_edge = np.ma.flatnotmasked_edges(integrand)
+    to_int = np.ma.empty_like(integrand, dtype=np.float)
+    result = np.ma.zeros(len(integrand))
+
+    if extend and mask is not np.ma.nomask:
+        # We must include half intervals at the boundaries of unmasked values.
+        # We do this by filling temporarily the masked values with 0s and summing
+        # the trapezoidal area. This results in data points next to a masked value
+        # to add half their value.
+        integrand = integrand.filled(0)
+
+    # Summing consecutive data points will allow the mask if any to spread as necessary.
+    # We don't want to use np.roll as it could push a mask value at the other end
+    # of the array.
+    if d > 0:
+        # Forwards -> start to fill at index 1, summing data points i with i-1
+        to_int[1:] = k * (integrand[1:] + integrand[:-1])
+        to_int[start_edge] = initial_value
     else:
-        if edges[1] == -1:
-            to_int[-1] = initial_value * s
-        else:
-            to_int[edges[1]] = initial_value * s
-            # Note: Sign of initial value will be reversed twice for backwards case.
-
-    result=np.ma.zeros(len(integrand))
+        # Reverse or backward -> start to fill at index 0, summing data points i with i+1
+        to_int[:-1] = k * (integrand[:-1] + integrand[1:])
+        # Note: Sign of initial value will be reversed twice for backwards case.
+        to_int[stop_edge] = initial_value * s
 
     result[::d] = np.ma.cumsum(to_int[::d] * s)
-
-
-    # Original version used this half sample shifted result; never used.
-    ##if extend:
-        ##result += integrand[0]*s*k
-        ##result[-1] += integrand[-1]*s*k
+    # Use the original integrand mask, as in case of extending we have lost our mask
+    result.mask = mask
 
     if extend:
-        first_value = integrand.compressed()[0]
+        first_value = integrand[start_edge]
         result += first_value * 2. * s * k
 
     return result
+
 
 def integ_value(array,
                 _slice=slice(None),
