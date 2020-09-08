@@ -819,7 +819,7 @@ def multistate_string_to_integer(string_array, mapping):
         output_array.data[string_array.data == str_value] = int_value
     output_array.fill_value = 999999  # NB: only 999 will be stored by dtype
     # apply fill_value to all masked values
-    output_array.data[np.ma.where(output_array.mask)] = output_array.fill_value
+    output_array.data[output_array.mask] = output_array.fill_value
     try:
         int_array = output_array.astype(int)
     except ValueError as err:

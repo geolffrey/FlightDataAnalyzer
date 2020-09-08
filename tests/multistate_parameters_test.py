@@ -1236,6 +1236,17 @@ class TestEng_AllRunning(unittest.TestCase, NodeTest):
         node.derive(None, n2, None, ff)
         self.assertEqual(node.array.raw.tolist(), expected)
 
+    def test_derive_n2_ff_masked_values(self):
+        n2_array = np.ma.array([0, 5, 11, 15, 11, 5, 0])
+        n2_array[2] = np.ma.masked
+        n2 = P('Eng (*) N2 Min', array=n2_array)
+        ff_array = np.ma.array([10, 20, 50, 55, 51, 51, 10])
+        ff = P('Eng (*) Fuel Flow Min', array=ff_array)
+        expected = [False, False, False, True, True, True, False]
+        node = self.node_class()
+        node.derive(None, n2, None, ff)
+        self.assertEqual(node.array.raw.tolist(), expected)
+
     def test_derive_n1_only(self):
         # fallback to N1 if no N2 and FF
         n1_array = np.ma.array([0, 5, 10, 15, 11, 5, 0])
