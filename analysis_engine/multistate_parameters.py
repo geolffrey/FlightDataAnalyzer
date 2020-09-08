@@ -4081,6 +4081,32 @@ class TAWSTerrainWarning(MultistateDerivedParameterNode):
         ).any(axis=0)
 
 
+class TAWSWindshearWarning(MultistateDerivedParameterNode):
+    name = 'TAWS Windshear Warning'
+    units = None
+    values_mapping = {0: '-', 1: 'Warning'}
+
+    @classmethod
+    def can_operate(cls, available):
+        return any_of(
+            (
+                'TAWS Windshear Warning (1)',
+                'TAWS Windshear Warning (2)',
+                'TAWS Windshear Warning (3)',
+            ),
+            available
+        )
+
+    def derive(self, taws_ws_1=M('TAWS Windshear Warning (1)'),
+               taws_ws_2=M('TAWS Windshear Warning (2)'),
+               taws_ws_3=M('TAWS Windshear Warning (3)')):
+        self.array = vstack_params_where_state(
+            (taws_ws_1, 'Warning'),
+            (taws_ws_2, 'Warning'),
+            (taws_ws_3, 'Warning'),
+        ).any(axis=0)
+
+
 class TakeoffConfigurationWarning(MultistateDerivedParameterNode):
     '''
     Merging all available Takeoff Configuration Warning signals into a single
