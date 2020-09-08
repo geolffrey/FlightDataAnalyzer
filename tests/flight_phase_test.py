@@ -3482,6 +3482,41 @@ class TestTakeoffRunwayHeading(unittest.TestCase):
             slice(2525, 2632, None)
         ])
 
+    def test_derive(self):
+        # (Heading +10) - (Heading -10) results in a value slightly above 20.0 due to
+        # floating point representation. This test case assures we account for some
+        # epsilon
+        hdg = P('Heading', array=np.ma.repeat((100, 123.19294674295774), (100, 100)))
+        grounded = buildsection('Grounded', 10, 195)
+        toffs = buildsection('Takeoff Roll', 150, 195)
+        node = self.node_class()
+        node.derive(hdg, grounded, toffs)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node.get_slices(), [
+            slice(100, 196, None)
+        ])
+
+    def test_derive_short_masked_values(self):
+        hdg = P(
+            'Heading',
+            array=np.ma.repeat((100, 123.19294674295774), (100, 100)),
+            frequency=2
+        )
+        hdg.array[120:124] = np.ma.masked
+        grounded = buildsection('Grounded', 10, 195)
+        grounded.hz = 2
+        toffs = buildsection('Takeoff Roll', 150, 195)
+        toffs.hz = 2
+        node = self.node_class()
+        node.get_derived((hdg, grounded, toffs))
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node.get_slices(), [
+            slice(100, 195, None)
+        ])
+
+
 class TestBaroDifference(unittest.TestCase):
 
     def setUp(self):
