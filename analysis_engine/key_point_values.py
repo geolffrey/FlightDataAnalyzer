@@ -6794,8 +6794,14 @@ class QNHDifferenceDuringApproach(KeyPointValueNode):
         for app in apps:
             if app.approach_runway is None:
                 continue
-            index = index_at_value(alt_aal.array, 100,
-                                   slice(app.slice.stop, app.slice.start, -1))
+            index = index_at_value(
+                alt_aal.array, 100,
+                slice(
+                    app.slice.stop-1,
+                    app.slice.start-1 if app.slice.start else None,
+                    -1
+                )
+            )
             if index is None:
                 continue
             final_alt = alt_aal.array[int(index)]

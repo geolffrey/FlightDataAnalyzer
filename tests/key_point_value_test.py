@@ -8914,12 +8914,12 @@ class TestQNHDifferenceDuringApproach(unittest.TestCase):
         node.derive(alt_qnh, alt_all, apps)
         # 60 ft below is roughly 2 mBar difference
         self.assertAlmostEqual(node[0].value, -2, delta=0.2)
-        self.assertAlmostEqual(node[0].index, 1, delta=0.01)
+        self.assertAlmostEqual(node[0].index, 0.33, delta=0.01)
 
     def test_derive_multiple_app(self):
         alt_qnh = P(name='Altitude QNH',
                     array=np.ma.array([
-                        1336, 1301, 1281, 1241, 1251, 1271,    # Go around
+                        1326, 1296, 1276, 1236, 1246, 1266,    # Go around
                         1391, 1361, 1341, 1321, 1301, 1281]))  # Landing
         alt_aal = P('Altitude AAL',
                     array=np.ma.array([
@@ -8939,7 +8939,7 @@ class TestQNHDifferenceDuringApproach(unittest.TestCase):
         self.assertAlmostEqual(node[0].index, 0.33, delta=0.01)
         # Second approach had only 5 ft diff. Almost 0 mBar difference
         self.assertAlmostEqual(node[1].value, 0, delta=0.2)
-        self.assertAlmostEqual(node[1].index, 7, delta=0.01)
+        self.assertAlmostEqual(node[1].index, 6.33, delta=0.01)
 
     def test_first_app_go_around_above_100ft(self):
         alt_qnh = P(name='Altitude QNH',
