@@ -5711,13 +5711,34 @@ class TestAirspeedAtThrustReversersSelection(unittest.TestCase, NodeTest):
 
 class TestGroundspeedWithThrustReversersDeployedAnyPowerMin(unittest.TestCase, NodeTest):
 
+    def setUp(self):
+        self.node_class = GroundspeedWithThrustReversersDeployedAnyPowerMin
+        self.operational_combinations = [
+            ('Groundspeed', 'Thrust Reversers', 'Stationary')
+        ]
+
     def test_derive_basic(self):
-        gnd_spd = P('Groundspeed True', array=np.ma.arange(100, 0, -10))
+        gnd_spd = P('Groundspeed', array=np.ma.arange(100, 0, -10))
         tr = M('Thrust Reversers', array=np.ma.array([0] * 3 + [1] + [2] * 4 + [1,0]),
                values_mapping={0: 'Stowed', 1: 'In Transit', 2: 'Deployed'})
+        stationaries = buildsection('Stationary', 0, 3)
+        node = self.node_class()
+        node.derive(gnd_spd, tr, stationaries)
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0], KeyPointValue(
+            index=7, value=30.0, name='Groundspeed With Thrust Reversers Deployed Any Power Min'))
 
-        node = GroundspeedWithThrustReversersDeployedAnyPowerMin()
-        node.derive(gnd_spd, tr)
+    def test_spurious_thrust_reversers_while_stationary(self):
+        gnd_spd = P('Groundspeed', array=np.ma.concatenate((np.ma.arange(100, 0, -10), np.ma.zeros(10))))
+        tr_data = np.ma.zeros(20)
+        tr_data[3:8] = [1, 2, 2, 2, 2]
+        tr_data[14:16] = 2
+        tr = M('Thrust Reversers', array=tr_data,
+               values_mapping={0: 'Stowed', 1: 'In Transit', 2: 'Deployed'})
+
+        stationaries = buildsection('Stationary', 10, 20)
+        node = self.node_class()
+        node.derive(gnd_spd, tr, stationaries)
         self.assertEqual(len(node), 1)
         self.assertEqual(node[0], KeyPointValue(
             index=7, value=30.0, name='Groundspeed With Thrust Reversers Deployed Any Power Min'))

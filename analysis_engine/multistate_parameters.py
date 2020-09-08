@@ -3854,7 +3854,8 @@ class ThrustReversers(MultistateDerivedParameterNode):
         array = np.ma.where(deployed_stack.all(axis=0), 2, array)
 
         # update with any transit params
-        if any((e1_tst_all, e2_tst_all, e3_tst_all, e4_tst_all)):
+        if any((e1_tst_all, e2_tst_all, e3_tst_all, e4_tst_all,
+                e1_status, e2_status, e3_status, e4_status)):
             transit_stack = vstack_params_where_state(
                 (e1_tst_all, 'In Transit'), (e2_tst_all, 'In Transit'),
                 (e3_tst_all, 'In Transit'), (e4_tst_all, 'In Transit'),
