@@ -4163,6 +4163,7 @@ class TestTAWSAlert(unittest.TestCase):
                                      None,
                                      None,
                                      None,
+                                     None,
                                      None,))
         np.testing.assert_equal(self.taws_alert.array.data, result)
 
