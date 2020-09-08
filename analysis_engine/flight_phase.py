@@ -74,6 +74,7 @@ from analysis_engine.settings import (
     HOLDING_ROT,
     HYSTERESIS_FPALT_CCD,
     ILS_CAPTURE,
+    INITIAL_APPROACH_THRESHOLD,
     INITIAL_CLIMB_THRESHOLD,
     LANDING_ROLL_END_SPEED,
     LANDING_THRESHOLD_HEIGHT,
@@ -685,8 +686,7 @@ class DescentLowClimb(FlightPhaseNode):
                level_flights=S('Level Flight')):
         level_flights = level_flights.get_slices() if level_flights else None
         low_alt_slices = find_low_alts(alt_aal.array, alt_aal.frequency,
-                                       500,
-                                       3000,
+                                       INITIAL_APPROACH_THRESHOLD,
                                        level_flights=level_flights)
         for low_alt in low_alt_slices:
             if (alt_aal.array[int(low_alt.start)] and

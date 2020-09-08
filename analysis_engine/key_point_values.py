@@ -6319,9 +6319,9 @@ class AltitudeAtFirstGearUpSelection(KeyPointValueNode):
 
 class AltitudeAtGearUpSelectionDuringGoAround(KeyPointValueNode):
     '''
-    Altitude AAL at which gear up was selected from the point of minimum
-    altitude in the go-around. If gear up was selected before that,
-    value will be zero.
+    Relative Altitude AAL at which gear up was selected from the point of minimum
+    altitude in the go-around. If gear up was selected before that, no KPV will be
+    generated.
     '''
 
     units = ut.FT
@@ -6329,22 +6329,25 @@ class AltitudeAtGearUpSelectionDuringGoAround(KeyPointValueNode):
     def derive(self,
                alt_aal=P('Altitude AAL'),
                go_arounds=S('Go Around And Climbout'),
+               toc=KTI('Top Of Climb'),
                gear_up_sel=KTI('Gear Up Selection During Go Around')):
 
         for go_around in go_arounds:
             # Find the index and height at this go-around minimum:
             pit_index, pit_value = min_value(alt_aal.array, go_around.slice)
-            for gear_up in gear_up_sel.get(within_slice=go_around.slice):
-                if gear_up.index > pit_index:
-                    # Use height between go around minimum and gear up:
-                    gear_up_ht = alt_aal.array[int(gear_up.index)] - pit_value
-                    self.create_kpv(gear_up.index, gear_up_ht)
+            following_toc = toc.get_next(go_around.slice.start)
 
-                # The else condition below led to creation of a zero KPV in
-                # cases where the gear was not moved, so has been deleted.
-                #else:
-                    ## Use zero if gear up selected before minimum height:
-                    #gear_up_ht = 0.0
+            slice_ = slice(
+                pit_index,
+                following_toc.index if following_toc else go_around.slice.stop
+            )
+
+            gear_up = gear_up_sel.get_next(index=pit_index, within_slice=slice_)
+            if gear_up:
+                # Use height between go around minimum and gear up:
+                alt_gear_up = value_at_index(alt_aal.array, gear_up.index)
+                gear_up_ht = alt_gear_up - pit_value
+                self.create_kpv(gear_up.index, gear_up_ht)
 
 
 class AltitudeWithGearDownMax(KeyPointValueNode):
@@ -13915,6 +13918,46 @@ class GearRetractionDuration(KeyPointValueNode):
 
     def derive(self, gear_retracting=P('Gear Up In Transit'),):
         self.create_kpvs_from_slice_durations(runs_of_ones(gear_retracting.array=='Retracting'), self.hz)
+
+
+class GearDownSelectedAfterGoAroundDuration(KeyPointValueNode):
+    '''
+    Indicate how long it took to raise the gear after go-around.
+
+    In case the gear was not selected up before reaching the following Top Of Climb,
+    the duration will be equal to the time between the lowest altitude during the
+    Go Around and the following Top Of Climb. In the unlikely case that there is no
+    Top Of Climb following the go around and that the gear was not retracted, the
+    duration will measure the time between the lowest altitude during the Go Around and
+    the end of the Go Around And Climbout phase.
+    '''
+    units = ut.SECOND
+
+    def derive(self,
+               go_around_sections=S('Go Around And Climbout'),
+               go_arounds=KTI('Go Around'),
+               gear_up_sel=KTI('Gear Up Selection During Go Around'),
+               toc=KTI('Top Of Climb')):
+
+        for go_around_section in go_around_sections:
+            go_around = go_arounds.get_first(within_slice=go_around_section.slice)
+            if not go_around:
+                continue
+            following_toc = toc.get_next(go_around.index)
+
+            slice_ = slice(
+                go_around.index,
+                following_toc.index if following_toc else go_around_section.slice.stop
+            )
+
+            gear_up = gear_up_sel.get_next(index=slice_.start, within_slice=slice_)
+
+            if gear_up:
+                duration = (gear_up.index - go_around.index) / go_around_sections.hz
+            else:
+                duration = slice_duration(slice_, go_around_sections.hz)
+
+            self.create_kpv(go_around.index, duration)
 
 
 ##############################################################################
