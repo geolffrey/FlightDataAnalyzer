@@ -7054,6 +7054,15 @@ class TestSlicesRemoveSmallGaps(unittest.TestCase):
             (609, 612), (631, 815), (820, 892), (962, 966), (1021, 1032), (1037, 1047),
             (1149, 1164), (1642, 1832), (1836, 2277), (2286, 2508), (2565, 4378))])
 
+    def test_overlapping_slices(self):
+        slicelist = [
+            slice(5, 55), slice(20, 30),
+            slice(200, 230), slice(190, 210),
+            slice(300, 330), slice(320, 350)
+        ]
+        newlist = slices_remove_small_gaps(slicelist)
+        self.assertEqual(newlist, [slice(5, 55), slice(190, 230), slice(300, 350)])
+
 
 class TestSlicesRemoveSmallSlices(unittest.TestCase):
     def test_slice_removal(self):

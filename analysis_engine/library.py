@@ -3967,6 +3967,8 @@ def slices_remove_small_gaps(slice_list, time_limit=10, hz=1, count=None):
     elif any(s.start is None for s in slice_list) and any(s.stop is None for s in slice_list):
         return [slice(None, None, slice_list[0].step)]
 
+    # Merge any overlapping slices
+    slice_list = slices_or(slice_list, slice_list)
     sample_limit = count if count is not None else time_limit * hz
     slice_list = sorted(slice_list, key=lambda s: s.start or 0)
     new_list = [slice_list[0]]
