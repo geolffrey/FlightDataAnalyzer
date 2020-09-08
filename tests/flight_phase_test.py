@@ -2850,9 +2850,9 @@ class TestTurningOnGround(unittest.TestCase):
     def test_turning_on_ground_phase_basic(self):
         rate_of_turn_data = np.ma.arange(-12, 12, 1)
         rate_of_turn = Parameter('Heading Rate', np.ma.array(rate_of_turn_data))
-        grounded = buildsection('Grounded', 0, 24)
+        taxiing = buildsection('Taxiing', 0, 24)
         turning_on_ground = TurningOnGround()
-        turning_on_ground.derive(rate_of_turn, grounded)
+        turning_on_ground.derive(rate_of_turn, taxiing)
         expected = buildsections('Turning On Ground',[0, 7], [18,24])
         self.assertEqual(turning_on_ground.get_slices(), expected.get_slices())
 
@@ -2861,9 +2861,9 @@ class TestTurningOnGround(unittest.TestCase):
         rate_of_turn_data[10] = np.ma.masked
         rate_of_turn_data[18] = np.ma.masked
         rate_of_turn = Parameter('Heading Rate', np.ma.array(rate_of_turn_data))
-        grounded = buildsection('Grounded', 0, 24)
+        taxiing = buildsection('Taxiing', 0, 24)
         turning_on_ground = TurningOnGround()
-        turning_on_ground.derive(rate_of_turn, grounded)
+        turning_on_ground.derive(rate_of_turn, taxiing)
         # Masked inside is exclusive of the range outer limits, this behaviour
         # is not consistent with TurningInAir test which is inclusive of the
         # start of the range.
@@ -2875,10 +2875,19 @@ class TestTurningOnGround(unittest.TestCase):
         rate_of_turn_data[10] = np.ma.masked
         rate_of_turn_data[18] = np.ma.masked
         rate_of_turn = Parameter('Heading Rate', np.ma.array(rate_of_turn_data))
-        grounded = buildsection('Grounded', 0,10)
+        taxiing = buildsection('Taxiing', 0,10)
+        turning_on_ground = TurningOnGround()
+        turning_on_ground.derive(rate_of_turn, taxiing)
+        expected = buildsections('Turning On Ground',[0, 7])
+        self.assertEqual(turning_on_ground.get_slices(), expected.get_slices())
+
+    def test_turning_on_ground_before_taxiing(self):
+        rate_of_turn_data = np.ma.arange(-12, 12, 1)
+        rate_of_turn = Parameter('Heading Rate', np.ma.array(rate_of_turn_data))
+        grounded = buildsection('Taxiing', 4, 24)
         turning_on_ground = TurningOnGround()
         turning_on_ground.derive(rate_of_turn, grounded)
-        expected = buildsections('Turning On Ground',[0, 7])
+        expected = buildsections('Turning On Ground',[4, 7], [18,24])
         self.assertEqual(turning_on_ground.get_slices(), expected.get_slices())
 
 

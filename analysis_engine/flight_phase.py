@@ -23,6 +23,7 @@ from analysis_engine.library import (
     find_climb_cruise_descent,
     find_low_alts,
     find_nearest_slice,
+    find_slices_overlap,
     first_order_washout,
     first_valid_sample,
     heading_diff,
@@ -2343,10 +2344,15 @@ class TurningOnGround(FlightPhaseNode):
                                       -HEADING_RATE_FOR_TAXI_TURNS,
                                       HEADING_RATE_FOR_TAXI_TURNS)
         turn_slices = np.ma.clump_unmasked(turning)
-        for turn_slice in turn_slices:
-            if any([is_slice_within_slice(turn_slice, txi.slice)
-                    for txi in taxi]):
-                self.create_phase(turn_slice, name="Turning On Ground")
+        turns_in_taxi = [
+            find_slices_overlap(turn_slice, txi.slice)
+            for turn_slice in turn_slices
+            for txi in taxi
+            if slices_overlap(turn_slice, txi.slice)
+        ]
+
+        for turn_in_taxi in turns_in_taxi:
+            self.create_phase(turn_in_taxi, name="Turning On Ground")
 
 
 # NOTE: Python class name restriction: '2DegPitchTo35Ft' not permitted.
