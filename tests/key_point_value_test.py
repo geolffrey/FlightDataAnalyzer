@@ -6142,12 +6142,11 @@ class TestAirspeedBetweenFL200AndFL300Max(unittest.TestCase):
     def test_derive(self):
         airspeed = P('Airspeed', array=[238, 240, 236, 234, 236, 237, 235, 239, 240])
         alt = P('Altitude STD Smoothed',
-                array=[1000, 2000, 7000, 20000.1, 40000, 22000, 11000, 9000, 8000])
+                array=[1_000, 2_000, 7_000, 20_000.1, 40_000, 22_000, 11_000, 9_000, 8_000])
         node = AirspeedBetweenFL200AndFL300Max()
         node.derive(airspeed, alt)
-        self.assertEqual(len(node), 2)
-        self.assertEqual(node[0].value, 234)
-        self.assertEqual(node[1].value, 237)
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].value, 237)
 
 class TestAirspeedBetweenFL200AndFL300Min(unittest.TestCase):
     def can_operate(self):
@@ -6157,12 +6156,11 @@ class TestAirspeedBetweenFL200AndFL300Min(unittest.TestCase):
     def test_derive(self):
         airspeed = P('Airspeed', array=[238, 240, 236, 234, 236, 237, 235, 239, 240])
         alt = P('Altitude STD Smoothed',
-                array=[1000, 2000, 7000, 20000.1, 40000, 22000, 11000, 9000, 8000])
+                array=[1_000, 2_000, 7_000, 20_000.1, 40_000, 22_000, 11_000, 9_000, 8_000])
         node = AirspeedBetweenFL200AndFL300Min()
         node.derive(airspeed, alt)
-        self.assertEqual(len(node), 2)
+        self.assertEqual(len(node), 1)
         self.assertEqual(node[0].value, 234)
-        self.assertEqual(node[1].value, 237)
 
 
 class TestAirspeedAboveFL300Max(unittest.TestCase):
@@ -6173,12 +6171,20 @@ class TestAirspeedAboveFL300Max(unittest.TestCase):
     def test_derive(self):
         airspeed = P('Airspeed', array=[238, 240, 236, 234, 236, 237, 235, 239, 240])
         alt = P('Altitude STD Smoothed',
-                array=[1000, 2000, 7000, 10000, 22000, 40000, 31000, 19000, 8000])
+                array=[1_000, 2_000, 7_000, 10_000, 22_000, 40_000, 31_000, 19_000, 8_000])
         node = AirspeedAboveFL300Max()
         node.derive(airspeed, alt)
         self.assertEqual(len(node), 1)
         self.assertEqual(node[0].value, 237)
 
+    def test_one_kpv_per_flight(self):
+        airspeed = P('Airspeed', array=[238, 240, 236, 234, 236, 237, 235, 239, 240])
+        alt = P('Altitude STD Smoothed',
+                array=[10_000, 20_000, 37_000, 20_000, 22_000, 40_000, 31_000, 19_000, 8_000])
+        node = AirspeedAboveFL300Max()
+        node.derive(airspeed, alt)
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].value, 237)
 
 class TestAirspeedAboveFL300Min(unittest.TestCase):
     def can_operate(self):
@@ -6188,7 +6194,16 @@ class TestAirspeedAboveFL300Min(unittest.TestCase):
     def test_derive(self):
         airspeed = P('Airspeed', array=[238, 240, 236, 234, 236, 237, 235, 239, 240])
         alt = P('Altitude STD Smoothed',
-                array=[1000, 2000, 7000, 10000, 22000, 40000, 31000, 19000, 8000])
+                array=[1_000, 2_000, 7_000, 10_000, 22_000, 40_000, 31_000, 19_000, 8_000])
+        node = AirspeedAboveFL300Min()
+        node.derive(airspeed, alt)
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].value, 235)
+
+    def test_one_kpv_per_flight(self):
+        airspeed = P('Airspeed', array=[238, 240, 236, 234, 236, 237, 235, 239, 240])
+        alt = P('Altitude STD Smoothed',
+                array=[10_000, 20_000, 37_000, 20_000, 22_000, 40_000, 31_000, 19_000, 8_000])
         node = AirspeedAboveFL300Min()
         node.derive(airspeed, alt)
         self.assertEqual(len(node), 1)
@@ -10393,6 +10408,16 @@ class TestMachBetweenFL200AndFL300Max(unittest.TestCase):
         self.assertEqual(len(node), 1)
         self.assertEqual(node[0].value, 0.85)
 
+    def test_one_kpv_per_flight(self):
+        mach = P('Mach', array=[0.85, 0.86, 0.84, 0.82, 0.84, 0.85, 0.87, 0.90, 0.91])
+        alt = P('Altitude STD Smoothed',
+                array=[1_000, 2_000, 22_000, 29_000, 40_000, 22_000, 11_000, 9_000, 8_000])
+        node = MachBetweenFL200AndFL300Max()
+        node.derive(mach, alt)
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].value, 0.85)
+
+
 class TestMachBetweenFL200AndFL300Min(unittest.TestCase):
     def can_operate(self):
         opts = MachBetweenFL200AndFL300Min.get_operational_combinations()
@@ -10407,6 +10432,15 @@ class TestMachBetweenFL200AndFL300Min(unittest.TestCase):
         self.assertEqual(len(node), 1)
         self.assertEqual(node[0].value, 0.85)
 
+    def test_one_kpv_per_flight(self):
+        mach = P('Mach', array=[0.85, 0.86, 0.84, 0.82, 0.84, 0.85, 0.87, 0.90, 0.91])
+        alt = P('Altitude STD Smoothed',
+                array=[1_000, 2_000, 22_000, 29_000, 40_000, 22_000, 11_000, 9_000, 8_000])
+        node = MachBetweenFL200AndFL300Min()
+        node.derive(mach, alt)
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].value, 0.82)
+
 
 class TestMachAboveFL300Max(unittest.TestCase):
     def can_operate(self):
@@ -10418,13 +10452,27 @@ class TestMachAboveFL300Max(unittest.TestCase):
                                 0.82, 0.83, 0.84, 0.86, 0.865,
                                 0.855, 0.85, 0.87, 0.90, 0.91])
         alt = P('Altitude STD Smoothed',
-                array=[1000, 2000, 7000, 10000, 20000,
-                       29999, 30000, 40000, 45000, 50000,
-                       31000, 22000, 11000, 9000, 8000])
+                array=[1_000, 2_000, 7_000, 10_000, 20_000,
+                       29_999, 30_000, 40_000, 45_000, 50_000,
+                       31_000, 22_000, 11_000, 9_000, 8_000])
         node = MachAboveFL300Max()
         node.derive(mach, alt)
         self.assertEqual(len(node), 1)
         self.assertEqual(node[0].value, 0.865)
+
+    def test_one_kpv_per_flight(self):
+        mach = P('Mach', array=[0.85, 0.86, 0.84, 0.82, 0.815,
+                                0.82, 0.83, 0.84, 0.86, 0.865,
+                                0.855, 0.85, 0.87, 0.90, 0.91])
+        alt = P('Altitude STD Smoothed',
+                array=[20_000, 31_000, 38_000, 30_000, 20_000,
+                       29_999, 30_000, 40_000, 45_000, 50_000,
+                       31_000, 22_000, 11_000, 9_000, 8_000])
+        node = MachAboveFL300Max()
+        node.derive(mach, alt)
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].value, 0.865)
+
 
 class TestMachAboveFL300Min(unittest.TestCase):
     def can_operate(self):
@@ -10436,23 +10484,26 @@ class TestMachAboveFL300Min(unittest.TestCase):
                                 0.82, 0.83, 0.84, 0.86, 0.865,
                                 0.855, 0.85, 0.87, 0.90, 0.91])
         alt = P('Altitude STD Smoothed',
-                array=[1000, 2000, 7000, 10000, 20000,
-                       29999, 30000, 40000, 45000, 50000,
-                       31000, 22000, 11000, 9000, 8000])
+                array=[1_000, 2_000, 7_000, 10_000, 20_000,
+                       29_999, 30_000, 40_000, 45_000, 50_000,
+                       31_000, 22_000, 11_000, 9_000, 8_000])
         node = MachAboveFL300Min()
         node.derive(mach, alt)
         self.assertEqual(len(node), 1)
         self.assertEqual(node[0].value, 0.83)
 
-    def test_derive_at_FL300(self):
-        mach = P('Mach',
-                array=[0.85, 0.86, 0.84, 0.82, 0.815,
-                       0.82, 0.83, 0.84, 0.86, 0.865,
-                       0.855, 0.85, 0.87, 0.90, 0.91])
+    def test_one_kpv_per_flight(self):
+        mach = P('Mach', array=[0.85, 0.86, 0.84, 0.82, 0.815,
+                                0.82, 0.83, 0.84, 0.86, 0.865,
+                                0.855, 0.85, 0.87, 0.90, 0.91])
         alt = P('Altitude STD Smoothed',
-                array=[1000, 2000, 7000, 10000, 20000,
-                       29999, 30000, 40000, 45000, 50000,
-                       31000, 22000, 11000, 9000, 8000])
+                array=[20_000, 31_000, 38_000, 30_000, 20_000,
+                       29_999, 30_000, 40_000, 45_000, 50_000,
+                       31_000, 22_000, 11_000, 9_000, 8_000])
+        node = MachAboveFL300Min()
+        node.derive(mach, alt)
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].value, 0.82)
 
 
 ########################################
@@ -18366,14 +18417,13 @@ class TestPitchBetweenFL200AndFL300Max(unittest.TestCase):
                                   12, 13, 8, 9,
                                   14, 6, 5, 4])
         alt = P('Altitude STD Smoothed',
-                array=[1000,  2000,  7000,  10000,
-                       24000, 40000, 22000, 24000,
-                       11000, 9000,  8000,  6000])
+                array=[1_000,  2_000,  7_000,  10_000,
+                       24_000, 40_000, 22_000, 24_000,
+                       11_000, 9_000,  8_000,  6_000])
         node = PitchBetweenFL200AndFL300Max()
         node.derive(pitch, alt)
-        self.assertEqual(len(node), 2)
+        self.assertEqual(len(node), 1)
         self.assertEqual(node[0].value, 12)
-        self.assertEqual(node[1].value, 9)
 
 
 class TestPitchBetweenFL200AndFL300Min(unittest.TestCase):
@@ -18387,14 +18437,13 @@ class TestPitchBetweenFL200AndFL300Min(unittest.TestCase):
                                   12, 13, 8, 9,
                                   14, 6, 5, 4])
         alt = P('Altitude STD Smoothed',
-                array=[1000,  2000,  7000,  10000,
-                       24000, 40000, 22000, 24000,
-                       11000, 9000,  8000,  6000])
+                array=[1_000,  2_000,  7_000,  10_000,
+                       24_000, 40_000, 22_000, 24_000,
+                       11_000, 9_000,  8_000,  6_000])
         node = PitchBetweenFL200AndFL300Min()
         node.derive(pitch, alt)
-        self.assertEqual(len(node), 2)
-        self.assertEqual(node[0].value, 12)
-        self.assertEqual(node[1].value, 8)
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].value, 8)
 
 
 class TestPitchAboveFL300Max(unittest.TestCase):
@@ -18410,9 +18459,9 @@ class TestPitchAboveFL300Max(unittest.TestCase):
                        14, 6, 5, 4])
 
         alt = P('Altitude STD Smoothed',
-                array=[1000,  2000,  7000,  10000,
-                       29999, 40000, 30000, 22000,
-                       11000, 9000,  8500,  8000])
+                array=[10_000,  20_000,  37_000,  10_000,
+                       29_999, 40_000, 30_000, 22_000,
+                       11_000, 9_000,  8_500,  8_000])
 
         node = PitchAboveFL300Max()
         node.derive(pitch, alt)
@@ -18432,9 +18481,9 @@ class TestPitchAboveFL300Min(unittest.TestCase):
                        12, 13, 8,  9,
                        14, 6,  5,  4])
         alt = P('Altitude STD Smoothed',
-                array=[1000,  2000,  7000,  10000,
-                       29999, 40000, 30000, 22000,
-                       11000, 9000,  8500,  8000])
+                array=[10_000,  20_000,  37_000,  10_000,
+                       29_999, 40_000, 30_000, 22_000,
+                       11_000, 9_000,  8_500,  8_000])
         node = PitchAboveFL300Min()
         node.derive(pitch, alt)
         self.assertEqual(len(node), 1)
@@ -20263,13 +20312,13 @@ class TestRollBetweenFL200AndFL300Max(unittest.TestCase):
         self.assertEqual(opts, [('Roll', 'Altitude STD Smoothed')])
 
     def test_derive(self):
-        roll = P('Pitch', array=[4, 3, 1.5, 0, 2, -2.5, 1, -1, -3])
+        roll = P('Roll', array=[4, 3, 1.5, 0, 2, -2.5, 1, -1, -3])
         alt = P('Altitude STD Smoothed',
-                array=[1000, 2000, 7000, 10000, 40000, 22000, 11000, 9000, 8000])
+                array=[10_000, 25_000, 37_000, 10_000, 40_000, 22_000, 11_000, 9_000, 8_000])
         node = RollBetweenFL200AndFL300Max()
         node.derive(roll, alt)
         self.assertEqual(len(node), 1)
-        self.assertEqual(node[0].value, -2.5)
+        self.assertEqual(node[0].value, 3.0)
 
 
 class TestRollAboveFL300Max(unittest.TestCase):
@@ -20278,14 +20327,14 @@ class TestRollAboveFL300Max(unittest.TestCase):
         self.assertEqual(opts, [('Roll', 'Altitude STD Smoothed')])
 
     def test_derive(self):
-        roll = P('Pitch',
+        roll = P('Roll',
                 array=[4, 3, 1.5,
                        0, -2.5, 2,
                        1, -1, -3])
         alt = P('Altitude STD Smoothed',
-                array=[1000, 2000, 7000,
-                       10000, 40000, 33000,
-                       11000, 9000, 8000])
+                array=[10_000, 20_000, 37_000,
+                       10_000, 40_000, 33_000,
+                       11_000, 9_000, 8_000])
         node = RollAboveFL300Max()
         node.derive(roll, alt)
         self.assertEqual(len(node), 1)
