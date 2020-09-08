@@ -94,6 +94,7 @@ from analysis_engine.key_point_values import (
     Airspeed3000FtToTopOfClimbMin,
     Airspeed3000To1000FtMax,
     Airspeed3000To1000FtMaxQNH,
+    Airspeed300To50FtMax,
     Airspeed35To1000FtMax,
     Airspeed35To1000FtMin,
     Airspeed5000To3000FtMax,
@@ -113,6 +114,7 @@ from analysis_engine.key_point_values import (
     AirspeedAboveStickShakerSpeedMin,
     AirspeedAtAPUpperModesEngaged,
     AirspeedAt35FtDuringTakeoff,
+    AirspeedAt50FtDescending,
     AirspeedAt8000FtDescending,
     AirspeedAtFlapExtensionWithGearDownSelected,
     AirspeedAtGearDownSelection,
@@ -3613,6 +3615,20 @@ class TestAirspeed500To20FtMin(unittest.TestCase, CreateKPVsWithinSlicesTest):
         self.assertTrue(False, msg='Test Not Implemented')
 
 
+class TestAirspeed300To50FtMax(unittest.TestCase, CreateKPVsWithinSlicesTest):
+
+    def setUp(self):
+        self.node_class = Airspeed300To50FtMax
+        self.operational_combinations = [('Airspeed', 'Altitude AAL For Flight Phases')]
+        self.can_operate_kwargs = {'ac_type': A('Aircraft Type', 'aeroplane')}
+        self.function = max_value
+        self.second_param_method_calls = [('slices_from_to', (300, 50), {})]
+
+    @unittest.skip('Test Not Implemented')
+    def test_derive(self):
+        self.assertTrue(False, msg='Test Not Implemented')
+
+
 class TestAirspeed500To50FtMedian(unittest.TestCase, CreateKPVsWithinSlicesTest):
 
     def setUp(self):
@@ -3740,6 +3756,37 @@ class TestAirspeedAtTouchdown(unittest.TestCase, CreateKPVsAtKTIsTest):
     @unittest.skip('Test Not Implemented')
     def test_derive(self):
         self.assertTrue(False, msg='Test Not Implemented')
+
+
+class TestAirspeedAt50FtDescending(unittest.TestCase, NodeTest):
+
+    def setUp(self):
+        self.node_class = AirspeedAt50FtDescending
+        self.can_operate_kwargs = {'ac_type': A('Aircraft Type', 'aeroplane')}
+        self.operational_combinations = [('Airspeed', 'Altitude When Descending')]
+
+    def test_derive(self):
+        aspd = P('Airspeed', np.ma.arange(120, 100, -1))
+        alts = AltitudeWhenDescending(items=[
+            KeyTimeInstance(index=2, name='100 Ft Descending'),
+            KeyTimeInstance(index=10, name='50 Ft Descending'),
+        ])
+        node = self.node_class()
+        node.derive(aspd, alts)
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 10)
+        self.assertEqual(node[0].value, 110)
+
+    def test_derive_masked_value(self):
+        aspd = P('Airspeed', np.ma.arange(120, 100, -1))
+        aspd.array[10:12] = np.ma.masked
+        alts = AltitudeWhenDescending(items=[
+            KeyTimeInstance(index=2, name='100 Ft Descending'),
+            KeyTimeInstance(index=10.5, name='50 Ft Descending'),
+        ])
+        node = self.node_class()
+        node.derive(aspd, alts)
+        self.assertEqual(len(node), 0)
 
 
 class TestAirspeedMinsToTouchdown(unittest.TestCase, NodeTest):

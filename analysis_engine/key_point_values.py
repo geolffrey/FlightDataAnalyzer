@@ -2162,6 +2162,25 @@ class Airspeed500To20FtMin(KeyPointValueNode):
         )
 
 
+class Airspeed300To50FtMax(KeyPointValueNode):
+    '''
+    Maximum airspeed during the final approach between 300ft and 50ft AAL.
+    '''
+
+    units = ut.KT
+
+    can_operate = aeroplane_only
+
+    def derive(self,
+               air_spd=P('Airspeed'),
+               alt_aal=P('Altitude AAL For Flight Phases')):
+
+        self.create_kpvs_within_slices(
+            air_spd.array,
+            alt_aal.slices_from_to(300, 50),
+            max_value)
+
+
 class Airspeed500To50FtMedian(KeyPointValueNode):
     '''
     Median value of the recorded airspeed from 500ft AAL to 20ft AAL.
@@ -2195,6 +2214,20 @@ class Airspeed500To50FtMedianMinusAirspeedSelected(KeyPointValueNode):
             if spd_sel is not None:
                 self.create_kpv(spd_500_to_50.index,
                                 spd_500_to_50.value - spd_sel)
+
+
+class AirspeedAt50FtDescending(KeyPointValueNode):
+    '''
+    Airspeed measurement at 50 Ft descending (over threshold).
+    '''
+
+    units = ut.KT
+
+    can_operate = aeroplane_only
+
+    def derive(self, air_spd=P('Airspeed'), altitudes=KTI('Altitude When Descending')):
+        alts_50ft = altitudes.get(name='50 Ft Descending')
+        self.create_kpvs_at_ktis(air_spd.array, alts_50ft, suppress_zeros=True)
 
 
 class AirspeedAtTouchdown(KeyPointValueNode):
