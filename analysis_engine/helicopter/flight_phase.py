@@ -399,18 +399,32 @@ class OnDeck(FlightPhaseNode):
     '''
     Flight phase for helicopters that land on the deck of a moving vessel.
 
-    Testing for motion will separate moving vessels from stationary decks, chosen as a better
-    option than testing the location against Google Earth for land/sea.
+    If Offshore flight phase is available, mark any Grounded sections as On Deck.
+    Otherwise fall back to testing for motion, separating moving vessels from stationary
+    decks.
 
-    Also, movement was not practical as helicopters taxi at similar speeds to a ship sailing!
+    Testing for movement was not practical as helicopters taxi at similar speeds to a
+    ship sailing!
 
     Note that this qualifies Grounded which is still asserted when On Deck.
     '''
 
-    can_operate = helicopter_only
+    @classmethod
+    def can_operate(cls, available, ac_type=A('Aircraft Type')):
+        helicopter_with_grounded = ac_type == helicopter and 'Grounded' in available
+        required_deps = all_of(('Pitch', 'Roll'), available) or 'Offshore' in available
+
+        return helicopter_with_grounded and required_deps
 
     def derive(self, gnds=S('Grounded'),
-               pitch=P('Pitch'), roll=P('Roll')):
+               pitch=P('Pitch'), roll=P('Roll'),
+               offshores=S('Offshore')):
+
+        if offshores is not None:
+            self.create_sections(
+                slices_and(gnds.get_slices(edges=False), offshores.get_slices(edges=False))
+            )
+            return
 
         decks = []
         for gnd in gnds:

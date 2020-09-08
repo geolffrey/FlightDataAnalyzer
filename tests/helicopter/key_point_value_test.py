@@ -3719,7 +3719,7 @@ class TestPitchOnGroundMin(unittest.TestCase):
         section = Section(name, slice(0, 3), 0, 2.5)
         section2 = Section(name, slice(8, 9), 8, 10)
         grounded = SectionNode(name, items=[section, section2])
-        on_deck = buildsection('On Deck', 11, 99)
+        on_deck = S('On Deck')
         node = self.node_class()
         node.derive(pitch, coll, grounded, on_deck)
         self.assertEqual(len(node), 2)
@@ -3742,6 +3742,25 @@ class TestPitchOnGroundMin(unittest.TestCase):
         node = self.node_class()
         node.derive(pitch, coll, grounded, on_deck)
         self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 0)
+        self.assertEqual(node[0].value, 0)
+
+    def test_not_on_deck_with_high_collective(self,):
+        pitch = P(
+            name='Pitch',
+            array=np.ma.array([0, 0, 2, 4, 7, 6, 4, 3, -1, 0]),
+        )
+        coll = P('Collective', np.ma.repeat([10.0, 40], (5, 5)))
+        name = 'Grounded'
+        section = Section(name, slice(0, 3), 0, 2.5)
+        section2 = Section(name, slice(8, 9), 8, 10)
+        grounded = SectionNode(name, items=[section, section2])
+        on_deck = buildsection('On Deck', 5, 99)
+        node = self.node_class()
+        node.derive(pitch, coll, grounded, on_deck)
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 0)
+        self.assertEqual(node[0].value, 0)
 
 
 class TestRateOfDescent100To20FtMax(unittest.TestCase):

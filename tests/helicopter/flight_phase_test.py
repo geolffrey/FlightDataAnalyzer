@@ -2,7 +2,7 @@ import unittest
 import numpy as np
 
 from analysis_engine.node import (
-    A, M, P, aeroplane, helicopter, Section
+    A, M, P, S, aeroplane, helicopter, Section
 )
 
 from analysis_engine.helicopter.flight_phase import (
@@ -352,12 +352,14 @@ class TestOnDeck(unittest.TestCase):
 
     def test_can_operate(self):
         self.assertTrue(OnDeck.can_operate(('Grounded', 'Pitch', 'Roll'), ac_type=helicopter))
+        self.assertTrue(OnDeck.can_operate(('Grounded', 'Pitch', 'Roll', 'Offshore'), ac_type=helicopter))
+        self.assertTrue(OnDeck.can_operate(('Grounded', 'Offshore'), ac_type=helicopter))
 
     def test_basic(self):
         pitch = P('Pitch', self.wave * 2.0)
         roll = P('Roll', self.null)
         phase = OnDeck()
-        phase.derive(self.gnds, pitch, roll)
+        phase.derive(self.gnds, pitch, roll, None)
         self.assertEqual(phase.name,'On Deck')
         self.assertEqual(phase.get_first().slice, slice(10, 90))
 
@@ -365,19 +367,35 @@ class TestOnDeck(unittest.TestCase):
         pitch = P('Pitch', self.null)
         roll = P('Roll', self.wave * 2.0)
         phase = OnDeck()
-        phase.derive(self.gnds, pitch, roll)
+        phase.derive(self.gnds, pitch, roll, None)
         self.assertEqual(phase.get_first().slice, slice(10, 90))
 
     def test_roll_and_pitch(self):
         pitch = P('Pitch', self.wave)
         roll = P('Roll', self.wave)
         phase = OnDeck()
-        phase.derive(self.gnds, pitch, roll)
+        phase.derive(self.gnds, pitch, roll, None)
         self.assertEqual(phase.get_first().slice, slice(10, 90))
 
     def test_still_on_ground(self):
         pitch = P('Pitch', self.null)
         roll = P('Roll', self.null)
         phase = OnDeck()
-        phase.derive(self.gnds, pitch, roll)
+        phase.derive(self.gnds, pitch, roll, None)
+        self.assertEqual(phase.get_first(), None)
+
+    def test_offshore_section(self):
+        offshore = buildsection('Offshore', 5, 100)
+        pitch = P('Pitch', self.null)
+        roll = P('Roll', self.null)
+        phase = OnDeck()
+        phase.derive(self.gnds, pitch, roll, offshore)
+        self.assertEqual(phase.get_first().slice, slice(10, 90))
+
+    def test_empty_offshore_section(self):
+        offshore = S('Offshore')
+        pitch = P('Pitch', self.null)
+        roll = P('Roll', self.null)
+        phase = OnDeck()
+        phase.derive(self.gnds, pitch, roll, offshore)
         self.assertEqual(phase.get_first(), None)

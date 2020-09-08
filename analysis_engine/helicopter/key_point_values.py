@@ -1424,16 +1424,17 @@ class PitchOnDeckMax(KeyPointValueNode):
 
 class PitchOnGroundMin(KeyPointValueNode):
     '''
-    Minimum pitch on the ground (or deck). Helicopter only.
+    Minimum pitch on the ground (excluding on deck). Helicopter only.
     '''
     units = ut.DEGREE
 
     can_operate = helicopter_only
 
-    def derive(self, pitch=P('Pitch'), coll=P('Collective'), grounded=S('Grounded'), on_deck=S('On Deck')):
+    def derive(self, pitch=P('Pitch'), coll=P('Collective'),
+               grounded=S('Grounded'), on_deck=S('On Deck')):
+        my_slices = slices_and_not(grounded.get_slices(), on_deck.get_slices())
         _, low_coll = slices_below(coll.array, 25.0)
-        my_slices = slices_and(on_deck.get_slices(), low_coll)
-        my_slices = slices_and_not(grounded.get_slices(), my_slices)
+        my_slices = slices_and(my_slices, low_coll)
         self.create_kpvs_within_slices(pitch.array,
                                        my_slices,
                                        min_value)
