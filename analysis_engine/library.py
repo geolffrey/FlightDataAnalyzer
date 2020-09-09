@@ -6278,7 +6278,7 @@ def slices_extend_duration(slices, frequency, seconds):
     :returns: Extended slices.
     :rtype: [slice]
     '''
-    return slices_extend(slices, seconds / float(frequency))
+    return slices_extend(slices, int(seconds * frequency))
 
 
 def slices_after(slices, index):

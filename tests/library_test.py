@@ -6654,10 +6654,25 @@ class TestSlicesExtend(unittest.TestCase):
 
 
 class TestSlicesExtendDuration(unittest.TestCase):
-    def test_slices_extend_duration(self):
+    def test_slices_extend_duration_low_freq(self):
+        slices = [slice(None, 10), slice(30, 40), slice(70, None)]
+        expected = [slice(0, 11), slice(29, 41), slice(69, None)]
+        self.assertEqual(slices_extend_duration(slices, 0.5, 3), expected)
+
+    def test_slices_extend_duration_high_freq(self):
         slices = [slice(None, 10), slice(30, 40), slice(70, None)]
         expected = [slice(0, 16), slice(24, 46), slice(64, None)]
-        self.assertEqual(slices_extend_duration(slices, 1/2.0, 3), expected)
+        self.assertEqual(slices_extend_duration(slices, 2, 3), expected)
+
+    def test_slices_extend_duration_overlap(self):
+        slices = [slice(None, 10), slice(30, 40), slice(70, None)]
+        expected = [slice(0, 52), slice(58, None)]
+        self.assertEqual(slices_extend_duration(slices, 4, 3), expected)
+
+    def test_slices_extend_duration_covers_all_slices(self):
+        slices = [slice(None, 10), slice(30, 40), slice(50, None)]
+        expected = [slice(0, None)]
+        self.assertEqual(slices_extend_duration(slices, 4, 3), expected)
 
 
 class TestSliceSamples(unittest.TestCase):
