@@ -3940,52 +3940,50 @@ def slices_not(slice_list, begin_at=None, end_at=None):
 
 def slices_or(*slice_lists):
     '''
-    Logical OR function for lists of slices.
+    Logical OR function for one or more lists of slices.
 
     :param slice_lists: Lists of slices to be combined.
     :type slice_lists: [[slice]]
     :returns: List of slices combined.
     :rtype: list
     '''
-    slices = []
-    if all(len(s) == 0 or s == [None] for s in slice_lists):
-        return slices
+    # Sorted list of slices, filtering any None
+    slices_list = sorted(
+        (
+            s for s in itertools.chain.from_iterable(slice_lists)
+            if s is not None
+        ),
+        key=lambda s: s.start or 0
 
-    recheck = False
-    for slice_list in slice_lists:
-        for input_slice in slice_list:
-            if input_slice is None:
-                continue
-            modified = False
-            for output_slice in copy(slices):
-                if slices_overlap(input_slice, output_slice):
-                    if input_slice.start is None or output_slice.start is None:
-                        slice_start = None
-                    else:
-                        slice_start = min(input_slice.start, output_slice.start)
-                    if input_slice.stop is None or output_slice.stop is None:
-                        slice_stop = None
-                    else:
-                        slice_stop = max(input_slice.stop, output_slice.stop)
+    )
 
-                    input_slice = slice(slice_start, slice_stop)
-                    try:
-                        slices.remove(output_slice)
-                    except:
-                        # This has already been handled at a lower level, so quit.
-                        break
-                    slices.append(input_slice)
-                    modified = True
-                    recheck = True
+    if not slices_list:
+        return []
 
-            if not modified:
-                slices.append(input_slice)
+    # It would be insane to merge slices with different steps or negative indices
+    if not all(
+        s.step in (1, None) and 0 <= (s.start or 0) <= (s.stop or s.start)
+        for s in slices_list
+    ):
+        raise ValueError('All slices must have positive start and stop and a step of 1.')
 
-        if recheck:
-            # The new slice may overlap two, so repeat the process.
-            slices = slices_or(slices)
 
-    return slices
+    result = []
+    current_slice = slices_list[0]
+    for slice_ in slices_list:
+        slice_start = slice_.start or 0
+
+        if slice_start <= current_slice.stop:
+            # slices overlapping: extend the current slice
+            current_slice = slice(current_slice.start, slice_.stop)
+            if current_slice.stop is None:
+                break
+        else:
+            result.append(current_slice)
+            current_slice = slice(slice_.start, slice_.stop)
+
+    result.append(current_slice)
+    return result
 
 
 def slices_remove_overlaps(slices):
