@@ -46,6 +46,7 @@ from analysis_engine.library import (
     align,
     align_slice,
     align_slices,
+    are_slices_straight_continuous,
     average_value,
     bearing_and_distance,
     bearings_and_distances,
@@ -4382,6 +4383,30 @@ class TestIntegrate (unittest.TestCase):
         assert_array_equal(result[30:40], np.arange(11, 21))
     #TODO: test for mask repair
 
+
+class TestAreSlicesStraightContinuous:
+    def test_one_slice(self):
+        assert are_slices_straight_continuous([slice(1, 4)])
+
+    def test_negative_indices(self):
+        slices = [slice(-5, 10)]
+        assert not are_slices_straight_continuous(slices)
+
+    def test_step_different_than_1(self):
+        slices = [slice(1, 4, 2)]
+        assert not are_slices_straight_continuous(slices)
+
+    def test_multiple_slices(self):
+        slices = [slice(10, 20), slice(1, 8)]
+        assert are_slices_straight_continuous(slices)
+
+    def test_slices_with_None_values(self):
+        slices = [
+            slice(None, 20), slice(1, None), slice(None, None), slice(None, None, 1)
+        ]
+        assert are_slices_straight_continuous(slices)
+
+
 class TestIsSliceWithinSlice(unittest.TestCase):
     def test_is_slice_within_slice(self):
         self.assertTrue(is_slice_within_slice(slice(5,6), slice(4,7)))
@@ -6636,42 +6661,53 @@ class TestSlicesExtend(unittest.TestCase):
     def test_slices_extend(self):
         slices = [slice(None, 10), slice(30, 40), slice(70, None)]
         self.assertEqual(slices_extend(slices, 0), slices)
-        expected = [slice(0, 15), slice(25, 45), slice(65, None)]
+        expected = [slice(None, 15), slice(25, 45), slice(65, None)]
         self.assertEqual(slices_extend(slices, 5), expected)
-        expected = [slice(0, 52), slice(58, None)]
+        expected = [slice(None, 52), slice(58, None)]
         self.assertEqual(slices_extend(slices, 12), expected)
-        # Step is retained.
-        slices = [slice(10, 20, 3)]
-        expected = [slice(5, 25, 3)]
-        self.assertEqual(slices_extend(slices, 5), expected)
-        # Negative step is not supported.
-        slices = [slice(10, 20, -1)]
-        self.assertRaises(NotImplementedError, slices_extend, slices, 5)
+
         # Does not extend slices beyond 0 otherwise slicing behaviour changes.
         slices = [slice(0, 10)]
         expected = [slice(0, 15)]
         self.assertEqual(slices_extend(slices, 5), expected)
 
+    def test_step_greater_than_1(self):
+        # Step must be 1.
+        slices = [slice(10, 20, 3)]
+        with self.assertRaises(ValueError):
+            slices_extend(slices, 5)
+
+    def test_negative_step(self):
+        # Negative step is not supported.
+        slices = [slice(10, 20, -1)]
+        with self.assertRaises(ValueError):
+            slices_extend(slices, 5)
+
+    def test_floating_durations_are_truncated(self):
+        slices = [slice(None, 10), slice(30, 40), slice(70, None)]
+        expected = [slice(None, 15), slice(25, 45), slice(65, None)]
+        self.assertEqual(slices_extend(slices, 5.9), expected)
+
 
 class TestSlicesExtendDuration(unittest.TestCase):
     def test_slices_extend_duration_low_freq(self):
         slices = [slice(None, 10), slice(30, 40), slice(70, None)]
-        expected = [slice(0, 11), slice(29, 41), slice(69, None)]
+        expected = [slice(None, 11), slice(29, 41), slice(69, None)]
         self.assertEqual(slices_extend_duration(slices, 0.5, 3), expected)
 
     def test_slices_extend_duration_high_freq(self):
         slices = [slice(None, 10), slice(30, 40), slice(70, None)]
-        expected = [slice(0, 16), slice(24, 46), slice(64, None)]
+        expected = [slice(None, 16), slice(24, 46), slice(64, None)]
         self.assertEqual(slices_extend_duration(slices, 2, 3), expected)
 
     def test_slices_extend_duration_overlap(self):
         slices = [slice(None, 10), slice(30, 40), slice(70, None)]
-        expected = [slice(0, 52), slice(58, None)]
+        expected = [slice(None, 52), slice(58, None)]
         self.assertEqual(slices_extend_duration(slices, 4, 3), expected)
 
     def test_slices_extend_duration_covers_all_slices(self):
         slices = [slice(None, 10), slice(30, 40), slice(50, None)]
-        expected = [slice(0, None)]
+        expected = [slice(None, None)]
         self.assertEqual(slices_extend_duration(slices, 4, 3), expected)
 
 

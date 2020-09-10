@@ -3675,6 +3675,21 @@ def find_nearest_slice(index, slices):
     return slices[index]
 
 
+def are_slices_straight_continuous(slices):
+    '''
+    Check if all slices have positive start and stop and step is 1 or None.
+
+    :param slices: slices we consider
+    :type slices: Iterable[slice]
+    :returns: Whether all slices have positive start and stop and step is 1 or None.
+    :rtype: bool
+    '''
+    return all(
+        s.step in (1, None) and 0 <= (s.start or 0) <= (s.stop or s.start or 0)
+        for s in slices
+    )
+
+
 def is_slice_within_slice(inner_slice, outer_slice, within_use='slice'):
     '''
     inner_slice is considered to not be within outer slice if its start or
@@ -3961,10 +3976,7 @@ def slices_or(*slice_lists):
         return []
 
     # It would be insane to merge slices with different steps or negative indices
-    if not all(
-        s.step in (1, None) and 0 <= (s.start or 0) <= (s.stop or s.start)
-        for s in slices_list
-    ):
+    if not are_slices_straight_continuous(slices_list):
         raise ValueError('All slices must have positive start and stop and a step of 1.')
 
 
@@ -6247,26 +6259,36 @@ def slices_contract_duration(slices, frequency, seconds, max_index=None):
 
 def slices_extend(slices, length):
     '''
+    Extend the slices by length samples.
+
+    If length is a float, it will be truncated to an int. If the resulting slices
+    overlap, they will be merged together.
+
+    Slices must all have positive starts and stop and a step of 1.
+
     :param slices: Slices to extend.
-    :type slices: [slice]
+    :type slices: Iterable[slice]
     :param length: Length of extension in samples.
     :type length: int or float
     :returns: Extended slices.
     :rtype: [slice]
+    :raises: ValueError if slices have negative indices or step different than 1.
     '''
+    if not are_slices_straight_continuous(slices):
+        raise ValueError('All slices must have positive start and stop and a step of 1.')
+    length = int(length)
     if length == 0:
         return slices
 
-    extended_slices = []
-    for s in slices:
-        if s.step and s.step < 0:
-            raise NotImplementedError('Negative step is not supported.')
-
-        extended_slices.append(slice(
-            max(s.start - length, 0) if s.start else 0,
+    extended_slices = [
+        slice(
+            s.start if s.start is None else max(s.start - length, 0),
             s.stop + length if s.stop else None,
             s.step,
-        ))
+        )
+        for s in slices
+    ]
+
     return slices_or(extended_slices)
 
 
