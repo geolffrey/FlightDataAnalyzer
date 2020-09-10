@@ -3968,19 +3968,24 @@ def slices_or(*slice_lists):
         raise ValueError('All slices must have positive start and stop and a step of 1.')
 
 
-    result = []
     current_slice = slices_list[0]
-    for slice_ in slices_list:
+    if current_slice.stop is None:
+        return [current_slice]
+
+    result = []
+    for slice_ in slices_list[1:]:
         slice_start = slice_.start or 0
 
         if slice_start <= current_slice.stop:
-            # slices overlapping: extend the current slice
-            current_slice = slice(current_slice.start, slice_.stop)
-            if current_slice.stop is None:
-                break
+            # slices overlapping: extend the current slice if needed
+            stop = None if slice_.stop is None else max(slice_.stop, current_slice.stop)
+            current_slice = slice(current_slice.start, stop)
         else:
             result.append(current_slice)
             current_slice = slice(slice_.start, slice_.stop)
+
+        if slice_.stop is None:
+            break
 
     result.append(current_slice)
     return result
