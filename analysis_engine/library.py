@@ -3675,7 +3675,7 @@ def find_nearest_slice(index, slices):
     return slices[index]
 
 
-def are_slices_straight_continuous(slices):
+def valid_slices(slices):
     '''
     Check if all slices have positive start and stop and step is 1 or None.
 
@@ -3976,7 +3976,7 @@ def slices_or(*slice_lists):
         return []
 
     # It would be insane to merge slices with different steps or negative indices
-    if not are_slices_straight_continuous(slices_list):
+    if not valid_slices(slices_list):
         raise ValueError('All slices must have positive start and stop and a step of 1.')
 
 
@@ -6274,7 +6274,7 @@ def slices_extend(slices, length):
     :rtype: [slice]
     :raises: ValueError if slices have negative indices or step different than 1.
     '''
-    if not are_slices_straight_continuous(slices):
+    if not valid_slices(slices):
         raise ValueError('All slices must have positive start and stop and a step of 1.')
     length = int(length)
     if length == 0:

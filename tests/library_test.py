@@ -46,7 +46,7 @@ from analysis_engine.library import (
     align,
     align_slice,
     align_slices,
-    are_slices_straight_continuous,
+    valid_slices,
     average_value,
     bearing_and_distance,
     bearings_and_distances,
@@ -4384,27 +4384,27 @@ class TestIntegrate (unittest.TestCase):
     #TODO: test for mask repair
 
 
-class TestAreSlicesStraightContinuous:
+class TestValidSlices:
     def test_one_slice(self):
-        assert are_slices_straight_continuous([slice(1, 4)])
+        assert valid_slices([slice(1, 4)])
 
     def test_negative_indices(self):
         slices = [slice(-5, 10)]
-        assert not are_slices_straight_continuous(slices)
+        assert not valid_slices(slices)
 
     def test_step_different_than_1(self):
         slices = [slice(1, 4, 2)]
-        assert not are_slices_straight_continuous(slices)
+        assert not valid_slices(slices)
 
     def test_multiple_slices(self):
         slices = [slice(10, 20), slice(1, 8)]
-        assert are_slices_straight_continuous(slices)
+        assert valid_slices(slices)
 
     def test_slices_with_None_values(self):
         slices = [
             slice(None, 20), slice(1, None), slice(None, None), slice(None, None, 1)
         ]
-        assert are_slices_straight_continuous(slices)
+        assert valid_slices(slices)
 
 
 class TestIsSliceWithinSlice(unittest.TestCase):
