@@ -39,6 +39,7 @@ from analysis_engine.library import (
     rate_of_change_array,
     repair_mask,
     runs_of_ones,
+    second_window,
     slices_and,
     slices_and_not,
     slice_duration,
@@ -416,15 +417,22 @@ class ClimbAccelerationStart(KeyTimeInstanceNode):
         # Based on airspeed increase after first flap retraction
         # Align to Airspeed.
         _slice = slices_int(initial_climbs.get_aligned(spd).get_first().slice)
-        climbing_5000 = alt_climbing.get_aligned(spd).get(name='5000 Ft Climbing').get_first()
-        if climbing_5000:
-            _slice = slice(_slice.start, int(climbing_5000.index))
+        init_clb_idx = _slice.start
+        alt_climbing = alt_climbing.get_aligned(spd)
+        climbing_400 = alt_climbing.get(name='400 Ft Climbing', within_slice=_slice).get_first()
+        climbing_5000 = alt_climbing.get(name='5000 Ft Climbing').get_first()
+        _slice = slice(
+            int(climbing_400.index) if climbing_400 is not None else _slice.start,
+            int(climbing_5000.index) if climbing_5000 is not None else _slice.stop
+        )
 
         # Find when flaps were first being retracted
         flap = flap.get_aligned(spd)
+        flap_tkoff = flap.array[int(init_clb_idx)]
+        if flap_tkoff is np.ma.masked:
+            return False
         flap_retraction = find_edges_on_state_change(
-            flap.array[int(_slice.start)], flap.array, change='leaving',
-            phase=[_slice]
+            flap_tkoff, flap.array, change='leaving', phase=[_slice]
         )
         if not flap_retraction:
             return False
@@ -446,7 +454,7 @@ class ClimbAccelerationStart(KeyTimeInstanceNode):
         # Find the first time airspeed was significantly increasing
         first_incr_idx = np.ma.argmax(diff_reversed > 0.2)
         # We determine when the speed started to increase, which is the moment
-        # when airspeed stopped to decrease.
+        # when airspeed stopped to decrease in reverse.
         lowest_spd_idx = np.ma.argmax(diff_reversed[first_incr_idx:] < 0.0) + first_incr_idx
 
         # Substract lowest_spd_idx as we are looking from the end
@@ -477,10 +485,12 @@ class ClimbAccelerationStart(KeyTimeInstanceNode):
         climbing_4000 = alt_climbing.get_aligned(throttle).get(name='4000 Ft Climbing').get_first()
         _slice = slice(_slice.start, int(climbing_4000.index) if climbing_4000 else _slice.stop)
         # XXX: Width is too small for low frequency params.
-        throttle.array = throttle.array[_slice]
-        throttle_threshold = 2 / throttle.frequency
-        throttle_roc = np.ma.abs(rate_of_change(throttle, 2 * (1 / throttle.frequency)))
-        index = index_at_value(throttle_roc, throttle_threshold)
+        throttle_array = throttle.array[_slice]
+        throttle_roc = np.ma.abs(rate_of_change_array(
+            second_window(throttle_array, throttle.frequency, 2, extend_window=True),
+            throttle.frequency
+        ))
+        index = index_at_value(throttle_roc, 1.0)
         if index is None:
             return False
 
@@ -873,7 +883,7 @@ class EngStop(KeyTimeInstanceNode):
 class LastEngStopAfterTouchdown(KeyTimeInstanceNode):
     '''
     Check for the last engine stop after touchdown. The index will be the last
-    time an engine is stopped and remains off after liftoff.
+    time an engine is stopped and remains off after touchdown.
     '''
 
     def derive(self, eng_stops=KTI('Eng Stop'), eng_count=A('Engine Count'),
@@ -902,6 +912,36 @@ class LastEngStopAfterTouchdown(KeyTimeInstanceNode):
             # Q: Should we be creating a KTI if the last engine stop cannot
             # be found?
             self.create_kti(duration.value * self.frequency - 1)
+
+
+class FirstEngStopAfterTouchdown(KeyTimeInstanceNode):
+    '''
+    Check for the first engine stop after touchdown. The index will be the first
+    time an engine is stopped and remains off after touchdown.
+    '''
+
+    def derive(self, eng_stops=KTI('Eng Stop'), eng_count=A('Engine Count'),
+               touchdowns=KTI('Touchdown'), duration=A('HDF Duration')):
+        eng_stops_after_touchdown = []
+
+        for x in range(eng_count.value):
+            kti_name = eng_stops.format_name(number=x + 1)
+
+            if touchdowns.get_last():
+                eng_stop_after_touchdown = eng_stops.get_next(
+                    touchdowns.get_last().index, name=kti_name)
+            else:
+                eng_stop_after_touchdown = None
+
+            if not eng_stop_after_touchdown:
+                self.warning("Could not find '%s after Touchdown.",
+                             kti_name)
+                continue
+
+            eng_stops_after_touchdown.append(eng_stop_after_touchdown.index)
+
+        if eng_stops_after_touchdown:
+            self.create_kti(min(eng_stops_after_touchdown))
 
 
 class EnterHold(KeyTimeInstanceNode):

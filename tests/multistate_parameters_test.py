@@ -1760,12 +1760,11 @@ class TestFlapIncludingTransition(unittest.TestCase, NodeTest):
         _af = A('Family', 'B737 Classic')
         attributes = (_am, _as, _af)
 
-        flap_mapping = {39: '39', 0: '0', 10: '10', 20: '20'}
         array = np.ma.array([0]*4 + [10, 10, 10] + [0]*4 + [10, 10, 10, 40, 40, 40] + \
                             [20] * 6 + [40, 10] + [0] * 6)
         array = (1.1 * array + 0.9 * np.roll(array, 1))/ 2.0
         array.mask = np.ma.getmaskarray(array)
-        #flap_array = MappedArray(array, values_mapping=flap_mapping)
+
         flap = P(name='Flap Angle', array=array, frequency=1)
         node = self.node_class()
         node.derive(flap, None, *attributes)
@@ -1775,8 +1774,8 @@ class TestFlapIncludingTransition(unittest.TestCase, NodeTest):
         self.assertEqual(node.units, ut.DEGREE)
         self.assertIsInstance(node.array, MappedArray)
         expected = [0.0, 0.0, 0.0, 0.0, 10.0, 10.0, 10.0, 10.0, 0.0, 0.0, 0.0,
-                    10.0, 10.0, 30.0, 30.0, 40.0, 40.0, 30.0, 20.0, 20.0, 20.0,
-                    20.0, 20.0, 30.0, 20.0, 20.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+                    10.0, 10.0, 10.0, 30.0, 40.0, 40.0, 30.0, 20.0, 20.0, 20.0,
+                    20.0, 30.0, 30.0, 30.0, 20.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         self.assertEqual(node.array.raw.tolist(), expected)
 
 

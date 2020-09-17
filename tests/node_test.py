@@ -1358,6 +1358,18 @@ class TestKeyPointValueNode(unittest.TestCase):
         self.assertEqual(list(knode)[-1],
                          KeyPointValue(index=7, value=162, name='Kpv'))
 
+    def test_create_kpv_from_slices_with_float_indices(self):
+        'float indices are truncated'
+        knode = self.knode
+        array = np.repeat([30, 20, 10], [10, 10, 10])
+        knode.create_kpv_from_slices(
+            array,
+            [slice(1, 5.9), slice(10, 15.9), slice(20, 25.9)],
+            min_value
+        )
+        self.assertEqual(list(knode)[-1],
+                         KeyPointValue(index=20, value=10, name='Kpv'))
+
     def test_create_kpvs_from_slice_durations_basic(self):
         # Basic
         knode = self.knode

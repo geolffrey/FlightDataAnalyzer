@@ -105,6 +105,7 @@ from analysis_engine.library import (
     including_transition,
     index_at_distance,
     index_at_value,
+    indices_at_value,
     index_closest_value,
     index_of_datetime,
     index_of_first_start,
@@ -1626,14 +1627,14 @@ class TestIncludingTransition(unittest.TestCase):
         array = load_compressed(os.path.join(test_data_path, 'calculate_flap_14.npz'))
         flap_inc = including_transition(array, self.flap_map_2)
         self.assertTrue(np.ma.all(flap_inc[0:11] == 0))
-        self.assertTrue(np.ma.all(flap_inc[11:31] == 1))
-        self.assertTrue(np.ma.all(flap_inc[31:61] == 5))
+        self.assertTrue(np.ma.all(flap_inc[11:26] == 1))
+        self.assertTrue(np.ma.all(flap_inc[26:61] == 5))
 
     def test_including_transition_15(self):
         array = load_compressed(os.path.join(test_data_path, 'calculate_flap_15.npz'))
         flap_inc = including_transition(array, self.flap_map_2)
-        self.assertTrue(np.ma.all(flap_inc[55:72] == 0))
-        self.assertTrue(np.ma.all(flap_inc[37:55] == 1))
+        self.assertTrue(np.ma.all(flap_inc[62:72] == 0))
+        self.assertTrue(np.ma.all(flap_inc[37:62] == 1))
         self.assertTrue(np.ma.all(flap_inc[0:37] == 5))
 
     def test_including_transition_16(self):
@@ -1658,8 +1659,8 @@ class TestIncludingTransition(unittest.TestCase):
     def test_including_transition_19(self):
         array = load_compressed(os.path.join(test_data_path, 'calculate_flap_19.npz'))
         flap_inc = including_transition(array, self.flap_map_2)
-        self.assertTrue(np.ma.all(flap_inc[0:16] == 20))
-        self.assertTrue(np.ma.all(flap_inc[16:65] == 25))
+        self.assertTrue(np.ma.all(flap_inc[0:34] == 20))
+        self.assertTrue(np.ma.all(flap_inc[34:65] == 25))
 
     def test_including_transition_20(self):
         array = load_compressed(os.path.join(test_data_path, 'calculate_flap_20.npz'))
@@ -1680,10 +1681,10 @@ class TestIncludingTransition(unittest.TestCase):
         # no flap 1 as it's not in the flap map
         self.assertTrue(np.ma.all(flap_inc[5:3031] == 0))
         self.assertTrue(np.ma.all(flap_inc[3899:8790] == 0))
-        self.assertTrue(np.ma.all(flap_inc[9271:10224] == 0))
+        self.assertTrue(np.ma.all(flap_inc[9284:10224] == 0))
         self.assertTrue(np.ma.all(flap_inc[3031:3899] == 15))
         self.assertTrue(np.ma.all(flap_inc[8790:8848] == 15))
-        self.assertTrue(np.ma.all(flap_inc[9256:9271] == 15))
+        self.assertTrue(np.ma.all(flap_inc[9256:9284] == 15))
         self.assertTrue(np.ma.all(flap_inc[8848:9256] == 30))
 
     def test_including_transition_22(self):
@@ -1710,20 +1711,20 @@ class TestIncludingTransition(unittest.TestCase):
         self.assertTrue(np.ma.all(flap_inc[2711:2721] == 5))
         self.assertTrue(np.ma.all(flap_inc[3542:3636] == 5))
         self.assertTrue(np.ma.all(flap_inc[3969:3977] == 5))
-        self.assertTrue(np.ma.all(flap_inc[2540:2555] == 15))
+        self.assertTrue(np.ma.all(flap_inc[2540:2552] == 15))
         self.assertTrue(np.ma.all(flap_inc[2657:2707] == 15))
         self.assertTrue(np.ma.all(flap_inc[3641:3654] == 15))
         self.assertTrue(np.ma.all(flap_inc[3962:3964] == 15))
-        self.assertTrue(np.ma.all(flap_inc[2555:2556] == 25))
+        self.assertTrue(np.ma.all(flap_inc[2552:2556] == 25))
         self.assertTrue(np.ma.all(flap_inc[2651:2657] == 25))
         self.assertTrue(np.ma.all(flap_inc[3656:3658] == 25))
         self.assertTrue(np.ma.all(flap_inc[3960:3962] == 25))
-        self.assertTrue(np.ma.all(flap_inc[2557:2564] == 30))
+        self.assertTrue(np.ma.all(flap_inc[2557:2558] == 30))
         self.assertTrue(np.ma.all(flap_inc[2650:2651] == 30))
-        self.assertTrue(np.ma.all(flap_inc[3658:3666] == 30))
+        self.assertTrue(np.ma.all(flap_inc[3658:3660] == 30))
         self.assertTrue(np.ma.all(flap_inc[3959:3960] == 30))
-        self.assertTrue(np.ma.all(flap_inc[2564:2650] == 40))
-        self.assertTrue(np.ma.all(flap_inc[3666:3959] == 40))
+        self.assertTrue(np.ma.all(flap_inc[2558:2650] == 40))
+        self.assertTrue(np.ma.all(flap_inc[3660:3959] == 40))
 
 
     def test_including_transition_23(self):
@@ -1731,9 +1732,9 @@ class TestIncludingTransition(unittest.TestCase):
         flap_inc = including_transition(array, self.flap_map_4)
         self.assertTrue(flap_inc.mask[0])
         self.assertTrue(np.ma.all(flap_inc[2:2756] == 0))
-        self.assertTrue(np.ma.all(flap_inc[3642:11798] == 0))
+        self.assertTrue(np.ma.all(flap_inc[3647:11798] == 0))
         self.assertTrue(np.ma.all(flap_inc[12702:13696] == 0))
-        self.assertTrue(np.ma.all(flap_inc[2756:3642] == 1))
+        self.assertTrue(np.ma.all(flap_inc[2756:3647] == 1))
         self.assertTrue(np.ma.all(flap_inc[11798:12129] == 1))
         self.assertTrue(np.ma.all(flap_inc[12686:12702] == 1))
         self.assertTrue(np.ma.all(flap_inc[12129:12133] == 2))
@@ -3649,6 +3650,60 @@ class TestIndexAtValue(unittest.TestCase):
         array[20:] = np.ma.masked
         self.assertEqual(index_at_value(array, 60, slice(10, 40), endpoint='first_closing'), 19)
         self.assertEqual(index_at_value(array, 60, slice(10, 40), endpoint='closing'), 19)
+
+
+class TestIndicesAtValue:
+    def test_value_in_sawtooth_array(self):
+        array = np.tile(
+            np.ma.concatenate([np.arange(10), np.arange(10, 0, -1)]),
+            2
+        )
+        result = indices_at_value(array, 5)
+        np.testing.assert_array_equal(result, [5, 15, 25, 35])
+
+    def test_masked_array_values(self):
+        array = np.tile(
+            np.ma.concatenate([np.arange(10), np.arange(10, 0, -1)]),
+            2
+        )
+        array[[14, 15, 35, 36]] = np.ma.masked
+        result = indices_at_value(array, 5)
+        np.testing.assert_array_equal(result, [5, 25])
+
+    def test_array_crosses_value(self):
+        '''
+        Values in the array do not contain the Value, but the data points cross
+        the Value.
+        '''
+        array = np.arange(0, 20, 2)
+        result = indices_at_value(array, 5)
+        np.testing.assert_almost_equal(result, [2.5])
+
+    def test_array_both_crosses_and_contains_value(self):
+        array = np.array([3, 4, 5, 6, 4, 5, 6, 3])
+        result = indices_at_value(array, 5)
+        np.testing.assert_almost_equal(result, [2, 3.5, 5, 6 + 1/3])
+
+    def test_array_filled_with_value(self):
+        array = np.ones(5) * 7
+        result = indices_at_value(array, 7)
+        np.testing.assert_almost_equal(result, np.arange(5))
+
+    def test_array_value_at_either_ends(self):
+        array = np.concatenate((np.arange(10), np.arange(10, -1, -1)))
+        result = indices_at_value(array, 0)
+        np.testing.assert_equal(result, [0, 20])
+
+    def test_array_value_at_either_ends_masked(self):
+        array = np.ma.concatenate((np.arange(10), np.arange(10, -1, -1)))
+        array[[0, 20]] = np.ma.masked
+        result = indices_at_value(array, 0)
+        np.testing.assert_equal(result, [])
+
+    def test_array_value_crossed_at_either_ends(self):
+        array = np.concatenate((np.arange(10), np.arange(10, -1, -1)))
+        result = indices_at_value(array, 0.2)
+        np.testing.assert_equal(result, [0.2, 19.8])
 
 
 class TestIndexClosestValue(unittest.TestCase):
@@ -6313,6 +6368,12 @@ class TestSlicesBefore(unittest.TestCase):
                                        slice(10, 20), slice(20, 30)], 12),
                          [slice(0, 5), slice(8, 12), slice(10, 12)])
 
+    def test_truncated_slice_too_short(self):
+        'Should not produce truncated slices where end equals to start index.'
+        slices = [slice(40, 60)]
+        self.assertNotEqual(slices_before(slices, 40), [slice(40, 40)])
+        self.assertEqual(slices_before(slices, 40), [])
+
 
 class TestSlicesBelow(unittest.TestCase):
     def test_slices_below(self):
@@ -6767,6 +6828,28 @@ class TestSlicesFromTo(unittest.TestCase):
         _, slices = slices_from_to(alt_aal.array, 1000, 20)
         self.assertEqual(slices, [slice(9340, 9448),
                                   slice(10625, 10774)])
+
+    def test_slices_from_to_masked_data(self):
+        # Data is masked at the range start
+        array = np.ma.arange(20)
+        array[5:10] = np.ma.masked
+        # wrong direction
+        _, slices = slices_from_to(array, 15, 5)
+        self.assertEqual(slices, [])
+
+        _, slices = slices_from_to(array, 5, 15)
+        self.assertEqual(slices, [slice(6, 15)])
+
+        # Data is masked at the range end
+        array = np.ma.arange(20, 0, -1)
+        array[5:10] = np.ma.masked
+        # wrong direction
+        _, slices = slices_from_to(array, 5, 15)
+        self.assertEqual(slices, [])
+
+        _, slices = slices_from_to(array, 15, 5)
+        self.assertEqual(slices, [slice(6, 15)])
+
 
 
 class TestSlicesFromKtis(unittest.TestCase):
