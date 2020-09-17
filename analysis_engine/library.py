@@ -6269,6 +6269,8 @@ def slices_before(slices, index):
             # Entire slice is before index.
             continue
         if _slice.stop > index:
+            if not _slice.start < index:
+                continue
             _slice = slice(_slice.start, index)
         truncated_slices.append(_slice)
     return truncated_slices
@@ -6541,8 +6543,8 @@ def slices_from_to(array, from_, to, threshold=0.1):
                                rep_array.mask[test_slice.start - 1])
         stops_within_range = (test_slice.stop == len(array) or
                               rep_array.mask[test_slice.stop])
-        start_value = array[test_slice.start]
-        stop_value = array[test_slice.stop - 1]
+        start_value = rep_array[test_slice.start]
+        stop_value = rep_array[test_slice.stop - 1]
         # Check if the start and stop are in the upper or lower half of the
         # range to attempt to discern direction.
         start_max = abs(start_value - range_max) < abs(start_value - range_min)
@@ -6801,6 +6803,12 @@ def including_transition(array, steps, hz=1, mode='include'):
     sample_change = np.ma.ediff1d(array, to_begin=0.0)
     change[edges] = sample_change[edges]
 
+    # Ignore short periods of steady flaps
+    steady_slices = runs_of_ones(np.ma.abs(change) < 0.03)
+    short_steady_slices = [s for s in steady_slices if slice_duration(s, hz) < 3]
+    for s in short_steady_slices:
+        change[s] = np.ma.masked
+
     # first raise the array to the next step if it exceeds the previous step
     # plus a minimal threshold (step as early as possible)
     output = np_ma_masked_zeros_like(array)
@@ -6811,13 +6819,6 @@ def including_transition(array, steps, hz=1, mode='include'):
         for band in bands:
             # Find where the data did not change in this band...
             partial = np.ma.where(np.ma.abs(change[band.start:band.stop]) < 0.03, flap, np.ma.masked) # threshold of 0.03 to account for slight changes/flutter
-            if len(partial) == 1:
-                if change[band.start] > 0:
-                    output[band.start] = flap
-                else:
-                    output[min(band.stop - 1, len(array) - 1)] = flap
-                continue
-
             if np.ma.count(partial):
                 # Unchanged data can be included in our output flap array directly
                 output[band] = partial
@@ -6828,14 +6829,14 @@ def including_transition(array, steps, hz=1, mode='include'):
             # only capture the values starting at 31.0 and we would miss the point where
             # we crossed 30 degrees of flap.
             wider_band = slice(max(band.start - 1, 0), min(band.stop + 1, len(array)))
-            index = index_at_value(array[wider_band], flap)
-            if index is not None:
+            indexes = indices_at_value(array[wider_band], flap)
+            if indexes.size:
                 if array[wider_band][-1] > array[wider_band.start]:
                     # Going up
-                    output[floor(index + wider_band.start)] = flap
+                    output[(indexes + wider_band.start).astype(np.int)] = flap
                 else:
                     # Going down
-                    output[ceil(index + wider_band.start)] = flap
+                    output[np.ceil(indexes + wider_band.start).astype(np.int)] = flap
 
             elif not np.ma.count(partial):
                 # The data crept into this band without reaching the flap setting.
@@ -7742,6 +7743,54 @@ def index_at_value(array, threshold, _slice=slice(None), endpoint='exact'):
             r = (float(threshold) - a) / (b - a)
 
     return (begin + step * (n + r))
+
+
+def indices_at_value(array, value):
+    '''
+    Find all the indices where array equals or crosses value.
+
+    The returned array is a sorted array of all the indices found. Where the value was
+    not present in the array, but 2 consecutive data points bounded the value, a
+    floating point index will be returned, representing the exact location where the
+    value was crossed.
+
+    :param array: input data
+    :param type: np.ndarray
+    :param value: The value we compare against
+    :param type: int of float
+    :returns: All the indices where array equals or crosses value
+    :rtype: np.ndarray[float]
+    '''
+
+    exact_indices = np.nonzero(array == value)[0]
+    # Now find where value was in-between 2 data points in array
+    diff = array - value
+    signs = np.sign(diff)
+    # Where sign changes from 1 to -1 or vice versa, it means we have crossed
+    # our value. Detect it by taking the abs value of the diff.
+    # | 1 - (-1) |  =  | (-1) - 1 |  =  2
+    sign_change = np.ma.abs(np.ma.diff(signs))
+    idx = np.ma.where((sign_change == 2))[0]
+
+    # Trying to find the fractional index which exactly crosses value
+    # Use triangles similarity
+    #          .
+    #         /|     ^           ^
+    #        / |     | height    | diff[idx+1]
+    #       /  |     |           |
+    # -----/---|-----|--------^--v------------  value
+    #     / |  |     |        |  diff[idx]
+    #    -------     v        v
+    #  idx  |  idx+1
+    #       /
+    # fractional_idx
+
+    heights = diff[idx] - diff[idx+1]
+    fractional_idx = idx + diff[idx] / heights
+    all_idxs = np.concatenate((exact_indices, fractional_idx))
+    # Sort result in-place with merge sort as both arrays are already sorted
+    all_idxs.sort(kind='mergesort')
+    return all_idxs
 
 
 def index_at_value_or_level_off(array, frequency, value, _slice, abs_threshold=None):

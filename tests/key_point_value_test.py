@@ -1228,9 +1228,16 @@ class TestAccelerationLateralMax(unittest.TestCase, NodeTest):
             ('Acceleration Lateral Offset Removed', 'Groundspeed'),
         ]
 
-    @unittest.skip('Test Not Implemented')
     def test_derive(self):
-        self.assertTrue(False, msg='Test not implemented.')
+        array = np.ma.arange(0, 1, 0.01)
+        acc = P('Acceleration Lateral Offset Removed', array=array)
+        array = np.tile(np.ma.arange(50), 2)
+        gspd = P('Groundspeed', array=array)
+        node = self.node_class()
+        node.derive(acc, gspd)
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 99)
+        self.assertEqual(node[0].value, 0.99)
 
 
 class TestAccelerationLateralAtTouchdown(unittest.TestCase, NodeTest):
@@ -1369,7 +1376,7 @@ class TestAccelerationLateralOffset(unittest.TestCase, NodeTest):
         acc_lat_offset_kpv.derive(acc_lat, None, None, self.taxiing, self.turns)
 
         self.assertEqual(len(acc_lat_offset_kpv), 1)
-        self.assertAlmostEqual(acc_lat_offset_kpv[0].value, 0.00755357142857, delta=0.00000000000001)
+        self.assertAlmostEqual(acc_lat_offset_kpv[0].value, 0.005875)
 
     def test_derive_negative_values(self):
         acc_lat = P(name='Acceleration Lateral', array=-self.acc_lat_array)
@@ -1378,7 +1385,7 @@ class TestAccelerationLateralOffset(unittest.TestCase, NodeTest):
         acc_lat_offset_kpv.derive(acc_lat, None, None, self.taxiing, self.turns)
 
         self.assertEqual(len(acc_lat_offset_kpv), 1)
-        self.assertAlmostEqual(acc_lat_offset_kpv[0].value, -0.00755357142857, delta=0.00000000000001)
+        self.assertAlmostEqual(acc_lat_offset_kpv[0].value, -0.005875)
 
     def test_derive_all_values_equal_0(self):
         acc_lat = P(name='Acceleration Lateral', array=np.zeros_like(self.acc_lat_array))
@@ -1407,7 +1414,7 @@ class TestAccelerationLateralOffset(unittest.TestCase, NodeTest):
         acc_lat_offset_kpv.derive(acc_lat, None, None, self.taxiing, self.turns)
 
         self.assertEqual(len(acc_lat_offset_kpv), 1)
-        self.assertAlmostEqual(acc_lat_offset_kpv[0].value, 0.00610714285714, delta=0.00000000000001)
+        self.assertAlmostEqual(acc_lat_offset_kpv[0].value, 0.00475)
 
     def test_derive_not_enough_samples(self):
         turns = S(items=[Section('Turning On Ground', slice(17, 39), 17, 39),
@@ -1437,7 +1444,7 @@ class TestAccelerationLateralOffset(unittest.TestCase, NodeTest):
         acc_lat_offset_kpv.derive(acc_lat, None, None, self.taxiing, self.turns)
 
         self.assertEqual(len(acc_lat_offset_kpv), 1)
-        self.assertAlmostEqual(acc_lat_offset_kpv[0].value, 1.50755357143, delta=0.00000000001)
+        self.assertAlmostEqual(acc_lat_offset_kpv[0].value, 1.5 + 0.005875)
 
     def test_derive_masked_data(self):
         acc_lat = P(name='Acceleration Lateral', array=self.acc_lat_array)
@@ -2859,6 +2866,23 @@ class TestAirspeedDuringCruiseMax(unittest.TestCase, CreateKPVsWithinSlicesTest)
         self.assertEqual(node[1].index, 29)
         self.assertEqual(node[1].value, 129)
 
+    def test_flap_masked_values(self):
+        'Masked values during one crz section should not create multiple KPVs'
+        spd = P('Airspeed', array=np.ma.arange(100, 150))
+        mapping = {f: str(f) for f in (0, 1, 2, 5, 10, 15, 25, 30, 40)}
+        array = np.ma.concatenate((np.ma.repeat(0, 30), np.ma.repeat(15, 20)))
+        array[[2, 5, 7, 9]] = np.ma.masked
+        flap_lever = M('Flap Lever', array, values_mapping=mapping)
+        cruises = buildsections('Cruise', (0, 20), (25, 45))
+
+        node = self.node_class()
+        node.derive(spd, cruises, None, flap_lever)
+        self.assertEqual(len(node), 2)
+        self.assertEqual(node[0].index, 19)
+        self.assertEqual(node[0].value, 119)
+        self.assertEqual(node[1].index, 29)
+        self.assertEqual(node[1].value, 129)
+
 
 class TestAirspeedDuringCruiseMin(unittest.TestCase, CreateKPVsWithinSlicesTest):
 
@@ -2909,6 +2933,23 @@ class TestAirspeedDuringCruiseMin(unittest.TestCase, CreateKPVsWithinSlicesTest)
         self.assertEqual(node[0].value, 150 - 19)
         self.assertEqual(node[1].index, 29)
         self.assertEqual(node[1].value, 150 - 29)
+
+    def test_flap_masked_values(self):
+        spd = P('Airspeed', array=np.ma.arange(150, 100, -1))
+        mapping = {f: str(f) for f in (0, 1, 2, 5, 10, 15, 25, 30, 40)}
+        array = np.ma.concatenate((np.ma.repeat(0, 30), np.ma.repeat(15, 20)))
+        array[[2, 5, 7, 9]] = np.ma.masked
+        flap_lever = M('Flap Lever', array, values_mapping=mapping)
+        cruises = buildsections('Cruise', (0, 20), (25, 45))
+
+        node = self.node_class()
+        node.derive(spd, cruises, None, flap_lever)
+        self.assertEqual(len(node), 2)
+        self.assertEqual(node[0].index, 19)
+        self.assertEqual(node[0].value, 150 - 19)
+        self.assertEqual(node[1].index, 29)
+        self.assertEqual(node[1].value, 150 - 29)
+
 
 class TestAirspeedGustsDuringFinalApproach(unittest.TestCase, NodeTest):
 
@@ -8221,6 +8262,22 @@ class TestAltitudeAtGearUpSelectionDuringGoAround(unittest.TestCase, NodeTest):
         go_around = buildsection('Go Around And Climbout', 1, 14)
         toc = KTI('Top Of Climb', items=[KeyTimeInstance(index=18)])
         gear_up_sel=KTI('Gear Up Selection During Go Around', items=[])
+        node = self.node_class()
+        node.derive(alt, go_around, toc, gear_up_sel)
+        self.assertEqual(len(node), 0)
+
+    def test_alt_aal_masked_at_gear_up(self):
+        alt = P('Altitude AAL', array=np.ma.concatenate((
+            np.arange(800, 500, -100),
+            np.arange(500, 2000, 100),
+            np.ones(5) * 2000
+        )))
+        alt.array[8] = np.ma.masked
+        go_around = buildsection('Go Around And Climbout', 1, 14)
+        toc = KTI('Top Of Climb', items=[KeyTimeInstance(index=18)])
+        gear_up_sel=KTI('Gear Up Selection During Go Around', items=[
+            KeyTimeInstance(index=8)
+        ])
         node = self.node_class()
         node.derive(alt, go_around, toc, gear_up_sel)
         self.assertEqual(len(node), 0)
@@ -19334,9 +19391,35 @@ class TestRateOfDescentTopOfDescentTo10000FtMax(unittest.TestCase):
         opts = RateOfDescentTopOfDescentTo10000FtMax.get_operational_combinations()
         self.assertEqual(opts, [('Vertical Speed', 'Altitude STD Smoothed', 'Descent')])
 
-    @unittest.skip('Test Not Implemented')
     def test_derive(self):
-        self.assertTrue(False, msg='Test Not Implemented')
+        array = np.ma.arange(16_000, 8_000, -100)
+        array[30:35] = np.ma.masked
+        alt = P('Altitude STD Smoothed', array=array)
+        descent = buildsection('Descent', 10.5, 70.9)
+        array = np.repeat([-500, -1200, -900, -1500], [20, 20, 20, 20])
+        vspd = P('Vertical Speed', array=array)
+        node = RateOfDescentTopOfDescentTo10000FtMax()
+        node.derive(vspd, alt, descent)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 60)
+        self.assertEqual(node[0].value, -1_500)
+
+    def test_climb_and_descend(self):
+        array = np.ma.concatenate(
+            (np.arange(0, 16_000, 100), np.arange(16_000, 8_000, -100))
+        )
+        array[160+30:160+35] = np.ma.masked
+        alt = P('Altitude STD Smoothed', array=array)
+        descent = buildsection('Descent', 160.5, 230.9)
+        array = np.repeat([-2000, -500, -1200, -900, -1500], [160, 20, 20, 20, 20])
+        vspd = P('Vertical Speed', array=array)
+        node = RateOfDescentTopOfDescentTo10000FtMax()
+        node.derive(vspd, alt, descent)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 220)
+        self.assertEqual(node[0].value, -1_500)
 
 
 class TestRateOfDescentAbove3000FtMax(unittest.TestCase):
@@ -19403,13 +19486,38 @@ class TestRateOfDescentBelow10000FtMax(unittest.TestCase):
 
 class TestRateOfDescent10000To5000FtMax(unittest.TestCase):
 
+    def setUp(self):
+        self.node_class = RateOfDescent10000To5000FtMax
+
     def test_can_operate(self):
         opts = RateOfDescent10000To5000FtMax.get_operational_combinations()
         self.assertEqual(opts, [('Vertical Speed', 'Altitude STD Smoothed', 'Descent')])
 
-    @unittest.skip('Test Not Implemented')
     def test_derive(self):
-        self.assertTrue(False, msg='Test Not Implemented')
+        array = np.ma.arange(12_000, 4_000, -100)
+        array[30:35] = np.ma.masked
+        alt = P('Altitude STD Smoothed', array=array)
+        descent = buildsection('Descent', 10.5, 70.9)
+        array = np.repeat([-500, -1200, -900, -1500], [20, 20, 20, 20])
+        vspd = P('Vertical Speed', array=array)
+        node = self.node_class()
+        node.derive(vspd, alt, descent)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 60)
+        self.assertEqual(node[0].value, -1_500)
+
+    def test_only_positive_roc(self):
+        array = np.ma.arange(12_000, 4_000, -100)
+        array[30:35] = np.ma.masked
+        alt = P('Altitude STD Smoothed', array=array)
+        descent = buildsection('Descent', 10.5, 70.9)
+        array = np.repeat([500, 1200, 900, 1500], [20, 20, 20, 20])
+        vspd = P('Vertical Speed', array=array)
+        node = self.node_class()
+        node.derive(vspd, alt, descent)
+
+        self.assertEqual(len(node), 0)
 
 
 class TestRateOfDescent5000To3000FtMax(unittest.TestCase):
@@ -19418,9 +19526,19 @@ class TestRateOfDescent5000To3000FtMax(unittest.TestCase):
         opts = RateOfDescent5000To3000FtMax.get_operational_combinations()
         self.assertEqual(opts, [('Vertical Speed', 'Altitude AAL For Flight Phases', 'Descent')])
 
-    @unittest.skip('Test Not Implemented')
     def test_derive(self):
-        self.assertTrue(False, msg='Test Not Implemented')
+        array = np.ma.arange(8_000, 0, -100)
+        array[30:35] = np.ma.masked
+        alt = P('Altitude STD Smoothed', array=array)
+        descent = buildsection('Descent', 10.5, 70.9)
+        array = np.repeat([-500, -1200, -900, -1500], [20, 20, 20, 20])
+        vspd = P('Vertical Speed', array=array)
+        node = RateOfDescent5000To3000FtMax()
+        node.derive(vspd, alt, descent)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 35)
+        self.assertEqual(node[0].value, -1_200)
 
 
 class TestRateOfDescent3000To2000FtMax(unittest.TestCase):
@@ -23696,11 +23814,61 @@ class TestThrustAsymmetryWithThrustReversersDeployedMax(unittest.TestCase, NodeT
 
     def setUp(self):
         self.node_class = ThrustAsymmetryWithThrustReversersDeployedMax
-        self.operational_combinations = [('Thrust Asymmetry', 'Thrust Reversers', 'Mobile')]
+        self.operational_combinations = [
+            ('Thrust Asymmetry', 'Thrust Reversers', 'Mobile'),
+            ('Thrust Asymmetry', 'Thrust Reversers', 'Mobile', 'First Eng Stop After Touchdown'),
+        ]
 
-    @unittest.skip('Test Not Implemented')
-    def test_derive(self):
-        self.assertTrue(False, msg='Test not implemented.')
+    def test_reversers_after_first_eng_shutdown(self):
+        array = np.ma.arange(60)
+        ta = P('Thrust Asymmetry', array=array)
+        array = MappedArray(
+            np.repeat([0, 1, 2, 1, 0, 1, 0], [20, 5, 10, 5, 20, 5, 15]),
+            values_mapping = {0: 'Stowed', 1: 'In Transit', 2: 'Deployed'}
+        )
+        tr = M('Thrust Reversers', array=array)
+        mobile = buildsection('Mobile', 0, 70)
+        first_eng_stops = KTI('First Eng Stop After Touchdown', items=[
+            KeyTimeInstance(index=58, name='First Eng Stop After Touchdown')
+        ])
+        node = self.node_class()
+        node.derive(ta, tr, mobile, first_eng_stops)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 39)
+        self.assertEqual(node[0].value, 39)
+
+    def test_short_reversers(self):
+        array = np.ma.arange(60)
+        ta = P('Thrust Asymmetry', array=array)
+        array = MappedArray(
+            np.repeat([0, 1, 2, 1, 0, 1, 0], [20, 5, 10, 5, 20, 3, 18]),
+            values_mapping = {0: 'Stowed', 1: 'In Transit', 2: 'Deployed'}
+        )
+        tr = M('Thrust Reversers', array=array)
+        mobile = buildsection('Mobile', 0, 70)
+        node = self.node_class()
+        node.derive(ta, tr, mobile, None)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 39)
+        self.assertEqual(node[0].value, 39)
+
+    def test_reversers_while_staionary(self):
+        array = np.ma.arange(60)
+        ta = P('Thrust Asymmetry', array=array)
+        array = MappedArray(
+            np.repeat([0, 1, 2, 1, 0, 1, 0], [20, 5, 10, 5, 20, 5, 20]),
+            values_mapping = {0: 'Stowed', 1: 'In Transit', 2: 'Deployed'}
+        )
+        tr = M('Thrust Reversers', array=array)
+        mobile = buildsection('Mobile', 0, 50)
+        node = self.node_class()
+        node.derive(ta, tr, mobile, None)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 39)
+        self.assertEqual(node[0].value, 39)
 
 
 class TestThrustAsymmetryDuringApproachDuration(unittest.TestCase, NodeTest):
@@ -23718,11 +23886,81 @@ class TestThrustAsymmetryWithThrustReversersDeployedDuration(unittest.TestCase, 
 
     def setUp(self):
         self.node_class = ThrustAsymmetryWithThrustReversersDeployedDuration
-        self.operational_combinations = [('Thrust Asymmetry', 'Thrust Reversers', 'Mobile')]
+        self.operational_combinations = [
+            ('Thrust Asymmetry', 'Thrust Reversers', 'Mobile'),
+            ('Thrust Asymmetry', 'Thrust Reversers', 'Mobile', 'First Eng Stop After Touchdown'),
+        ]
 
-    @unittest.skip('Test Not Implemented')
-    def test_derive(self):
-        self.assertTrue(False, msg='Test not implemented.')
+    def test_reversers_after_first_eng_shutdown(self):
+        array = np.ma.ones(60) * 12
+        ta = P('Thrust Asymmetry', array=array)
+        array = MappedArray(
+            np.repeat([0, 1, 2, 1, 0, 1, 0], [20, 5, 10, 5, 20, 5, 15]),
+            values_mapping = {0: 'Stowed', 1: 'In Transit', 2: 'Deployed'}
+        )
+        tr = M('Thrust Reversers', array=array)
+        mobile = buildsection('Mobile', 0, 70)
+        first_eng_stops = KTI('First Eng Stop After Touchdown', items=[
+            KeyTimeInstance(index=58, name='First Eng Stop After Touchdown')
+        ])
+        node = self.node_class()
+        node.derive(ta, tr, mobile, first_eng_stops)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 20)
+        self.assertEqual(node[0].value, 20)
+
+    def test_short_reversers(self):
+        array = np.ma.ones(80) * 12
+        ta = P('Thrust Asymmetry', array=array)
+        array = MappedArray(
+            np.repeat([0, 1, 2, 1, 0, 1, 0], [20, 5, 10, 5, 20, 3, 18]),
+            values_mapping = {0: 'Stowed', 1: 'In Transit', 2: 'Deployed'}
+        )
+        tr = M('Thrust Reversers', array=array)
+        mobile = buildsection('Mobile', 0, 70)
+        node = self.node_class()
+        node.derive(ta, tr, mobile, None)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 20)
+        self.assertEqual(node[0].value, 20)
+
+    def test_short_high_asymmetry_rev(self):
+        '''
+        Reversers are deployed for more than 3 seconds but asymmetry lasts for a shorter
+        amount of time.
+        '''
+        array = np.ma.repeat([0, 12, 2], [30, 3, 27])
+        ta = P('Thrust Asymmetry', array=array)
+        array = MappedArray(
+            np.repeat([0, 1, 2, 1, 0, ], [20, 5, 10, 5, 20]),
+            values_mapping = {0: 'Stowed', 1: 'In Transit', 2: 'Deployed'}
+        )
+        tr = M('Thrust Reversers', array=array)
+        mobile = buildsection('Mobile', 0, 60)
+        node = self.node_class()
+        node.derive(ta, tr, mobile, None)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 30)
+        self.assertEqual(node[0].value, 3)
+
+    def test_reversers_while_staionary(self):
+        array = np.ma.ones(60) * 12
+        ta = P('Thrust Asymmetry', array=array)
+        array = MappedArray(
+            np.repeat([0, 1, 2, 1, 0, 1, 0], [20, 5, 10, 5, 20, 5, 20]),
+            values_mapping = {0: 'Stowed', 1: 'In Transit', 2: 'Deployed'}
+        )
+        tr = M('Thrust Reversers', array=array)
+        mobile = buildsection('Mobile', 0, 50)
+        node = self.node_class()
+        node.derive(ta, tr, mobile, None)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 20)
+        self.assertEqual(node[0].value, 20)
 
 
 ##############################################################################

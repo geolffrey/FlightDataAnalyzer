@@ -84,6 +84,7 @@ from analysis_engine.library import (
     slices_above,
     slices_and,
     slices_and_not,
+    slices_before,
     slices_below,
     slices_between,
     slices_duration,
@@ -271,7 +272,7 @@ class AccelerationLateralMax(KeyPointValueNode):
                gnd_spd=P('Groundspeed')):
 
         if gnd_spd:
-            self.create_kpvs_within_slices(
+            self.create_kpv_from_slices(
                 acc_lat.array,
                 gnd_spd.slices_above(5),
                 max_abs_value,
@@ -472,7 +473,7 @@ class AccelerationLateralOffset(KeyPointValueNode):
         only accumulate error estimates when taxiing in a straight line.
         '''
         if taxiing is not None and turns is not None:
-            sections = slices_and(taxiing.get_slices(), slices_not(turns.get_slices()))
+            sections = slices_and_not(taxiing.get_slices(), turns.get_slices())
             if not sections:
                 return
             unmasked_data = np.concatenate([np.ma.compressed(acc_lat.array[slices_int(s)]) for s in sections])
@@ -1310,8 +1311,9 @@ class AirspeedDuringCruiseMax(KeyPointValueNode):
             return
 
         flaps_up = runs_of_ones(retracted)
-        slices = slices_and(cruises.get_slices(), flaps_up)
-        self.create_kpvs_within_slices(air_spd.array, slices, max_value)
+        for cruise in cruises.get_slices():
+            slices = slices_and([cruise], flaps_up)
+            self.create_kpv_from_slices(air_spd.array, slices, max_value)
 
 
 class AirspeedDuringCruiseMin(KeyPointValueNode):
@@ -1347,8 +1349,10 @@ class AirspeedDuringCruiseMin(KeyPointValueNode):
                 return
 
             flaps_up = runs_of_ones(retracted)
-            slices = slices_and(cruises.get_slices(), flaps_up)
-            self.create_kpvs_within_slices(air_spd.array, slices, min_value)
+
+            for cruise in cruises.get_slices():
+                slices = slices_and([cruise], flaps_up)
+                self.create_kpv_from_slices(air_spd.array, slices, min_value)
 
 
 class AirspeedGustsDuringFinalApproach(KeyPointValueNode):
@@ -5384,13 +5388,9 @@ class TOGASelectedDuringFlightDuration(KeyPointValueNode):
 
         Note: This covers the entire airborne phase excluding go-arounds.
         '''
-        to_scan = slices_and(
-            [s.slice for s in airborne],
-            slices_not(
-                [s.slice for s in go_arounds],
-                begin_at=airborne[0].slice.start,
-                end_at=airborne[-1].slice.stop,
-            ),
+        to_scan = slices_and_not(
+            airborne.get_slices(),
+            go_arounds.get_slices()
         )
         self.create_kpvs_where(toga.array == 'TOGA', toga.hz,
                                phase=to_scan, exclude_leading_edge=True)
@@ -6409,8 +6409,9 @@ class AltitudeAtGearUpSelectionDuringGoAround(KeyPointValueNode):
             if gear_up:
                 # Use height between go around minimum and gear up:
                 alt_gear_up = value_at_index(alt_aal.array, gear_up.index)
-                gear_up_ht = alt_gear_up - pit_value
-                self.create_kpv(gear_up.index, gear_up_ht)
+                if alt_gear_up is not None:
+                    gear_up_ht = alt_gear_up - pit_value
+                    self.create_kpv(gear_up.index, gear_up_ht)
 
 
 class AltitudeWithGearDownMax(KeyPointValueNode):
@@ -11060,15 +11061,13 @@ class EngGasTempDuringMaximumContinuousPowerForXMinMax(KeyPointValueNode):
 
         if not airborne:
             return
-        if to_ratings and ga_ratings:
-            high_power_ratings = to_ratings.get_slices() + ga_ratings.get_slices()
-        else:
-            high_power_ratings = to_ratings.get_slices()
+        high_power_ratings = to_ratings.get_slices(edges=False)
+        if ga_ratings:
+            high_power_ratings += ga_ratings.get_slices(edges=False)
 
-        max_cont_rating = slices_not(
+        max_cont_rating = slices_and_not(
+            airborne.get_slices(edges=False),
             high_power_ratings,
-            begin_at=min(air.slice.start for air in airborne),
-            end_at=max(air.slice.stop for air in airborne),
         )
         for minutes in [3, 5]:
             seconds = minutes * 60
@@ -16332,9 +16331,13 @@ class RateOfDescentTopOfDescentTo10000FtMax(KeyPointValueNode):
                alt_aal=P('Altitude STD Smoothed'),
                descents=S('Descent')):
 
-        alt_band = np.ma.masked_less(alt_aal.array, 10000)
-        alt_descent_sections = valid_slices_within_array(alt_band, descents)
-        self.create_kpvs_within_slices(vrt_spd.array, alt_descent_sections, min_value)
+        for descent in descents:
+            descent = slices_int(descent.slice)
+            alt_band = np.ma.clump_unmasked(
+                np.ma.masked_less(alt_aal.array[descent], 10000)
+            )
+            scope = shift_slices(alt_band, descent.start)
+            self.create_kpv_from_slices(vrt_spd.array, scope, min_value)
 
 
 class RateOfDescentBelow10000FtMax(KeyPointValueNode):
@@ -16353,13 +16356,14 @@ class RateOfDescentBelow10000FtMax(KeyPointValueNode):
                vrt_spd=P('Vertical Speed'),
                alt_std=P('Altitude STD Smoothed'),
                descents=S('Descent')):
-        alt_band = np.ma.masked_outside(alt_std.array, 0, 10000)
-        alt_descent_sections = valid_slices_within_array(alt_band, descents)
-        self.create_kpv_from_slices(
-            vrt_spd.array,
-            alt_descent_sections,
-            min_value
-        )
+
+        for descent in slices_int(descents.get_slices()):
+            alt_band = np.ma.masked_outside(alt_std.array[descent], 0, 10_000)
+            # maximum RoD must be a big negative value; mask all positives
+            alt_band[vrt_spd.array[descent] > 0] = np.ma.masked
+            alt_band = np.ma.clump_unmasked(alt_band)
+            scope = shift_slices(alt_band, descent.start)
+            self.create_kpv_from_slices(vrt_spd.array, scope, min_value)
 
 
 class RateOfDescent10000To5000FtMax(KeyPointValueNode):
@@ -16373,15 +16377,15 @@ class RateOfDescent10000To5000FtMax(KeyPointValueNode):
     def derive(self,
                vrt_spd=P('Vertical Speed'),
                alt_std=P('Altitude STD Smoothed'),
-               descent=S('Descent')):
+               descents=S('Descent')):
 
-        alt_band = np.ma.masked_outside(alt_std.array, 10000, 5000)
-        alt_descent_sections = valid_slices_within_array(alt_band, descent)
-        self.create_kpvs_within_slices(
-            vrt_spd.array,
-            alt_descent_sections,
-            min_value
-        )
+        for descent in slices_int(descents.get_slices()):
+            alt_band = np.ma.masked_outside(alt_std.array[descent], 10000, 5000)
+            # maximum RoD must be a big negative value; mask all positives
+            alt_band[vrt_spd.array[descent] > 0] = np.ma.masked
+            alt_band = np.ma.clump_unmasked(alt_band)
+            scope = shift_slices(alt_band, descent.start)
+            self.create_kpv_from_slices(vrt_spd.array, scope, min_value)
 
 
 class RateOfDescent5000To3000FtMax(KeyPointValueNode):
@@ -16395,17 +16399,16 @@ class RateOfDescent5000To3000FtMax(KeyPointValueNode):
     def derive(self,
                vrt_spd=P('Vertical Speed'),
                alt_aal=P('Altitude AAL For Flight Phases'),
-               descent=S('Descent')):
+               descents=S('Descent')):
 
-        alt_band = np.ma.masked_outside(alt_aal.array, 5000, 3000)
-        # maximum RoD must be a big negative value; mask all positives
-        alt_band[vrt_spd.array > 0] = np.ma.masked
-        alt_descent_sections = valid_slices_within_array(alt_band, descent)
-        self.create_kpvs_within_slices(
-            vrt_spd.array,
-            alt_descent_sections,
-            min_value
-        )
+        for descent in slices_int(descents.get_slices()):
+            alt_band = np.ma.masked_outside(alt_aal.array[descent], 5_000, 3_000)
+            # maximum RoD must be a big negative value; mask all positives
+            alt_band[vrt_spd.array[descent] > 0] = np.ma.masked
+            alt_band = np.ma.clump_unmasked(alt_band)
+            scope = shift_slices(alt_band, descent.start)
+            self.create_kpv_from_slices(vrt_spd.array, scope, min_value)
+
 
 class RateOfDescentAbove3000FtMax(KeyPointValueNode):
     '''
@@ -16420,14 +16423,13 @@ class RateOfDescentAbove3000FtMax(KeyPointValueNode):
                alt_aal=P('Altitude AAL For Flight Phases'),
                descents=S('Descent')):
 
-        alt_band = np.ma.masked_inside(alt_aal.array, 0, 3000)
-        alt_descent_sections = valid_slices_within_array(alt_band, descents)
-
-        self.create_kpv_from_slices(
-            vrt_spd.array,
-            alt_descent_sections,
-            min_value
-        )
+        for descent in slices_int(descents.get_slices()):
+            alt_band = np.ma.masked_inside(alt_aal.array[descent], 0, 3_000)
+            # maximum RoD must be a big negative value; mask all positives
+            alt_band[vrt_spd.array[descent] > 0] = np.ma.masked
+            alt_band = np.ma.clump_unmasked(alt_band)
+            scope = shift_slices(alt_band, descent.start)
+            self.create_kpv_from_slices(vrt_spd.array, scope, min_value)
 
 
 class RateOfDescent3000To2000FtMax(KeyPointValueNode):
@@ -19825,19 +19827,32 @@ class ThrustAsymmetryWithThrustReversersDeployedMax(KeyPointValueNode):
 
     units = ut.PERCENT
 
-    def derive(self, ta=P('Thrust Asymmetry'), tr=M('Thrust Reversers'),
-               mobile=S('Mobile')):
+    @classmethod
+    def can_operate(cls, available):
+        return all_of(['Thrust Asymmetry', 'Thrust Reversers', 'Mobile'], available)
+
+    def derive(self,
+               ta=P('Thrust Asymmetry'),
+               tr=M('Thrust Reversers'),
+               mobile=S('Mobile'),
+               first_eng_stops=KTI('First Eng Stop After Touchdown')):
         # Note: Inclusion of the 'Mobile' phase ensures use of thrust reverse
         #       late on the landing run is included, but corrupt data at engine
         #       start etc. should be rejected.
         # Note: Use not 'Stowed' as 'In Transit' implies partially 'Deployed':
         slices = clump_multistate(tr.array, 'Stowed', mobile.get_slices(),
                                   condition=False)
+        if first_eng_stops:
+            # Don't consider reversers after engine shutdown
+            end = first_eng_stops.get_first()
+            if end is not None:
+                slices = slices_before(slices, int(end.index))
         # This KPV can trigger many times if the thrust reverser signal
         # toggles. This has been seen to happen after electrical power loss,
         # and as it is not possible for the thrust reversers to deploy and
-        # retract within 2 seconds, small slices are removed here.
-        slices = slices_remove_small_slices(slices, time_limit=2, hz=ta.hz)
+        # retract within 3 seconds, small slices are removed here.
+        # This allows also to filter out short In Transit state during Eng Shutdown.
+        slices = slices_remove_small_slices(slices, time_limit=3, hz=ta.hz)
         self.create_kpvs_within_slices(ta.array, slices, max_value)
 
 
@@ -19866,10 +19881,15 @@ class ThrustAsymmetryWithThrustReversersDeployedDuration(KeyPointValueNode):
 
     units = ut.SECOND
 
+    @classmethod
+    def can_operate(cls, available):
+        return all_of(['Thrust Asymmetry', 'Thrust Reversers', 'Mobile'], available)
+
     def derive(self,
                ta=P('Thrust Asymmetry'),
                tr=M('Thrust Reversers'),
-               mobile=S('Mobile')):
+               mobile=S('Mobile'),
+               first_eng_stops=KTI('First Eng Stop After Touchdown')):
 
         # Note: Inclusion of the 'Mobile' phase ensures use of thrust reverse
         #       late on the landing run is included, but corrupt data at engine
@@ -19877,6 +19897,12 @@ class ThrustAsymmetryWithThrustReversersDeployedDuration(KeyPointValueNode):
         slices = [s.slice for s in mobile]
         # Note: Use not 'Stowed' as 'In Transit' implies partially 'Deployed':
         slices = clump_multistate(tr.array, 'Stowed', slices, condition=False)
+        slices = slices_remove_small_slices(slices, time_limit=3, hz=ta.hz)
+        if first_eng_stops:
+            # Don't consider reversers after first engine shutdown
+            end = first_eng_stops.get_first()
+            if end is not None:
+                slices = slices_before(slices, int(end.index))
         for slice_ in slices:
             asymmetry = np.ma.masked_less(ta.array[slice_], 10.0)
             slices = np.ma.clump_unmasked(asymmetry)
@@ -20575,7 +20601,7 @@ class ControlColumnDualInputOppositeDirectionForceMax(KeyPointValueNode):
         # find offset during taxi in straight line
         delta_capt = delta_fo = 0  # if unable just assume that there's no offset
         if taxiing and turns:
-            straights = slices_and([s.slice for s in taxiing], slices_not([s.slice for s in turns]))
+            straights = slices_and_not(taxiing.get_slices(edges=False), turns.get_slices(edges=False))
             if straights:
                 unmasked_capt = np.ma.compressed(np.ma.concatenate([force_capt.array[s] for s in straights]))
                 unmasked_fo = np.ma.compressed(np.ma.concatenate([force_fo.array[s] for s in straights]))

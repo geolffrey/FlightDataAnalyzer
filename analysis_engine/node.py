@@ -1980,11 +1980,11 @@ class KeyPointValueNode(FormattedNameNode):
         :returns: None
         :rtype: None
         '''
-        slices = sorted(self._get_slices(slices))
+        slices = slices_int(sorted(self._get_slices(slices)))
         if not all(s.step in (1, None) for s in slices):
             raise ValueError('Slices must have a step of 1 in '
                              'create_kpv_from_slices.')
-        arrays = [array[s] for s in slices_int(slices)]
+        arrays = [array[s] for s in slices]
         # Trap for empty arrays or no slices to scan.
         if not arrays:
             return

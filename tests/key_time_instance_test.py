@@ -40,6 +40,7 @@ from analysis_engine.key_time_instances import (
     FirstEngFuelFlowStart,
     FirstEngStartBeforeLiftoff,
     LastEngStartBeforeLiftoff,
+    FirstEngStopAfterTouchdown,
     FirstFlapExtensionWhileAirborne,
     FlapExtensionWhileAirborne,
     FlapLeverSet,
@@ -398,7 +399,10 @@ class TestClimbAccelerationStart(unittest.TestCase):
         )
         init_climbs = buildsection('Initial Climb', 5, 40)
         alt_climbing = AltitudeWhenClimbing(
-            items=[KeyTimeInstance(99, name='5000 Ft Climbing')]
+            items=[
+                KeyTimeInstance(13, name='400 Ft Climbing'),
+                KeyTimeInstance(99, name='5000 Ft Climbing'),
+            ]
         )
         node = self.node_class()
         node.derive(None, init_climbs, alt_climbing, None, None, None, None, None, None,
@@ -420,7 +424,10 @@ class TestClimbAccelerationStart(unittest.TestCase):
         )
         init_climbs = buildsection('Initial Climb', 5, 40)
         alt_climbing = AltitudeWhenClimbing(
-            items=[KeyTimeInstance(60, name='5000 Ft Climbing')]
+            items=[
+                KeyTimeInstance(13, name='400 Ft Climbing'),
+                KeyTimeInstance(60, name='5000 Ft Climbing'),
+            ]
         )
         node = self.node_class()
         node.derive(None, init_climbs, alt_climbing, None, None, None, None, None, None,
@@ -442,6 +449,52 @@ class TestClimbAccelerationStart(unittest.TestCase):
             KeyTimeInstance(90, name='4000 Ft Climbing'),
             KeyTimeInstance(99, name='5000 Ft Climbing'),
         ])
+        node = self.node_class()
+        node.derive(None, init_climbs, alt_climbing, None, None, None, None, None, None,
+                    spd, flap, None, None)
+        self.assertEqual(len(node), 0)
+
+    def test_derive_spd_flap_accel_below_400ft(self):
+        array = np.ma.concatenate((np.linspace(111, 108, 29),  np.arange(110, 145, 0.5)))
+        spd = Parameter('Airspeed', array=array)
+        flap = M(
+            'Flap Lever (Synthetic)',
+            array=MappedArray(
+                np.repeat((1, 0), (80, 20)),
+                values_mapping={0: 'Lever 0', 1: 'Lever 1'}
+            )
+        )
+        init_climbs = buildsection('Initial Climb', 5, 40)
+        alt_climbing = AltitudeWhenClimbing(
+            items=[
+                KeyTimeInstance(23, name='400 Ft Climbing'),
+                KeyTimeInstance(99, name='5000 Ft Climbing'),
+            ]
+        )
+        node = self.node_class()
+        node.derive(None, init_climbs, alt_climbing, None, None, None, None, None, None,
+                    spd, flap, None, None)
+        self.assertEqual(len(node), 0)
+
+    def test_derive_spd_flap_masked_at_35ft(self):
+        array = np.ma.concatenate((np.ones(29) * 111, np.arange(110, 181)))
+        spd = Parameter('Airspeed', array=array)
+        flap = M(
+            'Flap Lever (Synthetic)',
+            array=MappedArray(
+                np.repeat((1, 0), (80, 20)),
+                values_mapping={0: 'Lever 0', 1: 'Lever 1'}
+            )
+        )
+        init_climbs = buildsection('Initial Climb', 5, 40)
+        alt_climbing = AltitudeWhenClimbing(
+            items=[
+                KeyTimeInstance(13, name='400 Ft Climbing'),
+                KeyTimeInstance(99, name='5000 Ft Climbing'),
+            ]
+        )
+        # Mask flap at start of initial climb
+        flap.array[4:6] = np.ma.masked
         node = self.node_class()
         node.derive(None, init_climbs, alt_climbing, None, None, None, None, None, None,
                     spd, flap, None, None)
@@ -1773,6 +1826,35 @@ class TestLastEngStopAfterTouchdown(unittest.TestCase):
         node.derive(eng_stops, eng_count, touchdowns)
         self.assertEqual(len(node), 1)
         self.assertEqual(node[0].index, 130)
+
+
+class TestFirstEngStopAfterTouchdown(unittest.TestCase):
+
+    def test_can_operate(self):
+        combinations = FirstEngStopAfterTouchdown.get_operational_combinations()
+        self.assertEqual(
+            combinations,
+            [('Eng Stop', 'Engine Count', 'Touchdown', 'HDF Duration')])
+
+    def test_derive_basic(self):
+        eng_count = A('Engine Count', 3)
+        eng_stops = EngStop('Eng Stop',
+                            items=[KeyTimeInstance(10, name='Eng (1) Stop'),
+                                   KeyTimeInstance(20, name='Eng (2) Stop'),
+                                   KeyTimeInstance(30, name='Eng (3) Stop'),
+                                   KeyTimeInstance(110, name='Eng (1) Stop'),
+                                   KeyTimeInstance(120, name='Eng (2) Stop'),
+                                   KeyTimeInstance(130, name='Eng (3) Stop'),
+                                   KeyTimeInstance(140, name='Eng (1) Stop'),
+                                   KeyTimeInstance(150, name='Eng (2) Stop'),
+                                   KeyTimeInstance(160, name='Eng (1) Stop'),
+                                   KeyTimeInstance(170, name='Eng (1) Stop'),
+                                   KeyTimeInstance(180, name='Eng (2) Stop'),])
+        touchdowns = KTI('Touchdown', items=[KeyTimeInstance(100, 'Touchdown')])
+        node = FirstEngStopAfterTouchdown()
+        node.derive(eng_stops, eng_count, touchdowns)
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 110)
 
 
 class TestEnterHold(unittest.TestCase):
