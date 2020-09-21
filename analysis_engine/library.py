@@ -357,15 +357,6 @@ def align_args(slave_array, slave_frequency, slave_offset, master_frequency, mas
     '''
     align implementation abstracted from Parameter class interface.
 
-    TODO: Upscaling MappedArrays should result in transitions at midpoints rather
-          than simply repeating the array as the exact time is unknown, e.g.
-          ['-', '-', 'Up'] * 4 == ['-', '-', '-', '-',
-                                   '-', '-' 'Up', 'Up', # currently '-', '-', '-', '-'
-                                   'Up', 'Up', 'Up', 'Up']
-          This is arguably more accurate, as the state could have changed
-          anywhere between the sample where the state changed and the previous
-          one.
-
     :type slave_array: np.ma.masked_array
     :type slave_frequency: int or float
     :type slave_offset: int or float
