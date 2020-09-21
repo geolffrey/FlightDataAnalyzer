@@ -3140,6 +3140,42 @@ nice:
       length: 9711
       surface: ASP
       width: 147
+  - end:
+      elevation: 10
+      latitude: 43.64675556544192
+      longitude: 7.202516309192618
+    id: 4450
+    identifier: 22L
+    localizer:
+      is_offset: false
+    magnetic_heading: 223.0
+    start:
+      elevation: 12
+      latitude: 43.66559047553922
+      longitude: 7.228417347221212
+    strip:
+      id: 2225
+      length: 9711
+      surface: ASP
+      width: 147
+  - end:
+      elevation: 10
+      latitude: 43.65183018951411
+      longitude: 7.204073999999882
+    id: 4452
+    identifier: 22R
+    localizer:
+      is_offset: false
+    magnetic_heading: 223.0
+    start:
+      elevation: 10
+      latitude: 43.66815933411522
+      longitude: 7.226522991401687
+    strip:
+      id: 2226
+      length: 8432
+      surface: ASP
+      width: 147
 palma_de_mallorca:
   code:
     iata: PMI

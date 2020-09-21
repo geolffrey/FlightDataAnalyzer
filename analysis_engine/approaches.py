@@ -152,117 +152,155 @@ class ApproachInformation(ApproachNode):
 
         return annotated_airports
 
+    def _find_nearest_airport(self, precise, lowest_lat, lowest_lon,
+                              lowest_hdg, appr_ils_freq, ac_type, land_afr_apt):
+        '''
+        Find the nearest airport from lowest lat and lon.
+
+        Returns None if no suitable airport found.
+        '''
+        handler = api.get_handler(settings.API_HANDLER)
+        airport, match = None, None
+
+        if lowest_lat in (None, np.ma.masked) or lowest_lon in (None, np.ma.masked):
+            self.warning('No coordinates for looking up approach airport.')
+            return
+
+        try:
+            airports = handler.get_nearest_airport(latitude=lowest_lat, longitude=lowest_lon)
+        except (ValueError, TypeError):
+            self.warning('No coordinates for looking up approach airport.')
+            return
+        except api.NotFoundError:
+            msg = 'No approach airport found near coordinates (%f, %f).'
+            self.warning(msg, lowest_lat, lowest_lon)
+            return
+
+        airport_info = self._evaluate_airports(airports, lowest_lat, lowest_lon, lowest_hdg, appr_ils_freq)
+        if land_afr_apt and land_afr_apt.value['id'] in airport_info:
+            match = airport_info[land_afr_apt.value['id']]
+        elif land_afr_apt and precise and ac_type != helicopter:
+            # raise error as afr and flight data do not match
+            msg = "'%s' provided by AFR is not in list of aiports within range of %s, %s. Aircraft has precise positioning"\
+                    % (land_afr_apt.value['code'], lowest_lat, lowest_lon)
+            raise AFRMissmatchError(self.name, msg)
+        elif precise:
+            if ac_type != helicopter:
+                # filter by runway coordinates
+                filtered = [x for x in airport_info.values() if x['min_rwy_start_dist'] is not None]
+                match = min(filtered, key=itemgetter('min_rwy_start_dist'), default=None)
+            else:
+                # Helicopter can arrive with any heading. Filter by airport distance.
+                match = min(airport_info.values(), key=itemgetter('distance'), default=None)
+        else:
+            # Non-precise
+            # filter by runway heading
+            potential_airports = [x for x in airport_info.values() if x['heading_match']]
+            if appr_ils_freq:
+                # filter by ils frequency
+                ils_airports = [x for x in airport_info.values() if x['ils_match']]
+                if ils_airports:
+                    potential_airports = ils_airports
+            if len(potential_airports) == 1:
+                match = potential_airports[0]
+            elif len(potential_airports) > 1:
+                # filter by runway distances
+                filtered = [x for x in potential_airports if x['min_rwy_start_dist'] is not None]
+                match = min(filtered, key=itemgetter('min_rwy_start_dist'), default=None)
+            else:
+                # filter by airport distances
+                if airports:
+                    airport = min(airports, key=itemgetter('distance'))
+        if match:
+            airport = match['airport']
+        if airport:
+            self.debug('Detected approach airport: %s', airport)
+        else:
+            self.warning('Unable to locate Airport from provided coordinates')
+        return airport
+
+
     def _lookup_airport_and_runway(self, _slice, precise, lowest_lat,
                                    lowest_lon, lowest_hdg, appr_ils_freq,
                                    land_afr_apt=None, land_afr_rwy=None,
                                    hint='approach', ac_type=aeroplane):
+        '''
+        Determine the Airport and Runway.
+
+        For the airport:
+
+        1. Find the nearest airport to the coordinates at landing with precise positioning.
+        2. Use the airport data provided in the achieved flight record if the aircraft
+           does not have precise positioning.
+        3. Find the nearest airport to the coordinates at landing without precise
+           positioning.
+        4. Use the airport data provided in the achieved flight record as a fallback.
+
+        For the runway:
+
+        1. Use the runway data provided in the achieved flight record if available and
+           the aircraft does not have precise positioning.
+        2. Using airport, heading and coordinates at landing.
+        3. Use the runway data provided in the achieved flight record if heading is
+           missing or the runway failed to derive.
+
+        '''
+        airport = self._find_nearest_airport(
+            precise, lowest_lat, lowest_lon, lowest_hdg,
+            appr_ils_freq, ac_type, land_afr_apt
+        )
+
         handler = api.get_handler(settings.API_HANDLER)
-        kwargs = {}
-        airport, runway, match = None, None, None
+        if airport:
+            if not precise and land_afr_apt:
+                # Favour AFR for non-precise aircrafts
+                airport = handler.get_airport(land_afr_apt.value['id'])
+                self.debug('Using approach airport from AFR: %s', airport['name'])
 
-        # A1. If we have latitude and longitude, look for the nearest airport:
-        if lowest_lat not in (None, np.ma.masked) and lowest_lon not in (None, np.ma.masked):
-            kwargs.update(latitude=lowest_lat, longitude=lowest_lon)
-            try:
-                airports = handler.get_nearest_airport(**kwargs)
-            except (ValueError, TypeError):
-                self.warning('No coordinates for looking up approach airport.')
-            except api.NotFoundError:
-                msg = 'No approach airport found near coordinates (%f, %f).'
-                self.warning(msg, lowest_lat, lowest_lon)
-                # No airport was found, so fall through and try AFR.
-            else:
-                airport_info = self._evaluate_airports(airports, lowest_lat, lowest_lon, lowest_hdg, appr_ils_freq)
-                if land_afr_apt and land_afr_apt.value['id'] in airport_info:
-                    # use afr airprot
-                    match = airport_info[land_afr_apt.value['id']]
-                elif land_afr_apt and precise and ac_type != helicopter:
-                    # raise error as afr and flight data do not match
-                    msg = "'%s' provided by AFR is not in list of aiports within range of %s, %s. Aircraft has precise positioning"\
-                        % (land_afr_apt.value['code'], lowest_lat, lowest_lon)
-                    raise AFRMissmatchError(self.name, msg)
-                elif not land_afr_apt and precise:
-                    if ac_type != helicopter:
-                        # filter by runway coordinates
-                        filtered = [x for x in airport_info.values() if x['min_rwy_start_dist'] is not None]
-                        if filtered:
-                            match = min(filtered, key=itemgetter('min_rwy_start_dist'))
-                    else:
-                        # Helicopter can arrive with any heading. Filter by airport distance.
-                        match = min(airport_info.values(), key=itemgetter('distance'), default=None)
-                else:
-                    # filter by runway heading
-                    potential_airports = [x for x in airport_info.values() if x['heading_match']]
-                    if appr_ils_freq:
-                        # filter by ils frequency
-                        ils_airports = [x for x in airport_info.values() if x['ils_match']]
-                        if len(ils_airports) == 1:
-                            potential_airports = [ils_airports[0]]
-                        elif len(ils_airports) > 1:
-                            potential_airports = ils_airports
-                    if len(potential_airports) == 1:
-                        match = potential_airports[0]
-                    elif len(potential_airports) > 1:
-                        # filter by runway distances
-                        filtered = [x for x in potential_airports if x['min_rwy_start_dist'] is not None]
-                        if filtered:
-                            match = min(filtered, key=itemgetter('min_rwy_start_dist'))
-                    else:
-                        # filter by airport distances
-                        if airports:
-                            airport = min(airports, key=itemgetter('distance'))
-                if match:
-                    airport = match['airport']
-                if airport:
-                    self.debug('Detected approach airport: %s', airport)
-                else:
-                    self.warning('Unable to locate Airport from provided coordinates')
         else:
-            # No suitable coordinates, so fall through and try AFR.
-            self.warning('No coordinates for looking up approach airport.')
-            # return None, None
-
-        # A2. If and we have an airport in achieved flight record, use it:
-        # NOTE: AFR data is only provided if this approach is a landing.
-        if not airport and land_afr_apt:
-            airport = handler.get_airport(land_afr_apt.value['id'])
-            self.debug('Using approach airport from AFR: %s', airport['name'])
-
-        # A3. After all that, we still couldn't determine an airport...
-        if not airport:
-            self.error('Unable to determine airport on approach!')
-            return None, None
-
-        if lowest_hdg is not None:
-
-            # R1. If we have airport and heading, look for the nearest runway:
-            if appr_ils_freq:
-                kwargs['ilsfreq'] = appr_ils_freq
-
-            # We already have latitude and longitude in kwargs from looking up
-            # the airport. If the measurments are not precise, remove them.
-            if not precise:
-                kwargs['hint'] = hint
-
-            runway = nearest_runway(airport, lowest_hdg, **kwargs)
-            if not runway:
-                msg = 'No runway found for airport #%d @ %03.1f deg with %s.'
-                self.warning(msg, airport['id'], lowest_hdg, kwargs)
-                # No runway was found, so fall through and try AFR.
-                if 'ilsfreq' in kwargs:
-                    # This is a trap for airports where the ILS data is not
-                    # available, but the aircraft approached with the ILS
-                    # tuned. A good prompt for an omission in the database.
-                    self.warning('Fix database? No runway but ILS was tuned.')
+            if land_afr_apt:
+                airport = handler.get_airport(land_afr_apt.value['id'])
+                self.debug('Using approach airport from AFR: %s', airport['name'])
             else:
-                self.debug('Detected approach runway: %s', runway)
+                self.error('Unable to determine airport on approach!')
+                return None, None
 
-        # R2. If we have a runway provided in achieved flight record, use it:
-        if not runway and land_afr_rwy:
-            runway = land_afr_rwy.value
-            self.debug('Using approach runway from AFR: %s', runway)
+        # Determine RWY
+        runway = None
+        if lowest_hdg is not None:
+            runway = nearest_runway(
+                airport,
+                lowest_hdg,
+                latitude=lowest_lat,
+                longitude=lowest_lon,
+                ilsfreq=appr_ils_freq,
+                hint=hint if not precise else None
+            )
 
-        # R3. After all that, we still couldn't determine a runway...
+        if not runway:
+            msg = ('No runway found for airport #%d @ %03.1f deg with latitude %s, '
+                   'longitude %s, ilsfreq %s and hint %s.')
+            self.warning(
+                msg, airport['id'], lowest_hdg, lowest_lat, lowest_lon, appr_ils_freq,
+                hint if not precise else None
+            )
+            if appr_ils_freq:
+                # This is a trap for airports where the ILS data is not
+                # available, but the aircraft approached with the ILS
+                # tuned. A good prompt for an omission in the database.
+                self.warning('Fix database? No runway but ILS was tuned.')
+            # No runway was found, so fall through and try AFR.
+            if land_afr_rwy:
+                runway = land_afr_rwy.value
+                self.debug('Using approach runway from AFR: %s', runway)
+        else:
+            self.debug('Detected approach runway: %s', runway)
+            if not precise:
+                # Favour AFR RWY info if available
+                if land_afr_rwy:
+                    runway = land_afr_rwy.value
+                    self.debug('Using approach runway from AFR: %s', runway)
+
         if not runway:
             self.error('Unable to determine runway on approach!')
 
@@ -379,8 +417,8 @@ class ApproachInformation(ApproachNode):
                     bearing = np.ma.array([lowest_hdg])
                     reference = {'latitude': lowest_lat, 'longitude': lowest_lon}
                     lat_ga, lon_ga = latitudes_and_longitudes(bearing, distance, reference)
-                    lowest_lat = lat_ga[0]
-                    lowest_lon = lon_ga[0]
+                    lowest_lat = lat_ga[0] or None
+                    lowest_lon = lon_ga[0] or None
 
             if lat_land and lon_land and not (lowest_lat and lowest_lon):
                 # use lat/lon at landing if values at ref_idx are masked

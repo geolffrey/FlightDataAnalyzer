@@ -504,10 +504,92 @@ class TestApproachInformation(unittest.TestCase):
         #        works correctly and any fall back values are used as
         #        appropriate.
 
+    @patch('analysis_engine.approaches.api')
+    def test_derive_afr_fallback_non_precise_aircrafts(self, api):
+        get_handler = Mock()
+        get_handler.get_nearest_airport.return_value = [airports['nice']]
+        get_handler.get_airport.return_value = airports['nice']
+        api.get_handler.return_value = get_handler
 
-    @unittest.skip('Covered by TestHerat')
-    def test_derive_afr_fallback(self):
-        self.assertTrue(False, msg='Test not implemented.')
+        approaches = ApproachInformation()
+        nice_22r = {
+            'id': 4452,
+            'identifier': '22R',
+            'magnetic_heading': 223.0,
+            'start': {'latitude': 43.66815933411522,
+             'longitude': 7.226522991401687,
+             'elevation': 10},
+            'end': {'latitude': 43.65183018951411,
+             'longitude': 7.204073999999882,
+             'elevation': 10},
+            'localizer': {'is_offset': False},
+            'strip': {'id': 2226, 'length': 8432, 'surface': 'ASP', 'width': 147}
+        }
+        approaches.derive(P('Altitude AAL For Flight Phases', np.ma.zeros(30)),
+                          None,
+                          A('Aircraft Type', 'aeroplane'),
+                          S(items=[Section('Approach', slice(10, 27), 10, 26)]),
+                          P('Heading Continuous', np.ma.ones(30) * 220),
+                          None,
+                          None,
+                          None,
+                          None,
+                          None,
+                          A(name='AFR Landing Airport', value={'id': 3021}),
+                          A(name='AFR Landing Runway', value=nice_22r) ,
+                          KPV('Latitude At Touchdown', items=[
+                              KeyPointValue(index=25, value=43.654888 , name='Latitude At Touchdown')
+                          ]),
+                          KPV('Longitude At Touchdown', items=[
+                              KeyPointValue(index=25, value=7.212841, name='Longitude At Touchdown')
+                          ]),
+                          A('Precise Positioning', False))
+        # Lat / Lon at Touchdown are closer to 22L. For non-precise aircrafts, favour
+        # AFR data
+        self.assertEqual(approaches[0].landing_runway['identifier'], '22R')
+
+    @patch('analysis_engine.approaches.api')
+    def test_derive_precise_aircrafts_ignore_afr_runway(self, api):
+        get_handler = Mock()
+        get_handler.get_nearest_airport.return_value = [airports['nice']]
+        get_handler.get_airport.return_value = airports['nice']
+        api.get_handler.return_value = get_handler
+
+        approaches = ApproachInformation()
+        nice_22r = {
+            'id': 4452,
+            'identifier': '22R',
+            'magnetic_heading': 223.0,
+            'start': {'latitude': 43.66815933411522,
+             'longitude': 7.226522991401687,
+             'elevation': 10},
+            'end': {'latitude': 43.65183018951411,
+             'longitude': 7.204073999999882,
+             'elevation': 10},
+            'localizer': {'is_offset': False},
+            'strip': {'id': 2226, 'length': 8432, 'surface': 'ASP', 'width': 147}
+        }
+        approaches.derive(P('Altitude AAL For Flight Phases', np.ma.zeros(30)),
+                          None,
+                          A('Aircraft Type', 'aeroplane'),
+                          S(items=[Section('Approach', slice(10, 27), 10, 26)]),
+                          P('Heading Continuous', np.ma.ones(30) * 220),
+                          None,
+                          None,
+                          None,
+                          None,
+                          None,
+                          A(name='AFR Landing Airport', value={'id': 3021}),
+                          A(name='AFR Landing Runway', value=nice_22r) ,
+                          KPV('Latitude At Touchdown', items=[
+                              KeyPointValue(index=25, value=43.654888 , name='Latitude At Touchdown')
+                          ]),
+                          KPV('Longitude At Touchdown', items=[
+                              KeyPointValue(index=25, value=7.212841, name='Longitude At Touchdown')
+                          ]),
+                          A('Precise Positioning', True))
+        # Lat / Lon at Touchdown are closer to 22L.
+        self.assertEqual(approaches[0].landing_runway['identifier'], '22L')
 
     @patch('analysis_engine.approaches.api')
     def test_landing_turn_off_runway_basic(self, api):
@@ -591,7 +673,7 @@ class TestApproachInformation(unittest.TestCase):
         get_handler.get_airport.assert_called_with(2379)
         self.assertEqual(approaches[0].turnoff, 70)
 
-class TestCloseAirprots(unittest.TestCase):
+class TestCloseAirports(unittest.TestCase):
     @patch('analysis_engine.approaches.api')
     def test_ils_freq(self, api):
 
@@ -659,6 +741,7 @@ class TestCloseAirprots(unittest.TestCase):
 
         get_handler = Mock()
         get_handler.get_nearest_airport.return_value = [airports['almaza'], airports['cairo'], airports['embaba']]
+        get_handler.get_airport.return_value = airports['almaza']
         api.get_handler.return_value = get_handler
 
         approaches = ApproachInformation()
