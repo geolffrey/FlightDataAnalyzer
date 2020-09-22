@@ -150,11 +150,8 @@ class HelicopterEngineCheck(FlightPhaseNode):
     but allows for the aircraft to lift into the hover or become light
     on the wheels.
     '''
-    @classmethod
-    def can_operate(cls, available, ac_type=A('Aircraft Type')):
-        return ac_type == helicopter and \
-               all_of(('Collective', 'Rotors Turning', 'Altitude Radio',
-                     'Torque Asymmetry', 'Eng (*) All Running'), available)
+
+    can_operate = helicopter_only
 
     def derive(self, coll=P('Collective'), rtrs=S('Rotors Turning'),
                rad_alt=P('Altitude Radio'),

@@ -45,7 +45,9 @@ from analysis_engine.library import (
     slices_above,
     slices_and,
     slices_and_not,
+    slices_before,
     slice_duration,
+    slices_extend,
     slices_extend_duration,
     slices_from_to,
     slices_not,
@@ -330,7 +332,7 @@ class ApproachAndLanding(FlightPhaseNode):
         if seg_type and seg_type.value in ('GROUND_ONLY', 'NO_MOVEMENT', 'START_ONLY'):
             return False
         elif ac_type == helicopter:
-            return all_of(('Approach', 'Landing'), available)
+            return all_of(('Approach', 'Landing', 'HDF Duration'), available)
         else:
             return 'Altitude AAL For Flight Phases' in available
 
@@ -357,13 +359,10 @@ class ApproachAndLanding(FlightPhaseNode):
             self.create_phase(low_alt)
 
     def _derive_helicopter(self, apps, landings, end):
-        phases = []
-        for new_phase in apps:
-            phases = slices_or(phases, [new_phase.slice])
-        for new_phase in landings:
-            # The phase is extended to make sure we enclose the endpoint
-            # so that the touchdown point is included in this phase.
-            phases = slices_or(phases, [slice(new_phase.slice.start, min(new_phase.slice.stop+2, end))])
+        # The landing phase is extended to make sure we enclose the endpoint
+        # so that the touchdown point is included in this phase.
+        ldgs_extended = slices_before(slices_extend(landings.get_slices(), 2), end)
+        phases = slices_or(apps.get_slices(), ldgs_extended)
         self.create_phases(phases)
 
     def derive(self,
@@ -373,11 +372,12 @@ class ApproachAndLanding(FlightPhaseNode):
                level_flights=S('Level Flight'),
                # helicopter
                apps=S('Approach'),
+               duration=A('HDF Duration'),
                # shared
                landings=S('Landing')):
 
         if ac_type == helicopter:
-            self._derive_helicopter(apps, landings, len(alt_aal.array))
+            self._derive_helicopter(apps, landings, duration.value * self.hz)
         else:
             self._derive_aircraft(alt_aal, level_flights, landings)
 
