@@ -1340,7 +1340,7 @@ class AltitudeVisualizationWithGroundOffset(DerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-        return all_of(('Altitude AAL', 'Altitude STD Smoothed'), available)
+        return all_of(('Altitude AAL', 'Altitude STD Smoothed', 'Approach Information'), available)
 
     @classmethod
     def _qnh_adjust(cls, aal, std, elev, mode):
