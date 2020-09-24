@@ -233,13 +233,13 @@ def hdf():
     heading_frequency = 1
     heading_array.mask = False
     params['Heading'] = Parameter('Heading', array=heading_array,
-                    frequency=heading_frequency)
+                                  frequency=heading_frequency)
 
     params['Eng (1) N1'] = None
 
     dfc_array = np.ma.arange(0, 600, 2)
     params['Frame Counter'] = Parameter('Frame Counter', array=dfc_array,
-                    frequency=0.25)
+                                        frequency=0.25)
 
     params['Segment Split'] = M(
         'Segment Split', array=np.ma.zeros(len(heading_array), dtype=int),
@@ -359,20 +359,98 @@ class TestSplitSegments:
 
         # DFC jumps exactly half way.
         dfc = hdf['Frame Counter']
-        dfc.array = np.ma.concatenate([np.arange(0, 400),
-                                       np.arange(500, 900)])
+        dfc.array = np.ma.concatenate([np.arange(0, 201),
+                                       np.arange(500, 699)])
 
         segment_tuples = split_segments(hdf, {})
         assert len(segment_tuples) == 2
         segment_type, segment_slice, start_padding = segment_tuples[0]
         assert segment_type == 'START_AND_STOP'
         assert segment_slice.start == 0
-        assert segment_slice.stop == 882
+        assert segment_slice.stop == 802
 
         # Heading diff not exceed HEADING_CHANGE_TAXI_THRESHOLD
         segment_type, segment_slice, start_padding = segment_tuples[1]
         assert segment_type == 'NO_MOVEMENT'
-        assert segment_slice.start == 882
+        assert segment_slice.start == 802
+        assert segment_slice.stop == airspeed_secs
+
+    def test_two_flights_split_with_multiple_dfc(self, hdf):
+        hdf.reliable_frame_counter = True
+        aspd = hdf['Airspeed']
+        # Two flights, split will be made using DFC.
+        aspd.array = np.ma.concatenate([np.arange(0, 200, 0.25),
+                                        np.arange(200, 0, -0.25),
+                                        np.arange(0, 200, 0.25),
+                                        np.arange(200, 0, -0.25)])
+        airspeed_secs = len(aspd.array) / aspd.frequency
+        hdg = hdf['Heading']
+        hdg.array = np.ma.concatenate((
+            np.arange(len(aspd.array) // 4, dtype=float) % 360,
+            np.zeros(len(aspd.array) // 4)
+        ))
+
+        # DFC jumps half way and once more shortly after.
+        dfc = hdf['Frame Counter']
+        dfc.array = np.ma.concatenate([np.arange(0, 201),
+                                       np.arange(500, 699)])
+        dfc.array = np.ma.concatenate([np.arange(0, 201),
+                                       np.arange(440,450),
+                                       np.arange(500, 689)])
+
+        segment_tuples = split_segments(hdf, {})
+        assert len(segment_tuples) == 2
+        segment_type, segment_slice, start_padding = segment_tuples[0]
+        assert segment_type == 'START_AND_STOP'
+        assert segment_slice.start == 0
+        assert segment_slice.stop == 802
+
+        # Heading diff not exceed HEADING_CHANGE_TAXI_THRESHOLD
+        segment_type, segment_slice, start_padding = segment_tuples[1]
+        assert segment_type == 'NO_MOVEMENT'
+        assert segment_slice.start == 802
+        assert segment_slice.stop == airspeed_secs
+
+    def test_two_flights_split_with_multiple_dfc_and_eng_params(self, hdf):
+        hdf.reliable_frame_counter = True
+        aspd = hdf['Airspeed']
+        # Two flights, split will be made using DFC.
+        aspd.array = np.ma.concatenate([np.arange(0, 200, 0.25),
+                                        np.arange(200, 0, -0.25),
+                                        np.arange(0, 200, 0.25),
+                                        np.arange(200, 0, -0.25)])
+        airspeed_secs = len(aspd.array) / aspd.frequency
+        hdg = hdf['Heading']
+        hdg.array = np.ma.concatenate((
+            np.arange(len(aspd.array) // 4, dtype=float) % 360,
+            np.zeros(len(aspd.array) // 4)
+        ))
+
+        # DFC jumps half way and once more shortly after.
+        dfc = hdf['Frame Counter']
+        dfc.array = np.ma.concatenate([np.arange(0, 201),
+                                       np.arange(500, 699)])
+        dfc.array = np.ma.concatenate([np.arange(0, 201),
+                                       np.arange(440,450),
+                                       np.arange(500, 689)])
+
+        eng_array = np.ma.concatenate([np.arange(0, 110, 0.25),
+                                           np.arange(110, 10, -0.25),
+                                           np.arange(0, 100, 0.25),
+                                           np.arange(100, 0, -0.25)])
+        hdf._get_params['Eng (1) N1'] = P('Eng (1) N1', array=eng_array)
+
+        segment_tuples = split_segments(hdf, {})
+        assert len(segment_tuples) == 2
+        segment_type, segment_slice, start_padding = segment_tuples[0]
+        assert segment_type == 'START_AND_STOP'
+        assert segment_slice.start == 0
+        assert segment_slice.stop == 842
+
+        # Heading diff not exceed HEADING_CHANGE_TAXI_THRESHOLD
+        segment_type, segment_slice, start_padding = segment_tuples[1]
+        assert segment_type == 'NO_MOVEMENT'
+        assert segment_slice.start == 842
         assert segment_slice.stop == airspeed_secs
 
     def test_split_using_eng_params_where_dfc_does_not_jump(self, hdf):
@@ -389,10 +467,8 @@ class TestSplitSegments:
             np.zeros(len(aspd.array) // 4)
         ))
 
-        # DFC jumps exactly half way.
         dfc = hdf['Frame Counter']
-        dfc.array = np.ma.concatenate([np.arange(0, 400),
-                                       np.arange(500, 900)])
+        dfc.array = np.arange(0, 800)
         # Split using engine params where DFC does not jump.
         eng_array = np.ma.concatenate([np.arange(0, 100, 0.25),
                                        np.arange(100, 0, -0.25),
@@ -472,9 +548,9 @@ class TestSplitSegments:
                                         np.arange(200, 0, -0.25)])
         airspeed_secs = len(aspd.array) / aspd.frequency
 
-        hdf['Frame Counter'].array = np.ma.masked_array(
-            np.random.randint(1000, size=((len(hdf['Frame Counter'].array),)))
-        )
+        hdf['Frame Counter'].array = np.linspace(
+            0, 100_000, num=int(airspeed_secs/4)
+        ) % 4096
         hdf['Heading'].array = np.ma.concatenate([np.arange(390, 0, -0.5),
                                                   np.zeros(10),
                                                   np.arange(400, 800, 0.5)])

@@ -142,7 +142,10 @@ def _segment_type_and_slice(speed_array, speed_frequency,
         # Check speed
         slow_start = speed_array[unmasked_slices[0].start] < thresholds['speed_threshold']
         slow_stop = speed_array[unmasked_slices[-1].stop - 1] < thresholds['speed_threshold']
-        threshold_exceedance = np.sum(np.where(speed_array > thresholds['speed_threshold'], 1, 0)) / speed_frequency
+        rep_speed_array = repair_mask(speed_array, repair_duration=None)
+        threshold_exceedance = np.ma.sum(
+            rep_speed_array > thresholds['speed_threshold']
+        ) / speed_frequency
         fast_for_long = threshold_exceedance > thresholds['min_duration']
     else:
         slow_start = slow_stop = fast_for_long = threshold_exceedance = None
@@ -415,6 +418,10 @@ def _split_on_dfc(slice_start_secs, slice_stop_secs, dfc_frequency,
     '''
     Find split using 'Frame Counter' parameter.
 
+    If multiple jumps are found within the slow section, we filter out any jumps within
+    less than 10 minutes of each other. If eng split index is available, we retain the
+    closest index, otherwise we just take the first one.
+
     :param slice_start_secs: Start of slow slice in seconds.
     :type slice_start_secs: int or float
     :param slice_stop_secs: Stop of slow slice in seconds.
@@ -427,9 +434,8 @@ def _split_on_dfc(slice_start_secs, slice_stop_secs, dfc_frequency,
     :type dfc_diff: np.ma.MaskedArray
     :param eng_split_index: Split index based on minimum of engine parameters.
     :type eng_split_index: int or float
-    :returns: Split index based on 'Frame Counter' jumps or None if no jumps
-        occur.
-    :rtype: int or float or None
+    :returns: Split indexes based on 'Frame Counter' jumps or None if no jumps occur.
+    :rtype: np.ndarray[float] or None
     '''
     dfc_slice = slice(slice_start_secs * dfc_frequency,
                       int(floor(slice_stop_secs * dfc_frequency)) + 1)
@@ -438,23 +444,27 @@ def _split_on_dfc(slice_start_secs, slice_stop_secs, dfc_frequency,
     if dfc_indexes.size == 0:
         return None
     dfc_indexes = dfc_indexes / dfc_frequency + slice_start_secs + dfc_half_period
-    while np.any(np.ediff1d(dfc_indexes) < 600.0):
-        # We have two jumps within 5 minutes of each other
-        small_jump_idx = np.argmin(np.ediff1d(dfc_indexes))
-        to_lower = abs(eng_split_index - dfc_indexes[small_jump_idx])
-        to_upper = abs(eng_split_index - dfc_indexes[small_jump_idx + 1])
-        if to_lower < to_upper:
-            idx = small_jump_idx + 1
-        else:
-            idx = small_jump_idx
-        dfc_indexes = np.delete(dfc_indexes, idx)
+
+    # Filter out jumps within 10 min of each other
+    if eng_split_index:
+        # Split on the jump closest to the engine parameter minimums.
+        while np.any(np.ediff1d(dfc_indexes) < 600.0):
+            # We have two jumps within 10 minutes of each other
+            small_jump_idx = np.argmin(np.ediff1d(dfc_indexes))
+            to_lower = abs(eng_split_index - dfc_indexes[small_jump_idx])
+            to_upper = abs(eng_split_index - dfc_indexes[small_jump_idx + 1])
+            if to_lower < to_upper:
+                idx = small_jump_idx + 1
+            else:
+                idx = small_jump_idx
+            dfc_indexes = np.delete(dfc_indexes, idx)
+    else:
+        while np.any(np.ediff1d(dfc_indexes) < 600.0):
+            small_jump_idx = np.argmin(np.ediff1d(dfc_indexes))
+            dfc_indexes = np.delete(dfc_indexes, small_jump_idx + 1)
 
     # Not sure this is needed, as I can't see why the index should ever exceed the boundary.
-    for dfc_index in dfc_indexes:
-        if dfc_index > slice_stop_secs:
-            dfc_index = slice_stop_secs
-        elif dfc_index < slice_start_secs:
-            dfc_index = slice_start_secs
+    np.clip(dfc_indexes, slice_start_secs, slice_stop_secs, out=dfc_indexes)
 
     return dfc_indexes
 
