@@ -964,11 +964,10 @@ class EngRunning(object):
     node_type = MultistateDerivedParameterNode
 
     @classmethod
-    def can_operate(cls, available):
-        return 'Eng (%d) N1' % cls.engnum in available or \
-               'Eng (%d) N2' % cls.engnum in available or \
-               'Eng (%d) Np' % cls.engnum in available or \
-               'Eng (%d) Fuel Flow' % cls.engnum in available
+    def can_operate(cls, available, ac_type=A('Aircraft Type')):
+        n1 = 'Eng (%d) N1' % cls.engnum
+        return n1 in available if ac_type == helicopter else \
+            any_of((n1, 'Eng (%d) N2' % cls.engnum, 'Eng (%d) Np' % cls.engnum, 'Eng (%d) Fuel Flow' % cls.engnum), available)
 
     def determine_running(self, eng_n1, eng_n2, eng_np, fuel_flow, ac_type):
         '''
@@ -1073,13 +1072,8 @@ class Eng_AllRunning(MultistateDerivedParameterNode, EngRunning):
 
     @classmethod
     def can_operate(cls, available, ac_type=A('Aircraft Type')):
-        if ac_type == helicopter:
-            return 'Eng (*) N1 Min' in available
-        else:
-            return 'Eng (*) N1 Min' in available or \
-                   'Eng (*) N2 Min' in available or \
-                   'Eng (*) Np Min' in available or \
-                   'Eng (*) Fuel Flow Min' in available
+        return 'Eng (*) N1 Min' in available if ac_type == helicopter else \
+            any_of(('Eng (*) N1 Min', 'Eng (*) N2 Min', 'Eng (*) Np Min', 'Eng (*) Fuel Flow Min'), available)
 
     def derive(self,
                eng_n1=P('Eng (*) N1 Min'),
@@ -1102,13 +1096,8 @@ class Eng_AnyRunning(MultistateDerivedParameterNode, EngRunning):
 
     @classmethod
     def can_operate(cls, available, ac_type=A('Aircraft Type')):
-        if ac_type == helicopter:
-            return 'Eng (*) N1 Max' in available
-        else:
-            return 'Eng (*) N1 Max' in available or \
-                   'Eng (*) N2 Max' in available or \
-                   'Eng (*) Np Max' in available or \
-                   'Eng (*) Fuel Flow Max' in available
+        return 'Eng (*) N1 Max' in available if ac_type == helicopter else \
+            any_of(('Eng (*) N1 Max', 'Eng (*) N2 Max', 'Eng (*) Np Max', 'Eng (*) Fuel Flow Max'), available)
 
     def derive(self,
                eng_n1=P('Eng (*) N1 Max'),
