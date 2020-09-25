@@ -4279,7 +4279,7 @@ def max_abs_value(array, _slice=slice(None), start_edge=None, stop_edge=None):
     if value is None:
         return Value(None, None)
     else:
-        return Value(index, array[int(index)]) # Recover sign of the value.
+        return Value(index, value_at_index(array, index)) # Recover sign of the value.
 
 
 def max_value(array, _slice=slice(None), start_edge=None, stop_edge=None):

@@ -4541,6 +4541,13 @@ class TestMaxAbsValue(unittest.TestCase):
         self.assertEqual(i, 3)
         self.assertEqual(v, 'Special')
 
+    def test_masked_values(self):
+        array = np.ma.arange(-20, 0)
+        array[:2] = np.ma.masked
+        idx, value = max_abs_value(array, slice(1.5, 18))
+        self.assertEqual(idx, 1.5)
+        self.assertEqual(value, -18)
+
 
 class TestMergeMasks(unittest.TestCase):
     def test_merge_masks_default(self):
