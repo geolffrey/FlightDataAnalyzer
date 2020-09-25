@@ -221,8 +221,8 @@ class ApproachInformation(ApproachNode):
 
 
     def _lookup_airport_and_runway(self, _slice, precise, lowest_lat,
-                                   lowest_lon, lowest_hdg, appr_ils_freq,
-                                   land_afr_apt=None, land_afr_rwy=None,
+                                   lowest_lon, final_lat, final_lon, lowest_hdg,
+                                   appr_ils_freq, land_afr_apt=None, land_afr_rwy=None,
                                    hint='approach', ac_type=aeroplane):
         '''
         Determine the Airport and Runway.
@@ -271,8 +271,8 @@ class ApproachInformation(ApproachNode):
             runway = nearest_runway(
                 airport,
                 lowest_hdg,
-                latitude=lowest_lat,
-                longitude=lowest_lon,
+                latitude=final_lat if final_lat is not None else lowest_lat,
+                longitude=final_lon if final_lon is not None else lowest_lon,
                 ilsfreq=appr_ils_freq,
                 hint=hint if not precise else None
             )
@@ -314,6 +314,10 @@ class ApproachInformation(ApproachNode):
                hdg=P('Heading Continuous'),
                lat=P('Latitude Prepared'),
                lon=P('Longitude Prepared'),
+               lat_raw=P('Latitude'),
+               lon_raw=P('Longitude'),
+               lat_c=P('Latitude (Coarse)'),
+               lon_c=P('Longitude (Coarse)'),
                ils_loc=P('ILS Localizer'),
                ils_gs=S('ILS Glideslope'),
                ils_freq=P('ILS Frequency'),
@@ -406,9 +410,25 @@ class ApproachInformation(ApproachNode):
             # Pass latitude, longitude and heading
             lowest_lat = None
             lowest_lon = None
+            final_lat = None
+            final_lon = None
             if lat and lon and ref_idx:
                 lowest_lat = lat.array[ref_idx] or None
                 lowest_lon = lon.array[ref_idx] or None
+                idx_100ft = index_at_value(alt.array, 100.0, _slice=_slice)
+                if idx_100ft is not None:
+                    idx_100ft = int(idx_100ft)
+                if None not in (lowest_lat, lowest_lon, idx_100ft):
+                    # Lat / Lon arrays for the last 100 ft
+                    if lat_raw and lon_raw:
+                        final_lat = lat_raw.array[idx_100ft:ref_idx+1]
+                        final_lon = lon_raw.array[idx_100ft:ref_idx+1]
+                    elif lat_c and lon_c:
+                        final_lat = lat_c.array[idx_100ft:ref_idx+1]
+                        final_lon = lon_c.array[idx_100ft:ref_idx+1]
+                    else:
+                        final_lat = np.array([lowest_lat])
+                        final_lon = np.array([lowest_lon])
                 if lowest_lat and lowest_lon and approach_type == 'GO_AROUND':
                     # Doing a go-around, we extrapolate to the threshold
                     # in case we abort the approach abeam a different airport,
@@ -435,6 +455,8 @@ class ApproachInformation(ApproachNode):
                 lowest_lat=lowest_lat,
                 lowest_lon=lowest_lon,
                 lowest_hdg=lowest_hdg,
+                final_lat=final_lat,
+                final_lon=final_lon,
                 appr_ils_freq=None,
                 ac_type=ac_type,
             )

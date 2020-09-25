@@ -1,5 +1,6 @@
 import numpy as np
 import os
+from pathlib import Path
 import unittest
 import yaml
 
@@ -991,7 +992,7 @@ class TestTakeoffPilot(unittest.TestCase):
 class TestTakeoffRunway(unittest.TestCase, NodeTest):
     def setUp(self):
         self.node_class = TakeoffRunway
-        self.operational_combination_length = 160
+        self.operational_combination_length = 2560
         self.check_operational_combination_length_only = True
 
     @patch('analysis_engine.flight_attribute.nearest_runway')
@@ -1023,7 +1024,7 @@ class TestTakeoffRunway(unittest.TestCase, NodeTest):
         nearest_runway.reset_mock()
         # Test for aircraft where positioning is not precise:
         precise.value = True
-        rwy.derive(fdr_apt, afr_apt, hdg, lat, lon, None, None, precise)
+        rwy.derive(fdr_apt, afr_apt, hdg, lat, lon, None, None, precise, None, None, None, None)
         rwy.set_flight_attr.assert_called_once_with(info)
         rwy.set_flight_attr.reset_mock()
         nearest_runway.assert_called_once_with(fdr_apt.value, 20.0, latitude=np.array([4.0]), longitude=np.array([3.0]))
@@ -1032,7 +1033,7 @@ class TestTakeoffRunway(unittest.TestCase, NodeTest):
         # NOTE: Latitude and longitude are still used for determining the
         #       takeoff runway, even when positioning is not precise!
         precise.value = False
-        rwy.derive(fdr_apt, afr_apt, hdg, lat, lon, None, None, precise)
+        rwy.derive(fdr_apt, afr_apt, hdg, lat, lon, None, None, precise, None, None, None, None)
         rwy.set_flight_attr.assert_called_once_with(info)
         rwy.set_flight_attr.reset_mock()
         nearest_runway.assert_called_once_with(fdr_apt.value, 20.0, latitude=np.array([4.0]), longitude=np.array([3.0]),  hint='takeoff')
@@ -1077,12 +1078,12 @@ class TestTakeoffRunway(unittest.TestCase, NodeTest):
         assert not nearest_runway.called, 'method should not have been called'
         # Check wrong heading triggers AFR:
         precise.value = True
-        rwy.derive(fdr_apt, afr_rwy, hdg_a, None, None, None, None, precise)
+        rwy.derive(fdr_apt, afr_rwy, hdg_a, None, None, None, None, precise, None, None, None, None)
         rwy.set_flight_attr.assert_called_once_with(afr_rwy.value)
         nearest_runway.assert_called_once_with(fdr_apt.value, hdg_a.get_first().value)
         rwy.set_flight_attr.reset_mock()
         nearest_runway.reset_mock()
-        rwy.derive(fdr_apt, afr_rwy, hdg_b, None, None, None, None, precise)
+        rwy.derive(fdr_apt, afr_rwy, hdg_b, None, None, None, None, precise, None, None, None, None)
         rwy.set_flight_attr.assert_called_once_with(info)
         nearest_runway.assert_called_once_with(fdr_apt.value, hdg_b.get_first().value)
 
@@ -1107,9 +1108,42 @@ class TestTakeoffRunway(unittest.TestCase, NodeTest):
 
         node = self.node_class()
         node.derive(fdr_apt, None, toff_hdg, toff_lat, toff_lon, accel_start_lat,
-                   accel_start_lon, precise)
+                   accel_start_lon, precise, None, None, None, None)
 
         self.assertEqual(node.value['identifier'], '30')
+
+    def test_antalya_parallel_rwys(self):
+        fdr_apt = A(name='FDR Takeoff Airport', value=airports['antalya'])
+        toff_hdg = KPV(name='Heading During Takeoff', items=[
+            KeyPointValue(index=783.6875, value=181.0546875),
+        ])
+        toff_lat = KPV(name='Latitude At Liftoff', items=[
+            KeyPointValue(index=799.34375, value=36.901230812072754),
+        ])
+        toff_lon = KPV(name='Longitude At Liftoff', items=[
+            KeyPointValue(index=799.34375, value=30.79193115234375),
+        ])
+        accel_start_lat = KPV(name='Latitude Takeoff Acceleration Start', items=[
+            KeyPointValue(index=767.375, value=36.9140625),
+        ])
+        accel_start_lon = KPV(name='Longitude Takeoff Acceleration Start', items=[
+            KeyPointValue(index=767.375, value=30.793304443359375),
+        ])
+        precise = A(name='Precise Positioning', value=False)
+
+        root = Path(test_data_path)
+        def fetch(par_name):
+            try:
+                return load(root / f'TakeoffRWY_twd_d5c45c1c4592_{par_name}.nod')
+            except:
+                return None
+
+        node = self.node_class()
+        node.derive(fdr_apt, None, toff_hdg, toff_lat, toff_lon, accel_start_lat,
+                    accel_start_lon, precise, fetch('Latitude'), fetch('Longitude'),
+                    None, None)
+
+        self.assertEqual(node.value['identifier'], '18C')
 
 
 class TestFlightType(unittest.TestCase):

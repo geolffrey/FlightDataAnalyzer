@@ -8601,10 +8601,11 @@ def nearest_runway(airport, heading, ilsfreq=None, latitude=None, longitude=None
             if not any(args):
                 continue
             abs_dxt = np.average(np.abs(cross_track_distance(*args)))
-            # if we find more than one runway less than 30m away (30m is half the average runway width), that means we
-            # have landed on a runway crossing. W create a list of such runways and then pick the one which magnetic
-            # heading is closer to the aircraft heading - since we're looking at the lowest point, even with crosswind
-            # the aircraft will likely be post de-crab at this stage.
+            # if we find more than one runway less than 30m away, that means we have
+            # landed on a runway crossing. We create a list of such runways and then
+            # pick the one which magnetic heading is closer to the aircraft heading -
+            # since we're looking at the lowest point, even with crosswind the aircraft
+            # will likely be post de-crab at this stage.
             close_runways.append((abs_dxt, r))
 
         if close_runways:
@@ -8615,8 +8616,8 @@ def nearest_runway(airport, heading, ilsfreq=None, latitude=None, longitude=None
             if len(close_runways) > 1:
                 if hint:
                     # Non-precise aircrafts
-                    if close_runways[1][0] < 150:
-                        # If the second nearest is closer than 150m, fall back to not
+                    if close_runways[1][0] < 135:
+                        # If the second nearest is closer than 135m, fall back to not
                         # identifying which parallel runway it was.
                         runway = None
                 else:

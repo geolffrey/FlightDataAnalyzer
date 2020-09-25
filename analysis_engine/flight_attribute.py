@@ -718,7 +718,11 @@ class TakeoffRunway(FlightAttributeNode):
                toff_lon=KPV('Longitude At Liftoff'),
                accel_start_lat=KPV('Latitude At Takeoff Acceleration Start'),
                accel_start_lon=KPV('Longitude At Takeoff Acceleration Start'),
-               precision=A('Precise Positioning')):
+               precision=A('Precise Positioning'),
+               lat=P('Latitude'),
+               lon=P('Longitude'),
+               lat_c=P('Latitude (Coarse)'),
+               lon_c=P('Longitude (Coarse)')):
         '''
         '''
         fallback = False
@@ -756,21 +760,18 @@ class TakeoffRunway(FlightAttributeNode):
             # did consider using the last direction of turn onto the runway,
             # but this would require an airport database with terminal and
             # taxiway details that was not felt justified).
-            if toff_lat and toff_lon:
-                lats = [toff_lat.get_first()]
-                lons = [toff_lon.get_first()]
-                if accel_start_lat and accel_start_lon:
-                    lats.append(accel_start_lat.get_first())
-                    lons.append(accel_start_lon.get_first())
-                lats = [l.value for l in lats if l]
-                lons = [l.value for l in lons if l]
-                if lats and lons:
-                    kwargs.update(
-                        latitude=np.array(lats),
-                        longitude=np.array(lons),
-                    )
-                else:
-                    self.warning('No coordinates for takeoff runway lookup.')
+            lat = lat or lat_c
+            lon = lon or lon_c
+            lats, lons = self._takeoff_roll(
+                lat, lon, accel_start_lat, accel_start_lon, toff_lat, toff_lon
+            )
+            if lats is not None and lons is not None:
+                kwargs.update(
+                    latitude=np.array(lats),
+                    longitude=np.array(lons),
+                )
+            else:
+                self.warning('No coordinates for takeoff runway lookup.')
             if not precise:
                 kwargs.update(hint='takeoff')
 
@@ -790,6 +791,47 @@ class TakeoffRunway(FlightAttributeNode):
 
         self.error('Unable to determine runway at takeoff!')
         self.set_flight_attr(None)
+
+    def _takeoff_roll(self, lat, lon, accel_start_lat, accel_start_lon,
+                     toff_lat, toff_lon):
+        '''
+        Finds the lat / lon arrays slice during takeoff roll.
+
+        If the arrays are missing or there is a missing coordinate for acceleration
+        start or liftoff, we then return the latitudes and longitudes of the
+        acceleration start and/or liftoff where available.
+
+        It nothing is available, returns (None, None)
+        '''
+
+        if toff_lat and toff_lon and accel_start_lat and accel_start_lon:
+            first_accel = accel_start_lat.get_first()
+            if first_accel:
+                first_accel = int(first_accel.index)
+            first_toff = toff_lat.get_first()
+            if first_toff:
+                first_toff = int(first_toff.index)
+
+            if lat and lon and first_accel and first_toff:
+                lats = lat.array[first_accel:first_toff]
+                lons = lon.array[first_accel:first_toff]
+                return lats, lons
+
+            lats = [toff_lat.get_first().value, accel_start_lat.get_first().value]
+            lons = [toff_lon.get_first().value, accel_start_lon.get_first().value]
+            return lats, lons
+
+        elif toff_lat and toff_lon:
+            lats = [toff_lat.get_first()]
+            lons = [toff_lon.get_first()]
+            if accel_start_lat and accel_start_lon:
+                lats.append(accel_start_lat.get_first())
+                lons.append(accel_start_lon.get_first())
+            lats = [l.value for l in lats if l]
+            lons = [l.value for l in lons if l]
+            return lats, lons
+
+        return None, None
 
 
 class FlightType(FlightAttributeNode):

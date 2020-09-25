@@ -9277,10 +9277,10 @@ class TestNearestRunway(unittest.TestCase):
     def test_undetermined_parallel_with_non_precise_valid_coordinates(self):
         '''
         Test finding nearest parallel runway with non-precise valid coordinates.
-        As both parallel runways are less than 150 meters from the touchdown
+        As both parallel runways are less than 135 meters from the touchdown
         position, we fall back to undetermined runway: 10*.
         '''
-        runway = nearest_runway(self._airports['006'], 99.8, latitude=26.681671, longitude=-80.101372, hint='landing')
+        runway = nearest_runway(self._airports['006'], 99.8, latitude=26.682, longitude=-80.099, hint='landing')
         self.assertEqual(runway, self._expected['019'])
 
     def test_find_nearest_with_invalid_latitude(self):

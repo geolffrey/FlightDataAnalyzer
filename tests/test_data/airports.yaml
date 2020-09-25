@@ -1460,6 +1460,172 @@ almaza:
       id: 12211
       length: 4068
       width: 164
+antalya:
+  code:
+    iata: AYT
+    icao: LTAI
+  distance: 0.4316591721868029
+  elevation: 177
+  id: 3166
+  latitude: 36.8987
+  location:
+    city: Antalya
+    country: Turkey
+  longitude: 30.8005
+  magnetic_variation: E003574 0206
+  name: Antalya
+  runways:
+  - end:
+      elevation: 176
+      latitude: 36.88514829067671
+      longitude: 30.7906050932539
+    glideslope:
+      angle: 3.0
+      elevation: 176
+      latitude: 36.912499999999994
+      longitude: 30.793056000000007
+      threshold_distance: 1133
+    id: 10579
+    identifier: 18C
+    localizer:
+      beam_width: 4.5
+      elevation: 176
+      frequency: 108700.0
+      heading: 182
+      is_offset: false
+      latitude: 36.882221999999956
+      longitude: 30.79027799999999
+    magnetic_heading: 182.0
+    start:
+      elevation: 176
+      latitude: 36.915491722429756
+      longitude: 30.794771139880535
+    strip:
+      id: 5290
+      length: 11155
+      surface: CON
+      width: 147
+  - end:
+      elevation: 176
+      latitude: 36.91549386691602
+      longitude: 30.794768457671008
+    glideslope:
+      angle: 3.0
+      elevation: 176
+      latitude: 36.88777799999999
+      longitude: 30.79222199999999
+      threshold_distance: 1005
+    id: 10580
+    identifier: 36C
+    localizer:
+      beam_width: 4.5
+      elevation: 176
+      frequency: 110300.0
+      heading: 2
+      is_offset: false
+      latitude: 36.91888899999999
+      longitude: 30.795277999999985
+    magnetic_heading: 2.0
+    start:
+      elevation: 176
+      latitude: 36.885148290677414
+      longitude: 30.790597046626175
+    strip:
+      id: 5290
+      length: 11155
+      surface: CON
+      width: 147
+  - end:
+      elevation: 172
+      latitude: 36.915698433440895
+      longitude: 30.79237436441924
+    id: 10582
+    identifier: 36L
+    localizer:
+      is_offset: false
+    magnetic_heading: 2.0
+    start:
+      elevation: 176
+      latitude: 36.88903787137734
+      longitude: 30.788740457671015
+    strip:
+      id: 5291
+      length: 9811
+      surface: ASP
+      width: 147
+  - end:
+      elevation: 176
+      latitude: 36.88904001660504
+      longitude: 30.78873777546328
+    id: 10581
+    identifier: 18R
+    localizer:
+      is_offset: false
+    magnetic_heading: 182.0
+    start:
+      elevation: 172
+      latitude: 36.915691999999986
+      longitude: 30.79236899999999
+    strip:
+      id: 5291
+      length: 9811
+      surface: ASP
+      width: 147
+  - end:
+      elevation: 176
+      latitude: 36.91135214460296
+      longitude: 30.811416728836228
+    glideslope:
+      angle: 3.0
+      elevation: 158
+      latitude: 36.88333300000001
+      longitude: 30.808888999999994
+      threshold_distance: 935
+    id: 10584
+    identifier: 36R
+    localizer:
+      beam_width: 4.5
+      elevation: 176
+      frequency: 108100.0
+      heading: 2
+      is_offset: false
+      latitude: 36.91401044965057
+      longitude: 30.811827932540744
+    magnetic_heading: 2.0
+    start:
+      elevation: 158
+      latitude: 36.88090558183179
+      longitude: 30.80723813988128
+    strip:
+      id: 5292
+      length: 11155
+      surface: CON
+      width: 147
+  - end:
+      elevation: 158
+      latitude: 36.88089700000055
+      longitude: 30.80723813988128
+    glideslope:
+      elevation: 177
+    id: 10583
+    identifier: 18L
+    localizer:
+      elevation: 177
+      frequency: 109750.0
+      heading: 182
+      is_offset: false
+      latitude: 36.87807137924722
+      longitude: 30.80686799505572
+    magnetic_heading: 182.0
+    start:
+      elevation: 176
+      latitude: 36.911334987782986
+      longitude: 30.81142209325349
+    strip:
+      id: 5292
+      length: 11155
+      surface: CON
+      width: 147
 barcelona:
   code:
     iata: BCN
@@ -3472,6 +3638,165 @@ palma_de_mallorca:
       length: 10728
       surface: ASP
       width: 148
+palm beach:
+  code:
+    iata: PBI
+    icao: KPBI
+  distance: 0.35136765004399567
+  elevation: 19
+  id: 2848
+  latitude: 26.6832
+  location:
+    city: West Palm Beach
+    country: United States
+  longitude: -80.0956
+  magnetic_variation: W005462 0106
+  name: Palm Beach Intl
+  runways:
+  - end:
+      elevation: 19
+      latitude: 26.68076099999998
+      longitude: -80.096461
+    glideslope:
+      elevation: 19
+    id: 13275
+    identifier: 10R
+    localizer:
+      elevation: 19
+      is_offset: false
+    magnetic_heading: 99.0
+    start:
+      elevation: 19
+      latitude: 26.681188999999996
+      longitude: -80.10628899999999
+    strip:
+      id: 6638
+      length: 3213
+      surface: ASP
+      width: 75
+  - end:
+      elevation: 19
+      latitude: 26.681188999999975
+      longitude: -80.10628899999998
+    glideslope:
+      elevation: 19
+    id: 13276
+    identifier: 28L
+    localizer:
+      elevation: 19
+      is_offset: false
+    magnetic_heading: 279.0
+    start:
+      elevation: 19
+      latitude: 26.68076099999997
+      longitude: -80.096461
+    strip:
+      id: 6638
+      length: 3213
+      surface: ASP
+      width: 75
+  - end:
+      elevation: 19
+      latitude: 26.69183299999998
+      longitude: -80.104022
+    glideslope:
+      elevation: 19
+    id: 13280
+    identifier: '32'
+    localizer:
+      elevation: 19
+      is_offset: false
+    magnetic_heading: 321.0
+    start:
+      elevation: 19
+      latitude: 26.67830799999998
+      longitude: -80.089061
+    strip:
+      id: 6640
+      length: 6931
+      surface: ASP
+      width: 150
+  - end:
+      elevation: 19
+      latitude: 26.67830799999998
+      longitude: -80.089061
+    glideslope:
+      elevation: 19
+    id: 13279
+    identifier: '14'
+    localizer:
+      elevation: 19
+      is_offset: false
+    magnetic_heading: 141.0
+    start:
+      elevation: 19
+      latitude: 26.69183299999998
+      longitude: -80.104022
+    strip:
+      id: 6640
+      length: 6931
+      surface: ASP
+      width: 150
+  - end:
+      elevation: 19
+      latitude: 26.681975053329843
+      longitude: -80.08025608998081
+    glideslope:
+      angle: 3.0
+      elevation: 19
+      latitude: 26.682195660769096
+      longitude: -80.10164899140109
+      threshold_distance: 1000
+    id: 13277
+    identifier: 10L
+    localizer:
+      beam_width: 4.3
+      elevation: 19
+      frequency: 111900.0
+      heading: 98
+      is_offset: false
+      latitude: 26.681729895416243
+      longitude: -80.07469445501742
+    magnetic_heading: 99.0
+    start:
+      elevation: 19
+      latitude: 26.683054619935547
+      longitude: -80.10466582272423
+    strip:
+      id: 6639
+      length: 10008
+      surface: ASP
+      width: 150
+  - end:
+      elevation: 19
+      latitude: 26.683045033674432
+      longitude: -80.10464436505329
+    glideslope:
+      angle: 3.0
+      elevation: 19
+      latitude: 26.681093999999984
+      longitude: -80.08382799999998
+      threshold_distance: 1147
+    id: 13278
+    identifier: 28R
+    localizer:
+      beam_width: 4.0
+      elevation: 19
+      frequency: 111900.0
+      heading: 276
+      is_offset: false
+      latitude: 26.683310999999993
+      longitude: -80.11069199999999
+    magnetic_heading: 279.0
+    start:
+      elevation: 19
+      latitude: 26.681987036260967
+      longitude: -80.0802560899655
+    strip:
+      id: 6639
+      length: 10008
+      surface: ASP
+      width: 150
 scatsta:
   code:
     iata: SCS
