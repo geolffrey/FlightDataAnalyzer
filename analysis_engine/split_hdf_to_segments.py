@@ -445,23 +445,47 @@ def _split_on_dfc(slice_start_secs, slice_stop_secs, dfc_frequency,
         return None
     dfc_indexes = dfc_indexes / dfc_frequency + slice_start_secs + dfc_half_period
 
-    # Filter out jumps within 10 min of each other
+    def mask_indexes_closer_than(a, distance):
+        '''
+        Mask elements from `a` which are less than `distance` apart.
+
+        Instead of mutating the array, we return a boolean mask that can be used as an
+        index to only see the elements that are more than `distance` apart.
+
+        :param a: sorted array of indexes that we want to filter
+        :type a: np.ndarray
+        :param distance: Minimum distance required between elements of `a`.
+        :type distance: float
+        :returns: the mask filtering elements less than `distance` apart
+        :rtype: np.ndarray[bool]
+        '''
+        mask = np.ones_like(a, dtype=bool)
+        idx = 0
+        while idx < a.size:
+            # Only consider the elements to the right of our current index
+            submask = mask[idx+1:]
+            short_dist = a[idx+1:] - a[idx] < distance
+            # Mask out elements which are too close
+            submask[short_dist] = False
+            if not np.any(submask):
+                break
+            # Find the next unmasked element
+            idx = np.argmax(submask) + idx + 1
+        return mask
+
     if eng_split_index:
-        # Split on the jump closest to the engine parameter minimums.
-        while np.any(np.ediff1d(dfc_indexes) < 600.0):
-            # We have two jumps within 10 minutes of each other
-            small_jump_idx = np.argmin(np.ediff1d(dfc_indexes))
-            to_lower = abs(eng_split_index - dfc_indexes[small_jump_idx])
-            to_upper = abs(eng_split_index - dfc_indexes[small_jump_idx + 1])
-            if to_lower < to_upper:
-                idx = small_jump_idx + 1
-            else:
-                idx = small_jump_idx
-            dfc_indexes = np.delete(dfc_indexes, idx)
-    else:
-        while np.any(np.ediff1d(dfc_indexes) < 600.0):
-            small_jump_idx = np.argmin(np.ediff1d(dfc_indexes))
-            dfc_indexes = np.delete(dfc_indexes, small_jump_idx + 1)
+        # Keep the jump closest to the engine parameter minimums and filter out
+        # the ones within 10 minutes of it.
+        dist_to_eng_split = np.abs(dfc_indexes - eng_split_index)
+        idx = np.argmin(dist_to_eng_split)
+        mask = np.ones_like(dfc_indexes, dtype=bool)
+        dist_to_jump_closest_to_eng_split = np.abs(dfc_indexes - dfc_indexes[idx])
+        mask[dist_to_jump_closest_to_eng_split < 600] = False
+        mask[idx] = True
+        dfc_indexes = dfc_indexes[mask]
+
+    # Filter out splits less than 10 minutes apart
+    dfc_indexes = dfc_indexes[mask_indexes_closer_than(dfc_indexes, 600)]
 
     # Not sure this is needed, as I can't see why the index should ever exceed the boundary.
     np.clip(dfc_indexes, slice_start_secs, slice_stop_secs, out=dfc_indexes)
