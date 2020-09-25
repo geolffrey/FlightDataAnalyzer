@@ -415,17 +415,17 @@ class ApproachInformation(ApproachNode):
             if lat and lon and ref_idx:
                 lowest_lat = lat.array[ref_idx] or None
                 lowest_lon = lon.array[ref_idx] or None
-                idx_100ft = index_at_value(alt.array, 100.0, _slice=_slice)
-                if idx_100ft is not None:
-                    idx_100ft = int(idx_100ft)
-                if None not in (lowest_lat, lowest_lon, idx_100ft):
-                    # Lat / Lon arrays for the last 100 ft
+                idx_200ft = index_at_value(alt.array, 200.0, _slice=_slice)
+                if idx_200ft is not None:
+                    idx_200ft = int(idx_200ft)
+                if None not in (lowest_lat, lowest_lon, idx_200ft):
+                    # Lat / Lon arrays for the last 200 ft
                     if lat_raw and lon_raw:
-                        final_lat = lat_raw.array[idx_100ft:ref_idx+1]
-                        final_lon = lon_raw.array[idx_100ft:ref_idx+1]
+                        final_lat = lat_raw.array[idx_200ft:ref_idx+1]
+                        final_lon = lon_raw.array[idx_200ft:ref_idx+1]
                     elif lat_c and lon_c:
-                        final_lat = lat_c.array[idx_100ft:ref_idx+1]
-                        final_lon = lon_c.array[idx_100ft:ref_idx+1]
+                        final_lat = lat_c.array[idx_200ft:ref_idx+1]
+                        final_lon = lon_c.array[idx_200ft:ref_idx+1]
                     else:
                         final_lat = np.array([lowest_lat])
                         final_lon = np.array([lowest_lon])
