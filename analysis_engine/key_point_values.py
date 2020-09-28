@@ -14169,6 +14169,10 @@ class FlapWithGearUpMax(KeyPointValueNode):
 
         gear_up = np.ma.masked_equal(gear.array.raw, gear.array.state['Down'])
         gear_up_slices = np.ma.clump_unmasked(gear_up)
+        gear_up_slices = slices_remove_small_slices(
+            slices_remove_small_gaps(gear_up_slices, hz=self.hz),
+            hz=self.hz
+        )
         self.create_kpvs_within_slices(flap.array, gear_up_slices, max_value)
 
 

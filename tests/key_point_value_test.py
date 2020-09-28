@@ -16817,10 +16817,18 @@ class TestFlapWithGearUpMax(unittest.TestCase, NodeTest):
             ('Flap', 'Gear Down'),
         ]
 
-    @unittest.skip('Test not implemented.')
     def test_derive(self):
-        pass
+        flap = M('Flap', array=np.ma.repeat([0, 5, 0], [60, 5, 35]),
+                 values_mapping={0: '0', 5: '5'})
+        gear = M('Gear Down', array=np.ma.repeat([1, 0, 1, 0], [10, 55, 30, 5]),
+                 values_mapping={0: 'Up', 1: 'Down'})
+        gear.array[41:50] = np.ma.masked
+        node = FlapWithGearUpMax()
+        node.derive(flap, gear)
 
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 60)
+        self.assertEqual(node[0].value, 5)
 
 class TestFlapWithSpeedbrakeDeployedMax(unittest.TestCase, NodeTest):
 
