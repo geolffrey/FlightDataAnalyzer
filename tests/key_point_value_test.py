@@ -19849,22 +19849,21 @@ class TestRateOfDescent500To50FtMax(unittest.TestCase):
         self.assertFalse(self.node_class.can_operate(('Vertical Speed', 'Altitude AAL For Flight Phases', 'Final Approach'), ac_type=helicopter))
         self.assertTrue(self.node_class.can_operate(('Vertical Speed', 'Altitude AGL', 'Descending'), ac_type=helicopter))
 
-    @unittest.SkipTest
     def test_derive_aeroplane(self):
         array = np.ma.concatenate((np.arange(0, 50, 25), np.arange(50, 500, 100), [550, 450, 540], np.ones(5) * 590))
         array = np.ma.concatenate((array, array[::-1]))
-        alt = P('Altitude AAL For Flight Phases', array)
+        alt = P('Altitude AAL For Flight Phases', array, frequency=0.25)
         roc_array = np.ma.concatenate((np.ones(2) * 25, [62, 81, 100, 100, 50, 47, 35, 10, 35, 12, 0, 0, 0]))
         roc_array = np.ma.concatenate((roc_array, -roc_array[::-1]))
-        vert_spd = P('Vertical Speed', roc_array)
+        vert_spd = P('Vertical Speed', roc_array, frequency=0.25)
 
         descents = buildsection('Final Approach', 19, 27)
+        descents.frequency = 0.25
 
         node = RateOfDescent500To50FtMax()
-        node.derive(vert_spd, aeroplane, alt, descents, None, None)
+        node.get_derived((vert_spd, aeroplane, alt, descents, None, None))
 
         expected = KPV('Rate Of Descent 500 To 50 Ft Max', items=[
-            KeyPointValue(index=21.0, value=-35.0, name='Rate Of Descent 500 To 50 Ft Max'),
             KeyPointValue(index=24.0, value=-100.0, name='Rate Of Descent 500 To 50 Ft Max')
         ])
         self.assertEqual(node, expected)
@@ -19881,7 +19880,7 @@ class TestRateOfDescent500To50FtMax(unittest.TestCase):
         descents = SectionNode(name, items=[section], frequency=0.25)
 
         node = self.node_class()
-        node.derive(vert_spd, helicopter, None, None, alt, descents)
+        node.get_derived((vert_spd, helicopter, None, None, alt, descents))
 
         expected = KPV('Rate Of Descent 500 To 50 Ft Max', items=[
             KeyPointValue(index=24.0, value=-100.0, name='Rate Of Descent 500 To 50 Ft Max')
