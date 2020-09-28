@@ -16448,9 +16448,17 @@ class RateOfDescentMax(KeyPointValueNode):
 
     def derive(self,
                vrt_spd=P('Vertical Speed'),
-               descending=S('Descending')):
-        vrt_spd.array[vrt_spd.array > 0] = np.ma.masked
-        vert_spd_phase_max_or_min(self, vrt_spd, descending, min_value)
+               descents=S('Descent')):
+
+        vrt_spd_array = vrt_spd.array.copy()
+        for descent in descents:
+            descent = slices_int(descent.slice)
+            vrt_speed_descent = vrt_spd_array[descent]
+            # maximum RoD must be a big negative value; mask all positives
+            vrt_speed_descent[vrt_spd.array[descent] > 0] = np.ma.masked
+            sections = np.ma.clump_unmasked(vrt_speed_descent)
+            scope = shift_slices(sections, descent.start)
+            self.create_kpv_from_slices(vrt_spd.array, scope, min_value)
 
 
 class RateOfDescentTopOfDescentTo10000FtMax(KeyPointValueNode):
@@ -16468,9 +16476,10 @@ class RateOfDescentTopOfDescentTo10000FtMax(KeyPointValueNode):
 
         for descent in descents:
             descent = slices_int(descent.slice)
-            alt_band = np.ma.clump_unmasked(
-                np.ma.masked_less(alt_aal.array[descent], 10000)
-            )
+            alt_band = np.ma.masked_less(alt_aal.array[descent], 10000)
+            # maximum RoD must be a big negative value; mask all positives
+            alt_band[vrt_spd.array[descent] > 0] = np.ma.masked
+            alt_band = np.ma.clump_unmasked(alt_band)
             scope = shift_slices(alt_band, descent.start)
             self.create_kpv_from_slices(vrt_spd.array, scope, min_value)
 
@@ -16577,13 +16586,16 @@ class RateOfDescent3000To2000FtMax(KeyPointValueNode):
 
     def derive(self,
                vrt_spd=P('Vertical Speed'),
-               alt_aal=P('Altitude AAL For Flight Phases')):
+               alt_aal=P('Altitude AAL For Flight Phases'),
+               descents=S('Descent')):
 
-        self.create_kpvs_within_slices(
-            vrt_spd.array,
-            alt_aal.slices_from_to(3000, 2000),
-            min_value
-        )
+        for descent in slices_int(descents.get_slices()):
+            alt_band = np.ma.masked_outside(alt_aal.array[descent], 3_000, 2_000)
+            # maximum RoD must be a big negative value; mask all positives
+            alt_band[vrt_spd.array[descent] > 0] = np.ma.masked
+            alt_band = np.ma.clump_unmasked(alt_band)
+            scope = shift_slices(alt_band, descent.start)
+            self.create_kpv_from_slices(vrt_spd.array, scope, min_value)
 
 
 class RateOfDescent2000To1000FtMax(KeyPointValueNode):
@@ -16596,13 +16608,16 @@ class RateOfDescent2000To1000FtMax(KeyPointValueNode):
 
     def derive(self,
                vrt_spd=P('Vertical Speed'),
-               alt_aal=P('Altitude AAL For Flight Phases')):
+               alt_aal=P('Altitude AAL For Flight Phases'),
+               descents=S('Descent')):
 
-        self.create_kpvs_within_slices(
-            vrt_spd.array,
-            alt_aal.slices_from_to(2000, 1000),
-            min_value
-        )
+        for descent in slices_int(descents.get_slices()):
+            alt_band = np.ma.masked_outside(alt_aal.array[descent], 2_000, 1_000)
+            # maximum RoD must be a big negative value; mask all positives
+            alt_band[vrt_spd.array[descent] > 0] = np.ma.masked
+            alt_band = np.ma.clump_unmasked(alt_band)
+            scope = shift_slices(alt_band, descent.start)
+            self.create_kpv_from_slices(vrt_spd.array, scope, min_value)
 
 
 class RateOfDescent1000To500FtMax(KeyPointValueNode):
@@ -16632,16 +16647,17 @@ class RateOfDescent1000To500FtMax(KeyPointValueNode):
                alt_agl=P('Altitude AGL'),
                descending=S('Descent')):
 
-        alt_band = np.ma.masked_outside((alt_aal or alt_agl).array, 1000, 500)
-        # maximum RoD must be a big negative value; mask all positives
-        alt_band[vrt_spd.array > 0] = np.ma.masked
-        alt_app_sections = valid_slices_within_array(alt_band, fin_app or descending)
-        self.create_kpvs_within_slices(
-            vrt_spd.array,
-            alt_app_sections,
-            min_value,
-            min_duration=5.0,
-            freq=vrt_spd.frequency)
+        sections = fin_app or descending
+        alt = alt_aal or alt_agl
+        for section in sections:
+            section = slices_int(section.slice)
+            alt_band = np.ma.masked_outside(alt.array[section], 1_000, 500)
+            # maximum RoD must be a big negative value; mask all positives
+            alt_band[vrt_spd.array[section] > 0] = np.ma.masked
+            alt_band = np.ma.clump_unmasked(alt_band)
+            alt_band = slices_remove_small_slices(alt_band, time_limit=5, hz=self.hz)
+            scope = shift_slices(alt_band, section.start)
+            self.create_kpv_from_slices(vrt_spd.array, scope, min_value)
 
 
 class RateOfDescent500To50FtMax(KeyPointValueNode):

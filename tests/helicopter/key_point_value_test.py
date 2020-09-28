@@ -3785,9 +3785,10 @@ class TestRateOfDescent100To20FtMax(unittest.TestCase):
         name = 'Descent'
         section = Section(name, slice(19, 27), 19, 27)
         descents = SectionNode(name, items=[section], frequency=0.25)
+        descents.frequency = 0.25
 
         node = self.node_class()
-        node.derive(vert_spd, alt, descents)
+        node.get_derived((vert_spd, alt, descents))
 
         expected = KPV('Rate Of Descent 100 To 20 Ft Max', items=[
             KeyPointValue(index=24.0, value=-100.0, name='Rate Of Descent 100 To 20 Ft Max')
@@ -3819,11 +3820,29 @@ class TestRateOfDescent500To100FtMax(unittest.TestCase):
         descents = SectionNode(name, items=[section], frequency=0.25)
 
         node = self.node_class()
-        node.derive(vert_spd, alt, descents)
+        node.get_derived((vert_spd, alt, descents))
 
         expected = KPV('Rate Of Descent 500 To 100 Ft Max', items=[
             KeyPointValue(index=24.0, value=-100.0, name='Rate Of Descent 500 To 100 Ft Max')
         ])
+        self.assertEqual(node, expected)
+
+    def test_one_kpv_per_descent(self):
+        array = np.arange(1_000, 0, -50)
+        alt = P('Altitude AGL', array, frequency=0.25)
+        roc_array = np.ma.concatenate((np.ones(15) * -100, [100], np.ones(4) * -100))
+        vert_spd = P('Vertical Speed Inertial', roc_array, frequency=0.25)
+        name = 'Descent'
+        section = Section(name, slice(1, 20), 1, 20)
+        descents = SectionNode(name, items=[section], frequency=0.25)
+
+        node = self.node_class()
+        node.get_derived((vert_spd, alt, descents))
+
+        expected = KPV('Rate Of Descent 500 To 100 Ft Max', items=[
+            KeyPointValue(index=10.0, value=-100.0, name='Rate Of Descent 500 To 100 Ft Max')
+        ])
+        self.assertEqual(len(node), 1)
         self.assertEqual(node, expected)
 
 
@@ -3879,9 +3898,10 @@ class TestRateOfDescentBelow500FtMax(unittest.TestCase):
         name = 'Descending'
         section = Section(name, slice(25, 48), 25, 48)
         descent = SectionNode(name, items=[section], frequency=0.25)
+        descent.frequency = 0.25
 
         node = self.node_class()
-        node.derive(vert_spd, alt, descent)
+        node.get_derived((vert_spd, alt, descent))
 
         self.assertEqual(len(node), 1)
         self.assertEqual(node[0].index, 45)

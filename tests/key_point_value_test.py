@@ -19555,11 +19555,28 @@ class TestRateOfDescentMax(unittest.TestCase, NodeTest):
 
     def setUp(self):
         self.node_class = RateOfDescentMax
-        self.operational_combinations = [('Vertical Speed', 'Descending')]
+        self.operational_combinations = [('Vertical Speed', 'Descent')]
 
-    @unittest.skip('Test Not Implemented')
     def test_derive(self):
-        self.assertTrue(False, msg='Test not implemented.')
+        roc_array = np.ma.array([437, 625, 812, 1000, 1125, 625, 475, 500, 125, 375])
+        roc_array = np.ma.concatenate((
+            np.zeros(20),
+            roc_array,
+            np.zeros(20),
+            -roc_array[::-1],
+            np.zeros(20),
+        ))
+        vert_spd = P('Vertical Speed', roc_array, frequency=0.25)
+        descents = buildsection('Descent', 35, 80)
+        descents.frequency = 0.25
+
+        node = self.node_class()
+        node.get_derived((vert_spd, descents))
+
+        expected = KPV('Rate Of Descent Max', items=[
+            KeyPointValue(name='Rate Of Descent Max', index=55, value=-1125),
+        ])
+        self.assertEqual(node, expected)
 
 
 class TestRateOfDescentTopOfDescentTo10000FtMax(unittest.TestCase):
@@ -19722,18 +19739,25 @@ class TestRateOfDescent3000To2000FtMax(unittest.TestCase):
 
     def test_can_operate(self):
         opts = RateOfDescent3000To2000FtMax.get_operational_combinations()
-        self.assertEqual(opts, [('Vertical Speed', 'Altitude AAL For Flight Phases')])
+        self.assertEqual(opts, [('Vertical Speed', 'Altitude AAL For Flight Phases', 'Descent')])
 
     def test_derive(self):
-        array = np.ma.concatenate((np.arange(0, 1500, 100), np.arange(1500, 3000, 200), [3050, 2910, 2990], np.ones(5) * 3150))
+        array = np.ma.concatenate((
+            np.arange(0, 1500, 100),
+            np.arange(1500, 3000, 200),
+            [3050, 2910, 2990],
+            np.ones(5) * 3150
+        ))
         array = np.ma.concatenate((array, array[::-1]))
-        alt = P('Altitude AAL For Flight Phases', array)
+        alt = P('Altitude AAL For Flight Phases', array, frequency=0.25)
         roc_array = np.ma.concatenate((np.ones(14) * 100, [125, 150, 175, 200, 200, 200, 200, 187, 87, 72, 62, 25, 75, 40, 0, 0, 0]))
         roc_array = np.ma.concatenate((roc_array, -roc_array[::-1]))
-        vert_spd = P('Vertical Speed', roc_array)
+        vert_spd = P('Vertical Speed', roc_array, frequency=0.25)
+        descent = buildsection('Descent', 26, 46)
+        descent.frequency = 0.25
 
         node = RateOfDescent3000To2000FtMax()
-        node.derive(vert_spd, alt)
+        node.get_derived((vert_spd, alt, descent))
 
         expected = KPV('Rate Of Descent 3000 To 2000 Ft Max', items=[
             KeyPointValue(name='Rate Of Descent 3000 To 2000 Ft Max', index=41, value=-200),
@@ -19747,21 +19771,33 @@ class TestRateOfDescent2000To1000FtMax(unittest.TestCase):
 
     def test_can_operate(self):
         opts = RateOfDescent2000To1000FtMax.get_operational_combinations()
-        self.assertEqual(opts, [('Vertical Speed', 'Altitude AAL For Flight Phases')])
+        self.assertEqual(opts, [('Vertical Speed', 'Altitude AAL For Flight Phases', 'Descent')])
 
     def test_derive(self):
-        array = np.ma.concatenate((np.arange(0, 500, 25), np.arange(500, 2000, 100), [2050, 1850, 1990], np.ones(5) * 2150))
+        array = np.ma.concatenate((
+            np.arange(0, 500, 25),
+            np.arange(500, 2000, 100),
+            [2050, 1850, 1990],
+            np.ones(5) * 2150
+        ))
         array = np.ma.concatenate((array, array[::-1]))
-        alt = P('Altitude AAL For Flight Phases', array)
-        roc_array = np.ma.concatenate((np.ones(19) * 25, [43, 62, 81, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 112, 37, 47, 62, 25, 75, 40, 0, 0, 0]))
+        alt = P('Altitude AAL For Flight Phases', array, frequency=0.25)
+        roc_array = np.ma.concatenate((
+            np.ones(19) * 25,
+            [
+                43, 62, 81, 100, 100, 100, 100, 100, 100, 100, 100,
+                100, 100, 100, 112, 37, 47, 62, 25, 75, 40, 0, 0, 0
+            ]
+        ))
         roc_array = np.ma.concatenate((roc_array, -roc_array[::-1]))
-        vert_spd = P('Vertical Speed', roc_array)
+        vert_spd = P('Vertical Speed', roc_array, frequency=0.25)
+        descent = buildsection('Descent', 40, 80)
+        descent.frequency = 0.25
 
         node = RateOfDescent2000To1000FtMax()
-        node.derive(vert_spd, alt)
+        node.get_derived((vert_spd, alt, descent))
 
         expected = KPV('Rate Of Descent 2000 To 1000 Ft Max', items=[
-            KeyPointValue(name='Rate Of Descent 2000 To 1000 Ft Max', index=48, value=-25),
             KeyPointValue(name='Rate Of Descent 2000 To 1000 Ft Max', index=52, value=-112),
         ])
         self.assertEqual(node, expected)
@@ -19779,22 +19815,21 @@ class TestRateOfDescent1000To500FtMax(unittest.TestCase):
         self.assertFalse(self.node_class.can_operate(('Vertical Speed', 'Altitude AAL For Flight Phases', 'Final Approach'), ac_type=helicopter))
         self.assertTrue(self.node_class.can_operate(('Vertical Speed', 'Altitude AGL', 'Descent'), ac_type=helicopter))
 
-    @unittest.SkipTest
     def test_derive(self):
         array = np.ma.concatenate((np.arange(0, 500, 25), np.arange(500, 1000, 100), [1050, 950, 990], np.ones(5) * 1090))
         array = np.ma.concatenate((array, array[::-1]))
-        alt = P('Altitude AAL For Flight Phases', array)
+        alt = P('Altitude AAL For Flight Phases', array, frequency=0.25)
         roc_array = np.ma.concatenate((np.ones(19) * 25, [43, 62, 81, 100, 112, 62, 47, 47, 10, 35, 25, 0, 0, 0]))
         roc_array = np.ma.concatenate((roc_array, -roc_array[::-1]))
-        vert_spd = P('Vertical Speed', roc_array)
+        vert_spd = P('Vertical Speed', roc_array, frequency=0.25)
 
         descents = buildsection('Final Approach', 37, 63)
+        descents.frequency = 0.25
 
         node = RateOfDescent1000To500FtMax()
-        node.derive(vert_spd, alt, descents)
+        node.get_derived((vert_spd, aeroplane, alt, descents, None, None))
 
         expected = KPV('Rate Of Descent 1000 To 500 Ft Max', items=[
-            KeyPointValue(index=39.0, value=-47.0, name='Rate Of Descent 1000 To 500 Ft Max'),
             KeyPointValue(index=42.0, value=-112.0, name='Rate Of Descent 1000 To 500 Ft Max')
         ])
         self.assertEqual(node, expected)
@@ -19809,12 +19844,12 @@ class TestRateOfDescent1000To500FtMax(unittest.TestCase):
         name = 'Descent'
         section = Section(name, slice(37, 63), 37, 63)
         descents = SectionNode(name, items=[section])
+        descents.frequency = 0.25
 
         node = self.node_class()
-        node.derive(vert_spd, helicopter, None, None, alt, descents)
+        node.get_derived((vert_spd, helicopter, None, None, alt, descents))
 
         expected = KPV('Rate Of Descent 1000 To 500 Ft Max', items=[
-            KeyPointValue(index=39.0, value=-47.0, name='Rate Of Descent 1000 To 500 Ft Max'),
             KeyPointValue(index=42.0, value=-112.0, name='Rate Of Descent 1000 To 500 Ft Max')
         ])
         self.assertEqual(node, expected)
