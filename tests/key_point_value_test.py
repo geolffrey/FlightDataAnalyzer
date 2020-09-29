@@ -4948,7 +4948,7 @@ class TestAirspeedRelativeFor3Sec1000To500FtMax(unittest.TestCase, NodeTest):
 
     def setUp(self):
         self.node_class = AirspeedRelativeFor3Sec1000To500FtMax
-        self.operational_combinations = [('Airspeed Relative For 3 Sec', 'Altitude AAL For Flight Phases', 'HDF Duration')]
+        self.operational_combinations = [('Airspeed Relative For 3 Sec', 'Altitude AAL For Flight Phases')]
 
     @unittest.skip('Test Not Implemented')
     def test_derive(self):
@@ -4959,7 +4959,7 @@ class TestAirspeedRelativeFor3Sec1000To500FtMin(unittest.TestCase, NodeTest):
 
     def setUp(self):
         self.node_class = AirspeedRelativeFor3Sec1000To500FtMin
-        self.operational_combinations = [('Airspeed Relative For 3 Sec', 'Altitude AAL For Flight Phases', 'HDF Duration')]
+        self.operational_combinations = [('Airspeed Relative For 3 Sec', 'Altitude AAL For Flight Phases')]
 
     @unittest.skip('Test Not Implemented')
     def test_derive(self):
@@ -4970,7 +4970,7 @@ class TestAirspeedRelativeFor3Sec500To20FtMax(unittest.TestCase, NodeTest):
 
     def setUp(self):
         self.node_class = AirspeedRelativeFor3Sec500To20FtMax
-        self.operational_combinations = [('Airspeed Relative For 3 Sec', 'Altitude AAL For Flight Phases', 'HDF Duration')]
+        self.operational_combinations = [('Airspeed Relative For 3 Sec', 'Altitude AAL For Flight Phases')]
 
     @unittest.skip('Test Not Implemented')
     def test_derive(self):
@@ -4981,7 +4981,7 @@ class TestAirspeedRelativeFor3Sec500To20FtMin(unittest.TestCase, NodeTest):
 
     def setUp(self):
         self.node_class = AirspeedRelativeFor3Sec500To20FtMin
-        self.operational_combinations = [('Airspeed Relative For 3 Sec', 'Altitude AAL For Flight Phases', 'HDF Duration')]
+        self.operational_combinations = [('Airspeed Relative For 3 Sec', 'Altitude AAL For Flight Phases')]
 
     @unittest.skip('Test Not Implemented')
     def test_derive(self):
@@ -4992,7 +4992,7 @@ class TestAirspeedRelativeFor3Sec20FtToTouchdownMax(unittest.TestCase, NodeTest)
 
     def setUp(self):
         self.node_class = AirspeedRelativeFor3Sec20FtToTouchdownMax
-        self.operational_combinations = [('Airspeed Relative For 3 Sec', 'Altitude AAL For Flight Phases', 'Touchdown', 'HDF Duration')]
+        self.operational_combinations = [('Airspeed Relative For 3 Sec', 'Altitude AAL For Flight Phases', 'Touchdown')]
 
     @unittest.skip('Test Not Implemented')
     def test_derive(self):
@@ -5003,7 +5003,7 @@ class TestAirspeedRelativeFor3Sec20FtToTouchdownMin(unittest.TestCase, NodeTest)
 
     def setUp(self):
         self.node_class = AirspeedRelativeFor3Sec20FtToTouchdownMin
-        self.operational_combinations = [('Airspeed Relative For 3 Sec', 'Altitude AAL For Flight Phases', 'Touchdown', 'HDF Duration')]
+        self.operational_combinations = [('Airspeed Relative For 3 Sec', 'Altitude AAL For Flight Phases', 'Touchdown')]
 
     @unittest.skip('Test Not Implemented')
     def test_derive(self):

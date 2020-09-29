@@ -3234,14 +3234,11 @@ class AirspeedRelativeFor3Sec1000To500FtMax(KeyPointValueNode):
 
     def derive(self,
                spd_rel=P('Airspeed Relative For 3 Sec'),
-               alt_aal=P('Altitude AAL For Flight Phases'),
-               duration=A('HDF Duration')):
+               alt_aal=P('Altitude AAL For Flight Phases')):
 
-        hdf_duration = duration.value * self.frequency if duration else None
         self.create_kpvs_within_slices(
             spd_rel.array,
-            trim_slices(alt_aal.slices_from_to(1000, 500), 3, self.frequency,
-                        hdf_duration),
+            alt_aal.slices_from_to(1000, 500),
             max_value,
         )
 
@@ -3255,14 +3252,11 @@ class AirspeedRelativeFor3Sec1000To500FtMin(KeyPointValueNode):
 
     def derive(self,
                spd_rel=P('Airspeed Relative For 3 Sec'),
-               alt_aal=P('Altitude AAL For Flight Phases'),
-               duration=A('HDF Duration')):
+               alt_aal=P('Altitude AAL For Flight Phases')):
 
-        hdf_duration = duration.value * self.frequency if duration else None
         self.create_kpvs_within_slices(
             spd_rel.array,
-            trim_slices(alt_aal.slices_from_to(1000, 500), 3, self.frequency,
-                        hdf_duration),
+            alt_aal.slices_from_to(1000, 500),
             min_value,
         )
 
@@ -3276,14 +3270,11 @@ class AirspeedRelativeFor3Sec500To20FtMax(KeyPointValueNode):
 
     def derive(self,
                spd_rel=P('Airspeed Relative For 3 Sec'),
-               alt_aal=P('Altitude AAL For Flight Phases'),
-               duration=A('HDF Duration')):
+               alt_aal=P('Altitude AAL For Flight Phases')):
 
-        hdf_duration = duration.value * self.frequency if duration else None
         self.create_kpvs_within_slices(
             spd_rel.array,
-            trim_slices(alt_aal.slices_from_to(500, 20), 3, self.frequency,
-                        hdf_duration),
+            alt_aal.slices_from_to(500, 20),
             max_value,
         )
 
@@ -3297,14 +3288,11 @@ class AirspeedRelativeFor3Sec500To20FtMin(KeyPointValueNode):
 
     def derive(self,
                spd_rel=P('Airspeed Relative For 3 Sec'),
-               alt_aal=P('Altitude AAL For Flight Phases'),
-               duration=A('HDF Duration')):
+               alt_aal=P('Altitude AAL For Flight Phases')):
 
-        hdf_duration = duration.value * self.frequency if duration else None
         self.create_kpvs_within_slices(
             spd_rel.array,
-            trim_slices(alt_aal.slices_from_to(500, 20), 3, self.frequency,
-                        hdf_duration),
+            alt_aal.slices_from_to(500, 20),
             min_value,
         )
 
@@ -3319,14 +3307,11 @@ class AirspeedRelativeFor3Sec20FtToTouchdownMax(KeyPointValueNode):
     def derive(self,
                spd_rel=P('Airspeed Relative For 3 Sec'),
                alt_aal=P('Altitude AAL For Flight Phases'),
-               touchdowns=KTI('Touchdown'),
-               duration=A('HDF Duration')):
+               touchdowns=KTI('Touchdown')):
 
-        hdf_duration = duration.value * self.frequency if duration else None
         self.create_kpvs_within_slices(
             spd_rel.array,
-            trim_slices(alt_aal.slices_to_kti(20, touchdowns), 3,
-                        self.frequency, hdf_duration),
+            alt_aal.slices_to_kti(20, touchdowns),
             max_value,
         )
 
@@ -3341,14 +3326,11 @@ class AirspeedRelativeFor3Sec20FtToTouchdownMin(KeyPointValueNode):
     def derive(self,
                spd_rel=P('Airspeed Relative For 3 Sec'),
                alt_aal=P('Altitude AAL For Flight Phases'),
-               touchdowns=KTI('Touchdown'),
-               duration=A('HDF Duration')):
+               touchdowns=KTI('Touchdown')):
 
-        hdf_duration = duration.value * self.frequency if duration else None
         self.create_kpvs_within_slices(
             spd_rel.array,
-            trim_slices(alt_aal.slices_to_kti(20, touchdowns), 3,
-                        self.frequency, hdf_duration),
+            alt_aal.slices_to_kti(20, touchdowns),
             min_value,
         )
 
