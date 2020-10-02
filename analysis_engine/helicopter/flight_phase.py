@@ -64,7 +64,11 @@ class Airborne(FlightPhaseNode):
                gog=M('Gear On Ground'),
                rtr=S('Rotors Turning')):
         # When was the gear in the air?
-        gear_off_grounds = runs_of_ones(gog.array == 'Air')
+        gog_array = repair_mask(
+            gog.array, frequency=gog.frequency, repair_duration=30,
+            method='fill_start', raise_entirely_masked=False
+        )
+        gear_off_grounds = runs_of_ones(gog_array == 'Air')
 
         if alt_rad and alt_agl and rtr:
             # We can do a full analysis.

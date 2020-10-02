@@ -23,6 +23,7 @@ from analysis_engine.flight_phase import (
     ApproachAndLanding,
     BaroDifference,
     BouncedLanding,
+    Climb,
     ClimbCruiseDescent,
     Climbing,
     Cruise,
@@ -907,7 +908,7 @@ class TestCombinedClimb(unittest.TestCase):
 
 class TestClimbCruiseDescent(unittest.TestCase):
     def test_can_operate(self):
-        expected = [('Altitude STD Smoothed','Airborne')]
+        expected = [('Altitude STD Smoothed','Airborne', 'Aircraft Type')]
         opts = ClimbCruiseDescent.get_operational_combinations()
         self.assertEqual(opts, expected)
 
@@ -1060,6 +1061,92 @@ class TestClimbing(unittest.TestCase):
         self.assertEqual(up[0].slice, slice(3,8))
 
 
+class TestClimb(unittest.TestCase):
+    def test_can_operate(self):
+        expected = [('Top Of Climb', 'Climb Start',
+                     'Bottom Of Descent', 'Altitude AAL For Flight Phases',
+                     'Aircraft Type')]
+        opts = Climb.get_operational_combinations()
+        self.assertEqual(opts, expected)
+
+    def test_normal_takeoff(self):
+        cl_start = build_kti('Climb Start', 10)
+        toc = build_kti('Top Of Climb', 30)
+        node = Climb()
+        node.derive(toc, cl_start, None, None, None)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].slice, slice(10, 30))
+
+    def test_skip_brief_climbs(self):
+        cl_start = build_kti('Climb Start', 10)
+        toc = build_kti('Top Of Climb', 12)
+        node = Climb()
+        node.derive(toc, cl_start, None, None, None)
+
+        self.assertEqual(len(node), 0)
+
+    def test_helicopter_climb_after_descent(self):
+        cl_start = build_kti('Climb Start', 10)
+        toc = build_kti('Top Of Climb', 20, 60.8)
+        tod = build_kti('Bottom Of Descent', 40, 80)
+        array = np.ma.concatenate((
+            np.linspace(0, 2_000, 20),
+            np.ones(10) * 2_000,
+            np.linspace(2_000, 100, 10),
+            np.linspace(100, 2_000, 20),
+            np.ones(10) * 2_000,
+            np.linspace(2_000, 0, 20),
+        ))
+        alt = P('Altitude AAL For Flight Phases', array=array)
+        node = Climb()
+        node.derive(toc, cl_start, tod, alt, helicopter)
+
+        self.assertEqual(len(node), 2)
+        self.assertEqual(node[0].slice, slice(10, 20))
+        self.assertEqual(node[1].slice, slice(49, 60.8))
+
+    def test_helicopter_climb_after_descent_above_1000ft(self):
+        cl_start = build_kti('Climb Start', 10)
+        toc = build_kti('Top Of Climb', 20, 60.8)
+        tod = build_kti('Bottom Of Descent', 40, 80)
+        array = np.ma.concatenate((
+            np.linspace(0, 2_000, 20),
+            np.ones(10) * 2_000,
+            np.linspace(2_000, 1_100, 10),
+            np.linspace(1_100, 2_000, 20),
+            np.ones(10) * 2_000,
+            np.linspace(2_000, 0, 20),
+        ))
+        alt = P('Altitude AAL For Flight Phases', array=array)
+        node = Climb()
+        node.derive(toc, cl_start, tod, alt, helicopter)
+
+        self.assertEqual(len(node), 2)
+        self.assertEqual(node[0].slice, slice(10, 20))
+        self.assertEqual(node[1].slice, slice(40, 60.8))
+
+    def test_helicopter_climb_after_descent_1000ft_masked(self):
+        cl_start = build_kti('Climb Start', 10)
+        toc = build_kti('Top Of Climb', 20, 60.8)
+        tod = build_kti('Bottom Of Descent', 40, 80)
+        array = np.ma.concatenate((
+            np.linspace(0, 2_000, 20),
+            np.ones(10) * 2_000,
+            np.linspace(2_000, 100, 10),
+            np.linspace(100, 2_000, 20),
+            np.ones(10) * 2_000,
+            np.linspace(2_000, 0, 20),
+        ))
+        array[47:51] = np.ma.masked
+        alt = P('Altitude AAL For Flight Phases', array=array)
+        node = Climb()
+        node.derive(toc, cl_start, tod, alt, helicopter)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].slice, slice(10, 20))
+
+
 class TestCruise(unittest.TestCase):
     def test_can_operate(self):
         expected = [('Climb Cruise Descent',
@@ -1144,7 +1231,9 @@ class TestCruise(unittest.TestCase):
 class TestInitialClimb(unittest.TestCase):
 
     def test_can_operate(self):
-        expected = [('Takeoff', 'Climb Start', 'Top Of Climb', 'Altitude STD', 'Aircraft Type')]
+        expected = [
+            ('Takeoff', 'Climb Start', 'Top Of Climb', 'Bottom Of Descent',
+             'Altitude AAL For Flight Phases', 'Aircraft Type')]
         opts = InitialClimb.get_operational_combinations()
         self.assertEqual(opts, expected)
 
@@ -1153,8 +1242,8 @@ class TestInitialClimb(unittest.TestCase):
         toff = buildsection('Takeoff', 10, 20)
         clb_start = build_kti('Climb Start', 30)
         toc = build_kti('Top Of Climb', 40)
-        alt = P('Altitude STD', array=np.ma.arange(0, 20000, 20))
-        ini_clb.derive(toff, clb_start, toc, alt)
+        alt = P('Altitude AAL For Flight Phases', array=np.ma.arange(0, 20000, 20))
+        ini_clb.derive(toff, clb_start, toc, None, alt)
         self.assertEqual(len(ini_clb.get_slices()), 1)
         self.assertEqual(ini_clb.get_first().slice.start, 20)
         self.assertEqual(ini_clb.get_first().slice.stop, 30)
@@ -1170,8 +1259,8 @@ class TestInitialClimb(unittest.TestCase):
         toff = buildsection('Takeoff', 10, 20)
         clb_start = build_kti('Climb Start', None)
         toc = build_kti('Top Of Climb', 40)
-        alt = P('Altitude STD', array=np.ma.arange(0, 20000, 20))
-        ini_clb.derive(toff, clb_start, toc, alt)
+        alt = P('Altitude AAL For Flight Phases', array=np.ma.arange(0, 20000, 20))
+        ini_clb.derive(toff, clb_start, toc, None, alt)
         self.assertEqual(len(ini_clb.get_slices()), 0)
 
     def test_initial_climb_for_helicopter_operation(self):
@@ -1179,9 +1268,10 @@ class TestInitialClimb(unittest.TestCase):
         toffs = buildsections('Takeoff', [5, 10], [15, 20])
         climbs = build_kti('Climb Start', 30)
         toc = build_kti('Top Of Climb', 40)
+        bod = build_kti('Bottom Of Descent', 80)
         ini_clb = InitialClimb()
-        alt = P('Altitude STD', array=np.ma.arange(0, 20000, 20))
-        ini_clb.derive(toffs, climbs, toc, alt)
+        alt = P('Altitude AAL For Flight Phases', array=np.ma.arange(0, 20000, 20))
+        ini_clb.derive(toffs, climbs, toc, bod, alt)
         self.assertEqual(len(ini_clb), 1)
 
     def test_max_alt_below_1000ft(self):
@@ -1189,8 +1279,8 @@ class TestInitialClimb(unittest.TestCase):
         toff = buildsection('Takeoff', 10, 20)
         clb_start = build_kti('Climb Start', 30)
         toc = build_kti('Top Of Climb', 40)
-        alt = P('Altitude STD', array=np.ma.arange(0, 950, 5))
-        ini_clb.derive(toff, clb_start, toc, alt)
+        alt = P('Altitude AAL For Flight Phases', array=np.ma.arange(0, 950, 5))
+        ini_clb.derive(toff, clb_start, toc, None, alt)
         self.assertEqual(len(ini_clb.get_slices()), 1)
         self.assertEqual(ini_clb.get_first().slice.start, 20)
         self.assertEqual(ini_clb.get_first().slice.stop, 30)
@@ -1200,11 +1290,47 @@ class TestInitialClimb(unittest.TestCase):
         toff = buildsection('Takeoff', 10, 20)
         clb_start = build_kti('Climb Start', 30)
         toc = build_kti('Top Of Climb', 40)
-        alt = P('Altitude STD', array=np.ma.arange(1500, 17000, 10))
-        ini_clb.derive(toff, clb_start, toc, alt)
+        alt = P('Altitude AAL For Flight Phases', array=np.ma.arange(1500, 17000, 10))
+        ini_clb.derive(toff, clb_start, toc, None, alt)
         self.assertEqual(len(ini_clb.get_slices()), 1)
         self.assertEqual(ini_clb.get_first().slice.start, 20)
         self.assertEqual(ini_clb.get_first().slice.stop, 30)
+
+    def test_heli_climb_after_descent(self):
+        ini_clb = InitialClimb()
+        toff = buildsection('Takeoff', 10, 20)
+        clb_start = build_kti('Climb Start', 30)
+        toc = build_kti('Top Of Climb', 40, 90)
+        bod = build_kti('Bottom Of Descent', 70.1)
+        array = np.ma.concatenate((
+            np.linspace(0, 1_000, 40),
+            np.ones(10) * 1_000,
+            np.linspace(1_000, 100, 20),
+            np.linspace(100, 2_000, 20)
+        ))
+        alt = P('Altitude AAL For Flight Phases', array=array)
+        ini_clb.derive(toff, clb_start, toc, bod, alt, helicopter)
+        self.assertEqual(len(ini_clb.get_slices()), 2)
+        self.assertEqual(ini_clb.get_first().slice, slice(20, 30))
+        self.assertEqual(ini_clb[1].slice, slice(70, 79))
+
+    def test_heli_short_climb_after_descent(self):
+        ini_clb = InitialClimb()
+        toff = buildsection('Takeoff', 10, 20)
+        toc = build_kti('Top Of Climb', 40, 90)
+        clb_start = KTI('Climb Start')
+        bod = build_kti('Bottom Of Descent', 70.1)
+        array = np.ma.concatenate((
+            np.linspace(0, 500, 40),
+            np.ones(10) * 500,
+            np.linspace(500, 100, 20),
+            np.linspace(100, 500, 20)
+        ))
+        alt = P('Altitude AAL For Flight Phases', array=array)
+        ini_clb.derive(toff, clb_start, toc, bod, alt, helicopter)
+        self.assertEqual(len(ini_clb.get_slices()), 2)
+        self.assertEqual(ini_clb.get_first().slice, slice(20, 40))
+        self.assertEqual(ini_clb[1].slice, slice(70, 90))
 
 
 class TestInitialCruise(unittest.TestCase):

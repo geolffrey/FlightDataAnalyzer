@@ -8858,7 +8858,7 @@ def max_maintained_value(array, seconds, frequency, _slice=slice(None)):
     return idx, value
 
 
-def find_climb_cruise_descent(alt_std):
+def find_climb_cruise_descent(alt_std, adjust_min_step=False):
     '''
     Find slices defining a climb-cruise-descent for the given pressure altitude array
 
@@ -8875,8 +8875,12 @@ def find_climb_cruise_descent(alt_std):
     # above this 5,000ft is more meaningful.
     alt_squash = np.ma.where(
         alt_std > 10000, (alt_std - 10000) / 10.0 + 10000, alt_std)
-    pk_idxs, pk_vals = cycle_finder(alt_squash,
-                                    min_step=HYSTERESIS_FPALT_CCD)
+    if adjust_min_step:
+        min_step = (np.ma.max(alt_std) - np.ma.min(alt_std)) / 2
+        min_step = min(min_step, HYSTERESIS_FPALT_CCD)
+    else:
+        min_step = HYSTERESIS_FPALT_CCD
+    pk_idxs, pk_vals = cycle_finder(alt_squash, min_step=min_step)
 
     if pk_vals is not None:
         n = 0

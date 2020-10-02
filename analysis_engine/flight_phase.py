@@ -1,3 +1,4 @@
+import itertools
 from math import ceil
 import numpy as np
 
@@ -35,6 +36,7 @@ from analysis_engine.library import (
     last_valid_sample,
     mask_isolated_valid_samples,
     max_value,
+    pairwise,
     peak_curvature,
     rate_of_change,
     rate_of_change_array,
@@ -474,7 +476,7 @@ class BouncedLanding(FlightPhaseNode):
 
 class ClimbCruiseDescent(FlightPhaseNode):
     def derive(self, alt_std=P('Altitude STD Smoothed'),
-               airs=S('Airborne')):
+               airs=S('Airborne'), ac_type=A('Aircraft Type')):
         for air in airs:
             try:
                 alts = repair_mask(alt_std.array[air.slice], repair_duration=None)
@@ -482,7 +484,7 @@ class ClimbCruiseDescent(FlightPhaseNode):
                 # Short segments may be wholly masked. We ignore these.
                 continue
 
-            section_slices = find_climb_cruise_descent(alts)
+            section_slices = find_climb_cruise_descent(alts, ac_type==helicopter)
             section_slices = shift_slices(section_slices, air.slice.start or 0)
             self.create_sections(section_slices)
 
@@ -511,31 +513,47 @@ class CombinedClimb(FlightPhaseNode):
 class Climb(FlightPhaseNode):
     '''
     This phase goes from 1000 feet (top of Initial Climb) in the climb to the
-    top of climb
+    top of climb.
+
+    For helicopters there is also a Climb between the previous Descent and the
+    following Top Of Climb.
     '''
     def derive(self,
                toc=KTI('Top Of Climb'),
-               eot=KTI('Climb Start')): # AKA End Of Initial Climb
-        # First we extract the kti index values into simple lists.
-        toc_list = []
-        for this_toc in toc:
-            toc_list.append(this_toc.index)
+               eot=KTI('Climb Start'),  # AKA End Of Initial Climb
+               bods=KTI('Bottom Of Descent'),
+               alt=P('Altitude AAL For Flight Phases'),
+               ac_type=A('Aircraft Type')):
 
-        # Now see which follows a takeoff
-        for this_eot in eot:
-            eot = this_eot.index
-            # Scan the TOCs
-            closest_toc = None
-            for this_toc in toc_list:
-                if (eot < this_toc and
-                    ((closest_toc and this_toc < closest_toc)
-                     or
-                     closest_toc is None)):
-                    closest_toc = this_toc
-            # Build the slice from what we have found.
-            if ((closest_toc - eot) / self.hz) <= 2:
+        to_scan = list(itertools.chain(
+            ((t.index, 'climb start') for t in eot),
+            ((c.index, 'climb') for c in toc)
+        ))
+
+        if ac_type == helicopter:
+            to_scan.extend((c.index, 'descent') for c in bods)
+
+        to_scan.sort(key=itemgetter(0))
+
+        for (idx1, phase1), (idx2, phase2) in pairwise(to_scan):
+            if ((idx2 - idx1) / self.hz) <= 2:
                 continue # skip brief climbs
-            self.create_phase(slice(eot, closest_toc))
+            if phase1 == 'climb start' and phase2 == 'climb':
+                begin = idx1
+                end = idx2
+                self.create_phase(slice(begin, end))
+
+            elif phase1 == 'descent' and phase2 == 'climb':
+                # Only for helicopters
+                if alt.array[int(idx2)] < 1_000:
+                    continue
+                begin = index_at_value(alt.array, 1_000, slice(idx1, idx2))
+                if np.ma.min(alt.array[slice(int(idx1), int(idx2))]) > 1_000:
+                    begin = idx1
+                if begin is None:
+                    continue
+                end = idx2
+                self.create_phase(slice(begin, end))
 
 
 class Climbing(FlightPhaseNode):
@@ -1125,29 +1143,48 @@ class InitialApproach(FlightPhaseNode):
 class InitialClimb(FlightPhaseNode):
     '''
     Phase from end of Takeoff (35ft) to start of climb (1000ft)
+
+    For helicopters Initial Climb starts after Takeoff or the previous Descent
+    and ends at 1000ft.
     '''
     def derive(self,
                takeoffs=S('Takeoff'),
                climb_starts=KTI('Climb Start'),
                tocs=KTI('Top Of Climb'),
-               alt=P('Altitude STD'),
+               bods=KTI('Bottom Of Descent'),
+               alt=P('Altitude AAL For Flight Phases'),
                ac_type=A('Aircraft Type')):
 
         # If max alt is above 1000 ft we don't need to consider the ToC
         # point in our calculations for aeroplanes.
         if alt and np.ma.max(alt.array) > 1000 and ac_type != helicopter:
-            to_scan = [[t.stop_edge, 'takeoff'] for t in takeoffs] + \
-                [[c.index, 'climb'] for c in climb_starts]
+            to_scan = list(itertools.chain(
+                ((t.stop_edge, 'takeoff') for t in takeoffs),
+                ((c.index, 'climb') for c in climb_starts)
+            ))
         else:
-            to_scan = [[t.stop_edge, 'takeoff'] for t in takeoffs] + \
-                [[c.index, 'climb'] for c in climb_starts]+ \
-                [[c.index, 'climb'] for c in tocs]
-        to_scan = sorted(to_scan, key=itemgetter(0))
-        for i in range(len(to_scan)-1):
-            if to_scan[i][1]=='takeoff' and to_scan[i+1][1]=='climb':
-                begin = to_scan[i][0]
-                end = to_scan[i+1][0]
+            to_scan = list(itertools.chain(
+                ((t.stop_edge, 'takeoff') for t in takeoffs),
+                ((c.index, 'climb') for c in climb_starts),
+                ((c.index, 'climb') for c in tocs)
+            ))
+        if ac_type == helicopter:
+            to_scan.extend((c.index, 'descent') for c in bods)
+        to_scan.sort(key=itemgetter(0))
+        for (idx1, phase1), (idx2, phase2) in pairwise(to_scan):
+            if phase1 == 'takeoff' and phase2 == 'climb':
+                begin = idx1
+                end = idx2
                 self.create_phase(slice(begin, end), begin=begin, end=end)
+            elif phase1 == 'descent' and phase2 == 'climb':
+                # Only for helicopters
+                if alt.array[int(idx1)] > 1_000:
+                    continue
+                end = index_at_value(alt.array, 1_000, slice(idx1, idx2))
+                if end is None:
+                    end = idx2
+                begin = idx1
+                self.create_phase(slice(int(begin), int(end)), begin=begin, end=end)
 
 
 class LevelFlight(FlightPhaseNode):

@@ -682,8 +682,10 @@ class AltitudeAAL(DerivedParameterNode):
             # ensures that low altitude "hops" are still treated as complete
             # flights while more complex flights are processed as climbs and
             # descents of 500 ft or more.
+            # For helos, we set the minimum height to 50 ft.
+            min_step = 50 if ac_type == helicopter else 500
             alt_idxs, alt_vals = cycle_finder(alt_std.array[quick],
-                                              min_step=500)
+                                              min_step=min_step)
 
             # Reference to start of arrays for simplicity hereafter.
             if alt_idxs is None:
