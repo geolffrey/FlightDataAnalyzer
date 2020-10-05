@@ -123,7 +123,7 @@ def _segment_type_and_slice(speed_array, speed_frequency,
     heading_stop = int(stop * heading_frequency)
     heading_array = heading_array[heading_start:heading_stop]
 
-    slow_start = slow_stop = fast_for_long = ground_only = threshold_exceedance = None
+    slow_start = slow_stop = fast_for_long = threshold_exceedance = None
 
     # Check Heading change to see if the aircraft moved.
     if eng_arrays is not None:
