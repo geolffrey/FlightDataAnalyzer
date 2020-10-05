@@ -58,6 +58,7 @@ from analysis_engine.helicopter.key_point_values import (
     EngTorqueWithOneEngineInoperativeMax,
     EngTorqueAbove90KtsMax,
     EngTorqueAbove100KtsMax,
+    HeadingRateWhileGroundedMax,
     IGBOilTempMax,
     MGBOilTempMax,
     MGBOilPressMax,
@@ -2719,6 +2720,46 @@ class TestHeadingDuringLanding(unittest.TestCase):
         expected = [KeyPointValue(index=11, value=359.0,
                                   name='Heading During Landing')]
         self.assertEqual(kpv, expected)
+
+
+class TestHeadingRateWhileGroundedMax:
+
+    def test_can_operate(self):
+        node = HeadingRateWhileGroundedMax()
+        assert node.can_operate(
+            ['Heading Rate', 'Grounded'],
+            ac_type=helicopter
+        )
+
+        assert not node.can_operate(
+            ['Heading Rate', 'Grounded'],
+        )
+
+    def test_one_grounded_section(self):
+        array = np.ma.repeat((0, 5, 0, -8, 0), (20, 20, 20, 20, 20))
+        hdg_rate = P('Heading Rate', array=array)
+        grounded = buildsection('Grounded', 0, 60)
+
+        node = HeadingRateWhileGroundedMax()
+        node.derive(hdg_rate, grounded)
+
+        assert len(node) == 1
+        assert node[0].value == 5
+        assert node[0].index == 20
+
+    def test_two_grounded_sections(self):
+        array = np.ma.repeat((0, 5, 0, -8, 0), (20, 20, 20, 20, 20))
+        hdg_rate = P('Heading Rate', array=array)
+        grounded = buildsections('Grounded', (0, 30), (55, 70))
+
+        node = HeadingRateWhileGroundedMax()
+        node.derive(hdg_rate, grounded)
+
+        assert len(node) == 2
+        assert node[0].value == 5
+        assert node[0].index == 20
+        assert node[1].value == -8
+        assert node[1].index == 60
 
 
 class TestGroundspeed20FtToTouchdownMax(unittest.TestCase):

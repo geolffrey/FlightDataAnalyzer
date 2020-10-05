@@ -1001,6 +1001,21 @@ class HeadingDuringLanding(KeyPointValueNode):
             if not np.ma.is_masked(value):
                 self.create_kpv(index, float(round(value, 8)) % 360.0)
 
+
+class HeadingRateWhileGroundedMax(KeyPointValueNode):
+    '''
+    Maximum rate of heading change while on the ground.
+    '''
+
+    units = ut.DEGREE_S
+    can_operate = helicopter_only
+
+    def derive(self, heading_rate=P('Heading Rate'), grounded=P('Grounded')):
+        self.create_kpvs_within_slices(
+            heading_rate.array, grounded.get_slices(), max_abs_value
+    )
+
+
 ##############################################################################
 # Groundspeed
 
