@@ -21494,6 +21494,9 @@ class TestAirspeedBelowMinimumAirspeedFlapCleanMin(unittest.TestCase):
                              176, 176, 177, 177, 178, 178, 178, 178, 178, 178,
                              178, 178, 177, 176, 175, 174, 172, 172, 172, 168,
                              168, 168, 166, 166, 165, 165, 166, 167, 169, 171,
+                             172, 172, 172, 172, 172, 172, 172, 172, 172, 172,
+                             172, 172, 172, 172, 172, 172, 172, 172, 172, 172,
+                             172, 172, 165, 172, 172, 172, 172, 172, 172, 172,
                              174, 178, 182, 184, 188, 190, 194, 196, 198, 200,
                              202, 206, 208, 211, 213, 214, 216, 217, 218, 220,
                              220, 221, 221, 222, 222, 224, 224
@@ -21506,13 +21509,19 @@ class TestAirspeedBelowMinimumAirspeedFlapCleanMin(unittest.TestCase):
                              196, 196, 196, 196, 196, 196, 196, 196, 196, 196,
                              196, 196, 196, 196, 196, 196, 196, 196, 196, 196,
                              196, 196, 196, 196, 196, 196, 196, 196, 196, 196,
+                             196, 196, 196, 196, 196, 196, 196, 196, 196, 196,
+                             196, 196, 196, 196, 196, 196, 196, 196, 196, 196,
+                             196, 196, 196, 196, 196, 196, 196, 196, 196, 196,
                              196, 196, 196, 196, 196, 196, 196
-                             ], mask=[False]*40 + [True]*27))
+                             ], mask=[False]*70 + [True]*27))
         self.min_spd = P('Minimum Airspeed',
                          np.ma.array([
                              156, 156, 156, 156, 156, 156, 176, 176, 176, 176,
                              176, 176, 176, 176, 176, 176, 176, 176, 176, 176,
                              176, 176, 176, 176, 176, 176, 190, 190, 190, 190,
+                             190, 190, 190, 190, 190, 190, 190, 190, 190, 190,
+                             190, 190, 190, 190, 190, 190, 190, 190, 190, 190,
+                             190, 190, 190, 190, 190, 190, 190, 190, 190, 190,
                              190, 190, 190, 190, 190, 190, 190, 190, 190, 190,
                              190, 190, 190, 190, 190, 190, 190, 190, 190, 190,
                              190, 190, 190, 190, 190, 190, 190, 190, 190, 190,
@@ -21522,7 +21531,10 @@ class TestAirspeedBelowMinimumAirspeedFlapCleanMin(unittest.TestCase):
                       np.ma.array([
                           5, 5, 5, 5, 1, 1, 1, 1, 1, 1,
                           1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                          1, 1, 1, 1, 1, 1, 1, 1, 0, 0,
+                          1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                          0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                          0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                          0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -21560,7 +21572,7 @@ class TestAirspeedBelowMinimumAirspeedFlapCleanMin(unittest.TestCase):
                     airborne=self.airborne,)
 
         self.assertEqual(len(node), 1)
-        self.assertEqual(node[0].index, 34)
+        self.assertEqual(node[0].index, 62)
         self.assertEqual(node[0].value, -31)
 
     def test_derive_minimum_airspeed(self):
@@ -21577,7 +21589,7 @@ class TestAirspeedBelowMinimumAirspeedFlapCleanMin(unittest.TestCase):
                     airborne=self.airborne,)
 
         self.assertEqual(len(node), 1)
-        self.assertEqual(node[0].index, 34)
+        self.assertEqual(node[0].index, 62)
         self.assertEqual(node[0].value, -25)
 
     def test_derive_both_speed_param(self):
@@ -21595,7 +21607,7 @@ class TestAirspeedBelowMinimumAirspeedFlapCleanMin(unittest.TestCase):
                     airborne=self.airborne,)
 
         self.assertEqual(len(node), 1)
-        self.assertEqual(node[0].index, 34)
+        self.assertEqual(node[0].index, 62)
         self.assertEqual(node[0].value, -25)
 
 

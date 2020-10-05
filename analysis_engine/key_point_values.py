@@ -17876,12 +17876,16 @@ class AirspeedBelowMinimumAirspeedFlapCleanMin(KeyPointValueNode):
             # raw data
             to_test = air_spd.array - mspd.array.data
             spd_slices = runs_of_ones(to_test < 0)
-        slices = slices_and(
-            clump_multistate(flap.array, '0', airborne.get_slices()),
-            spd_slices
-        )
+        flap_ups = clump_multistate(flap.array, '0', airborne.get_slices())
+        short_slices = []
+        thirty_sec = 30.0 * self.frequency
+        for each_slice in flap_ups:
+            if slices_duration([each_slice], self.frequency) > 30.0:
+                short_slices.append(slice(each_slice.start + thirty_sec, each_slice.stop))
+
+        slices = slices_and(short_slices, spd_slices)
         slices = slices_remove_small_gaps(slices, 60, self.hz)
-        self.create_kpvs_within_slices(to_test, slices, min_value)
+        self.create_kpvs_within_slices(to_test, short_slices, min_value)
 
 
 ##############################################################################
