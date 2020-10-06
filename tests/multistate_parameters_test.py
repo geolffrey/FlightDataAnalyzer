@@ -1239,22 +1239,23 @@ class TestEng_AllRunning(unittest.TestCase):
         self.assertEqual(node.array.raw.tolist(), expected)
 
     def test_derive_n2_ff(self):
-        n2_array = np.ma.array([0, 5, 11, 15, 11, 5, 0])
+        n2_array = np.ma.array([0, 15, 11, 15, 11, 5, 0])
         n2 = P('Eng (*) N2 Min', array=n2_array)
-        ff_array = np.ma.array([10, 20, 50, 55, 51, 51, 10])
+        ff_array = np.ma.array([0, 0, 51, 55, 51, 51, 0])
         ff = P('Eng (*) Fuel Flow Min', array=ff_array)
-        expected = [False, False, True, True, True, True, False]
+        expected = [False, False, True, True, True, False, False]
         node = self.node_class()
         node.derive(None, n2, None, ff)
         self.assertEqual(node.array.raw.tolist(), expected)
 
     def test_derive_n2_ff_masked_values(self):
-        n2_array = np.ma.array([0, 5, 11, 15, 11, 5, 0])
-        n2_array[2] = np.ma.masked
+        n2_array = np.ma.array([0, 15, 11, 15, 11, 5, 0])
+        n2_array[2:4] = np.ma.masked
         n2 = P('Eng (*) N2 Min', array=n2_array)
-        ff_array = np.ma.array([10, 20, 50, 55, 51, 51, 10])
+        ff_array = np.ma.array([0, 0, 51, 55, 51, 51, 0])
+        ff_array[4:6] = np.ma.masked
         ff = P('Eng (*) Fuel Flow Min', array=ff_array)
-        expected = [False, False, False, True, True, True, False]
+        expected = [False, False, True, True, True, False, False]
         node = self.node_class()
         node.derive(None, n2, None, ff)
         self.assertEqual(node.array.raw.tolist(), expected)
@@ -1308,11 +1309,11 @@ class TestEng_AnyRunning(unittest.TestCase):
         self.assertEqual(node.array.raw.tolist(), expected)
 
     def test_derive_n2_ff(self):
-        n2_array = np.ma.array([0, 5, 11, 15, 11, 5, 0])
+        n2_array = np.ma.array([0, 15, 21, 15, 11, 5, 0])
         n2 = P('Eng (*) N2 Max', array=n2_array)
-        ff_array = np.ma.array([10, 20, 50, 55, 51, 51, 10])
+        ff_array = np.ma.array([0, 0, 51, 55, 51, 51, 10])
         ff = P('Eng (*) Fuel Flow Max', array=ff_array)
-        expected = [False, False, True, True, True, True, False]
+        expected = [False, False, True, True, True, False, False]
         node = self.node_class()
         node.derive(None, n2, None, ff)
         self.assertEqual(node.array.raw.tolist(), expected)
