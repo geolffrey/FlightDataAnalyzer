@@ -1102,10 +1102,8 @@ class AltitudeSTDSmoothed(DerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available):
-
-        return ('Frame' in available and
-                (('Altitude STD' in available) or
-                 all_of(('Altitude STD (Capt)', 'Altitude STD (FO)'), available)))
+        return (('Altitude STD' in available) or
+                 all_of(('Altitude STD (Capt)', 'Altitude STD (FO)'), available))
 
     def derive(self, fine=P('Altitude STD (Fine)'),
                alt=P('Altitude STD'),
