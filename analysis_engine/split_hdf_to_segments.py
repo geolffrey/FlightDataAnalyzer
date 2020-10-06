@@ -25,6 +25,7 @@ from analysis_engine.library import (align,
                                      normalise,
                                      repair_mask,
                                      rate_of_change,
+                                     rate_of_change_array,
                                      runs_of_ones,
                                      shift_slices,
                                      slices_and_not,
@@ -80,10 +81,14 @@ def _segment_type_and_slice(speed_array, speed_frequency,
                             heading_array, heading_frequency,
                             start, stop, eng_arrays,
                             aircraft_info, thresholds, hdf,
-                            vspeed=None):
+                            vspeed):
     """
     Uses the Heading to determine whether the aircraft moved about at all and
-    the airspeed to determine if it was a full or partial flight.
+    the airspeed to determine if it was a full or partial flight. Vertical speed
+    identifies invalid flights where no airspeed is recorded.
+
+    Gear on Ground and Collective movement are used for helicopters to improve
+    the identification of operations such as hover taxi and engine test runs.
 
     NO_MOVEMENT: When the aircraft is in the hanger,
     the altitude and airspeed can be tested and record values which look like
@@ -94,6 +99,10 @@ def _segment_type_and_slice(speed_array, speed_frequency,
     the threshold speed for flight for a minimum amount of time, currently 3
     minutes to determine. If not, this segment is identified as GROUND_ONLY,
     probably taxiing, repositioning on the ground or a rejected takeoff.
+
+    INVALID: The aircraft climbed and descended (at a rate which would need
+    forward speed on a helicopter as well as fixed wing) but there was no
+    valid airspeed signal, hence cannot be processed.
 
     START_ONLY: If the airspeed started slow but ended fast, we had a partial
     segment for the start of a flight.
@@ -109,6 +118,7 @@ def _segment_type_and_slice(speed_array, speed_frequency,
     segment_type is one of:
     * 'NO_MOVEMENT' (didn't change heading)
     * 'GROUND_ONLY' (didn't go fast)
+    * 'INVALID' (did climb or descend, but had no valid airspeed)
     * 'START_AND_STOP'
     * 'START_ONLY'
     * 'STOP_ONLY'
@@ -150,8 +160,10 @@ def _segment_type_and_slice(speed_array, speed_frequency,
         # Check speed
         slow_start = speed_array[unmasked_slices[0].start] < thresholds['speed_threshold']
         slow_stop = speed_array[unmasked_slices[-1].stop - 1] < thresholds['speed_threshold']
+        rep_speed_array = repair_mask(speed_array, repair_duration=None)
         threshold_exceedance = np.ma.sum(
-            speed_array > thresholds['speed_threshold']) / speed_frequency
+            rep_speed_array > thresholds['speed_threshold']
+        ) / speed_frequency
         fast_for_long = threshold_exceedance > thresholds['min_duration']
 
     # Additional checks for start and stop of helicopters, in case the data did not have neat Nr endpoints.
@@ -410,6 +422,10 @@ def _split_on_dfc(slice_start_secs, slice_stop_secs, dfc_frequency,
     '''
     Find split using 'Frame Counter' parameter.
 
+    If multiple jumps are found within the slow section, we filter out any jumps within
+    less than 10 minutes of each other. If eng split index is available, we retain the
+    closest index, otherwise we just take the first one.
+
     :param slice_start_secs: Start of slow slice in seconds.
     :type slice_start_secs: int or float
     :param slice_stop_secs: Stop of slow slice in seconds.
@@ -422,33 +438,63 @@ def _split_on_dfc(slice_start_secs, slice_stop_secs, dfc_frequency,
     :type dfc_diff: np.ma.MaskedArray
     :param eng_split_index: Split index based on minimum of engine parameters.
     :type eng_split_index: int or float
-    :returns: Split index based on 'Frame Counter' jumps or None if no jumps
-        occur.
-    :rtype: int or float or None
+    :returns: Split indexes based on 'Frame Counter' jumps or None if no jumps occur.
+    :rtype: np.ndarray[float] or None
     '''
     dfc_slice = slice(slice_start_secs * dfc_frequency,
                       int(floor(slice_stop_secs * dfc_frequency)) + 1)
-    unmasked_edges = np.ma.flatnotmasked_edges(dfc_diff[slices_int(dfc_slice)])
-    if unmasked_edges is None:
+    dfc_indexes = np.ma.nonzero(dfc_diff[slices_int(dfc_slice)])[0]
+
+    if dfc_indexes.size == 0:
         return None
-    unmasked_edges = unmasked_edges.astype(float)
-    unmasked_edges /= dfc_frequency
+    dfc_indexes = dfc_indexes / dfc_frequency + slice_start_secs + dfc_half_period
+
+    def mask_indexes_closer_than(a, distance):
+        '''
+        Mask elements from `a` which are less than `distance` apart.
+
+        Instead of mutating the array, we return a boolean mask that can be used as an
+        index to only see the elements that are more than `distance` apart.
+
+        :param a: sorted array of indexes that we want to filter
+        :type a: np.ndarray
+        :param distance: Minimum distance required between elements of `a`.
+        :type distance: float
+        :returns: the mask filtering elements less than `distance` apart
+        :rtype: np.ndarray[bool]
+        '''
+        mask = np.ones_like(a, dtype=bool)
+        idx = 0
+        while idx < a.size:
+            # Only consider the elements to the right of our current index
+            submask = mask[idx+1:]
+            short_dist = a[idx+1:] - a[idx] < distance
+            # Mask out elements which are too close
+            submask[short_dist] = False
+            if not np.any(submask):
+                break
+            # Find the next unmasked element
+            idx = np.argmax(submask) + idx + 1
+        return mask
+
     if eng_split_index:
-        # Split on the jump closest to the engine parameter minimums.
-        dfc_jump = unmasked_edges[np.ma.argmin(np.ma.abs(
-            (eng_split_index - slice_start_secs) - unmasked_edges))]
-    else:
-        # Split on the first DFC jump.
-        dfc_jump = unmasked_edges[0]
-    dfc_index = py2round(dfc_jump + slice_start_secs + dfc_half_period)
-    # account for rounding of dfc index exceeding slow slice
-    if dfc_index > slice_stop_secs:
-        split_index = slice_stop_secs
-    elif dfc_index < slice_start_secs:
-        split_index = slice_start_secs
-    else:
-        split_index = dfc_index
-    return split_index
+        # Keep the jump closest to the engine parameter minimums and filter out
+        # the ones within 10 minutes of it.
+        dist_to_eng_split = np.abs(dfc_indexes - eng_split_index)
+        idx = np.argmin(dist_to_eng_split)
+        mask = np.ones_like(dfc_indexes, dtype=bool)
+        dist_to_jump_closest_to_eng_split = np.abs(dfc_indexes - dfc_indexes[idx])
+        mask[dist_to_jump_closest_to_eng_split < 600] = False
+        mask[idx] = True
+        dfc_indexes = dfc_indexes[mask]
+
+    # Filter out splits less than 10 minutes apart
+    dfc_indexes = dfc_indexes[mask_indexes_closer_than(dfc_indexes, 600)]
+
+    # Not sure this is needed, as I can't see why the index should ever exceed the boundary.
+    np.clip(dfc_indexes, slice_start_secs, slice_stop_secs, out=dfc_indexes)
+
+    return dfc_indexes
 
 
 def _split_on_rot(slice_start_secs, slice_stop_secs, heading_frequency,
@@ -654,19 +700,20 @@ def split_segments(hdf, aircraft_info):
 
         # Split using 'Frame Counter'.
         if dfc is not None:
-            dfc_split_index = _split_on_dfc(
+            dfc_split_indexes = _split_on_dfc(
                 slice_start_secs, slice_stop_secs, dfc.frequency,
                 dfc_half_period, dfc_diff, eng_split_index=eng_split_index)
-            if dfc_split_index:
-                if last_slow_slice and slice_stop_secs-dfc_split_index < min_split_duration:
-                    dfc_split_index = slice_stop_secs
-                segments.append(_segment_type_and_slice(
-                    speed_array, speed.frequency, heading.array,
-                    heading.frequency, start, dfc_split_index, eng_arrays,
-                    aircraft_info, thresholds, hdf, vspeed))
-                start = dfc_split_index
-                logger.info("'Frame Counter' jumped within slow_slice '%s' "
-                            "at index '%d'.", slow_slice, dfc_split_index)
+            if dfc_split_indexes is not None:
+                for dfc_split_index in dfc_split_indexes:
+                    if last_slow_slice and slice_stop_secs-dfc_split_index < min_split_duration:
+                        dfc_split_index = slice_stop_secs
+                    segments.append(_segment_type_and_slice(
+                        speed_array, speed.frequency, heading.array,
+                        heading.frequency, start, dfc_split_index, eng_arrays,
+                        aircraft_info, thresholds, hdf, vspeed))
+                    start = dfc_split_index
+                    logger.info("'Frame Counter' jumped within slow_slice '%s' "
+                                "at index '%d'.", slow_slice, dfc_split_index)
                 continue
             else:
                 logger.info("'Frame Counter' did not jump within slow_slice "
@@ -702,7 +749,7 @@ def split_segments(hdf, aircraft_info):
 
         rot_split_index = _split_on_rot(slice_start_secs, slice_stop_secs,
                                         heading.frequency, rate_of_turn)
-        if rot_split_index:
+        if rot_split_index and rot_split_index > start + min_split_duration:
             if last_slow_slice and slice_stop_secs-rot_split_index < min_split_duration:
                 rot_split_index = slice_stop_secs
             segments.append(_segment_type_and_slice(
@@ -720,8 +767,8 @@ def split_segments(hdf, aircraft_info):
                 "('%s'). Therefore a split will not be made.", slow_slice)
 
         #Q: Raise error here?
-        logger.warning("Splitting methods failed to split within slow_slice "
-                       "'%s'.", slow_slice)
+        #logger.warning("Splitting methods failed to split within slow_slice "
+                       #"'%s'.", slow_slice)
 
     # Add remaining data to a segment.
     if start < speed_secs:
@@ -736,15 +783,12 @@ def split_segments(hdf, aircraft_info):
     if dfc:
         to_plot.append(dfc.array / 4096.0)
     for look in to_plot:
-        try:
+        if look is not None:
             plt.plot(np.linspace(0, speed_secs, len(look)), look/np.ptp(look))
-        except:
-            pass
     for seg in segments:
         plt.plot([seg[1].start, seg[1].stop], [-0.5,+1])
     plt.show()
     '''
-
     return segments
 
 
@@ -775,9 +819,27 @@ def _get_speed_parameter(hdf, aircraft_info):
         thresholds['min_split_duration'] = settings.MINIMUM_SPLIT_DURATION
         thresholds['hash_min_samples'] = settings.AIRSPEED_HASH_MIN_SAMPLES
         thresholds['min_duration'] = settings.AIRSPEED_THRESHOLD_TIME
-    vspeed = hdf.get('Vertical Speed')
-    thresholds['vertical_speed_max'] = settings.VERTICAL_SPEED_FOR_CLIMB_PHASE
-    thresholds['vertical_speed_min'] = settings.VERTICAL_SPEED_FOR_DESCENT_PHASE
+
+    # We use vertical speed, but as not all aircraft record this, we compute
+    # this from pressure altitude which is always available (*60 for fpm).
+    alt = hdf.get('Altitude STD')
+    # All aircraft will have Altitude STD, but some test cases do not, hence:
+    if alt:
+        alt_array = repair_mask(
+            alt.array, frequency=alt.frequency, repair_duration=60,
+            raise_entirely_masked=False
+        )
+        array = rate_of_change_array(alt_array, alt.hz, 60) * 60.0
+        vspeed = P(
+            name='Vertical Speed',
+            array=np.ma.masked_outside(array, -4000, 4000),
+            frequency=alt.frequency, offset=alt.offset
+        )
+        thresholds['vertical_speed_max'] = settings.VERTICAL_SPEED_FOR_CLIMB_PHASE
+        thresholds['vertical_speed_min'] = settings.VERTICAL_SPEED_FOR_DESCENT_PHASE
+    else:
+        vspeed = None
+
     return parameter, vspeed, thresholds
 
 
