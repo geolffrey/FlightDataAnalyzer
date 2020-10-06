@@ -5453,6 +5453,21 @@ class LiftoffToClimbPitchDuration(KeyPointValueNode):
 ##############################################################################
 # Landing Gear
 
+class LiftoffToGearNotDownDuration(KeyPointValueNode):
+    '''
+    A KPV originally for helicopters, to ensure hover checks have been performed.
+
+    Available for fixed wing to detect early gear retraction.
+    '''
+
+    units = ut.SECOND
+
+    def derive(self, gear=P('Gear Down'), airs=S('Airborne')):
+        for air in airs:
+            gear_up = runs_of_ones(gear.array[air.slice] == 'Up')
+            value = gear_up[0].start
+            index = air.slice.start + value
+            self.create_kpv(index, value / self.frequency)
 
 ##################################
 # Braking

@@ -531,6 +531,7 @@ from analysis_engine.key_point_values import (
     LatitudeOffBlocks,
     LatitudeSmoothedAtLiftoff,
     LatitudeSmoothedAtTouchdown,
+    LiftoffToGearNotDownDuration,
     LoadFactorThresholdAtTouchdown,
     LongitudeAtLiftoff,
     LongitudeAtLowestAltitudeDuringApproach,
@@ -7067,6 +7068,23 @@ class TestLiftoffToClimbPitchDuration(unittest.TestCase):
     @unittest.skip('Test Not Implemented')
     def test_derive(self):
         self.assertTrue(False, msg='Test not implemented.')
+
+
+class TestLiftoffToGearNotDownDuration(unittest.TestCase,
+                                       NodeTest):
+
+    def test_derive(self):
+        self.node_class = LiftoffToGearNotDownDuration
+        self.operational_combinations = [('Airborne', 'Gear (*) Down')]
+        gear = M(name='Gear Down',
+                 array=np.ma.array([1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0]),
+                 values_mapping={0:'Up', 1:'Down'})
+        airs = buildsection('Airborne', 3, 12)
+        node = self.node_class()
+        node.derive(gear, airs)
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].value, 5)
+        self.assertEqual(node[0].index, 8)
 
 
 ##############################################################################
