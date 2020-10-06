@@ -2278,3 +2278,19 @@ class PitchMinimumDuringNoseDownAttitudeAdoption(KeyPointValueNode):
         for nose_down in nose_downs:
             idx = np.ma.argmax(pitch_rate_up[nose_down.slice.start:]) + nose_down.slice.start
             self.create_kpv(idx, value_at_index(pitch.array, idx))
+
+class AltitudeRadioBelow30FtDuration(KeyPointValueNode):
+    '''
+    The duration of a hover where the maximum radio altitude was always
+    below 30ft. This is designed to identify inadvertant liftoffs.
+    '''
+
+    units = ut.SECOND
+    can_operate = helicopter_only
+
+    def derive(self, alt_rad=P('Altitude Radio'), gog=M('Gear On Ground')):
+        lifts = runs_of_ones(gog.array == 'Air')
+        for lift in lifts:
+            max_idx = np.ma.argmax(alt_rad.array[lift]) + lift.start
+            if alt_rad.array[max_idx] < 30.0:
+                self.create_kpv(max_idx, slices_duration([lift], alt_rad.frequency))

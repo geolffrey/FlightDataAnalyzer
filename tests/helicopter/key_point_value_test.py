@@ -38,6 +38,7 @@ from analysis_engine.helicopter.key_point_values import (
     AirspeedDuringAutorotationMax,
     AirspeedDuringAutorotationMin,
     AltitudeDensityMax,
+    AltitudeRadioBelow30FtDuration,
     AltitudeRadioDuringAutorotationMin,
     AltitudeDuringCruiseMin,
     AltitudeRadioMinBeforeNoseDownAttitudeAdoptionOffshore,
@@ -4938,3 +4939,26 @@ class TestHoverHeightDuringOffshoreTakeoffMax(unittest.TestCase):
         self.assertEqual(len(node), 1)
         self.assertEqual(node[0].index, 9)
         self.assertEqual(node[0].value, 7)
+
+class TestAltitudeRadioBelow30FtDuration(unittest.TestCase):
+    def setUp(self):
+        self.node_class = AltitudeRadioBelow30FtDuration
+
+    def test_can_operate(self):
+        self.assertEqual(self.node_class.get_operational_combinations(
+            ac_type=aeroplane), [])
+        opts = self.node_class.get_operational_combinations(ac_type=helicopter)
+        self.assertEqual(opts, ([('Altitude Radio', 'Gear On Ground')]))
+
+    def test_derive(self):
+        '''
+        Includes one low (inadvertant?) hover and one higher intentional one.
+        '''
+        alt=P('Altitude Radio', np.ma.array(data=[0, 0, 3, 6, 9, 10, 6, 3, 0, 0, 3, 16, 29, 31, 26, 13, 0, 0.0]))
+        gog = M('Gear On Ground', np.ma.array(   [1, 1, 1, 0, 0,  0, 0, 0, 1, 1, 0,  0,  0,  0,  0,  0, 1, 1]),
+                values_mapping={0: 'Air', 1: 'Ground',})
+        node=self.node_class()
+        node.derive(alt, gog)
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 5)
+        self.assertEqual(node[0].value, 5)
