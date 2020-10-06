@@ -25,6 +25,7 @@ from analysis_engine.library import (align,
                                      normalise,
                                      repair_mask,
                                      rate_of_change,
+                                     rate_of_change_array,
                                      runs_of_ones,
                                      slices_and_not,
                                      slices_multiply,
@@ -818,9 +819,16 @@ def _get_speed_parameter(hdf, aircraft_info):
     alt = hdf.get('Altitude STD')
     # All aircraft will have Altitude STD, but some test cases do not, hence:
     if alt:
-        vspeed = P(name='Vertical Speed', array=np.ma.masked_outside(
-            rate_of_change(alt, 60.0) * 60.0, -4000, 4000),
-                   frequency=alt.frequency, offset=alt.offset)
+        alt_array = repair_mask(
+            alt.array, frequency=alt.frequency, repair_duration=60,
+            raise_entirely_masked=False
+        )
+        array = rate_of_change_array(alt_array, alt.hz, 60) * 60.0
+        vspeed = P(
+            name='Vertical Speed',
+            array=np.ma.masked_outside(array, -4000, 4000),
+            frequency=alt.frequency, offset=alt.offset
+        )
         thresholds['vertical_speed_max'] = settings.VERTICAL_SPEED_FOR_CLIMB_PHASE
         thresholds['vertical_speed_min'] = settings.VERTICAL_SPEED_FOR_DESCENT_PHASE
     else:
