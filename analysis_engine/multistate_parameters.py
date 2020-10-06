@@ -1186,7 +1186,10 @@ class Flap(MultistateDerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available, frame=A('Frame'),
-                    model=A('Model'), series=A('Series'), family=A('Family')):
+                    model=A('Model'), series=A('Series'), family=A('Family'), ac_type=A('Aircraft Type')):
+
+        if ac_type == helicopter:
+            return False
 
         frame_name = frame.value if frame else None
         family_name = family.value if family else None
