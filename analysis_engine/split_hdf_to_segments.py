@@ -84,11 +84,13 @@ def _segment_type_and_slice(speed_array, speed_frequency,
                             vspeed):
     """
     Uses the Heading to determine whether the aircraft moved about at all and
-    the airspeed to determine if it was a full or partial flight. Vertical speed
-    identifies invalid flights where no airspeed is recorded.
+    the airspeed for airplanes or Nr for helicopters to determine if it was a
+    full or partial flight. Vertical speed identifies invalid flights where no
+    airspeed is recorded.
 
-    Gear on Ground and Collective movement are used for helicopters to improve
-    the identification of operations such as hover taxi and engine test runs.
+    Gear on Ground and Collective movement and Vertical Speed are used for
+    helicopters to improve the identification of operations such as hover taxi
+    and engine test runs.
 
     NO_MOVEMENT: When the aircraft is in the hanger,
     the altitude and airspeed can be tested and record values which look like
@@ -239,6 +241,12 @@ def _segment_type_and_slice(speed_array, speed_frequency,
                     min_samples=col_min_sample
                 )
 
+        elif vspeed:
+            if not slow_start:
+                slow_start = _slow_start_from_vert_spd(vert_spd_array, vspeed.frequency)
+            if not slow_stop:
+                slow_stop = _slow_stop_from_vert_spd(vert_spd_array, vspeed.frequency)
+
     if not did_move or (not fast_for_long and eng_arrays is None):
         # added check for not fast for long and no engine params to avoid
         # lots of Herc ground runs
@@ -276,6 +284,44 @@ def _segment_type_and_slice(speed_array, speed_frequency,
     supf_start_secs, supf_stop_secs, array_start_secs, array_stop_secs = segment_boundaries(segment, boundary)
 
     return segment_type, segment, array_start_secs
+
+
+def _slow_start_from_vert_spd(vert_spd_array, frequency):
+    '''
+    We're missing slow start due to high Nr at start of the recording and we don't
+    have Gear On Ground or Collective. Using Vertical Speed, try to detect if we were
+    level at the start of the recording, followed by a climb.
+    '''
+    min_level_samples = int(60 * frequency)
+    climbs = runs_of_ones(vert_spd_array > settings.VERTICAL_SPEED_FOR_LEVEL_FLIGHT)
+    levels = runs_of_ones(
+        np.ma.abs(vert_spd_array) < settings.VERTICAL_SPEED_FOR_LEVEL_FLIGHT,
+        min_samples=min_level_samples
+    )
+    if not all((climbs, levels)):
+        return False
+    start, stop = np.ma.flatnotmasked_edges(vert_spd_array)
+    start_ground = start >= levels[0].start
+    return start_ground and climbs[0].start == levels[0].stop
+
+
+def _slow_stop_from_vert_spd(vert_spd_array, frequency):
+    '''
+    We're missing slow stop due to high Nr at end of the recording and we don't
+    have Gear On Ground or Collective. Using Vertical Speed, try to detect if we were
+    level at the end of the recording, preceded by a descent.
+    '''
+    min_level_samples = int(60 * frequency)
+    descents = runs_of_ones(vert_spd_array < -settings.VERTICAL_SPEED_FOR_LEVEL_FLIGHT)
+    levels = runs_of_ones(
+        np.ma.abs(vert_spd_array) < settings.VERTICAL_SPEED_FOR_LEVEL_FLIGHT,
+        min_samples=min_level_samples
+    )
+    if not all((descents, levels)):
+        return False
+    start, stop = np.ma.flatnotmasked_edges(vert_spd_array)
+    stop_ground = stop <= levels[-1].stop - 1
+    return stop_ground and descents[-1].stop == levels[-1].start
 
 
 def _get_normalised_split_params(hdf, align_param=None):

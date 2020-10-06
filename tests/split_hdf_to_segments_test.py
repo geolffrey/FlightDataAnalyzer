@@ -1252,4 +1252,93 @@ class TestSegmentTypeAndSlice(unittest.TestCase):
         self.assertEqual(segment, slice(0, 5560))
         self.assertEqual(array_start_secs, 0)
 
+    def test_use_vert_speed_for_slow_start(self):
+        nr = P('Nr', array=np.ma.repeat((100, 30), (1000, 200)))
+        hdg = P('Heading', array=np.ma.repeat((0, 90), (600, 600)))
+        vspd_array = np.ma.concatenate((
+            np.zeros(300),
+            np.ones(100) * 400,
+            np.zeros(400),
+            np.ones(100) * -400,
+            np.zeros(300)
+        ))
+        vert_spd = P('Vertical Speed', array=vspd_array)
+        aircraft_info = {'Aircraft Type': 'helicopter'}
+        thresholds = {
+            'hash_min_samples': 64, 'speed_threshold': 90, 'min_split_duration': 100,
+            'min_duration': 180, 'vertical_speed_max': 800, 'vertical_speed_min': -500
+        }
+        hdf = mock.MagicMock()
+        def get(key):
+            return None
+        hdf.get.side_effect = get
+        hdf.superframe_present = False
+        segment_type, segment, array_start_secs = _segment_type_and_slice(
+            nr.array, nr.hz, hdg.array, hdg.hz, 0, 1200, None,
+            aircraft_info, thresholds, hdf, vert_spd)
+
+        self.assertEqual(segment_type, 'START_AND_STOP')
+        self.assertEqual(segment, slice(0, 1200))
+        self.assertEqual(array_start_secs, 0)
+
+    def test_use_vert_speed_for_slow_stop(self):
+        nr = P('Nr', array=np.ma.repeat((30, 100), (200, 1000)))
+        hdg = P('Heading', array=np.ma.repeat((0, 90), (600, 600)))
+        vspd_array = np.ma.concatenate((
+            np.zeros(300),
+            np.ones(100) * 400,
+            np.zeros(400),
+            np.ones(100) * -400,
+            np.zeros(300)
+        ))
+        vert_spd = P('Vertical Speed', array=vspd_array)
+        aircraft_info = {'Aircraft Type': 'helicopter'}
+        thresholds = {
+            'hash_min_samples': 64, 'speed_threshold': 90, 'min_split_duration': 100,
+            'min_duration': 180, 'vertical_speed_max': 800, 'vertical_speed_min': -500
+        }
+        hdf = mock.MagicMock()
+        def get(key):
+            return None
+        hdf.get.side_effect = get
+        hdf.superframe_present = False
+        segment_type, segment, array_start_secs = _segment_type_and_slice(
+            nr.array, nr.hz, hdg.array, hdg.hz, 0, 1200, None,
+            aircraft_info, thresholds, hdf, vert_spd)
+
+        self.assertEqual(segment_type, 'START_AND_STOP')
+        self.assertEqual(segment, slice(0, 1200))
+        self.assertEqual(array_start_secs, 0)
+
+    def test_use_vert_speed_for_slow_start_and_stop(self):
+        nr = P('Nr', array=np.ma.ones(1200) * 100)
+        hdg = P('Heading', array=np.ma.repeat((0, 90), (600, 600)))
+        vspd_array = np.ma.concatenate((
+            np.zeros(300),
+            np.ones(100) * 400,
+            np.zeros(400),
+            np.ones(100) * -400,
+            np.zeros(300)
+        ))
+        vspd_array[:10] = np.ma.masked
+        vspd_array[-10:] = np.ma.masked
+
+        vert_spd = P('Vertical Speed', array=vspd_array)
+        aircraft_info = {'Aircraft Type': 'helicopter'}
+        thresholds = {
+            'hash_min_samples': 64, 'speed_threshold': 90, 'min_split_duration': 100,
+            'min_duration': 180, 'vertical_speed_max': 800, 'vertical_speed_min': -500
+        }
+        hdf = mock.MagicMock()
+        def get(key):
+            return None
+        hdf.get.side_effect = get
+        hdf.superframe_present = False
+        segment_type, segment, array_start_secs = _segment_type_and_slice(
+            nr.array, nr.hz, hdg.array, hdg.hz, 0, 1200, None,
+            aircraft_info, thresholds, hdf, vert_spd)
+
+        self.assertEqual(segment_type, 'START_AND_STOP')
+        self.assertEqual(segment, slice(0, 1200))
+        self.assertEqual(array_start_secs, 0)
 
