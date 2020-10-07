@@ -14,7 +14,7 @@ from flightdatautilities import masked_array_testutils as ma_test
 from analysis_engine.test_utils import buildsection, buildsections
 
 from analysis_engine.node import (
-    A, M, P, S, App, Attribute, load, Section
+    A, M, P, S, App, Attribute, load, Section, helicopter,
 )
 
 from analysis_engine.library import (
@@ -1195,20 +1195,32 @@ class TestEngRunning(unittest.TestCase):
         self.assertTrue(Eng3Running.can_operate(['Eng (3) N1']))
         self.assertTrue(Eng4Running.can_operate(['Eng (4) N1']))
 
+        self.assertTrue(Eng1Running.can_operate(['Eng (1) N1'], ac_type=helicopter))
+        self.assertFalse(Eng1Running.can_operate(['Eng (1) N2'], ac_type=helicopter))
+        self.assertTrue(Eng2Running.can_operate(['Eng (2) N1'], ac_type=helicopter))
+        self.assertFalse(Eng2Running.can_operate(['Eng (2) N2'], ac_type=helicopter))
+        self.assertTrue(Eng3Running.can_operate(['Eng (3) N1'], ac_type=helicopter))
+        self.assertFalse(Eng3Running.can_operate(['Eng (3) N2'], ac_type=helicopter))
+        self.assertTrue(Eng4Running.can_operate(['Eng (4) N1'], ac_type=helicopter))
+        self.assertFalse(Eng4Running.can_operate(['Eng (4) N2'], ac_type=helicopter))
+
     def test_determine_running(self):
         # This is tested by the TestEng_AllRunning below.
         pass
 
 
-class TestEng_AllRunning(unittest.TestCase, NodeTest):
+class TestEng_AllRunning(unittest.TestCase):
     def setUp(self):
         self.node_class = Eng_AllRunning
-        self.operational_combinations = [
-            ('Eng (*) N1 Min',),
-            ('Eng (*) Np Min',),
-            ('Eng (*) N2 Min',), ('Eng (*) Fuel Flow Min',),
-            ('Eng (*) N2 Min', 'Eng (*) Fuel Flow Min'),
-        ]
+
+    def test_can_operate(self):
+        combinations = self.node_class.get_operational_combinations()
+        self.assertTrue(('Eng (*) N1 Min',) in combinations)
+        self.assertTrue(('Eng (*) Np Min',) in combinations)
+        self.assertTrue(('Eng (*) N2 Min',) in combinations)
+        self.assertTrue(('Eng (*) N2 Min', 'Eng (*) Fuel Flow Min',) in combinations)
+        self.assertTrue(self.node_class.can_operate(('Eng (*) N1 Min',), ac_type=helicopter))
+        self.assertFalse(self.node_class.can_operate(('Eng (*) N2 Min',), ac_type=helicopter))
 
     def test_derive_n2_only(self):
         n2_array = np.ma.array([0, 5, 10, 15, 11, 5, 0])
@@ -1266,16 +1278,18 @@ class TestEng_AllRunning(unittest.TestCase, NodeTest):
         self.assertEqual(node.array.raw.tolist(), expected)
 
 
-
-class TestEng_AnyRunning(unittest.TestCase, NodeTest):
+class TestEng_AnyRunning(unittest.TestCase):
     def setUp(self):
         self.node_class = Eng_AnyRunning
-        self.operational_combinations = [
-            ('Eng (*) N1 Max',),
-            ('Eng (*) Np Max',),
-            ('Eng (*) N2 Max',), ('Eng (*) Fuel Flow Max',),
-            ('Eng (*) N2 Max', 'Eng (*) Fuel Flow Max'),
-        ]
+
+    def test_can_operate(self):
+        combinations = self.node_class.get_operational_combinations()
+        self.assertTrue(('Eng (*) N1 Max',) in combinations)
+        self.assertTrue(('Eng (*) Np Max',) in combinations)
+        self.assertTrue(('Eng (*) N2 Max',) in combinations)
+        self.assertTrue(('Eng (*) N2 Max', 'Eng (*) Fuel Flow Max',) in combinations)
+        self.assertTrue(self.node_class.can_operate(('Eng (*) N1 Max',), ac_type=helicopter))
+        self.assertFalse(self.node_class.can_operate(('Eng (*) N2 Max',), ac_type=helicopter))
 
     def test_derive_n2_only(self):
         n2_array = np.ma.array([0, 5, 10, 15, 11, 5, 0])
