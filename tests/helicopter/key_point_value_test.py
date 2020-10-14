@@ -7,7 +7,6 @@ from mock import Mock, patch
 
 from flightdatautilities import units as ut
 
-from hdfaccess.parameter import MappedArray
 
 from analysis_engine.node import (
     A, M, P, S, KPV, KTI, aeroplane, App, ApproachItem,
@@ -18,7 +17,6 @@ from analysis_engine.node import (
 from analysis_engine.library import max_value, min_value
 
 from analysis_engine.key_time_instances import (
-    AltitudeWhenClimbing,
     DistanceToTouchdown,
     SecsToTouchdown
 )
@@ -81,6 +79,10 @@ from analysis_engine.helicopter.key_point_values import (
     GroundspeedBelow100FtMax,
     PitchBelow1000FtMax,
     PitchBelow1000FtMin,
+    PitchBelow20FtClimbingMax,
+    PitchBelow20FtClimbingMin,
+    PitchBelow20FtDescendingMin,
+    PitchBelow20FtDescendingMax,
     PitchBelow5FtMax,
     Pitch5To10FtMax,
     Pitch10To5FtMax,
@@ -97,8 +99,6 @@ from analysis_engine.helicopter.key_point_values import (
     PitchOnDeckMax,
     PitchOnDeckMin,
     PitchOnGroundMin,
-    PitchTakeoffTo20FtMin,
-    PitchTakeoffTo20FtMax,
     RateOfDescent100To20FtMax,
     RateOfDescent500To100FtMax,
     RateOfDescent20FtToTouchdownMax,
@@ -3706,38 +3706,51 @@ class TestPitchOnDeckMin(unittest.TestCase):
         self.assertEqual(node[1].value, -1)
 
 
-class TestPitchTakeoffTo20FtMin:
+class TestPitchBelow20FtClimbingMin:
+
     def test_can_operate(self):
-        node = PitchTakeoffTo20FtMin()
+        node = PitchBelow20FtClimbingMin()
         expected = [
-            ('Pitch', 'Takeoff', 'Altitude When Climbing')
+            ('Pitch', 'Altitude AGL For Flight Phases',
+             'Airborne', 'Takeoff', 'Initial Climb')
         ]
         assert node.get_operational_combinations(ac_type=helicopter) == expected
 
     def test_normal_takeoff(self):
-        array = np.sin(np.linspace(np.pi, 2*np.pi, 50)) * 5
+        array = np.sin(np.linspace(np.pi, 2*np.pi, 100)) * 5
         pitch = P('Pitch', array=array)
-        takeoffs = buildsection('Takeoff', 2, 10)
-        alt = AltitudeWhenClimbing(items=[
-            KeyTimeInstance(index=35, name='20 Ft Climbing')
-        ])
-        node = PitchTakeoffTo20FtMin()
-        node.get_derived((pitch, takeoffs, alt))
+        array = np.ma.concatenate((
+            np.zeros(60),
+            np.ma.arange(0, 40)
+        ))
+        alt = P('Altitude AGL For Flight Phases', array=array)
+        airborne = buildsection('Airborne', 61, 100)
+        takeoff = buildsection('Takeoff', 50, 70)
+        climb = buildsection('Initial Climb', 71, 100)
+
+        node = PitchBelow20FtClimbingMin()
+        node.get_derived((pitch, alt, airborne, takeoff, climb))
 
         assert len(node)== 1
-        assert node[0].index == 24
-        assert node[0].value == pytest.approx(-5, rel=1e-3)
+        assert node[0].index == 61
+        assert node[0].value == pytest.approx(-4.67, rel=1e-3)
 
     def test_two_takeoffs(self):
         array = np.tile(np.sin(np.linspace(np.pi, 2*np.pi, 50)) * 5, 2)
         pitch = P('Pitch', array=array)
-        takeoffs = buildsections('Takeoff', (2, 10), (55, 68))
-        alt = AltitudeWhenClimbing(items=[
-            KeyTimeInstance(index=35, name='20 Ft Climbing'),
-            KeyTimeInstance(index=85, name='20 Ft Climbing'),
-        ])
-        node = PitchTakeoffTo20FtMin()
-        node.get_derived((pitch, takeoffs, alt))
+        array = np.ma.concatenate((
+            np.linspace(0, 20, 36),
+            np.linspace(21, 50, 50-36),
+            np.linspace(0, 20, 36),
+            np.linspace(21, 50, 50-36),
+        ))
+        alt = P('Altitude AGL For Flight Phases', array=array)
+        airborne = buildsections('Airborne', (0, 50), (50, 100))
+        takeoff = buildsections('Takeoff', (0, 20), (50, 70))
+        climb = buildsections('Initial Climb', (19, 50), (71, 100))
+
+        node = PitchBelow20FtClimbingMin()
+        node.get_derived((pitch, alt, airborne, takeoff, climb))
 
         assert len(node)== 2
         assert node[0].index == 24
@@ -3745,86 +3758,232 @@ class TestPitchTakeoffTo20FtMin:
         assert node[1].index == 74
         assert node[1].value == pytest.approx(-5, rel=1e-3)
 
-    def test_one_takeoff_passing_20ft_twice(self):
-        array = np.tile(np.sin(np.linspace(np.pi, 2*np.pi, 50)) * 5, 2)
+    def test_descend_and_climb(self):
+        array = np.ma.sin(np.linspace(2*np.pi, 0, 180)) * 5
         pitch = P('Pitch', array=array)
-        takeoffs = buildsection('Takeoff', 2, 10)
-        alt = AltitudeWhenClimbing(items=[
-            KeyTimeInstance(index=25, name='10 Ft Climbing'),
-            KeyTimeInstance(index=35, name='20 Ft Climbing'),
-            KeyTimeInstance(index=45, name='50 Ft Climbing'),
-            KeyTimeInstance(index=85, name='20 Ft Climbing'),
-        ])
-        node = PitchTakeoffTo20FtMin()
-        node.get_derived((pitch, takeoffs, alt))
+        array = np.ma.concatenate((
+            np.arange(100, 10, -1),
+            np.arange(10, 100)
+        ))
+        alt = P('Altitude AGL For Flight Phases', array=array)
+        airborne = buildsection('Airborne', 0, 180)
+        takeoff = S('Takeoff', items=[])
+        climb = buildsection('Initial Climb', 90, 100)
+
+        node = PitchBelow20FtClimbingMin()
+        node.get_derived((pitch, alt, airborne, takeoff, climb))
 
         assert len(node)== 1
-        assert node[0].index == 24
-        assert node[0].value == pytest.approx(-5, rel=1e-3)
+        assert node[0].index == 90
+        assert node[0].value == pytest.approx(0.088, abs=1e-3)
+
+    def test_climb_descend_and_climb(self):
+        array = np.ma.sin(np.linspace(2*np.pi, 0, 150)) * 5
+        pitch = P('Pitch', array=array)
+        array = np.ma.concatenate((
+            np.arange(0, 50),
+            np.arange(50, 10, -1),
+            np.arange(10, 70)
+        ))
+        alt = P('Altitude AGL For Flight Phases', array=array)
+        airborne = buildsection('Airborne', 0, 150)
+        takeoff = buildsection('Takeoff', 0, 35)
+        climb = buildsection('Initial Climb', 35, 150)
+
+        node = PitchBelow20FtClimbingMin()
+        node.get_derived((pitch, alt, airborne, takeoff, climb))
+
+        assert len(node)== 1
+        assert node[0].index == 19
+        assert node[0].value == pytest.approx(-3.6, abs=1e-2)
 
 
-class TestPitchTakeoffTo20FtMax:
+class TestPitchBelow20FtClimbingMax:
     def test_can_operate(self):
-        node = PitchTakeoffTo20FtMax()
+        node = PitchBelow20FtClimbingMax()
         expected = [
-            ('Pitch', 'Takeoff', 'Altitude When Climbing')
+            ('Pitch', 'Altitude AGL For Flight Phases',
+             'Airborne', 'Takeoff', 'Initial Climb')
         ]
         assert node.get_operational_combinations(ac_type=helicopter) == expected
 
     def test_normal_takeoff(self):
-        array = np.sin(np.linspace(np.pi, 0, 50)) * 5
+        array = np.sin(np.linspace(np.pi, 2*np.pi, 100)) * 5
         pitch = P('Pitch', array=array)
-        takeoffs = buildsection('Takeoff', 2, 10)
-        alt = AltitudeWhenClimbing(items=[
-            KeyTimeInstance(index=35, name='20 Ft Climbing')
-        ])
-        node = PitchTakeoffTo20FtMax()
-        node.get_derived((pitch, takeoffs, alt))
+        array = np.ma.concatenate((
+            np.zeros(60),
+            np.ma.arange(0, 40)
+        ))
+        alt = P('Altitude AGL For Flight Phases', array=array)
+        airborne = buildsection('Airborne', 61, 100)
+        takeoff = buildsection('Takeoff', 50, 70)
+        climb = buildsection('Initial Climb', 71, 100)
+
+        node = PitchBelow20FtClimbingMax()
+        node.get_derived((pitch, alt, airborne, takeoff, climb))
 
         assert len(node)== 1
-        assert node[0].index == 24
-        assert node[0].value == pytest.approx(5, rel=1e-3)
+        assert node[0].index == 79
+        assert node[0].value == pytest.approx(-2.96, abs=1e-2)
 
     def test_two_takeoffs(self):
-        array = np.tile(np.sin(np.linspace(np.pi, 0, 50)) * 5, 2)
+        array = np.tile(np.sin(np.linspace(np.pi, 2*np.pi, 50)) * 5, 2)
         pitch = P('Pitch', array=array)
-        takeoffs = buildsections('Takeoff', (2, 10), (55, 68))
-        alt = AltitudeWhenClimbing(items=[
-            KeyTimeInstance(index=35, name='20 Ft Climbing'),
-            KeyTimeInstance(index=85, name='20 Ft Climbing'),
-        ])
-        node = PitchTakeoffTo20FtMax()
-        node.get_derived((pitch, takeoffs, alt))
+        array = np.ma.concatenate((
+            np.linspace(0, 20, 36),
+            np.linspace(21, 50, 50-36),
+            np.linspace(0, 20, 36),
+            np.linspace(21, 50, 50-36),
+        ))
+        alt = P('Altitude AGL For Flight Phases', array=array)
+        airborne = buildsections('Airborne', (0, 50), (50, 100))
+        takeoff = buildsections('Takeoff', (0, 20), (50, 70))
+        climb = buildsections('Initial Climb', (19, 50), (71, 100))
+
+        node = PitchBelow20FtClimbingMax()
+        node.get_derived((pitch, alt, airborne, takeoff, climb))
 
         assert len(node)== 2
-        assert node[0].index == 24
-        assert node[0].value == pytest.approx(5, rel=1e-3)
-        assert node[1].index == 74
-        assert node[1].value == pytest.approx(5, rel=1e-3)
+        assert node[0].index == 1
+        assert node[0].value == pytest.approx(-0.32, abs=1e-2)
+        assert node[1].index == 51
+        assert node[1].value == pytest.approx(-0.32, abs=1e-2)
 
-    def test_one_takeoff_passing_20ft_twice(self):
-        array = np.tile(np.sin(np.linspace(np.pi, 0, 50)) * 5, 2)
+    def test_descend_and_climb(self):
+        array = np.ma.sin(np.linspace(2*np.pi, 0, 180)) * 5
         pitch = P('Pitch', array=array)
-        takeoffs = buildsection('Takeoff', 2, 10)
-        alt = AltitudeWhenClimbing(items=[
-            KeyTimeInstance(index=25, name='10 Ft Climbing'),
-            KeyTimeInstance(index=35, name='20 Ft Climbing'),
-            KeyTimeInstance(index=45, name='50 Ft Climbing'),
-            KeyTimeInstance(index=85, name='20 Ft Climbing'),
-        ])
-        node = PitchTakeoffTo20FtMax()
-        node.get_derived((pitch, takeoffs, alt))
+        array = np.ma.concatenate((
+            np.arange(100, 10, -1),
+            np.arange(10, 100)
+        ))
+        alt = P('Altitude AGL For Flight Phases', array=array)
+        airborne = buildsection('Airborne', 0, 180)
+        takeoff = S('Takeoff', items=[])
+        climb = buildsection('Initial Climb', 90, 100)
+
+        node = PitchBelow20FtClimbingMax()
+        node.get_derived((pitch, alt, airborne, takeoff, climb))
 
         assert len(node)== 1
-        assert node[0].index == 24
-        assert node[0].value == pytest.approx(5, rel=1e-3)
+        assert node[0].index == 99
+        assert node[0].value == pytest.approx(1.64, abs=1e-2)
+
+    def test_climb_descend_and_climb(self):
+        array = np.ma.sin(np.linspace(2*np.pi, 0, 150)) * 5
+        pitch = P('Pitch', array=array)
+        array = np.ma.concatenate((
+            np.arange(0, 50),
+            np.arange(50, 10, -1),
+            np.arange(10, 70)
+        ))
+        alt = P('Altitude AGL For Flight Phases', array=array)
+        airborne = buildsection('Airborne', 0, 150)
+        takeoff = buildsection('Takeoff', 0, 35)
+        climb = buildsection('Initial Climb', 35, 150)
+
+        node = PitchBelow20FtClimbingMax()
+        node.get_derived((pitch, alt, airborne, takeoff, climb))
+
+        assert len(node)== 1
+        assert node[0].index == 99
+        assert node[0].value == pytest.approx(4.29, abs=1e-2)
+
+
+class TestPitchBelow20FtDescendingMin:
+    def test_can_operate(self):
+        node = PitchBelow20FtDescendingMin()
+        expected = [
+            ('Pitch', 'Altitude AGL For Flight Phases',
+             'Airborne', 'Descent')
+        ]
+        assert node.get_operational_combinations(ac_type=helicopter) == expected
+
+    def test_normal_descent(self):
+        array = np.ma.sin(np.linspace(0, 2*np.pi, 100)) * 5
+        pitch = P('Pitch', array=array)
+        array = np.ma.arange(100, 0, -1)
+        alt = P('Altitude AGL For Flight Phases', array=array)
+        airborne = buildsection('Airborne', 0, 99)
+        descent = buildsection('Descent', 0, 100)
+
+        node = PitchBelow20FtDescendingMin()
+        node.get_derived((pitch, alt, airborne, descent))
+
+        assert len(node)== 1
+        assert node[0].index == 81
+        assert node[0].value == pytest.approx(-4.55, abs=1e-2)
+
+    def test_descent_climb_landing(self):
+        array = np.ma.sin(np.linspace(0, 2*np.pi, 110)) * 5
+        pitch = P('Pitch', array=array)
+        array = np.ma.concatenate((
+            np.arange(50, 5, -1),
+            np.arange(5, 30),
+            np.arange(30, 0, -1),
+            np.zeros(10)
+        ))
+        alt = P('Altitude AGL For Flight Phases', array=array)
+        airborne = buildsection('Airborne', 0, 99)
+        descent = buildsection('Descent', 0, 100)
+
+        node = PitchBelow20FtDescendingMin()
+        node.get_derived((pitch, alt, airborne, descent))
+
+        assert len(node)== 1
+        assert node[0].index == 82
+        assert node[0].value == pytest.approx(-5, abs=1e-2)
+
+
+class TestPitchBelow20FtDescendingMax:
+    def test_can_operate(self):
+        node = PitchBelow20FtDescendingMax()
+        expected = [
+            ('Pitch', 'Altitude AGL For Flight Phases',
+             'Airborne', 'Descent')
+        ]
+        assert node.get_operational_combinations(ac_type=helicopter) == expected
+
+    def test_normal_descent(self):
+        array = np.ma.sin(np.linspace(0, 2*np.pi, 100)) * 5
+        pitch = P('Pitch', array=array)
+        array = np.ma.arange(100, 0, -1)
+        alt = P('Altitude AGL For Flight Phases', array=array)
+        airborne = buildsection('Airborne', 0, 99)
+        descent = buildsection('Descent', 0, 100)
+
+        node = PitchBelow20FtDescendingMax()
+        node.get_derived((pitch, alt, airborne, descent))
+
+        assert len(node)== 1
+        assert node[0].index == 98
+        assert node[0].value == pytest.approx(-0.32, abs=1e-2)
+
+    def test_descent_climb_landing(self):
+        array = np.ma.sin(np.linspace(0, 2*np.pi, 110)) * 5
+        pitch = P('Pitch', array=array)
+        array = np.ma.concatenate((
+            np.arange(50, 5, -1),
+            np.arange(5, 30),
+            np.arange(30, 0, -1),
+            np.zeros(10)
+        ))
+        alt = P('Altitude AGL For Flight Phases', array=array)
+        airborne = buildsection('Airborne', 0, 99)
+        descent = buildsection('Descent', 0, 100)
+
+        node = PitchBelow20FtDescendingMax()
+        node.get_derived((pitch, alt, airborne, descent))
+
+        assert len(node)== 1
+        assert node[0].index == 31
+        assert node[0].value == pytest.approx(4.88, abs=1e-2)
 
 
 class TestPitch20To500FtMin:
     def test_can_operate(self):
         node = Pitch20To500FtMin()
         expected = [
-            ('Pitch', 'Initial Climb', 'Altitude When Climbing')
+            ('Pitch', 'Altitude AGL For Flight Phases', 'Initial Climb')
         ]
         assert node.get_operational_combinations(ac_type=helicopter) == expected
 
@@ -3832,55 +3991,38 @@ class TestPitch20To500FtMin:
         array = np.sin(np.linspace(2*np.pi, np.pi, 50)) * 5
         pitch = P('Pitch', array=array)
         climbs = buildsection('Initial Climb', 0, 100)
-        alt = AltitudeWhenClimbing(items=[
-            KeyTimeInstance(index=1, name='10 Ft Climbing'),
-            KeyTimeInstance(index=2, name='20 Ft Climbing'),
-            KeyTimeInstance(index=50, name='500 Ft Climbing'),
-        ])
+        array = np.linspace(35, 500)
+        alt = P('Altitude AGL For Flight Phases', array=array)
         node = Pitch20To500FtMin()
-        node.get_derived((pitch, climbs, alt))
+        node.get_derived((pitch, alt, climbs))
 
         assert len(node) == 1
         assert node[0].value == pytest.approx(-5, rel=1e-3)
         assert node[0].index == 24
 
-    def test_missing_20_ft(self):
-        array = np.sin(np.linspace(2*np.pi, np.pi, 50)) * 5
-        array[3] = -10
+    def test_climb_descend_and_climb_again(self):
+        array = np.sin(np.linspace(2*np.pi, np.pi, 200)) * 5
         pitch = P('Pitch', array=array)
-        climbs = buildsection('Initial Climb', 0, 100)
-        alt = AltitudeWhenClimbing(items=[
-            KeyTimeInstance(index=50, name='500 Ft Climbing'),
-        ])
+        climbs = buildsection('Initial Climb', 3, 200)
+        array = np.ma.concatenate((
+            np.linspace(0, 600, 100),
+            np.linspace(600, 300, 50),
+            np.linspace(300, 600, 50),
+        ))
+        alt = P('Altitude AGL For Flight Phases', array=array)
         node = Pitch20To500FtMin()
-        node.get_derived((pitch, climbs, alt))
+        node.get_derived((pitch, alt, climbs))
 
         assert len(node) == 1
-        assert node[0].value == pytest.approx(-10)
-        assert node[0].index == 3
-
-    def test_missing_500ft(self):
-        array = np.sin(np.linspace(2*np.pi, np.pi, 50)) * 5
-        array[47] = -10
-        pitch = P('Pitch', array=array)
-        climbs = buildsection('Initial Climb', 0, 50)
-        alt = AltitudeWhenClimbing(items=[
-            KeyTimeInstance(index=1, name='10 Ft Climbing'),
-            KeyTimeInstance(index=2, name='20 Ft Climbing'),
-        ])
-        node = Pitch20To500FtMin()
-        node.get_derived((pitch, climbs, alt))
-
-        assert len(node) == 1
-        assert node[0].value == pytest.approx(-10)
-        assert node[0].index == 47
+        assert node[0].index == 82
+        assert node[0].value == pytest.approx(-4.81, abs=1e-2)
 
 
 class TestPitch20To500FtMax:
     def test_can_operate(self):
         node = Pitch20To500FtMax()
         expected = [
-            ('Pitch', 'Initial Climb', 'Altitude When Climbing')
+            ('Pitch', 'Altitude AGL For Flight Phases', 'Initial Climb')
         ]
         assert node.get_operational_combinations(ac_type=helicopter) == expected
 
@@ -3888,48 +4030,31 @@ class TestPitch20To500FtMax:
         array = np.sin(np.linspace(0, np.pi, 50)) * 5
         pitch = P('Pitch', array=array)
         climbs = buildsection('Initial Climb', 0, 100)
-        alt = AltitudeWhenClimbing(items=[
-            KeyTimeInstance(index=1, name='10 Ft Climbing'),
-            KeyTimeInstance(index=2, name='20 Ft Climbing'),
-            KeyTimeInstance(index=50, name='500 Ft Climbing'),
-        ])
+        array = np.linspace(35, 500)
+        alt = P('Altitude AGL For Flight Phases', array=array)
         node = Pitch20To500FtMax()
-        node.get_derived((pitch, climbs, alt))
+        node.get_derived((pitch, alt, climbs))
 
         assert len(node) == 1
-        assert node[0].value == pytest.approx(5, rel=1e-3)
         assert node[0].index == 24
+        assert node[0].value == pytest.approx(5, rel=1e-3)
 
-    def test_missing_20_ft(self):
-        array = np.sin(np.linspace(0, np.pi, 50)) * 5
-        array[3] = 10
+    def test_climb_descend_and_climb_again(self):
+        array = np.sin(np.linspace(0, np.pi, 200)) * 5
         pitch = P('Pitch', array=array)
-        climbs = buildsection('Initial Climb', 0, 100)
-        alt = AltitudeWhenClimbing(items=[
-            KeyTimeInstance(index=50, name='500 Ft Climbing'),
-        ])
+        climbs = buildsection('Initial Climb', 3, 200)
+        array = np.ma.concatenate((
+            np.linspace(0, 600, 100),
+            np.linspace(600, 300, 50),
+            np.linspace(300, 600, 50),
+        ))
+        alt = P('Altitude AGL For Flight Phases', array=array)
         node = Pitch20To500FtMax()
-        node.get_derived((pitch, climbs, alt))
+        node.get_derived((pitch, alt, climbs))
 
         assert len(node) == 1
-        assert node[0].value == pytest.approx(10)
-        assert node[0].index == 3
-
-    def test_missing_500ft(self):
-        array = np.sin(np.linspace(0, np.pi, 50)) * 5
-        array[47] = 10
-        pitch = P('Pitch', array=array)
-        climbs = buildsection('Initial Climb', 0, 50)
-        alt = AltitudeWhenClimbing(items=[
-            KeyTimeInstance(index=1, name='10 Ft Climbing'),
-            KeyTimeInstance(index=2, name='20 Ft Climbing'),
-        ])
-        node = Pitch20To500FtMax()
-        node.get_derived((pitch, climbs, alt))
-
-        assert len(node) == 1
-        assert node[0].value == pytest.approx(10)
-        assert node[0].index == 47
+        assert node[0].index == 82
+        assert node[0].value == pytest.approx(4.81, abs=1e-2)
 
 
 class TestPitchOnGroundMin(unittest.TestCase):

@@ -1459,101 +1459,154 @@ class PitchOnDeckMin(KeyPointValueNode):
                                        min_value)
 
 
-class PitchTakeoffTo20FtMin(KeyPointValueNode):
+class PitchBelow20FtClimbingMin(KeyPointValueNode):
     '''
-    Minimum pitch between start of takeoff until the helicopter climbs through 20 ft.
-    '''
-    units = ut.DEGREE
+    Minimum pitch between 0 ft and 20 ft while climbing.
 
-    can_operate = helicopter_only
-
-    def derive(self, pitch=P('Pitch'), takeoffs=S('Takeoff'),
-               alt=KTI('Altitude When Climbing')):
-
-        alt_20ft = alt.get(name='20 Ft Climbing')
-        to_scan = list(itertools.chain(
-            ((t.start_edge, 'takeoff') for t in takeoffs),
-            ((a.index, 'climb') for a in alt_20ft)
-        ))
-        to_scan.sort(key=itemgetter(0))
-
-        takeoff_to_20ft = [
-            slice(idx1, idx2) for (idx1, phase1), (idx2, phase2) in pairwise(to_scan)
-            if phase1 == 'takeoff' and phase2 == 'climb'
-        ]
-        self.create_kpvs_within_slices(pitch.array, takeoff_to_20ft, min_value)
-
-
-class PitchTakeoffTo20FtMax(KeyPointValueNode):
-    '''
-    Maximum pitch between start of takeoff until the helicopter climbs through 20 ft.
+    Only one KPV per Takeoff and Initial Climb combined phases.
     '''
     units = ut.DEGREE
 
     can_operate = helicopter_only
 
-    def derive(self, pitch=P('Pitch'), takeoffs=S('Takeoff'),
-               alt=KTI('Altitude When Climbing')):
+    def derive(self,
+               pitch=P('Pitch'),
+               alt=P('Altitude AGL For Flight Phases'),
+               airbornes=S('Airborne'),
+               takeoffs=S('Takeoff'),
+               climbs=S('Initial Climb')):
 
-        alt_20ft = alt.get(name='20 Ft Climbing')
-        to_scan = list(itertools.chain(
-            ((t.start_edge, 'takeoff') for t in takeoffs),
-            ((a.index, 'climb') for a in alt_20ft)
-        ))
-        to_scan.sort(key=itemgetter(0))
+        alt_slices = alt.slices_from_to(0, 20)
+        # Restrict to the airborne phases during takeoff or climb.
+        takeoff_climbs = slices_or(takeoffs.get_slices(), climbs.get_slices())
+        takeoff_climbs = slices_remove_small_gaps(takeoff_climbs, time_limit=2, hz=self.hz)
+        takeoff_climbs = slices_and(takeoff_climbs, airbornes.get_slices())
 
-        takeoff_to_20ft = [
-            slice(idx1, idx2) for (idx1, phase1), (idx2, phase2) in pairwise(to_scan)
-            if phase1 == 'takeoff' and phase2 == 'climb'
-        ]
-        self.create_kpvs_within_slices(pitch.array, takeoff_to_20ft, max_value)
+        for takeoff_climb in takeoff_climbs:
+            section = slices_and(alt_slices, [takeoff_climb])
+            self.create_kpv_from_slices(pitch.array, section, min_value)
+
+
+class PitchBelow20FtClimbingMax(KeyPointValueNode):
+    '''
+    Maximum pitch between 0 ft and 20 ft while climbing.
+
+    Only one KPV per Takeoff and Initial Climb combined phases.
+    '''
+    units = ut.DEGREE
+
+    can_operate = helicopter_only
+
+    def derive(self,
+           pitch=P('Pitch'),
+           alt=P('Altitude AGL For Flight Phases'),
+           airbornes=S('Airborne'),
+           takeoffs=S('Takeoff'),
+           climbs=S('Initial Climb')):
+
+        alt_slices = alt.slices_from_to(0, 20)
+        # Restrict to the airborne phases during takeoff or climb.
+        takeoff_climbs = slices_or(takeoffs.get_slices(), climbs.get_slices())
+        takeoff_climbs = slices_remove_small_gaps(takeoff_climbs, time_limit=2, hz=self.hz)
+        takeoff_climbs = slices_and(takeoff_climbs, airbornes.get_slices())
+
+        for takeoff_climb in takeoff_climbs:
+            section = slices_and(alt_slices, [takeoff_climb])
+            self.create_kpv_from_slices(pitch.array, section, max_value)
+
+
+class PitchBelow20FtDescendingMin(KeyPointValueNode):
+    '''
+    Minimum pitch between 0 ft and 20 ft while descending.
+
+    Only one KPV per Descent phase.
+    '''
+    units = ut.DEGREE
+
+    can_operate = helicopter_only
+
+    def derive(self,
+               pitch=P('Pitch'),
+               alt=P('Altitude AGL For Flight Phases'),
+               airbornes=S('Airborne'),
+               descents=S('Descent')):
+
+        alt_slices = alt.slices_from_to(20, 0)
+        # Restrict to the airborne phases during descent.
+        descents = slices_and(descents.get_slices(), airbornes.get_slices())
+
+        for descent in descents:
+            section = slices_and(alt_slices, [descent])
+            self.create_kpv_from_slices(pitch.array, section, min_value)
+
+
+class PitchBelow20FtDescendingMax(KeyPointValueNode):
+    '''
+    Maximum pitch between 0 ft and 20 ft while descending.
+
+    Only one KPV per Descent phase.
+    '''
+    units = ut.DEGREE
+
+    can_operate = helicopter_only
+
+    def derive(self,
+               pitch=P('Pitch'),
+               alt=P('Altitude AGL For Flight Phases'),
+               airbornes=S('Airborne'),
+               descents=S('Descent')):
+
+        alt_slices = alt.slices_from_to(20, 0)
+        # Restrict to the airborne phases during descent.
+        descents = slices_and(descents.get_slices(), airbornes.get_slices())
+
+        for descent in descents:
+            section = slices_and(alt_slices, [descent])
+            self.create_kpv_from_slices(pitch.array, section, max_value)
 
 
 class Pitch20To500FtMin(KeyPointValueNode):
     '''
     Minimum pitch between 20 ft to 500 ft. Helicopters only.
+
+    Only one KPV per Initial Climb phase.
     '''
     units = ut.DEGREE
 
     can_operate = helicopter_only
 
-    def derive(self, pitch=P('Pitch'), climbs=S('Initial Climb'),
-               alt=KTI('Altitude When Climbing')):
+    def derive(self,
+           pitch=P('Pitch'),
+           alt=P('Altitude AGL For Flight Phases'),
+           climbs=S('Initial Climb')):
 
-        slices = []
-        for climb in slices_int(climbs.get_slices()):
-            alt_20ft = alt.get_first(name='20 Ft Climbing', within_slice=climb)
-            idx_20ft = alt_20ft.index if alt_20ft else climb.start
+        alt_slices = alt.slices_from_to(20, 500)
 
-            alt_500ft = alt.get_first(name='500 Ft Climbing', within_slice=climb)
-            idx_500ft = alt_500ft.index if alt_500ft else climb.stop
+        for climb in climbs:
+            section = slices_and(alt_slices, [climb.slice])
+            self.create_kpv_from_slices(pitch.array, section, min_value)
 
-            slices.append(slice(idx_20ft, idx_500ft))
-
-        self.create_kpvs_within_slices(pitch.array, slices, min_value)
 
 class Pitch20To500FtMax(KeyPointValueNode):
     '''
     Maximum pitch between 20 ft to 500 ft. Helicopters only.
+
+    Only one KPV per Initial Climb phase.
     '''
     units = ut.DEGREE
 
     can_operate = helicopter_only
 
-    def derive(self, pitch=P('Pitch'), climbs=S('Initial Climb'),
-               alt=KTI('Altitude When Climbing')):
+    def derive(self,
+           pitch=P('Pitch'),
+           alt=P('Altitude AGL For Flight Phases'),
+           climbs=S('Initial Climb')):
 
-        slices = []
-        for climb in slices_int(climbs.get_slices()):
-            alt_20ft = alt.get_first(name='20 Ft Climbing', within_slice=climb)
-            idx_20ft = alt_20ft.index if alt_20ft else climb.start
+        alt_slices = alt.slices_from_to(20, 500)
 
-            alt_500ft = alt.get_first(name='500 Ft Climbing', within_slice=climb)
-            idx_500ft = alt_500ft.index if alt_500ft else climb.stop
-
-            slices.append(slice(idx_20ft, idx_500ft))
-
-        self.create_kpvs_within_slices(pitch.array, slices, max_value)
+        for climb in climbs:
+            section = slices_and(alt_slices, [climb.slice])
+            self.create_kpv_from_slices(pitch.array, section, max_value)
 
 
 ##############################################################################
