@@ -1801,6 +1801,7 @@ class TestCalculateSurfaceAngle(unittest.TestCase):
     flap_map_1 = {0: '0', 15: '15', 30: '30', 45: '45'}
     flap_map_2 = {0: '0', 1: '1', 5: '5', 15: '15', 20: '20', 25: '25', 30: '30'}
     flap_map_3 = {0: '0', 15: '15', 30: '30'}
+    flap_map_4 = {0: '0', 7: '7', 13: '13', 20: '20', 25: '25'}
 
     slat_map_1 = {0: '0', 15: '15', 25: '25'}
     slat_map_2 = {0: '0', 50: '50', 100: '100'}
@@ -1826,15 +1827,15 @@ class TestCalculateSurfaceAngle(unittest.TestCase):
 
     @classmethod
     @patch('analysis_engine.library.at')
-    def _calculate_flap(cls, array, map, at, align=False):
-        at.get_flap_map.return_value = map
-        return cls._calculate(calculate_flap, array, align=align)
+    def _calculate_flap(cls, array, mapping, at, **kwargs):
+        at.get_flap_map.return_value = mapping
+        return cls._calculate(calculate_flap, array, **kwargs)
 
     @classmethod
     @patch('analysis_engine.library.at')
-    def _calculate_slat(cls, array, map, at, align=False):
-        at.get_slat_map.return_value = map
-        return cls._calculate(calculate_slat, array, align=align)
+    def _calculate_slat(cls, array, mapping, at, **kwargs):
+        at.get_slat_map.return_value = mapping
+        return cls._calculate(calculate_slat, array, **kwargs)
 
     def test_calculate_flap_1(self):
         array = load_compressed(os.path.join(test_data_path, 'calculate_flap_1.npz'))
@@ -2040,6 +2041,42 @@ class TestCalculateSurfaceAngle(unittest.TestCase):
         self.assertTrue(np.ma.all(flap_lev[8790:8848] == 15))
         self.assertTrue(np.ma.all(flap_lev[8848:9243] == 30))
         self.assertTrue(np.ma.all(flap_lev[9243:] == 0))
+
+    def test_calculate_flap_22(self):
+        array = load_compressed(os.path.join(test_data_path, 'calculate_flap_22.npz'))
+        flap_exc, flap_inc, flap_lev = self._calculate_flap(array, self.flap_map_4, hz=40)
+
+        for flap_array in (flap_exc, flap_inc, flap_lev):
+            self.assertTrue(flap_array.mask[:120].all())
+            self.assertFalse(flap_array.mask[120:750795].any())
+            self.assertTrue(flap_array.mask[750795:].all())
+
+        self.assertTrue(np.ma.all(flap_inc[120:8755] == 0))
+        self.assertTrue(np.ma.all(flap_inc[8755:25483] == 20))
+        self.assertTrue(np.ma.all(flap_inc[25483:723243] == 0))
+        self.assertTrue(np.ma.all(flap_inc[723243:726340] == 7))
+        self.assertTrue(np.ma.all(flap_inc[726340:732403] == 13))
+        self.assertTrue(np.ma.all(flap_inc[732403:734002] == 20))
+        self.assertTrue(np.ma.all(flap_inc[734002:744403] == 25))
+        self.assertTrue(np.ma.all(flap_inc[744403:750795] == 0))
+
+        self.assertTrue(np.ma.all(flap_exc[120:10600] == 0))
+        self.assertTrue(np.ma.all(flap_exc[10600:24540] == 20))
+        self.assertTrue(np.ma.all(flap_exc[24540:724344] == 0))
+        self.assertTrue(np.ma.all(flap_exc[724344:726741] == 7))
+        self.assertTrue(np.ma.all(flap_exc[726741:732772] == 13))
+        self.assertTrue(np.ma.all(flap_exc[732772:734201] == 20))
+        self.assertTrue(np.ma.all(flap_exc[734201:743363] == 25))
+        self.assertTrue(np.ma.all(flap_exc[743363:750795] == 0))
+
+        self.assertTrue(np.ma.all(flap_lev[120:8755] == 0))
+        self.assertTrue(np.ma.all(flap_lev[8755:24540] == 20))
+        self.assertTrue(np.ma.all(flap_lev[24540:723243] == 0))
+        self.assertTrue(np.ma.all(flap_lev[723243:726340] == 7))
+        self.assertTrue(np.ma.all(flap_lev[726340:732403] == 13))
+        self.assertTrue(np.ma.all(flap_lev[732403:734002] == 20))
+        self.assertTrue(np.ma.all(flap_lev[734002:743363] == 25))
+        self.assertTrue(np.ma.all(flap_lev[743363:750795] == 0))
 
     def test_calculate_slat_1(self):
         array = load_compressed(os.path.join(test_data_path, 'calculate_slat_1.npz'))
