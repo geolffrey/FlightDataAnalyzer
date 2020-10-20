@@ -764,17 +764,22 @@ def calculate_surface_angle(mode, param, detents):
     :returns: array and frequency
     :rtype: np.ma.array, int or float
     '''
-    freq_multiplier = 4 if param.frequency < 2 else 2
-    freq = param.frequency * freq_multiplier
     # No need to re-align if high frequency.
-    offset = param.offset / freq_multiplier
-    angle = align_args(
-        param.array,
-        param.frequency,
-        param.offset,
-        freq,
-        offset,
-    )
+    if param.frequency > 20:
+        angle = param.array
+        freq = param.frequency
+        offset = param.offset
+    else:
+        freq_multiplier = 4 if param.frequency < 2 else 2
+        freq = param.frequency * freq_multiplier
+        offset = param.offset / freq_multiplier
+        angle = align_args(
+            param.array,
+            param.frequency,
+            param.offset,
+            freq,
+            offset,
+        )
 
     mask = angle.mask.copy()
     # Repair the array to avoid extreme values affecting the algorithm.
@@ -789,8 +794,13 @@ def calculate_surface_angle(mode, param, detents):
     # ---- Pre-processing ----------------------------------------------
     angle = np.ma.masked_array(medfilt(angle, filter_median_window))
 
+    sizes = np.array([2, 3, 4, 5, 6, 8, 12, 16])
+    if freq > 20:
+        # for very high frequency parameters, the default sizes lead to separate data spikes during angle transitions rather than
+        # a continuous non-zero value during the entire course of the transition
+        sizes *= int(freq / 2)
     metrics = np.full(len(angle), np.Inf)
-    for l in np.array([2, 3, 4, 5, 6, 8, 12, 16]):
+    for l in sizes:
         maxy = filters.maximum_filter1d(angle, l)
         miny = filters.minimum_filter1d(angle, l)
         m = np.log(maxy - miny +  1) / np.log(l)
