@@ -11962,10 +11962,11 @@ class TestEngTorqueMaxDuringMaximumContinuousPower(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_torque_max, mcp)
         self.assertEqual(node, KPV(name=name, items=[
+            KeyPointValue(index=25, value=79, name='Eng (*) Torque Max During Maximum Continuous Power 5 Sec'),
             KeyPointValue(index=20, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 10 Sec'),
-                KeyPointValue(index=20, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 20 Sec'),
-                KeyPointValue(index=20, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 5 Min'),
-                KeyPointValue(index=20, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 10 Min'),
+            KeyPointValue(index=20, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 20 Sec'),
+            KeyPointValue(index=20, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 5 Min'),
+            KeyPointValue(index=20, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 10 Min'),
         ]))
 
     def test_derive_short_mcp(self):
@@ -11978,9 +11979,10 @@ class TestEngTorqueMaxDuringMaximumContinuousPower(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_torque_max, mcp)
         self.assertEqual(node, KPV(name=name, items=[
+            KeyPointValue(index=25, value=79, name='Eng (*) Torque Max During Maximum Continuous Power 5 Sec'),
             KeyPointValue(index=20, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 10 Sec'),
-                KeyPointValue(index=20, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 20 Sec'),
-                KeyPointValue(index=20, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 5 Min'),
+            KeyPointValue(index=20, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 20 Sec'),
+            KeyPointValue(index=20, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 5 Min'),
         ]))
 
     def test_derive_masked_data(self):
@@ -11994,8 +11996,9 @@ class TestEngTorqueMaxDuringMaximumContinuousPower(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_torque_max, mcp)
         self.assertEqual(node, KPV(name=name, items=[
+            KeyPointValue(index=25, value=79, name='Eng (*) Torque Max During Maximum Continuous Power 5 Sec'),
             KeyPointValue(index=20, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 10 Sec'),
-                KeyPointValue(index=20, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 20 Sec'),
+            KeyPointValue(index=20, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 20 Sec'),
         ]))
 
     def test_derive_multiple_masked_slices(self):
@@ -12012,9 +12015,10 @@ class TestEngTorqueMaxDuringMaximumContinuousPower(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_torque_max, mcp)
         self.assertEqual(node, KPV(name=name, items=[
+            KeyPointValue(index=25, value=79, name='Eng (*) Torque Max During Maximum Continuous Power 5 Sec'),
             KeyPointValue(index=20, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 10 Sec'),
-                KeyPointValue(index=20, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 20 Sec'),
-                KeyPointValue(index=20, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 5 Min'),
+            KeyPointValue(index=20, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 20 Sec'),
+            KeyPointValue(index=20, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 5 Min'),
         ]))
 
     def test_derive_all_data_masked(self):
@@ -12038,10 +12042,11 @@ class TestEngTorqueMaxDuringMaximumContinuousPower(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_torque_max, mcp)
         self.assertEqual(node, KPV(name=name, items=[
+            KeyPointValue(index=45, value=79, name='Eng (*) Torque Max During Maximum Continuous Power 5 Sec'),
             KeyPointValue(index=40, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 10 Sec'),
-                KeyPointValue(index=40, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 20 Sec'),
-                KeyPointValue(index=40, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 5 Min'),
-                KeyPointValue(index=40, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 10 Min'),
+            KeyPointValue(index=40, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 20 Sec'),
+            KeyPointValue(index=40, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 5 Min'),
+            KeyPointValue(index=40, value=75, name='Eng (*) Torque Max During Maximum Continuous Power 10 Min'),
         ]))
 
 
@@ -12183,6 +12188,7 @@ class TestEngN1DuringTakeoffMax(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_N1_max, takeoffs)
         self.assertEqual(node, KPV(name=name, items=[
+            KeyPointValue(index=10, value=99, name='Eng (*) N1 During Takeoff For 5 Sec Max'),
             KeyPointValue(index=10, value=98, name='Eng (*) N1 During Takeoff For 10 Sec Max'),
         ]))
 
@@ -12196,7 +12202,9 @@ class TestEngN1DuringTakeoffMax(unittest.TestCase):
         node = self.node_class()
         node.derive(eng_N1_max, takeoffs, go_arounds)
         self.assertEqual(node, KPV(name=name, items=[
+            KeyPointValue(index=380, value=99, name='Eng (*) N1 During Takeoff For 5 Sec Max'),
             KeyPointValue(index=380, value=98, name='Eng (*) N1 During Takeoff For 10 Sec Max'),
+            KeyPointValue(index=10, value=99, name='Eng (*) N1 During Takeoff For 5 Sec Max'),
             KeyPointValue(index=10, value=98, name='Eng (*) N1 During Takeoff For 10 Sec Max'),
         ]))
 
@@ -13085,22 +13093,24 @@ class TestEngGasTempDuringMaximumContinuousPowerForXMinMax(unittest.TestCase, No
 
         expected_results = [
             (1438.0, 724.0, 'Eng Gas Temp During Maximum Continuous Power For 3 Min Max'),
-             (3362.0, 724.0, 'Eng Gas Temp During Maximum Continuous Power For 3 Min Max'),
-             (1208.0, 709.0, 'Eng Gas Temp During Maximum Continuous Power For 5 Min Max'),
-             (3277.0, 716.0, 'Eng Gas Temp During Maximum Continuous Power For 5 Min Max'),
-             (1516.0, 735.0, 'Eng Gas Temp During Maximum Continuous Power For 10 Sec Max'),
-             (3456.0, 738.0, 'Eng Gas Temp During Maximum Continuous Power For 10 Sec Max'),
-             (1510.0, 734.0, 'Eng Gas Temp During Maximum Continuous Power For 20 Sec Max'),
-             (3446.0, 737.0, 'Eng Gas Temp During Maximum Continuous Power For 20 Sec Max'),
+            (3362.0, 724.0, 'Eng Gas Temp During Maximum Continuous Power For 3 Min Max'),
+            (1208.0, 709.0, 'Eng Gas Temp During Maximum Continuous Power For 5 Min Max'),
+            (3277.0, 716.0, 'Eng Gas Temp During Maximum Continuous Power For 5 Min Max'),
+            (1516.0, 735.0, 'Eng Gas Temp During Maximum Continuous Power For 5 Sec Max'),
+            (3456.0, 738.0, 'Eng Gas Temp During Maximum Continuous Power For 5 Sec Max'),
+            (1516.0, 735.0, 'Eng Gas Temp During Maximum Continuous Power For 10 Sec Max'),
+            (3456.0, 738.0, 'Eng Gas Temp During Maximum Continuous Power For 10 Sec Max'),
+            (1510.0, 734.0, 'Eng Gas Temp During Maximum Continuous Power For 20 Sec Max'),
+            (3446.0, 737.0, 'Eng Gas Temp During Maximum Continuous Power For 20 Sec Max'),
         ]
 
-        self.assertEqual(len(node), 8)
+        self.assertEqual(len(node), 10)
         self.assertEqual(node.name, 'Eng Gas Temp During Maximum Continuous Power For X Min Max')
         for kpv_node, expected  in zip(node, expected_results):
             expected_index, expected_value, expected_name = expected
             self.assertAlmostEqual(kpv_node.index, expected_index, places=0)
             self.assertAlmostEqual(kpv_node.value, expected_value, places=0)
-            self.assertAlmostEqual(kpv_node.name, expected_name, places=0)
+            self.assertEqual(kpv_node.name, expected_name)
 
 
     def test_derive_no_goaround(self):
@@ -13110,17 +13120,18 @@ class TestEngGasTempDuringMaximumContinuousPowerForXMinMax(unittest.TestCase, No
 
         expected_results = [
             (1438.0, 724.0, 'Eng Gas Temp During Maximum Continuous Power For 3 Min Max'),
-             (3277.0, 716.0, 'Eng Gas Temp During Maximum Continuous Power For 5 Min Max'),
-             (2927.0, 804.0, 'Eng Gas Temp During Maximum Continuous Power For 10 Sec Max'),
-             (2918.0, 777.0, 'Eng Gas Temp During Maximum Continuous Power For 20 Sec Max'),
+            (3277.0, 716.0, 'Eng Gas Temp During Maximum Continuous Power For 5 Min Max'),
+            (2933.0, 809.0, 'Eng Gas Temp During Maximum Continuous Power For 5 Sec Max'),
+            (2927.0, 804.0, 'Eng Gas Temp During Maximum Continuous Power For 10 Sec Max'),
+            (2918.0, 777.0, 'Eng Gas Temp During Maximum Continuous Power For 20 Sec Max'),
         ]
-        self.assertEqual(len(node), 4)
+        self.assertEqual(len(node), 5)
         self.assertEqual(node.name, 'Eng Gas Temp During Maximum Continuous Power For X Min Max')
         for kpv_node, expected  in zip(node, expected_results):
             expected_index, expected_value, expected_name = expected
             self.assertAlmostEqual(kpv_node.index, expected_index, places=0)
             self.assertAlmostEqual(kpv_node.value, expected_value, places=0)
-            self.assertAlmostEqual(kpv_node.name, expected_name, places=0)
+            self.assertEqual(kpv_node.name, expected_name)
 
     def test_derive_no_goaround_helicopter(self):
         '''
@@ -13133,18 +13144,20 @@ class TestEngGasTempDuringMaximumContinuousPowerForXMinMax(unittest.TestCase, No
 
         expected_results = [
             (1438.0, 724.0, 'Eng Gas Temp During Maximum Continuous Power For 3 Min Max'),
-             (3277.0, 716.0, 'Eng Gas Temp During Maximum Continuous Power For 5 Min Max'),
-             (2927.0, 804.0, 'Eng Gas Temp During Maximum Continuous Power For 10 Sec Max'),
-             (2918.0, 777.0, 'Eng Gas Temp During Maximum Continuous Power For 20 Sec Max'),
+            (3277.0, 716.0, 'Eng Gas Temp During Maximum Continuous Power For 5 Min Max'),
+            (2933.0, 809.0, 'Eng Gas Temp During Maximum Continuous Power For 5 Sec Max'),
+            (2927.0, 804.0, 'Eng Gas Temp During Maximum Continuous Power For 10 Sec Max'),
+            (2918.0, 777.0, 'Eng Gas Temp During Maximum Continuous Power For 20 Sec Max'),
         ]
 
-        self.assertEqual(len(node), 4)
+        self.assertEqual(len(node), 5)
         self.assertEqual(node.name, 'Eng Gas Temp During Maximum Continuous Power For X Min Max')
         for kpv_node, expected  in zip(node, expected_results):
             expected_index, expected_value, expected_name = expected
             self.assertAlmostEqual(kpv_node.index, expected_index, places=0)
             self.assertAlmostEqual(kpv_node.value, expected_value, places=0)
-            self.assertAlmostEqual(kpv_node.name, expected_name, places=0)
+            self.assertEqual(kpv_node.name, expected_name)
+
 
 class TestEngGasTempMaxDuringTakeoffMaxMaintained(unittest.TestCase, NodeTest):
     def setUp(self):
@@ -13299,6 +13312,8 @@ class TestEngGasTempDuringEngStartForXSecMax(unittest.TestCase, NodeTest):
             node,
             KPV('Eng Gas Temp During Eng Start For X Sec Max',
                 items=[
+                    KeyPointValue(index=234, value=530,
+                                  name='Eng Gas Temp During Eng Start For 2 Sec Max'),
                     KeyPointValue(index=224, value=513,
                                   name='Eng Gas Temp During Eng Start For 5 Sec Max'),
                     KeyPointValue(index=1, value=510,

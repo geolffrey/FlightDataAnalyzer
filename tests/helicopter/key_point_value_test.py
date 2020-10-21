@@ -50,9 +50,11 @@ from analysis_engine.helicopter.key_point_values import (
     CyclicDuringTaxiMax,
     CyclicForeDuringTaxiMax,
     CyclicLateralDuringTaxiMax,
+    EngN1WhileGroundedMin,
     EngTorqueExceeding100Percent,
     EngTorqueExceeding110Percent,
     EngN2DuringMaximumContinuousPowerMin,
+    EngN2DuringTakeoff5MinRatingMin,
     EngTorqueWithOneEngineInoperativeMax,
     EngTorqueAbove90KtsMax,
     EngTorqueAbove100KtsMax,
@@ -117,9 +119,12 @@ from analysis_engine.helicopter.key_point_values import (
     RotorSpeedWithRotorBrakeAppliedMax,
     RotorsRunningDuration,
     RotorSpeedDuringMaximumContinuousPowerMin,
+    RotorSpeedDuringMaximumContinuousPowerForXSecMax,
+    RotorSpeedDuringMaximumContinuousPowerForXSecMin,
     RotorSpeed36To49Duration,
     RotorSpeed56To67Duration,
     RotorSpeedAt6PercentCollectiveDuringEngStart,
+    RotorSpeedWhileGroundedMax,
     WindSpeedInCriticalAzimuth,
     SATMin,
     SATRateOfChangeMax,
@@ -1834,11 +1839,29 @@ class TestEngTorqueExceeding110Percent(unittest.TestCase):
         self.assertEqual(len(kpv), 0)
 
 
+class TestEngN1WhileGroundedMin(unittest.TestCase, CreateKPVFromSlicesTest):
+
+    def setUp(self):
+        self.node_class = EngN1WhileGroundedMin
+        self.operational_combinations = [('Eng (*) N1 Min', 'Grounded')]
+        self.can_operate_kwargs = {'ac_type': helicopter}
+        self.function = min_value
+
+
 class TestEngN2MaximumContinuousPowerMin(unittest.TestCase, CreateKPVsWithinSlicesTest):
 
     def setUp(self):
         self.node_class = EngN2DuringMaximumContinuousPowerMin
         self.operational_combinations = [('Eng (*) N2 Min', 'Maximum Continuous Power')]
+        self.can_operate_kwargs = {'ac_type': helicopter}
+        self.function = min_value
+
+
+class TestEngN2DuringTakeoff5MinRatingMin(unittest.TestCase, CreateKPVsWithinSlicesTest):
+
+    def setUp(self):
+        self.node_class = EngN2DuringTakeoff5MinRatingMin
+        self.operational_combinations = [('Eng (*) N2 Min', 'Takeoff 5 Min Rating')]
         self.can_operate_kwargs = {'ac_type': helicopter}
         self.function = min_value
 
@@ -4513,6 +4536,14 @@ class TestRotorSpeedWhileAirborneMin(unittest.TestCase):
         self.assertAlmostEqual(node[0].value, 99.517, places=3)
 
 
+class TestRotorSpeedWhileGroundedMax(unittest.TestCase, CreateKPVFromSlicesTest):
+    def setUp(self):
+        self.node_class = RotorSpeedWhileGroundedMax
+        self.operational_combinations = [('Nr', 'Grounded')]
+        self.can_operate_kwargs = {'ac_type': helicopter}
+        self.function = max_value
+
+
 class TestRotorSpeedWithRotorBrakeAppliedMax(unittest.TestCase):
 
     def setUp(self):
@@ -4614,6 +4645,20 @@ class TestRotorSpeedDuringMaximumContinuousPowerMin(unittest.TestCase):
         self.assertEqual(node[0].index, 114)
         self.assertAlmostEqual(node[0].value, 99.473, places=3)
 
+
+class TestRotorSpeedDuringMaximumContinuousPowerForXSecMin(unittest.TestCase):
+
+    def setUp(self):
+        self.node_class = RotorSpeedDuringMaximumContinuousPowerForXSecMin
+
+    def test_can_operate(self):
+        self.assertEqual(self.node_class.get_operational_combinations(ac_type=aeroplane), [])
+        opts = self.node_class.get_operational_combinations(ac_type=helicopter)
+        self.assertEqual(opts, [
+            ('Nr', 'Maximum Continuous Power'),
+            ('Nr', 'Maximum Continuous Power', 'Autorotation'),
+        ])
+
     def test_derive(self):
         x = np.linspace(0, 10, 200)
         rotor = P('Rotor', array=np.ma.array(np.sin(x)+100))
@@ -4622,11 +4667,65 @@ class TestRotorSpeedDuringMaximumContinuousPowerMin(unittest.TestCase):
         mcp = SectionNode(name, items=[section])
 
         node = self.node_class()
-        node.derive(rotor, mcp, None)
+        node.derive(rotor, mcp)
 
         self.assertEqual(len(node), 1)
         self.assertEqual(node[0].index, 115)
         self.assertAlmostEqual(node[0].value, 99.517, places=3)
+        self.assertEqual(node[0].name, 'Rotor Speed During Maximum Continuous Power For 10 Sec Min')
+
+    def test_excluding_autorotation(self):
+        x = np.linspace(0, 10, 200)
+        rotor = P('Rotor', array=np.ma.array(np.sin(x)+100))
+        mcp = buildsection('Maximum Continuous Power', 30, 155)
+        auto = buildsection('Autorotation', 72, 114)
+        node = self.node_class()
+        node.derive(rotor, mcp, auto)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 114)
+        self.assertAlmostEqual(node[0].value, 99.473, places=3)
+
+
+class TestRotorSpeedDuringMaximumContinuousPowerForXSecMax(unittest.TestCase):
+
+    def setUp(self):
+        self.node_class = RotorSpeedDuringMaximumContinuousPowerForXSecMax
+
+    def test_can_operate(self):
+        self.assertEqual(self.node_class.get_operational_combinations(ac_type=aeroplane), [])
+        opts = self.node_class.get_operational_combinations(ac_type=helicopter)
+        self.assertEqual(opts, [
+            ('Nr', 'Maximum Continuous Power'),
+            ('Nr', 'Maximum Continuous Power', 'Autorotation'),
+        ])
+
+    def test_derive(self):
+        x = np.linspace(0, 10, 200)
+        rotor = P('Rotor', array=np.ma.array(np.sin(x)+100))
+        name = 'Maximum Continuous Power'
+        section = Section(name, slice(115, 152), 115, 152)
+        mcp = SectionNode(name, items=[section])
+
+        node = self.node_class()
+        node.derive(rotor, mcp)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 151)
+        self.assertAlmostEqual(node[0].value, 100.965, places=3)
+        self.assertEqual(node[0].name, 'Rotor Speed During Maximum Continuous Power For 10 Sec Max')
+
+    def test_excluding_autorotation(self):
+        x = np.linspace(0, 10, 200)
+        rotor = P('Rotor', array=np.ma.array(np.sin(x)+100))
+        mcp = buildsection('Maximum Continuous Power', 30, 155)
+        auto = buildsection('Autorotation', 25, 50)
+        node = self.node_class()
+        node.derive(rotor, mcp, auto)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 151)
+        self.assertAlmostEqual(node[0].value, 100.965, places=3)
 
 
 class TestRotorSpeed36To49Duration(unittest.TestCase):

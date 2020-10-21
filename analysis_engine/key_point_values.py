@@ -11079,7 +11079,7 @@ class EngGasTempDuringMaximumContinuousPowerForXMinMax(KeyPointValueNode):
                 duration=minutes,
                 unit='Min'
             )
-        for seconds in [10, 20]:
+        for seconds in [5, 10, 20]:
             self.create_kpvs_within_slices(
                 second_window(eng_egt_max.array.astype(int), eng_egt_max.hz,
                               seconds),
@@ -11234,7 +11234,7 @@ class EngGasTempDuringEngStartForXSecMax(KeyPointValueNode):
     '''
 
     NAME_FORMAT = 'Eng Gas Temp During Eng Start For %(seconds)d Sec Max'
-    NAME_VALUES = {'seconds': [5, 10, 20, 40]}
+    NAME_VALUES = {'seconds': [2, 5, 10, 20, 40]}
     align_frequency = 1
     units = ut.CELSIUS
 
@@ -21108,7 +21108,7 @@ class EngTorqueMaxDuringMaximumContinuousPower(EngMaxMixin, KeyPointValueNode):
     '''
 
     NAME_FORMAT = 'Eng (*) Torque Max During Maximum Continuous Power %(durations)s'
-    NAME_VALUES = {'durations': ['10 Sec', '20 Sec', '5 Min', '10 Min']}
+    NAME_VALUES = {'durations': ['5 Sec', '10 Sec', '20 Sec', '5 Min', '10 Min']}
     units = ut.PERCENT
 
     @classmethod
@@ -21119,7 +21119,7 @@ class EngTorqueMaxDuringMaximumContinuousPower(EngMaxMixin, KeyPointValueNode):
                eng_torq_max=P('Eng (*) Torque Max'),
                ratings=S('Maximum Continuous Power')):
 
-        seconds = np.array([10, 20, 300, 600])
+        seconds = np.array([5, 10, 20, 300, 600])
         self.create_kpv_max(eng_torq_max, ratings, seconds)
 
 
@@ -21130,7 +21130,7 @@ class EngN1DuringTakeoffMax(EngMaxMixin, KeyPointValueNode):
     '''
 
     NAME_FORMAT = 'Eng (*) N1 During Takeoff For %(durations)s Max'
-    NAME_VALUES = {'durations': ['10 Sec']}
+    NAME_VALUES = {'durations': ['5 Sec', '10 Sec']}
     units = ut.PERCENT
 
     @classmethod
@@ -21142,7 +21142,7 @@ class EngN1DuringTakeoffMax(EngMaxMixin, KeyPointValueNode):
                takeoffs=S('Takeoff 5 Min Rating'),
                go_arounds=S('Go Around 5 Min Rating')):
 
-        seconds = np.array([10])
+        seconds = np.array([5, 10])
         self.create_kpv_max(eng_n1_max, takeoffs, seconds)
 
         if go_arounds:

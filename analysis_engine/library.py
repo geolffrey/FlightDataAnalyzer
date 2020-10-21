@@ -8062,8 +8062,6 @@ def second_window(array, frequency, seconds, extend_window=False):
     Only include values which are maintained for a number of seconds, shorter
     exceedances are excluded.
 
-    Only supports odd numbers of seconds when frequency is 1.
-
     e.g. [0, 1, 2, 3, 2, 1, 2, 3] -> [0, 1, 2, 2, 2, 2, 2, 2]
 
     :param array: ...
@@ -8075,16 +8073,10 @@ def second_window(array, frequency, seconds, extend_window=False):
     :param extend_window: extend window to next boundary.
     :type extend_window: bool
     '''
-    min_window_size = 2.0 / frequency
-    if modulo(seconds, min_window_size) != 0:
-        if extend_window:
-            seconds = seconds - seconds % min_window_size + min_window_size
-        else:
-            raise ValueError('%s seconds is not valid for the frequency %s Hz.\n'
-                             'Value of seconds must be a multiple of 2 / frequency.'
-                             % (seconds, frequency))
-
-    samples = int(frequency * seconds)
+    if extend_window:
+        samples = math.ceil(frequency * seconds)
+    else:
+        samples = int(frequency * seconds)
 
     window_array = np_ma_masked_zeros_like(array)
 

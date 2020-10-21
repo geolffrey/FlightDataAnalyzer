@@ -3333,7 +3333,7 @@ class TestEng_N1MinFor5Sec(unittest.TestCase, NodeTest):
         min5s = Eng_N1MinFor5Sec()
         min5s.derive(param)
         expected = np.ma.array(data=[5,4,3,3,3,3,3,3,3,4]+[5]*5,
-                               mask=[0]*9+[1]*6)
+                               mask=[0]*10+[1]*5)
         ma_test.assert_masked_array_equal(min5s.array, expected)
 
     @unittest.expectedFailure
@@ -9786,8 +9786,8 @@ class TestAirspeedMinusFlapManoeuvreSpeedFor3Sec(unittest.TestCase, NodeTest):
         self.flap_mvr_spd.array[3] = np.ma.masked
         node = self.node_class()
         node.derive(self.airspeed, self.flap_mvr_spd)
-        expected = np.ma.array(data=np.concatenate((np.zeros(4), np.ones(4) * 18, np.zeros(4))),
-                               mask=np.concatenate((np.ones(4), np.zeros(4), np.ones(4))))
+        expected = np.ma.array(data=np.concatenate((np.zeros(4), np.ones(5) * 18, np.zeros(3))),
+                               mask=np.concatenate((np.ones(4), np.zeros(5), np.ones(3))))
         ma_test.assert_masked_array_equal(node.array, expected)
 
 

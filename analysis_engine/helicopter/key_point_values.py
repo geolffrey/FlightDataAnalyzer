@@ -630,6 +630,27 @@ class EngTorqueExceeding110Percent(KeyPointValueNode):
 
 
 ##############################################################################
+# Engine N1
+
+
+class EngN1WhileGroundedMin(KeyPointValueNode):
+    '''
+    Minimum N1 of all Engines on the ground.
+    '''
+
+    name = 'Eng N1 While Grounded Min'
+    units = ut.PERCENT
+
+    can_operate = helicopter_only
+
+    def derive(self,
+               eng_n1_max=P('Eng (*) N1 Min'),
+               grounds=S('Grounded')):
+
+        self.create_kpv_from_slices(eng_n1_max.array, grounds, min_value)
+
+
+##############################################################################
 # Engine N2
 
 
@@ -651,6 +672,23 @@ class EngN2DuringMaximumContinuousPowerMin(KeyPointValueNode):
                mcp=S('Maximum Continuous Power')):
 
         self.create_kpvs_within_slices(eng_n2_min.array, mcp, min_value)
+
+
+class EngN2DuringTakeoff5MinRatingMin(KeyPointValueNode):
+    '''
+    Minimum N2 between the start of takeoff and 5 minutes after.
+    '''
+
+    name = 'Eng N2 During Takeoff 5 Min Rating Min'
+    units = ut.PERCENT
+
+    can_operate = helicopter_only
+
+    def derive(self,
+               eng_n1_max=P('Eng (*) N2 Min'),
+               ratings=S('Takeoff 5 Min Rating')):
+
+        self.create_kpvs_within_slices(eng_n1_max.array, ratings, min_value)
 
 
 ##############################################################################
@@ -1860,6 +1898,87 @@ class RotorSpeedWhileAirborneMin(KeyPointValueNode):
         self.create_kpv_from_slices(nr.array,
                                     slices,
                                     min_value)
+
+
+class RotorSpeedWhileGroundedMax(KeyPointValueNode):
+    '''
+    Maximum rotor speed while on the ground.
+    Helicopter only.
+    '''
+
+    units = ut.PERCENT
+    can_operate = helicopter_only
+
+    def derive(self, nr=P('Nr'), grounds=S('Grounded')):
+        self.create_kpv_from_slices(nr.array, grounds.get_slices(), max_value)
+
+
+class RotorSpeedDuringMaximumContinuousPowerForXSecMin(KeyPointValueNode):
+    '''
+    Minimum rotor speed during max continuous power for specified amount of time.
+
+    We assume maximum continuous power applies whenever takeoff power settings are not
+    in force.
+    '''
+
+    NAME_FORMAT = 'Rotor Speed During Maximum Continuous Power For %(duration)d Sec Min'
+    NAME_VALUES = {'duration': [10]}
+    units = ut.PERCENT
+
+    @classmethod
+    def can_operate(cls, available, ac_type=A('Aircraft Type')):
+        return ac_type == helicopter and all_of(('Nr', 'Maximum Continuous Power'), available)
+
+    def derive(self,
+               nr=P('Nr'),
+               mcp=S('Maximum Continuous Power'),
+               autorotation=S('Autorotation')):
+
+        slices = mcp.get_slices()
+        if autorotation is not None:
+            slices = slices_and_not(slices, autorotation.get_slices())
+
+        for seconds in [10]:
+            self.create_kpv_from_slices(
+                second_window(nr.array, nr.hz, seconds),
+                slices,
+                min_value,
+                duration=seconds
+            )
+
+
+class RotorSpeedDuringMaximumContinuousPowerForXSecMax(KeyPointValueNode):
+    '''
+    Maximum rotor speed during max continuous power for specified amount of time.
+
+    We assume maximum continuous power applies whenever takeoff power settings are not
+    in force.
+    '''
+
+    NAME_FORMAT = 'Rotor Speed During Maximum Continuous Power For %(duration)d Sec Max'
+    NAME_VALUES = {'duration': [10]}
+    units = ut.PERCENT
+
+    @classmethod
+    def can_operate(cls, available, ac_type=A('Aircraft Type')):
+        return ac_type == helicopter and all_of(('Nr', 'Maximum Continuous Power'), available)
+
+    def derive(self,
+               nr=P('Nr'),
+               mcp=S('Maximum Continuous Power'),
+               autorotation=S('Autorotation')):
+
+        slices = mcp.get_slices()
+        if autorotation is not None:
+            slices = slices_and_not(slices, autorotation.get_slices())
+
+        for seconds in [10]:
+            self.create_kpv_from_slices(
+                second_window(nr.array, nr.hz, seconds),
+                slices,
+                max_value,
+                duration=seconds
+            )
 
 
 class RotorSpeedWithRotorBrakeAppliedMax(KeyPointValueNode):
