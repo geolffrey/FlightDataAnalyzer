@@ -42,6 +42,7 @@ from analysis_engine.helicopter.key_point_values import (
     AltitudeDuringCruiseMin,
     AltitudeRadioMinBeforeNoseDownAttitudeAdoptionOffshore,
     AltitudeRadioAtNoseDownAttitudeInitiation,
+    EngOilTempAtEngStartMin,
     CollectiveFrom10To60PercentDuration,
     TailRotorPedalWhileTaxiingABSMax,
     TailRotorPedalWhileTaxiingMax,
@@ -112,6 +113,8 @@ from analysis_engine.helicopter.key_point_values import (
     RollRateMax,
     RotorSpeedDuringAutorotationAbove108KtsMin,
     RotorSpeedDuringAutorotationBelow108KtsMin,
+    RotorSpeedDuringAutorotationForXSecMax,
+    RotorSpeedDuringAutorotationForXSecMin,
     RotorSpeedDuringAutorotationMax,
     RotorSpeedDuringAutorotationMin,
     RotorSpeedWhileAirborneMax,
@@ -446,7 +449,7 @@ class CreateKPVsWithinSlicesTest(NodeTest):
 class CreateKPVsWithinSlicesSecondWindowTest(CreateKPVsWithinSlicesTest):
     '''
     '''
-    @patch('analysis_engine.key_point_values.second_window')
+    @patch('analysis_engine.helicopter.key_point_values.second_window')
     def test_derive_mocked(self, second_window):
         # Not interested in testing functionallity of second window, this is
         # handled in library tests. Here we just want to check it was called
@@ -2055,6 +2058,22 @@ class TestEngTorqueAbove100KtsMax(unittest.TestCase):
         self.assertEqual(len(node), 1)
         self.assertEqual(node[0].index, 11)
         self.assertEqual(node[0].value, 73)
+
+
+##############################################################################
+# Engine Oil Temperature
+
+
+class TestEngOilTempAtEngStartMin(unittest.TestCase, CreateKPVsAtKTIsTest):
+
+    def setUp(self):
+        self.node_class = EngOilTempAtEngStartMin
+        self.operational_combinations = [('Eng (*) Oil Temp Min', 'Eng Start')]
+        self.can_operate_kwargs = {'ac_type': helicopter}
+
+
+##############################################################################
+# Gearbox Oil Temperature
 
 
 class TestMGBOilTempMax(unittest.TestCase):
@@ -4426,6 +4445,46 @@ class TestRotorSpeedDuringAutorotationMin(unittest.TestCase):
         self.assertEqual(len(node), 1)
         self.assertEqual(node[0].index, 115)
         self.assertAlmostEqual(node[0].value, 99.5, places=1)
+
+
+class TestRotorSpeedDuringAutorotationForXSecMax(unittest.TestCase, NodeTest):
+    def setUp(self):
+        self.node_class = RotorSpeedDuringAutorotationForXSecMax
+        self.operational_combinations = [('Nr', 'Autorotation')]
+        self.can_operate_kwargs = {'ac_type': helicopter}
+
+    def test_derive(self):
+        x = np.linspace(0, 10, 200)
+        rtr_spd = P('Nr', array=np.ma.array(np.sin(x)+100))
+        autorotation = buildsection('Autorotation', 125, 180)
+
+        node = self.node_class()
+        node.derive(rtr_spd, autorotation)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 151)
+        self.assertAlmostEqual(node[0].value, 100.96, places=1)
+        self.assertEqual(node[0].name, 'Rotor Speed During Autorotation For 10 Sec Max')
+
+
+class TestRotorSpeedDuringAutorotationForXSecMin(unittest.TestCase, NodeTest):
+    def setUp(self):
+        self.node_class = RotorSpeedDuringAutorotationForXSecMin
+        self.operational_combinations = [('Nr', 'Autorotation')]
+        self.can_operate_kwargs = {'ac_type': helicopter}
+
+    def test_derive(self):
+        x = np.linspace(0, 10, 200)
+        rtr_spd = P('Nr', array=np.ma.array(-np.sin(x)+100))
+        autorotation = buildsection('Autorotation', 125, 180)
+
+        node = self.node_class()
+        node.derive(rtr_spd, autorotation)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 151)
+        self.assertAlmostEqual(node[0].value, 99.03, places=1)
+        self.assertEqual(node[0].name, 'Rotor Speed During Autorotation For 10 Sec Min')
 
 
 class TestRotorSpeedWhileAirborneMax(unittest.TestCase):

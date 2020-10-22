@@ -764,6 +764,24 @@ class EngTorqueAbove100KtsMax(KeyPointValueNode):
 
 
 ##############################################################################
+# Engine Oil Temperature
+
+
+class EngOilTempAtEngStartMin(KeyPointValueNode):
+    '''
+    Minimum engine oil temperature at engine start.
+
+    Helicopter only
+    '''
+
+    units = ut.CELSIUS
+    can_operate = helicopter_only
+
+    def derive(self, eng=P('Eng (*) Oil Temp Min'), eng_starts=KTI('Eng Start')):
+        self.create_kpvs_at_ktis(eng.array, eng_starts)
+
+
+##############################################################################
 # Gearbox Oil
 
 
@@ -1857,6 +1875,51 @@ class RotorSpeedDuringAutorotationMin(KeyPointValueNode):
         self.create_kpvs_within_slices(nr.array, autorotation.get_slices(),
                                        min_value)
 
+
+class RotorSpeedDuringAutorotationForXSecMax(KeyPointValueNode):
+    '''
+    Maximum rotor speed during autorotion for specified amount of time.
+
+    Helicopter only.
+    '''
+
+    NAME_FORMAT = 'Rotor Speed During Autorotation For %(duration)d Sec Max'
+    NAME_VALUES = {'duration': [10]}
+    units = ut.PERCENT
+
+    can_operate = helicopter_only
+
+    def derive(self, nr=P('Nr'), autorotation=S('Autorotation')):
+        for seconds in [10]:
+            self.create_kpvs_within_slices(
+                second_window(nr.array, nr.hz, seconds),
+                autorotation.get_slices(),
+                max_value,
+                duration=seconds
+            )
+
+
+class RotorSpeedDuringAutorotationForXSecMin(KeyPointValueNode):
+    '''
+    Minimum rotor speed during autorotion for specified amount of time.
+
+    Helicopter only.
+    '''
+
+    NAME_FORMAT = 'Rotor Speed During Autorotation For %(duration)d Sec Min'
+    NAME_VALUES = {'duration': [10]}
+    units = ut.PERCENT
+
+    can_operate = helicopter_only
+
+    def derive(self, nr=P('Nr'), autorotation=S('Autorotation')):
+        for seconds in [10]:
+            self.create_kpvs_within_slices(
+                second_window(nr.array, nr.hz, seconds),
+                autorotation.get_slices(),
+                min_value,
+                duration=seconds
+            )
 
 class RotorSpeedWhileAirborneMax(KeyPointValueNode):
     '''
