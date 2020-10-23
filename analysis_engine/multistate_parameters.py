@@ -3127,31 +3127,34 @@ class SpeedbrakeSelected(MultistateDerivedParameterNode):
         '''
         array = MappedArray(np_ma_masked_zeros_like(handle_array, dtype=np.short),
                             values_mapping=cls.values_mapping)
+        valid_mask = ~handle_array.mask
         stowed_value = deployed
         if armed is not None:
             stowed_value = armed
-            array[(handle_array >= stowed_value) & (handle_array < deployed)] = 'Armed/Cmd Dn'
+            array[(handle_array >= stowed_value) & (handle_array < deployed) & valid_mask] = 'Armed/Cmd Dn'
         if mask_below_armed:
-            array[handle_array == stowed_value] = 'Stowed'
-            array[handle_array < stowed_value] = np.ma.masked
+            array[(handle_array == stowed_value) & valid_mask] = 'Stowed'
+            array[(handle_array < stowed_value) & valid_mask] = np.ma.masked
         else:
-            array[handle_array < stowed_value] = 'Stowed'
-        array[handle_array >= deployed] = 'Deployed/Cmd Up'
+            array[(handle_array < stowed_value) & valid_mask] = 'Stowed'
+        array[(handle_array >= deployed) & valid_mask] = 'Deployed/Cmd Up'
         return array
 
-    @staticmethod
-    def derive_from_armed_and_speedbrake(armed, spdbrk, threshold=1.0):
+    @classmethod
+    def derive_from_armed_and_speedbrake(cls, armed, spdbrk, threshold=1.0):
         '''
         Speedbrake operation from speedbrake armed and speedbrake, defaults
         to 1.0 which applies to A320 families of aircraft.
         '''
-        armed = np.ma.where(armed.array == 'Armed', 'Armed/Cmd Dn', 'Stowed')
-        array = np.ma.where(spdbrk.array > threshold,
-                            'Deployed/Cmd Up',armed)
+        array = MappedArray(np.zeros_like(armed.array.data, dtype=np.short),
+                            mask=armed.array.mask & spdbrk.array.mask,
+                            values_mapping=cls.values_mapping)
+        array[(armed.array == 'Armed') & ~armed.array.mask] = 1
+        array[(spdbrk.array > threshold) & ~spdbrk.array.mask] = 2
         return array
 
-    @staticmethod
-    def b737_speedbrake(spdbrk, handle):
+    @classmethod
+    def b737_speedbrake(cls, spdbrk, handle):
         '''
         Speedbrake Handle Positions for 737-x:
 
@@ -3184,22 +3187,31 @@ class SpeedbrakeSelected(MultistateDerivedParameterNode):
             If there is no handle position recorded, the default 'Stowed'
             value is retained.
             '''
-            armed = np.ma.where((2.0 < handle.array) & (handle.array < 15.0),
-                                'Armed/Cmd Dn', 'Stowed')
-            array = np.ma.where((handle.array >= 15.0) | (spdbrk.array > 1.0),
-                                'Deployed/Cmd Up', armed)
+            array = MappedArray(np.zeros_like(handle.array.data, dtype=np.short),
+                                mask=handle.array.mask & spdbrk.array.mask,
+                                values_mapping=cls.values_mapping)
+            valid_handle = ~handle.array.mask
+            valid_spdbrk = ~spdbrk.array.mask
+            array[(2.0 < handle.array) & (handle.array < 15.0) & valid_handle] = 1
+            array[(handle.array >= 15.0) & valid_handle] = 2
+            array[(spdbrk.array > 1.0) & valid_spdbrk] = 2
+
         elif spdbrk and not handle:
             # Speedbrake only
-            array = np.ma.where(spdbrk.array > 1.0,
-                                'Deployed/Cmd Up', 'Stowed')
+            array = MappedArray(np.zeros_like(spdbrk.array, dtype=np.short),
+                                values_mapping=cls.values_mapping)
+            array[(spdbrk.array > 1.0) & ~spdbrk.array.mask] = 2
+
         elif handle and not spdbrk:
             # Speedbrake Handle only
-            armed = np.ma.where((2.0 < handle.array) & (handle.array < 15.0),
-                                'Armed/Cmd Dn', 'Stowed')
-            array = np.ma.where(handle.array >= 15.0,
-                                'Deployed/Cmd Up', armed)
+            array = MappedArray(np.zeros_like(handle.array, dtype=np.short),
+                                values_mapping=cls.values_mapping)
+            array[(2.0 < handle.array) & (handle.array < 15.0) & ~handle.array.mask] = 1
+            array[(handle.array >= 15.0) & ~handle.array.mask] = 2
+
         else:
             raise ValueError("Can't work without either Speedbrake or Handle")
+
         return array
 
     @classmethod
@@ -3211,9 +3223,10 @@ class SpeedbrakeSelected(MultistateDerivedParameterNode):
         # Default is stowed.
         array = MappedArray(np_ma_masked_zeros_like(handle_array, dtype=np.short),
                             values_mapping=cls.values_mapping)
-        array[gnd_spoiler_armed_array != 'Armed'] = 'Stowed'
-        array[gnd_spoiler_armed_array == 'Armed'] = 'Armed/Cmd Dn'
-        array[handle_array >= 1] = 'Deployed/Cmd Up'
+        valid_mask = ~gnd_spoiler_armed_array.mask
+        array[(gnd_spoiler_armed_array != 'Armed') & valid_mask] = 'Stowed'
+        array[(gnd_spoiler_armed_array == 'Armed') & valid_mask] = 'Armed/Cmd Dn'
+        array[(handle_array >= 1) & ~handle_array.mask] = 'Deployed/Cmd Up'
         return array
 
     @staticmethod
@@ -3222,14 +3235,14 @@ class SpeedbrakeSelected(MultistateDerivedParameterNode):
         Speedbrake Handle Positions for 787, taken from early recordings.
         '''
         # Speedbrake Handle only
-        speedbrake = np.ma.zeros(len(handle.array), dtype=np.short)
+        array = np.zeros_like(handle.array, dtype=np.short)
         stepped_array = step_values(handle.array, [0, 10, 20])
         # Assuming all values from 15 and above are Deployed. Typically a
         # maximum value of 60 is recorded when deployed with reverse thrust
         # whereas values of 30-60 are seen during the approach.
-        speedbrake[stepped_array == 10] = 1
-        speedbrake[stepped_array == 20] = 2
-        return speedbrake
+        array[(stepped_array == 10) & ~handle.array.mask] = 1
+        array[(stepped_array == 20) & ~handle.array.mask] = 2
+        return array
 
     @staticmethod
     def learjet_speedbrake(spdsw):
@@ -3273,18 +3286,22 @@ class SpeedbrakeSelected(MultistateDerivedParameterNode):
             # We have a speedbrake deployed discrete. Set initial state to
             # stowed, then set armed states if available, and finally set
             # deployed state:
-            array = np.ma.zeros(len(deployed.array), dtype=np.short)
+            array = np.ma.array(
+                np.zeros(len(deployed.array), dtype=np.short),
+                mask=deployed.array.mask
+            )
             if armed:
-                array[armed.array == 'Armed'] = 1
-            array[deployed.array == 'Deployed'] = 2
+                array.mask |= armed.array.mask
+                array[(armed.array == 'Armed') & ~armed.array.mask] = 1
+            array[(deployed.array == 'Deployed') & ~deployed.array.mask] = 2
             self.array = array
 
         elif 'B737' in family_name:
             self.array = self.b737_speedbrake(spdbrk, handle)
 
         elif family_name == 'B747':
-            self.array = self.derive_from_handle(handle.array, deployed=5,
-                                                 armed=1)
+            self.array = self.derive_from_handle(handle.array, deployed=10,
+                                                 armed=1.5)
 
         elif family_name == 'B757':
             self.array = self.derive_from_handle(handle.array, deployed=25,

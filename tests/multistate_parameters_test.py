@@ -3188,47 +3188,80 @@ class TestSpeedbrakeSelected(unittest.TestCase):
     def test_derive(self):
         # test with deployed
         spd_sel = SpeedbrakeSelected()
-        spd_sel.derive(
-            deployed=M(array=np.ma.array(
-                [0, 0, 0, 1, 1, 0]), values_mapping={1:'Deployed'}),
-            armed=M(array=np.ma.array(
-                [0, 0, 1, 1, 0, 0]), values_mapping={1:'Armed'})
+        deployed = M(
+            array=np.ma.array(
+                data=[0, 0, 0, 1, 1, 0],
+                mask=[0, 1, 0, 0, 0, 0]
+            ),
+            values_mapping={1:'Deployed'}
         )
-        self.assertEqual(list(spd_sel.array),
-            ['Stowed', 'Stowed', 'Armed/Cmd Dn', 'Deployed/Cmd Up', 'Deployed/Cmd Up', 'Stowed'])
+        armed = M(
+            array=np.ma.array(
+                data=[0, 0, 1, 1, 0, 0],
+                mask=[1, 0, 0, 0, 0, 0]
+            ),
+            values_mapping={1:'Armed'}
+        )
+        spd_sel.derive(deployed, armed, None, None, None, None, None)
+
+        assert_array_equal(spd_sel.array, [0, 0, 1, 2, 2, 0])
+        assert_array_equal(spd_sel.array.mask, deployed.array.mask | armed.array.mask)
+    
+    def test_derive_deployed_only(self):
+        # test with deployed
+        spd_sel = SpeedbrakeSelected()
+        deployed = M(
+            array=np.ma.array(
+                data=[0, 0, 0, 1, 1, 0],
+                mask=[0, 1, 0, 0, 0, 0]
+            ),
+            values_mapping={1:'Deployed'}
+        )
+        spd_sel.derive(deployed, None, None, None, None, None, None)
+
+        assert_array_equal(spd_sel.array, [0, 0, 0, 2, 2, 0])
+        assert_array_equal(spd_sel.array.mask, deployed.array.mask)    
 
     def test_derive_from_handle(self):
         handle_array = np.ma.concatenate([np.arange(0, 2, 0.1),
                                           np.arange(2, 0, -0.1)])
         spd_sel = SpeedbrakeSelected()
         array = spd_sel.derive_from_handle(handle_array)
-        self.assertEqual(list(array), # MappedArray .tolist() does not output states.
-                         ['Stowed']*10+['Deployed/Cmd Up']*20+['Stowed']*10)
+        assert_array_equal(array, np.repeat((0, 2, 0), (10, 20, 10)))
+        assert_array_equal(array.mask, handle_array.mask)
 
         handle_array = np.ma.concatenate([np.arange(0, 2, 0.1),
                                           np.ones(10) * 13,
                                           np.arange(0.99, 0, -0.1)])
+        handle_array[:10] = np.ma.masked
         spd_sel = SpeedbrakeSelected()
         array = spd_sel.derive_from_handle(handle_array, deployed=5, armed=1)
-        self.assertEqual(list(array), # MappedArray .tolist() does not output states.
-                         ['Stowed']*10+['Armed/Cmd Dn']*10+['Deployed/Cmd Up']*10+['Stowed']*10)
+        assert_array_equal(array, np.repeat((0, 1, 2, 0), (10, 10, 10, 10)))
+        assert_array_equal(array.mask, handle_array.mask)
 
         handle_array = np.ma.concatenate([np.arange(0, 2, 0.1),
                                           np.ones(10) * 13,
                                           np.arange(0.99, 0, -0.1)])
         spd_sel = SpeedbrakeSelected()
         array = spd_sel.derive_from_handle(handle_array, deployed=5)
-        self.assertEqual(list(array), # MappedArray .tolist() does not output states.
-                         ['Stowed']*20+['Deployed/Cmd Up']*10+['Stowed']*10)
+        assert_array_equal(array, np.repeat((0, 2, 0), (20, 10, 10)))
+        assert_array_equal(array.mask, handle_array.mask)
 
     def test_derive_from_handle_mask_below_armed(self):
         array = np.ma.arange(-5, 15)
         result = SpeedbrakeSelected.derive_from_handle(array, deployed=10,
                                                        armed=0,
                                                        mask_below_armed=True)
-        self.assertEqual(list(result),
-                         [np.ma.masked] * 5 + ['Stowed'] + 9 * ['Armed/Cmd Dn'] +
-                         5 * ['Deployed/Cmd Up'])
+        assert_array_equal(result, np.repeat((0, 1, 2), (6, 9, 5)))
+        assert_array_equal(result.mask, np.repeat((True, False), (5, 15)))
+
+    def test_derive_from_handle_conserves_mask(self):
+        handle_array = np.ma.concatenate([np.arange(0, 2, 0.1),
+                                          np.arange(2, 0, -0.1)])
+        handle_array[10:20] = np.ma.masked
+        spd_sel = SpeedbrakeSelected()
+        array = spd_sel.derive_from_handle(handle_array)
+        np.testing.assert_array_equal(array.mask, handle_array.mask)
 
     def test_bd100_speedbrake(self):
         handle = load(os.path.join(
@@ -3239,58 +3272,66 @@ class TestSpeedbrakeSelected(unittest.TestCase):
                                                     spoiler_gnd_armed.array)
         self.assertTrue(all(x == 'Armed/Cmd Dn' for x in
                             array[spoiler_gnd_armed.array == 'Armed']))
-        self.assertEqual(np.ma.concatenate([np.arange(8802, 8824),
-                                            np.arange(11463, 11523),
-                                            np.arange(11545, 11575),
-                                            np.arange(11840, 12013)]).tolist(),
-                         np.ma.where(array == 'Deployed/Cmd Up')[0].tolist())
+        assert_array_equal(
+            np.ma.concatenate([np.arange(8802, 8824),
+                               np.arange(11463, 11523),
+                               np.arange(11545, 11575),
+                               np.arange(11840, 12013)]),
+            np.ma.where(array == 'Deployed/Cmd Up')[0])
+        assert_array_equal(array.mask, spoiler_gnd_armed.array.mask)
 
     def test_b737_speedbrake(self):
         self.maxDiff = None
         spd_sel = SpeedbrakeSelected()
         spdbrk = P(array=np.ma.array([0]*10 + [1.3]*20 + [0.2]*10))
+        spdbrk.array[[1, 3, 16, 30]] = np.ma.masked
         handle = P(array=np.ma.arange(40))
+        handle.array[[1, 11, 29, 30]] = np.ma.masked
         # Follow the spdbrk only
         res = spd_sel.b737_speedbrake(spdbrk, None)
-        self.assertEqual(list(res),
-                        ['Stowed']*10 + ['Deployed/Cmd Up']*20 + ['Stowed']*10)
+        assert_array_equal(res, np.repeat((0, 2, 0), (10, 20, 10)))
+        assert_array_equal(res.mask, spdbrk.array.mask)
         # Follow the handle only
         res = spd_sel.b737_speedbrake(None, handle)
-        self.assertEqual(list(res),
-                        ['Stowed']*3 + ['Armed/Cmd Dn']*12 + ['Deployed/Cmd Up']*25)
+        assert_array_equal(res, np.repeat((0, 1, 2), (3, 12, 25)))
+        assert_array_equal(res.mask, handle.array.mask)
         # Follow the combination
         res = spd_sel.b737_speedbrake(spdbrk, handle)
-        self.assertEqual(list(res),
-                        ['Stowed']*3 + ['Armed/Cmd Dn']*7 + ['Deployed/Cmd Up']*30)
+        assert_array_equal(res, np.repeat((0, 1, 2), (3, 7, 30)))
+        assert_array_equal(res.mask, handle.array.mask & spdbrk.array.mask)
 
     def test_derive_from_armed_and_speedbrake(self):
         self.maxDiff = None
         spd_sel = SpeedbrakeSelected()
         spdbrk = P(array=np.ma.array([0]*10 + [1.3]*20 + [0.2]*10))
+        spdbrk.array[28:32] = np.ma.masked
         armed = M(array=np.ma.array(
                 [0]*5 + [1]*5 + [0]*30), values_mapping={1:'Armed'})
+        armed.array[[4, 8, 29]] = np.ma.masked
         # A320 test
         res = spd_sel.derive_from_armed_and_speedbrake(armed, spdbrk)
-        self.assertEqual(list(res),
-                        ['Stowed']*5 + ['Armed/Cmd Dn']*5 + ['Deployed/Cmd Up']*20 + ['Stowed']*10)
+        assert_array_equal(res, np.repeat((0, 1, 0, 1, 2, 0), (5, 3, 1, 1, 18, 12)))
+        assert_array_equal(res.mask, spdbrk.array.mask & armed.array.mask)
 
         # MD-11 test
         spdbrk.array = spdbrk.array * 11
         res = spd_sel.derive_from_armed_and_speedbrake(armed, spdbrk, threshold=10)
-        self.assertEqual(list(res),
-                        ['Stowed']*5 + ['Armed/Cmd Dn']*5 + ['Deployed/Cmd Up']*20 + ['Stowed']*10)
+        assert_array_equal(res, np.repeat((0, 1, 0, 1, 2, 0), (5, 3, 1, 1, 18, 12)))
+        assert_array_equal(res.mask, spdbrk.array.mask & armed.array.mask)
 
 
     def test_b787_speedbrake(self):
         handle = load(os.path.join(
             test_data_path, 'SpeedBrakeSelected_SpeedbrakeHandle.nod'))
 
+        handle.array[6000:7000] = np.ma.masked
         result = SpeedbrakeSelected.b787_speedbrake(handle)
-        self.assertEqual(len(np.ma.where(result == 0)[0]), 9445)
-        self.assertEqual(np.ma.where(result == 1)[0].tolist(),
-                         [8189, 8190, 8451, 8524, 8525] + list(range(9098, 9223)))
-        self.assertEqual(np.ma.where(result == 2)[0].tolist(),
-                         list(range(8191, 8329)) + list(range(8452, 8524)) + list(range(9223, 9262)))
+        self.assertEqual(len(np.ma.where(result == 0)[0]), 8445)
+        assert_array_equal(np.ma.where(result == 1)[0],
+                           np.concatenate(([8189, 8190, 8451, 8524, 8525], range(9098, 9223))))
+        assert_array_equal(np.ma.where(result == 2)[0],
+                           np.concatenate((range(8191, 8329), range(8452, 8524), range(9223, 9262))))
+        assert_array_equal(result.mask, handle.array.mask)
 
 
 class TestStableApproach(unittest.TestCase):
