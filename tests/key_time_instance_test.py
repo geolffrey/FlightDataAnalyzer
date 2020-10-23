@@ -39,6 +39,7 @@ from analysis_engine.key_time_instances import (
     ExitHold,
     FirstEngFuelFlowStart,
     FirstEngStartBeforeLiftoff,
+    FirstFuelFlowStopAfterTouchdown,
     LastEngStartBeforeLiftoff,
     FirstEngStopAfterTouchdown,
     FirstFlapExtensionWhileAirborne,
@@ -1658,6 +1659,44 @@ class TestFirstEngStartBeforeLiftoff(unittest.TestCase):
         node.derive(eng_starts, eng_count, liftoffs)
         self.assertEqual(len(node), 1)
         self.assertEqual(node[0].index, 60)
+
+
+class TestFirstFuelFlowStopAfterTouchdown(unittest.TestCase):
+
+    def setUp(self):
+        self.node_class = FirstFuelFlowStopAfterTouchdown
+
+    def test_can_operate(self):
+        combinations = self.node_class.get_operational_combinations()
+        self.assertEqual(combinations, [('Eng (*) Fuel Flow Min', 'Touchdown'),])
+
+    def test_derive(self):
+        fuel_flow = P('Eng (*) Fuel Flow Min',
+                      array=np.ma.array(data=np.ma.concatenate((np.ma.ones(86) * 700,
+                                                                 np.linspace(720, 850, 25),
+                                                                 np.linspace(850, 0, 10),
+                                                                 np.ma.zeros(5)))))
+        touchdowns = KTI('Touchdown', items=[KeyTimeInstance(88, name='Touchdown')])
+
+        node = self.node_class()
+        node.derive(fuel_flow, touchdowns)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 120)
+
+    def test_never_reaches_0(self):
+        array = np.ma.concatenate((
+            np.ones(86) * 700,
+            np.linspace(720, 850, 25),
+            np.linspace(850, 20, 10),
+        ))
+        fuel_flow = P('Eng (*) Fuel Flow Min', array=array)
+        touchdowns = KTI('Touchdown', items=[KeyTimeInstance(88, name='Touchdown')])
+
+        node = self.node_class()
+        node.derive(fuel_flow, touchdowns)
+
+        self.assertEqual(len(node), 0)
 
 
 class TestLastEngStartBeforeLiftoff(unittest.TestCase):
