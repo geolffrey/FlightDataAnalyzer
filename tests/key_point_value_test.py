@@ -477,6 +477,7 @@ from analysis_engine.key_point_values import (
     GroundspeedStabilizerOutOfTrimDuringTakeoffMax,
     GroundspeedVacatingRunway,
     GroundspeedWhileTaxiingStraightMax,
+    GroundspeedWhileTaxiingTurnConditionalMax,
     GroundspeedWhileTaxiingTurnMax,
     GroundspeedWithThrustReversersDeployedAnyPowerMin,
     GroundspeedWithThrustReversersEffectiveMin,
@@ -17648,6 +17649,63 @@ class TestGroundspeedInTurnDuringTaxiOutMax(unittest.TestCase, NodeTest):
     @unittest.skip('Test Not Implemented')
     def test_derive(self):
         self.assertTrue(False, msg='Test not implemented.')
+
+
+class TestGroundspeedWhileTaxiingTurnConditionalMax(unittest.TestCase, NodeTest):
+
+    def setUp(self):
+        self.node_class = GroundspeedWhileTaxiingTurnConditionalMax
+        self.operational_combinations = [('Groundspeed Signed',
+                                          'Acceleration Lateral Offset Removed',
+                                          'Heading Continuous',
+                                          'Landing',
+                                          'Takeoff',
+                                          'Turning On Ground')]
+        self.gspd=P('Groundspeed Signed', array=[20.0]*30)
+        self.accel=P('Acceleration Lateral Offset Removed', array=[0.14]*30)
+        self.hdg=P('Heading Continuous', array=range(0, 180, 6))
+        self.toff=buildsection('Takeoff', None, 3)
+        self.ldg=buildsection('Landing', 5, 10)
+        self.tog=buildsection('Turning On Ground', 8, 25)
+
+    def test_basic(self):
+        node = self.node_class()
+        node.derive(self.gspd, self.tog, self.ldg, self.toff, self.hdg, self.accel)
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 10)
+        self.assertEqual(node[0].value, 20.0)
+
+    def test_indexing(self):
+        self.gspd.array[13] = 21.0
+        node = self.node_class()
+        node.derive(self.gspd, self.tog, self.ldg, self.toff, self.hdg, self.accel)
+        self.assertEqual(node[0].index, 13)
+        self.assertEqual(node[0].value, 21.0)
+
+    def test_accel_limit(self):
+        self.accel.array -= 0.02
+        node = self.node_class()
+        node.derive(self.gspd, self.tog, self.ldg, self.toff, self.hdg, self.accel)
+        self.assertEqual(len(node), 0)
+
+    def test_not_takeoff(self):
+        self.toff=buildsection('Takeoff', None, 30)
+        node = self.node_class()
+        node.derive(self.gspd, self.tog, self.ldg, self.toff, self.hdg, self.accel)
+        self.assertEqual(len(node), 0)
+
+    def test_not_landing(self):
+        self.ldg=buildsection('Landing', 6, 25)
+        node = self.node_class()
+        node.derive(self.gspd, self.tog, self.ldg, self.toff, self.hdg, self.accel)
+        self.assertEqual(len(node), 0)
+
+    def test_not_small_hdg(self):
+        # 10 to 25 = 15 seconds turning, at 4 deg/sec = 60 deg exactly.
+        self.hdg=P('Heading Continuous', array=range(0, 120, 4))
+        node = self.node_class()
+        node.derive(self.gspd, self.tog, self.ldg, self.toff, self.hdg, self.accel)
+        self.assertEqual(len(node), 0)
 
 
 class TestGroundspeedDuringRejectedTakeoffMax(unittest.TestCase):
