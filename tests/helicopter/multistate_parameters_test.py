@@ -220,7 +220,7 @@ class TestGearOnGround(unittest.TestCase):
         self.assertTrue(all(wow.array[1775:1803] == 'Ground'))
         self.assertTrue(all(wow.array[1806:2107] == 'Air'))
         self.assertTrue(all(wow.array[2109:2200] == 'Ground'))
-        self.assertTrue(all(wow.array[2203:3894] == 'Air'))
+        self.assertTrue(all(wow.array[2204:3894] == 'Air'))
         self.assertTrue(all(wow.array[3896:] == 'Ground'))
 
 

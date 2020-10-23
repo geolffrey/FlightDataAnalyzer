@@ -13,6 +13,7 @@ from analysis_engine.library import (
     align,
     all_of,
     any_of,
+    clump_multistate,
     mask_inside_slices,
     merge_two_parameters,
     moving_average,
@@ -181,7 +182,8 @@ class GearOnGround(MultistateDerivedParameterNode):
                vert_spd=P('Vertical Speed'),
                torque=P('Eng (*) Torque Avg'),
                ac_series=A('Series'),
-               collective=P('Collective')):
+               collective=P('Collective'),
+               fleet=A('Fleet Code')):
 
         if gl and gr:
             delta = abs((gl.offset - gr.offset) * gl.frequency)
@@ -205,57 +207,92 @@ class GearOnGround(MultistateDerivedParameterNode):
             self.frequency = gear.frequency
             self.offset = gear.offset
         elif vert_spd and torque:
-            vert_spd_limit = 100.0
-            torque_limit = 30.0
-            if ac_series and ac_series.value == 'Columbia 234':
-                vert_spd_limit = 125.0
-                torque_limit = 22.0
-                collective_limit = 15.0
-
-                vert_spd_array = align(vert_spd, torque) if vert_spd.hz != torque.hz else vert_spd.array
-                collective_array = align(collective, torque) if collective.hz != torque.hz else collective.array
-
-                vert_spd_array = moving_average(vert_spd_array)
-                torque_array = moving_average(torque.array)
-                collective_array = moving_average(collective_array)
-
-                roo_vs_array = runs_of_ones(abs(vert_spd_array) < vert_spd_limit, min_samples=1)
-                roo_torque_array = runs_of_ones(torque_array < torque_limit, min_samples=1)
-                roo_collective_array = runs_of_ones(collective_array < collective_limit, min_samples=1)
-
-                vs_and_torque = slices_and(roo_vs_array, roo_torque_array)
-                grounded = slices_and(vs_and_torque, roo_collective_array)
-
-                array = np_ma_zeros_like(vert_spd_array)
-                for _slice in slices_remove_small_slices(grounded, count=2):
-                    array[_slice] = 1
-                array.mask = vert_spd_array.mask | torque_array.mask
-                array.mask = array.mask | collective_array.mask
-                self.array = nearest_neighbour_mask_repair(array)
-                self.frequency = torque.frequency
-                self.offset = torque.offset
-
-            else:
-                vert_spd_array = align(vert_spd, torque) if vert_spd.hz != torque.hz else vert_spd.array
-                # Introducted for S76 and Bell 212 which do not have Gear On Ground available
-
-                vert_spd_array = moving_average(vert_spd_array)
-                torque_array = moving_average(torque.array)
-
-                grounded = slices_and(runs_of_ones(abs(vert_spd_array) < vert_spd_limit, min_samples=1),
-                                      runs_of_ones(torque_array < torque_limit, min_samples=1))
-
-                array = np_ma_zeros_like(vert_spd_array)
-                for _slice in slices_remove_small_slices(grounded, count=2):
-                    array[_slice] = 1
-                array.mask = vert_spd_array.mask | torque_array.mask
-                self.array = nearest_neighbour_mask_repair(array)
-                self.frequency = torque.frequency
-                self.offset = torque.offset
-
+            self._ground_from_torque_and_vs(ac_series, fleet, vert_spd, torque, collective)
         else:
             # should not get here if can_operate is correct
             raise NotImplementedError()
+
+    def _ground_from_torque_and_vs(self, ac_series, fleet, vert_spd, torque, collective):
+        '''
+        Determine when the helicopter was on the ground based on torque, vertical speed
+        and optionally on collective.
+
+        General logic
+        -------------
+        Periods where V/S is small and Torque is small, we must be on the ground.
+        For each period not on the ground:
+          - We check if there was any significant V/S. If not, it means we were still on
+            the ground but with some torque applied. We mark this period as Ground.
+          - If we have some significant V/S, we try to refine the section by finding the
+            first and last signs of significant V/S. Before the first sign of V/S we were
+            still on the Ground. Same logic applies after the last sign of V/S
+
+        Columbia 234
+        ------------
+        We also take into consideration the collective for determining when we were on
+        the Ground. This means that we need to have Torque, Collective and V/S small
+        to be on the Ground.
+
+        ACH-S76
+        -------
+        Temporarily change the torque minimum value as this frame does not seem to have
+        an appropriate scaling.
+        '''
+        vert_spd_limit = 100.0
+        torque_limit = 30.0
+        columbia_234 = ac_series and ac_series.value == 'Columbia 234'
+        if columbia_234:
+            vert_spd_limit = 125.0
+            torque_limit = 22.0
+            collective_limit = 15.0
+        elif fleet and fleet.value == 'ACH-S76':
+            # Small adjustment while waiting for the correct Torque scaling
+            torque_limit = 20.0
+
+        vert_spd_array = align(vert_spd, torque) if vert_spd.hz != torque.hz else vert_spd.array
+
+        vert_spd_array = moving_average(vert_spd_array)
+        torque_array = moving_average(torque.array)
+        roo_vs_array = runs_of_ones(abs(vert_spd_array) < vert_spd_limit, min_samples=1)
+        roo_torque_array = runs_of_ones(torque_array < torque_limit, min_samples=1)
+
+        grounded = slices_and(roo_vs_array, roo_torque_array)
+
+        if columbia_234:
+            collective_array = align(collective, torque) if collective.hz != torque.hz else collective.array
+            collective_array = moving_average(collective_array)
+            roo_collective_array = runs_of_ones(collective_array < collective_limit, min_samples=1)
+            grounded = slices_and(grounded, roo_collective_array)
+
+        grounded = slices_remove_small_slices(grounded, time_limit=5, hz=torque.hz)
+        array = np.zeros_like(vert_spd_array)
+        array[np.r_[tuple(grounded)]] = 1
+        array.mask = vert_spd_array.mask | torque_array.mask
+        if columbia_234:
+            array.mask |= collective_array.mask
+        self.array = nearest_neighbour_mask_repair(array)
+        self.frequency = torque.frequency
+        self.offset = torque.offset
+
+        # Adjust with vertical speed
+        for air_slice in clump_multistate(self.array, 'Air'):
+            vert_spd_phase = repair_mask(
+                vert_spd_array[air_slice],
+                extrapolate=True,
+                repair_duration=None,
+                raise_entirely_masked=False
+            )
+            level = np.abs(vert_spd_phase) < vert_spd_limit
+            if level.all():
+                self.array[air_slice] = 1
+            else:
+                level_slices = runs_of_ones(level)
+                if not level_slices:
+                    continue
+                if level_slices[0].start == 0:
+                    self.array[air_slice][level_slices[0]] = 1
+                if level_slices[-1].stop == air_slice.stop - air_slice.start:
+                    self.array[air_slice][level_slices[-1]] = 1
 
 
 class OneEngineInoperative(MultistateDerivedParameterNode):
