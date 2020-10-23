@@ -4954,9 +4954,30 @@ class TestAltitudeRadioBelow30FtDuration(unittest.TestCase):
         '''
         Includes one low (inadvertant?) hover and one higher intentional one.
         '''
-        alt=P('Altitude Radio', np.ma.array(data=[0, 0, 3, 6, 9, 10, 6, 3, 0, 0, 3, 16, 29, 31, 26, 13, 0, 0.0]))
-        gog = M('Gear On Ground', np.ma.array(   [1, 1, 1, 0, 0,  0, 0, 0, 1, 1, 0,  0,  0,  0,  0,  0, 1, 1]),
-                values_mapping={0: 'Air', 1: 'Ground',})
+        array = np.ma.concatenate((
+            [0, 0, 3, 6, 9, 10, 6, 3, 0.0],
+            np.zeros(10),
+            [0, 3, 16, 29, 31, 26, 13, 0]
+        ))
+        alt = P('Altitude Radio', array=array)
+        array = np.ma.repeat((1, 0, 1, 0, 1), (3, 5, 12, 6, 2))
+        gog = M('Gear On Ground', array=array, values_mapping={0: 'Air', 1: 'Ground',})
+        node=self.node_class()
+        node.derive(alt, gog)
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].index, 5)
+        self.assertEqual(node[0].value, 5)
+
+    def test_ignore_short_sections_gog_masks(self):
+        array = np.ma.concatenate((
+            [0, 0, 3, 6, 9, 10, 6, 3, 0.0],
+            np.zeros(10),
+            [0, 3, 16, 29, 31, 26, 13, 0]
+        ))
+        alt = P('Altitude Radio', array=array)
+        array = np.ma.repeat((1, 0, 1, 0, 1), (3, 5, 12, 6, 2))
+        array[::2] = np.ma.masked
+        gog = M('Gear On Ground', array=array, values_mapping={0: 'Air', 1: 'Ground',})
         node=self.node_class()
         node.derive(alt, gog)
         self.assertEqual(len(node), 1)

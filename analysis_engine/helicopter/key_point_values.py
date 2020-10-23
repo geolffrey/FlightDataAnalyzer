@@ -2290,6 +2290,7 @@ class AltitudeRadioBelow30FtDuration(KeyPointValueNode):
 
     def derive(self, alt_rad=P('Altitude Radio'), gog=M('Gear On Ground')):
         lifts = runs_of_ones(gog.array == 'Air')
+        lifts = slices_remove_small_gaps(lifts, time_limit=10, hz=self.hz)
         for lift in lifts:
             max_idx = np.ma.argmax(alt_rad.array[lift]) + lift.start
             if alt_rad.array[max_idx] < 30.0:
