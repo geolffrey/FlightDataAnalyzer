@@ -1186,7 +1186,11 @@ class Flap(MultistateDerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available, frame=A('Frame'),
-                    model=A('Model'), series=A('Series'), family=A('Family')):
+                    model=A('Model'), series=A('Series'), family=A('Family'),
+                    ac_type=A('Aircraft Type')):
+
+        if ac_type == helicopter:
+            return False
 
         frame_name = frame.value if frame else None
         family_name = family.value if family else None
@@ -1277,9 +1281,11 @@ class FlapLever(MultistateDerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available,
-                    model=A('Model'), series=A('Series'), family=A('Family')):
+                    model=A('Model'), series=A('Series'), family=A('Family'),
+                    ac_type=A('Aircraft Type')):
 
-        if not all_of(('Flap Lever Angle', 'Model', 'Series', 'Family'), available):
+        if not all_of(('Flap Lever Angle', 'Model', 'Series', 'Family'), available) or \
+           ac_type == helicopter:
             return False
 
         try:
@@ -1320,10 +1326,12 @@ class FlapIncludingTransition(MultistateDerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available,
-                    model=A('Model'), series=A('Series'), family=A('Family')):
+                    model=A('Model'), series=A('Series'), family=A('Family'),
+                    ac_type=A('Aircraft Type')):
 
-        if not all_of(('Flap Angle', 'Model', 'Series', 'Family'), available):
-            return all_of(('Flap', 'Model', 'Series', 'Family'), available)
+        if not all_of(('Flap Angle', 'Model', 'Series', 'Family'), available) or \
+           ac_type == helicopter:
+            return False
 
         try:
             at.get_flap_map(model.value, series.value, family.value)
@@ -1362,9 +1370,11 @@ class FlapExcludingTransition(MultistateDerivedParameterNode):
 
     @classmethod
     def can_operate(cls, available,
-                    model=A('Model'), series=A('Series'), family=A('Family')):
+                    model=A('Model'), series=A('Series'), family=A('Family'),
+                    ac_type=A('Aircraft Type')):
 
-        if not all_of(('Flap Angle', 'Model', 'Series', 'Family'), available):
+        if not all_of(('Flap Angle', 'Model', 'Series', 'Family'), available) or \
+           ac_type == helicopter:
             return False
 
         try:
