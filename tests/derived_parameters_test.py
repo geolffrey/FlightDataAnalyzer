@@ -328,9 +328,8 @@ class NodeTest(object):
                 self.operational_combination_length,
             )
         else:
-            combinations = list(map(set, self.node_class.get_operational_combinations()))
             for combination in map(set, self.operational_combinations):
-                self.assertIn(combination, combinations)
+                self.assertTrue(self.node_class.can_operate(combination))
 
     def get_params_from_hdf(self, hdf_path, param_names, _slice=None,
                             phase_name='Phase'):
@@ -2637,14 +2636,27 @@ class TestBrake_R_Temp(unittest.TestCase):
         node.derive(brake_1, brake_2, brake_3, None, None, None)
         assert_array_equal(node.array, expected_array)
 
-class TestBrake_TempAvg(unittest.TestCase):
+class TestBrake_TempAvg(NodeTest, unittest.TestCase):
 
     def setUp(self):
         self.node_class = Brake_TempAvg
-
-    def test_can_operate(self):
-        poss_combs = self.node_class.get_operational_combinations()
-        self.assertEqual(len(poss_combs), 2**15-1)
+        self.operational_combinations = [
+            ('Brake (1) Temp', ),
+            ('Brake (2) Temp', ),
+            ('Brake (3) Temp', ),
+            ('Brake (4) Temp', ),
+            ('Brake (5) Temp', ),
+            ('Brake (6) Temp', ),
+            ('Brake (7) Temp', ),
+            ('Brake (8) Temp', ),
+            ('Brake (9) Temp', ),
+            ('Brake (10) Temp', ),
+            ('Brake (11) Temp', ),
+            ('Brake (12) Temp', ),
+            ('Brake (C) Temp', ),
+            ('Brake (L) Temp', ),
+            ('Brake (R) Temp', ),
+        ]
 
     def test_derive(self):
         brake_1_array =   [0, 30, 50, 80,  100, 100, 70, 70, 70, 50, 50, 10,  0,  0, 0]
@@ -2672,14 +2684,27 @@ class TestBrake_TempAvg(unittest.TestCase):
         assert_array_equal(node.array, brake_R_array)
 
 
-class TestBrake_TempMax(unittest.TestCase):
+class TestBrake_TempMax(NodeTest, unittest.TestCase):
 
     def setUp(self):
         self.node_class = Brake_TempMax
-
-    def test_can_operate(self):
-        poss_combs = self.node_class.get_operational_combinations()
-        self.assertEqual(len(poss_combs), 2**15-1)
+        self.operational_combinations = [
+            ('Brake (1) Temp', ),
+            ('Brake (2) Temp', ),
+            ('Brake (3) Temp', ),
+            ('Brake (4) Temp', ),
+            ('Brake (5) Temp', ),
+            ('Brake (6) Temp', ),
+            ('Brake (7) Temp', ),
+            ('Brake (8) Temp', ),
+            ('Brake (9) Temp', ),
+            ('Brake (10) Temp', ),
+            ('Brake (11) Temp', ),
+            ('Brake (12) Temp', ),
+            ('Brake (C) Temp', ),
+            ('Brake (L) Temp', ),
+            ('Brake (R) Temp', ),
+        ]
 
     def test_derive(self):
         brake_1_array =  [0, 30, 50, 80, 100, 100, 70, 70, 70, 50, 50, 10,  0,  0, 0]
@@ -2705,14 +2730,27 @@ class TestBrake_TempMax(unittest.TestCase):
         node.derive(None, None, None, None, None, None, None, None, None, None, brake_R, None, None, None, None)
         assert_array_equal(node.array, brake_R_array)
 
-class TestBrake_TempMin(unittest.TestCase):
+class TestBrake_TempMin(NodeTest, unittest.TestCase):
 
     def setUp(self):
         self.node_class = Brake_TempMin
-
-    def test_can_operate(self):
-        poss_combs = self.node_class.get_operational_combinations()
-        self.assertEqual(len(poss_combs), 2**15-1)
+        self.operational_combinations = [
+            ('Brake (1) Temp', ),
+            ('Brake (2) Temp', ),
+            ('Brake (3) Temp', ),
+            ('Brake (4) Temp', ),
+            ('Brake (5) Temp', ),
+            ('Brake (6) Temp', ),
+            ('Brake (7) Temp', ),
+            ('Brake (8) Temp', ),
+            ('Brake (9) Temp', ),
+            ('Brake (10) Temp', ),
+            ('Brake (11) Temp', ),
+            ('Brake (12) Temp', ),
+            ('Brake (C) Temp', ),
+            ('Brake (L) Temp', ),
+            ('Brake (R) Temp', ),
+        ]
 
     def test_derive(self):
         brake_1_array =  [0, 30, 50, 80, 100, 100, 70, 70, 70, 50, 50, 10,  0,  0, 0]
@@ -5945,8 +5983,24 @@ class TestEng_VibN1Max(unittest.TestCase, NodeTest):
 
     def setUp(self):
         self.node_class = Eng_VibN1Max
-        self.operational_combination_length = 65535 # 2**16-1
-        self.check_operational_combination_length_only = True
+        self.operational_combinations = [
+            ('Eng (1) Vib N1',),
+            ('Eng (2) Vib N1',),
+            ('Eng (3) Vib N1',),
+            ('Eng (4) Vib N1',),
+            ('Eng (1) Vib N1 Fan',),
+            ('Eng (2) Vib N1 Fan',),
+            ('Eng (3) Vib N1 Fan',),
+            ('Eng (4) Vib N1 Fan',),
+            ('Eng (1) Vib N1 Turbine',),
+            ('Eng (2) Vib N1 Turbine',),
+            ('Eng (3) Vib N1 Turbine',),
+            ('Eng (4) Vib N1 Turbine',),
+            ('Eng (1) Vib N1 Compressor',),
+            ('Eng (2) Vib N1 Compressor',),
+            ('Eng (1) Vib N1 Gearbox',),
+            ('Eng (2) Vib N1 Gearbox',),
+        ]
 
     @unittest.skip('Test Not Implemented')
     def test_derive(self):

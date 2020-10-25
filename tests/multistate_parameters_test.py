@@ -9,6 +9,7 @@ import pytest
 from numpy.ma.testutils import assert_array_equal
 
 from hdfaccess.parameter import MappedArray
+from hdfaccess.file import hdf_file
 from flightdatautilities import aircrafttables as at, units as ut
 from flightdatautilities import masked_array_testutils as ma_test
 from analysis_engine.test_utils import buildsection, buildsections
@@ -121,7 +122,33 @@ def setUpModule():
 test_data_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                               'test_data')
 
-class NodeTest(object):
+
+class NodeTest:
+
+    def generate_attributes(self, manufacturer):
+        if manufacturer == 'boeing':
+            _am = A('Model', 'B737-333')
+            _as = A('Series', 'B737-300')
+            _af = A('Family', 'B737 Classic')
+            _et = A('Engine Type', 'CFM56-3B1')
+            _es = A('Engine Series', 'CFM56-3')
+            return (_am, _as, _af, _et, _es)
+        if manufacturer == 'airbus':
+            _am = A('Model', 'A330-333')
+            _as = A('Series', 'A330-300')
+            _af = A('Family', 'A330')
+            _et = A('Engine Type', 'Trent 772B-60')
+            _es = A('Engine Series', 'Trent 772B')
+            return (_am, _as, _af, _et, _es)
+        if manufacturer == 'beechcraft':
+            _am = A('Model', '1900D')
+            _as = A('Series', '1900D')
+            _af = A('Family', '1900')
+            _et = A('Engine Type', 'PT6A-67D')
+            _es = A('Engine Series', 'PT6A')
+            return (_am, _as, _af, _et, _es)
+        raise ValueError('Unexpected lookup for attributes.')
+
     def test_can_operate(self):
         if getattr(self, 'check_operational_combination_length_only', False):
             self.assertEqual(
@@ -129,15 +156,13 @@ class NodeTest(object):
                 self.operational_combination_length,
             )
         else:
-            combinations = list(map(set, self.node_class.get_operational_combinations()))
             for combination in map(set, self.operational_combinations):
-                self.assertIn(combination, combinations)
+                self.assertTrue(self.node_class.can_operate(combination))
 
     def get_params_from_hdf(self, hdf_path, param_names, _slice=None,
                             phase_name='Phase'):
         import shutil
         import tempfile
-        from hdfaccess.file import hdf_file
 
         params = []
         phase = None
@@ -2811,12 +2836,7 @@ class TestSlatIncludingTransition(unittest.TestCase, NodeTest):
         self.assertEqual(node.array.raw.tolist(), [0] * 6 + [16] * 16 + [20] * 4 + [23] * 11)
 
 
-class TestSlatFullyExtended(unittest.TestCase):
-
-    def test_can_operate(self):
-        node = self.node_class()
-        operational_combinations = node.get_operational_combinations()
-        self.assertEqual(len(operational_combinations), 65535) # 2**16-1
+class TestSlatFullyExtended(unittest.TestCase, NodeTest):
 
     def setUp(self):
         extended_l_array = [ 0,  0,  0,  0,  0,  1,  1,  0,  0,  0]
@@ -2827,6 +2847,24 @@ class TestSlatFullyExtended(unittest.TestCase):
         self.extended_r = M(name='Slat (R3) Fully Extended', array=np.ma.array(extended_r_array), values_mapping={1:'Extended'})
         self.extended_7 = M(name='Slat (7) Fully Extended', array=np.ma.array(extended_7_array), values_mapping={1:'Extended'})
         self.node_class = SlatFullyExtended
+        self.operational_combinations = [
+            ('Slat (L1) Fully Extended', ),
+            ('Slat (L2) Fully Extended', ),
+            ('Slat (L3) Fully Extended', ),
+            ('Slat (L4) Fully Extended', ),
+            ('Slat (R1) Fully Extended', ),
+            ('Slat (R2) Fully Extended', ),
+            ('Slat (R3) Fully Extended', ),
+            ('Slat (R4) Fully Extended', ),
+            ('Slat (1) Fully Extended', ),
+            ('Slat (2) Fully Extended', ),
+            ('Slat (3) Fully Extended', ),
+            ('Slat (4) Fully Extended', ),
+            ('Slat (5) Fully Extended', ),
+            ('Slat (6) Fully Extended', ),
+            ('Slat (7) Fully Extended', ),
+            ('Slat (8) Fully Extended', ),
+        ]
 
     def test_derive(self):
         result = [ 0,  0,  0,  0,  0,  1,  1,  0,  0,  0]
@@ -2878,12 +2916,7 @@ class TestSlatFullyExtended(unittest.TestCase):
         np.testing.assert_equal(node.array.mask, result_mask)
 
 
-class TestSlatPartExtended(unittest.TestCase):
-
-    def test_can_operate(self):
-        node = self.node_class()
-        operational_combinations = node.get_operational_combinations()
-        self.assertEqual(len(operational_combinations), 65535) # 2**16-1
+class TestSlatPartExtended(unittest.TestCase, NodeTest):
 
     def setUp(self):
         extended_l_array = [ 0,  0,  0,  0,  0,  1,  1,  0,  0,  0]
@@ -2894,6 +2927,24 @@ class TestSlatPartExtended(unittest.TestCase):
         self.extended_r = M(name='Slat (R3) Part Extended', array=np.ma.array(extended_r_array), values_mapping={1:'Part Extended'})
         self.extended_7 = M(name='Slat (7) Part Extended', array=np.ma.array(extended_7_array), values_mapping={1:'Part Extended'})
         self.node_class = SlatPartExtended
+        self.operational_combinations = [
+            ('Slat (L1) Part Extended', ),
+            ('Slat (L2) Part Extended', ),
+            ('Slat (L3) Part Extended', ),
+            ('Slat (L4) Part Extended', ),
+            ('Slat (R1) Part Extended', ),
+            ('Slat (R2) Part Extended', ),
+            ('Slat (R3) Part Extended', ),
+            ('Slat (R4) Part Extended', ),
+            ('Slat (1) Part Extended', ),
+            ('Slat (2) Part Extended', ),
+            ('Slat (3) Part Extended', ),
+            ('Slat (4) Part Extended', ),
+            ('Slat (5) Part Extended', ),
+            ('Slat (6) Part Extended', ),
+            ('Slat (7) Part Extended', ),
+            ('Slat (8) Part Extended', ),
+        ]
 
     def test_derive(self):
         result = [ 0,  0,  0,  0,  0,  1,  1,  0,  0,  0]
@@ -2945,12 +2996,7 @@ class TestSlatPartExtended(unittest.TestCase):
         np.testing.assert_equal(node.array.mask, result_mask)
 
 
-class TestSlatInTransit(unittest.TestCase):
-
-    def test_can_operate(self):
-        node = self.node_class()
-        operational_combinations = node.get_operational_combinations()
-        self.assertEqual(len(operational_combinations), 65535) # 2**16-1
+class TestSlatInTransit(unittest.TestCase, NodeTest):
 
     def setUp(self):
         transit_l_array = [ 0,  0,  0,  0,  0,  1,  1,  0,  0,  0]
@@ -2961,6 +3007,24 @@ class TestSlatInTransit(unittest.TestCase):
         self.transit_r = M(name='Slat (R3) In Transit', array=np.ma.array(transit_r_array), values_mapping={1:'In Transit'})
         self.transit_7 = M(name='Slat (7) In Transit', array=np.ma.array(transit_r_array), values_mapping={1:'In Transit'})
         self.node_class = SlatInTransit
+        self.operational_combinations = [
+            ('Slat (L1) In Transit', ),
+            ('Slat (L2) In Transit', ),
+            ('Slat (L3) In Transit', ),
+            ('Slat (L4) In Transit', ),
+            ('Slat (R1) In Transit', ),
+            ('Slat (R2) In Transit', ),
+            ('Slat (R3) In Transit', ),
+            ('Slat (R4) In Transit', ),
+            ('Slat (1) In Transit', ),
+            ('Slat (2) In Transit', ),
+            ('Slat (3) In Transit', ),
+            ('Slat (4) In Transit', ),
+            ('Slat (5) In Transit', ),
+            ('Slat (6) In Transit', ),
+            ('Slat (7) In Transit', ),
+            ('Slat (8) In Transit', ),
+        ]
 
     def test_derive(self):
         result = [ 0,  0,  0,  0,  0,  1,  1,  0,  0,  0]

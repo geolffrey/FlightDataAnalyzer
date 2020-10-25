@@ -831,8 +831,6 @@ class NodeTest(object):
         raise ValueError('Unexpected lookup for attributes.')
 
     def test_can_operate(self):
-        if not hasattr(self, 'node_class'):
-            return
         kwargs = getattr(self, 'can_operate_kwargs', {})
         if getattr(self, 'check_operational_combination_length_only', False):
             self.assertEqual(
@@ -840,9 +838,8 @@ class NodeTest(object):
                 self.operational_combination_length,
             )
         else:
-            combinations = list(map(set, self.node_class.get_operational_combinations(**kwargs)))
             for combination in map(set, self.operational_combinations):
-                self.assertIn(combination, combinations)
+                self.assertTrue(self.node_class.can_operate(combination, **kwargs))
 
     def get_params_from_hdf(self, hdf_path, param_names, _slice=None,
                             phase_name='Phase'):
@@ -7064,10 +7061,11 @@ class TestLiftoffToClimbPitchDuration(unittest.TestCase):
 
 class TestMainGearOnGroundToNoseGearOnGroundDuration(unittest.TestCase,
                                                      NodeTest):
+    def setUp(self):
+        self.node_class = MainGearOnGroundToNoseGearOnGroundDuration
+        self.operational_combinations = [('Gear On Ground', 'Gear (N) On Ground', 'Landing')]
 
     def test_derive(self):
-        self.node_class = MainGearOnGroundToNoseGearOnGroundDuration
-        self.operational_combinations = [('Brake Pressure', 'Takeoff Roll',)]
         self.function = max_value
 
         gog_array = np.ma.concatenate((np.zeros(20), np.ones(15)))
