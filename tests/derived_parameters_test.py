@@ -163,6 +163,7 @@ from analysis_engine.derived_parameters import (
     FuelQtyL,
     FuelQtyR,
     FuelQtyAux,
+    FuelQtySmoothed,
     GrossWeight,
     GrossWeightSmoothed,
     Groundspeed,
@@ -3822,6 +3823,34 @@ class TestFuelQtyAux(unittest.TestCase):
 
         dfq.derive(fq1, fq2)
         assert_array_equal(dfq.array, np.ma.ones(4) * 50)
+
+
+class TestFuelQtySmoothed(unittest.TestCase, NodeTest):
+
+    def setUp(self):
+        self.node_class = FuelQtySmoothed
+        self.operational_combinations = [('Fuel Qty', 'Eng (*) Fuel Burn')]
+
+    def test_basic(self):
+        fuel_qty = P('Fuel Qty', array=np.ma.array([10.0, 9.01, 7.99, 7]) * 10_000)
+        fuel_burn = P('Eng (*) Fuel Burn', array=np.ma.array([1.0, 2.01, 2.99, 4]) * 10_000)
+        fqs = self.node_class()
+        fqs.derive(fuel_burn, fuel_qty)
+        result = np.ma.array([10, 9, 8, 7])
+        assert_array_almost_equal(fqs.array / 10_000, result, decimal=2)
+
+    def test_masked(self):
+        fuel_qty = P('Fuel Qty', array=np.ma.array([10, 9.01, 7.99, 7]) * 10_000)
+        fuel_burn = P(
+            'Eng (*) Fuel Burn',
+            array=np.ma.array(data=[1.0, 2.01, 2.99, 4], mask=[0, 0, 1, 0]) * 10_000
+        )
+        fqs = self.node_class()
+        fqs.derive(fuel_burn, fuel_qty)
+        result = np.ma.array([10, 9, 8, 7], mask=[0, 0, 1, 0])
+        assert_array_almost_equal(fqs.array / 10_000, result, decimal=2)
+        assert_array_equal(fqs.array.mask, result.mask)
+
 
 class TestGrossWeightSmoothed(unittest.TestCase):
 
@@ -7706,7 +7735,7 @@ class TestZeroFuelWeight(unittest.TestCase, NodeTest):
     def setUp(self):
         self.node_class = ZeroFuelWeight
         self.operational_combinations = [
-            ('HDF Duration', 'Fuel Qty', 'Gross Weight'),
+            ('HDF Duration', 'Fuel Qty Smoothed', 'Gross Weight'),
             ('HDF Duration', 'Dry Operating Weight',),
             ('HDF Duration', 'Dry Operating Weight', 'Payload'),
         ]

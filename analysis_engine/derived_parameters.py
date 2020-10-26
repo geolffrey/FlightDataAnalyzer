@@ -3853,6 +3853,22 @@ class FuelQty(DerivedParameterNode):
             self.offset = 0.0
 
 
+class FuelQtySmoothed(DerivedParameterNode):
+    '''
+    Fuel quantity measurements are affected by sloshing in the tanks. This approach
+    uses the fuel burn measurement to improve the estimate, with long term values
+    matched to the fuel quantity measured across the whole flight.
+    '''
+
+    name = 'Fuel Qty Smoothed'
+    units = ut.KG
+
+    def derive(self, fuel_burn=P('Eng (*) Fuel Burn'),
+               fuel_qty=P('Fuel Qty')):
+        corr, slope, offset = coreg(fuel_burn.array, fuel_qty.array)
+        self.array = (fuel_burn.array - offset) / slope
+
+
 class FuelQtyC(DerivedParameterNode):
     '''
     Total fuel quantity measured in the centre tanks.
@@ -4048,9 +4064,9 @@ class ZeroFuelWeight(DerivedParameterNode):
     def can_operate(cls, available):
         return ('HDF Duration' in available and
                 ('Dry Operating Weight' in available or
-                 all_of(('Fuel Qty', 'Gross Weight'), available)))
+                 all_of(('Fuel Qty Smoothed', 'Gross Weight'), available)))
 
-    def derive(self, fuel_qty=P('Fuel Qty'), gross_wgt=P('Gross Weight'),
+    def derive(self, fuel_qty=P('Fuel Qty Smoothed'), gross_wgt=P('Gross Weight'),
                dry_operating_wgt=A('Dry Operating Weight'),
                payload=A('Payload'), duration=A('HDF Duration')):
         if gross_wgt and fuel_qty:
