@@ -21411,3 +21411,28 @@ class StabilizerAtLiftoff(KeyPointValueNode):
 
     def derive(self, stabilizer=P('Stabilizer'), liftoffs=KTI('Liftoff')):
         self.create_kpvs_at_ktis(stabilizer.array, liftoffs)
+
+
+class AltitudeAtATSpeedModeEngaged(KeyPointValueNode):
+    '''
+    The Altitude AAL when autothrottle SPD mode is first engaged after takeoff.
+    '''
+
+    name = 'Altitude At AT Speed Mode Engaged'
+    units = ut.FT
+
+    def derive(self,
+               alt_aal=P('Altitude AAL'),
+               at_eng=M('AT Engaged'),
+               at_mode=M('AT Mode'),
+               airs=S('Airborne')):
+
+        for air in slices_int(airs.get_slices()):
+            cruise_thrust = np.logical_and(at_eng.array[air] == 'Engaged',
+                                           at_mode.array[air] == 'SPD')
+            cruise_thrust_idxs = np.nonzero(cruise_thrust)[0]
+            if not cruise_thrust_idxs.size:
+                continue
+            first_cruise_thrust = cruise_thrust_idxs[0] + air.start
+            if first_cruise_thrust:
+                self.create_kpv(first_cruise_thrust, alt_aal.array[first_cruise_thrust])

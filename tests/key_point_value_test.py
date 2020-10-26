@@ -207,6 +207,7 @@ from analysis_engine.key_point_values import (
     AltitudeAtAPEngagedSelection,
     AltitudeAtATDisengagedSelection,
     AltitudeAtATEngagedSelection,
+    AltitudeAtATSpeedModeEngaged,
     #AltitudeAtCabinPressureLowWarningDuration,
     AltitudeAtClimbThrustDerateDeselectedDuringClimbBelow33000Ft,
     AltitudeAtClimbThrustDerateSelection,
@@ -25748,6 +25749,101 @@ class TestStabilizerAtLiftoff:
         node.derive(stab, liftoffs)
 
         assert len(node) == 0
+
+
+class TestAltitudeAtATSpeedModeEngaged(NodeTest, unittest.TestCase):
+
+    def setUp(self):
+        self.node_class = AltitudeAtATSpeedModeEngaged
+        self.operational_combinations = [('Altitude AAL', 'AT Engaged', 'AT Mode', 'Airborne')]
+
+    def test_basic(self):
+        alt_aal = P(name='Altitude AAL', array=np.ma.arange(0.0, 5500.0, 500.0))
+        at_engaged = M(name='AT Engaged',
+                       array=np.ma.array([0]*4 + [1]*7),
+                       values_mapping={0: '-', 1: 'Engaged'})
+
+        at_mode = M(name='AT Mode',
+                    array=np.ma.array([0]*4 + [32]*3 + [8]*4),
+                    values_mapping={0: '-',
+                                    1: 'IDLE',
+                                    2: 'GA',
+                                    4: 'FLCH',
+                                    8: 'SPD',
+                                    16: 'SPD',
+                                    32: 'EPR/N1',})
+
+        airs = buildsection('Airborne', 2, 20)
+
+        node = self.node_class()
+        node.derive(alt_aal, at_engaged, at_mode, airs)
+
+        self.assertEqual(len(node), 1)
+        self.assertEqual(node[0].value, 3500.0)
+        self.assertEqual(node[0].index, 7)
+        self.assertEqual(node[0].name, 'Altitude At AT Speed Mode Engaged')
+
+
+    def test_two_sectors(self):
+        a = list(range(0, 5500, 500)) + list(range(4500,0,-500))
+        alt_aal = P(name='Altitude AAL', array=np.ma.array(a + a, dtype=float))
+        at_engaged = M(name='AT Engaged',
+                       array=np.ma.array([0] *  4 +
+                                         [1] * 14 +
+                                         [0] *  6 +
+                                         [1] * 14 +
+                                         [0] *  2),
+                       values_mapping={0: '-', 1: 'Engaged'})
+
+        at_mode = M(name='AT Mode',
+                    array=np.ma.array([0]  *  4 +
+                                      [32] *  3 +
+                                      [8]  * 10 +
+                                      [2]  *  7 +
+                                      [16] *  4 +
+                                      [4]  *  12) ,
+                    values_mapping={0: '-',
+                                    1: 'IDLE',
+                                    2: 'GA',
+                                    4: 'FLCH',
+                                    8: 'SPD',
+                                    16: 'SPD',
+                                    32: 'EPR/N1',})
+
+        airs = buildsections('Airborne', [2, 18], [22, 38])
+
+        node = self.node_class()
+        node.derive(alt_aal, at_engaged, at_mode, airs)
+
+        self.assertEqual(len(node), 2)
+        self.assertEqual(node[0].value, 3500.0)
+        self.assertEqual(node[0].index, 7)
+        self.assertEqual(node[1].value, 2000.0)
+        self.assertEqual(node[1].index, 24)
+
+    def test_masked_values(self):
+        alt_aal = P(name='Altitude AAL', array=np.ma.arange(0.0, 5500.0, 500.0))
+        at_engaged = M(name='AT Engaged',
+                       array=np.ma.array([0]*4 + [1]*7),
+                       values_mapping={0: '-', 1: 'Engaged'})
+        at_engaged.array[-4:] = np.ma.masked
+
+        at_mode = M(name='AT Mode',
+                    array=np.ma.array([0]*4 + [32]*3 + [8]*4),
+                    values_mapping={0: '-',
+                                    1: 'IDLE',
+                                    2: 'GA',
+                                    4: 'FLCH',
+                                    8: 'SPD',
+                                    16: 'SPD',
+                                    32: 'EPR/N1',})
+
+        airs = buildsection('Airborne', 2, 20)
+
+        node = self.node_class()
+        node.derive(alt_aal, at_engaged, at_mode, airs)
+
+        self.assertEqual(len(node), 0)
 
 
 if __name__ == '__main__':
