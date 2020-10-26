@@ -4855,29 +4855,36 @@ class TestBlendParametersWeighting(unittest.TestCase):
                           mask=[1,1,0,1,0,0,0,1,1,1,0,0,0])
         result = blend_parameters_weighting(array, 1.0)
         expected = [0.0,0.0,0.05,0.0,0.05,1.0,0.05,0.0,0.0,0.0,0.05,1.0,1.0]
-        assert_equal(result.data, expected)
+        np.testing.assert_almost_equal(result, expected)
 
     def test_weighting_increased_freq(self):
         array=np.ma.array(data=[0,0,0,0,0,0],
                           mask=[1,1,1,0,0,0])
         result = blend_parameters_weighting(array, 2.0)
-        expected = np.ma.masked_array([0.0, 0.0, 0.0, 0.0, 0.0, 0.05, 0.1, 0.3, 0.5, 0.5, 0.5, 0.5])
-        ma_test.assert_masked_array_almost_equal(result, expected)
+        expected = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.05, 0.1, 0.3, 0.5, 0.5, 0.5, 0.5])
+        np.testing.assert_almost_equal(result, expected)
 
     def test_weighting_decreased_freq(self):
         array=np.ma.array(data=[0,0,0,0,0,0],
                           mask=[1,1,1,0,0,0])
         result = blend_parameters_weighting(array, 0.5)
-        expected = np.ma.array([0.0, 0.05, 2.0])
-        ma_test.assert_masked_array_almost_equal(result, expected)
+        expected = np.array([0.0, 0.05, 2.0])
+        np.testing.assert_almost_equal(result, expected)
 
     def test_weighting_decreased_freq_odd_samples(self):
         array=np.ma.array(data=[0,0,0,0,0,0,0],
                           mask=[1,1,1,0,0,0,0])
         result = blend_parameters_weighting(array, 0.5)
-        expected = np.ma.array([0.0, 0.05, 2.0])
+        expected = np.array([0.0, 0.05, 2.0])
         # When first run, the length of this array was 4, not 3 (!)
-        ma_test.assert_masked_array_almost_equal(result, expected)
+        np.testing.assert_almost_equal(result, expected)
+
+    def test_weighting_decreased_freq_even_masked_samples(self):
+        array=np.ma.array(data=[0,0,0,0,0,0,0],
+                          mask=[1,1,1,1,0,0,0])
+        result = blend_parameters_weighting(array, 0.5)
+        expected = np.array([0.0, 0.0, 2.0])
+        np.testing.assert_almost_equal(result, expected)
 
 
 class TestBlendTwoParameters(unittest.TestCase):

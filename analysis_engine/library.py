@@ -4985,31 +4985,38 @@ def blend_parameters_weighting(array, wt):
     :type wt: float
     '''
     mask = np.ma.getmaskarray(array)
-    param_weight = (1.0 - mask)
-    result_weight = np_ma_masked_zeros_like(np.ma.arange(floor(len(param_weight) * wt)))
-    final_weight = np_ma_masked_zeros_like(np.ma.arange(floor(len(param_weight) * wt)))
+    param_weight = np.array(~mask, dtype=np.float)
+    a_size = len(array)
+    result_weight = np.zeros(a_size, dtype=np.float)
+
     result_weight[0] = param_weight[0] / wt
     result_weight[-1] = param_weight[-1] / wt
 
-    for i in range(1, len(param_weight) - 1):
-        if param_weight[i] == 0.0:
-            result_weight[int(i * wt)] = 0.0
-            continue
-        if param_weight[i - 1] == 0.0 or param_weight[i + 1] == 0.0:
-            result_weight[int(i * wt)] = 0.1 # Low weight to tail of valid data. Non-zero to avoid problems of overlapping invalid sections.
-            continue
-        result_weight[int(i * wt)] = 1.0 / wt
+    is_zero = np.zeros(a_size, dtype=np.bool)
+    is_neighbour_zero = np.zeros(a_size, dtype=np.bool)
+    is_zero[1:-1] = param_weight[1:-1] == 0
+    # Is previous zero?
+    is_neighbour_zero[1:-1] = param_weight[:-2] == 0
+    # Is next zero?
+    is_neighbour_zero[1:-1] |= param_weight[2:] == 0
 
-    for i in range(1, len(result_weight) - 1):
-        if result_weight[i-1]==0.0 or result_weight[i + 1] == 0.0:
-            final_weight[i]=result_weight[i]/2.0
-        else:
-            final_weight[i]=result_weight[i]
-    final_weight[0]=result_weight[0]
-    final_weight[-1]=result_weight[-1]
+    result_weight[1:-1] = 1.0 / wt
+    # Low weight to tail of valid data. Non-zero to avoid problems of overlapping invalid sections.
+    if wt <= 1:
+        result_weight[is_neighbour_zero] = 0.05
+    else:
+        result_weight[is_neighbour_zero] = 0.1
+    result_weight[is_zero] = 0
 
-    return repair_mask(final_weight, copy=False, repair_duration=None)
-
+    if wt <= 1:
+        # Downsample using the last value within a resampled step.
+        # [0, 1, 2, 3] downsampled with wt 0.5 -> [1, 3] and not [0, 2].
+        new_x = (np.arange(1, floor(a_size * wt)+1) / wt).astype(int) - 1
+        return result_weight[new_x]
+    else:
+        # Upsample, interpolating linearly between consecutive values
+        new_x = np.linspace(0, a_size, floor(a_size * wt), endpoint=False)
+        return np.interp(new_x, np.arange(a_size), result_weight)
 
 
 def most_points_cost(coefs, x, y):

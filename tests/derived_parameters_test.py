@@ -2244,8 +2244,7 @@ class TestAltitudeRadio(unittest.TestCase):
             radioA.array.mask[n] = False
         radioB = load(os.path.join(
             test_data_path, 'A330_AltitudeRadio_B_overflow_8191.nod'))
-        for n in range(649, 30711):
-            radioB.array.mask[n] = False
+        radioB.array.mask[649:30711] = np.ma.nomask
         radioA.array = overflow_correction(radioA.array, radioA, fast.get_slices())
         radioB.array = overflow_correction(radioB.array, radioB, fast.get_slices())
         rad = AltitudeRadio()

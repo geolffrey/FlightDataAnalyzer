@@ -12,7 +12,7 @@ from datetime import date
 import itertools
 from math import radians
 from operator import attrgetter
-from scipy import interp
+from numpy import interp
 from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.signal import medfilt
 
