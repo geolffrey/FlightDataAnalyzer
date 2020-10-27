@@ -21425,9 +21425,14 @@ class AltitudeAtATSpeedModeEngaged(KeyPointValueNode):
                alt_aal=P('Altitude AAL'),
                at_eng=M('AT Engaged'),
                at_mode=M('AT Mode'),
-               airs=S('Airborne')):
+               airs=S('Airborne'),
+               tocs=KTI('Top Of Climb')):
 
         for air in slices_int(airs.get_slices()):
+            toc = tocs.get(within_slice=air).get_first()
+            if toc is None:
+                continue
+            air = slice(air.start, int(toc.index))
             cruise_thrust = np.logical_and(at_eng.array[air] == 'Engaged',
                                            at_mode.array[air] == 'SPD')
             cruise_thrust_idxs = np.nonzero(cruise_thrust)[0]

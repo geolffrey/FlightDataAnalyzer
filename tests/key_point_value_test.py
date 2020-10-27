@@ -25755,7 +25755,9 @@ class TestAltitudeAtATSpeedModeEngaged(NodeTest, unittest.TestCase):
 
     def setUp(self):
         self.node_class = AltitudeAtATSpeedModeEngaged
-        self.operational_combinations = [('Altitude AAL', 'AT Engaged', 'AT Mode', 'Airborne')]
+        self.operational_combinations = [
+            ('Altitude AAL', 'AT Engaged', 'AT Mode', 'Airborne', 'Top Of Climb')
+        ]
 
     def test_basic(self):
         alt_aal = P(name='Altitude AAL', array=np.ma.arange(0.0, 5500.0, 500.0))
@@ -25774,9 +25776,12 @@ class TestAltitudeAtATSpeedModeEngaged(NodeTest, unittest.TestCase):
                                     32: 'EPR/N1',})
 
         airs = buildsection('Airborne', 2, 20)
+        tocs = KTI('Top Of Climb', items=[
+            KeyTimeInstance(19, 'Top Of Climb')
+        ])
 
         node = self.node_class()
-        node.derive(alt_aal, at_engaged, at_mode, airs)
+        node.derive(alt_aal, at_engaged, at_mode, airs, tocs)
 
         self.assertEqual(len(node), 1)
         self.assertEqual(node[0].value, 3500.0)
@@ -25811,9 +25816,13 @@ class TestAltitudeAtATSpeedModeEngaged(NodeTest, unittest.TestCase):
                                     32: 'EPR/N1',})
 
         airs = buildsections('Airborne', [2, 18], [22, 38])
+        tocs = KTI('Top Of Climb', items=[
+            KeyTimeInstance(17, 'Top Of Climb'),
+            KeyTimeInstance(37, 'Top Of Climb'),
+        ])
 
         node = self.node_class()
-        node.derive(alt_aal, at_engaged, at_mode, airs)
+        node.derive(alt_aal, at_engaged, at_mode, airs, tocs)
 
         self.assertEqual(len(node), 2)
         self.assertEqual(node[0].value, 3500.0)
@@ -25839,9 +25848,42 @@ class TestAltitudeAtATSpeedModeEngaged(NodeTest, unittest.TestCase):
                                     32: 'EPR/N1',})
 
         airs = buildsection('Airborne', 2, 20)
+        tocs = KTI('Top Of Climb', items=[
+            KeyTimeInstance(19, 'Top Of Climb'),
+        ])
 
         node = self.node_class()
-        node.derive(alt_aal, at_engaged, at_mode, airs)
+        node.derive(alt_aal, at_engaged, at_mode, airs, tocs)
+
+        self.assertEqual(len(node), 0)
+
+    def test_at_spd_during_descent(self):
+        alt_aal = P(name='Altitude AAL', array=np.ma.concatenate((
+            np.arange(0.0, 5500.0, 500.0),
+            np.arange(5500.0, 0.0, -500.0),
+
+        )))
+        at_engaged = M(name='AT Engaged',
+                       array=np.ma.array([0]*4 + [1]*18),
+                       values_mapping={0: '-', 1: 'Engaged'})
+
+        at_mode = M(name='AT Mode',
+                    array=np.ma.array([0]*4 + [32]*14 + [8]*4),
+                    values_mapping={0: '-',
+                                    1: 'IDLE',
+                                    2: 'GA',
+                                    4: 'FLCH',
+                                    8: 'SPD',
+                                    16: 'SPD',
+                                    32: 'EPR/N1',})
+
+        airs = buildsection('Airborne', 2, 23)
+        tocs = KTI('Top Of Climb', items=[
+            KeyTimeInstance(11, 'Top Of Climb')
+        ])
+
+        node = self.node_class()
+        node.derive(alt_aal, at_engaged, at_mode, airs, tocs)
 
         self.assertEqual(len(node), 0)
 
