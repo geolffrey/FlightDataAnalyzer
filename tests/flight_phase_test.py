@@ -2651,6 +2651,23 @@ class TestTakeoff(unittest.TestCase):
         self.assertEqual(round(slices[0].start), 13923)
         self.assertEqual(round(slices[0].stop), 14200)
 
+    def test_takeoff_touch_and_go(self):
+        '''
+        Normally touch and go's don't have a Takeoff phase. If Airspeed went
+        significantly low, there will be a Takeoff phase detected. In that case, it
+        should not start prior to the last Fast phase.
+        '''
+        head = P('Heading Continuous', np.tile(np.ma.array([ 0,0,10,20,20,20,20,20,20,20,20]), 2))
+        alt_aal = P(
+            'Altitude AAL For Flight Phases',
+            np.tile(np.ma.array([0,0,0,0,0,0,0,0,10,30,70]), 2)
+        )
+        phase_fast = buildsections('Fast', (6.5, 14), (17.5, 21))
+        takeoff = Takeoff()
+        takeoff.get_derived((head, alt_aal, phase_fast, None))
+        expected = buildsections('Takeoff', (1.5, 9.125), (14, 20.125))
+        self.assertEqual(takeoff.get_slices(), expected.get_slices())
+
 
 class TestTaxiOut(unittest.TestCase):
     def test_can_operate(self):

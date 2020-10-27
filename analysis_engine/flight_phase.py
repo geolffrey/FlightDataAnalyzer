@@ -1705,7 +1705,7 @@ class Takeoff(FlightPhaseNode):
         # not just inside the speedy slice, so the final indexes are
         # absolute and not relative references.
 
-        for speedy in fast:
+        for idx, speedy in enumerate(fast):
             # This basic flight phase cuts data into fast and slow sections.
 
             # We know a takeoff should come at the start of the phase,
@@ -1741,6 +1741,11 @@ class Takeoff(FlightPhaseNode):
             # start of the data
             if takeoff_begin is None:
                 takeoff_begin = first
+
+            # If we are following a previous Fast section, don't start Takeoff before
+            # Fast ends
+            if idx > 0:
+                takeoff_begin = max(takeoff_begin, fast[idx-1].slice.stop)
 
             #-------------------------------------------------------------------
             # Find the end of the takeoff phase as we climb through 35ft.
