@@ -4735,13 +4735,13 @@ class HeadingContinuous(DerivedParameterNode):
             if head_capt and head_fo and (head_capt.hz==head_fo.hz):
                 head_capt = P(
                     name='Heading (Capt)',
-                    array=repair_mask(straighten_headings(head_capt.array)),
+                    array=straighten_headings(head_capt.array),
                     frequency=head_capt.frequency,
                     offset=head_capt.offset
                 )
                 head_fo = P(
                     name='Heading (FO)',
-                    array=repair_mask(straighten_headings(head_fo.array)),
+                    array=straighten_headings(head_fo.array),
                     frequency=head_fo.frequency,
                     offset=head_fo.offset
                 )
@@ -4755,7 +4755,7 @@ class HeadingContinuous(DerivedParameterNode):
 
                 self.array, self.frequency, self.offset = blend_two_parameters(head_capt, head_fo)
             elif np.ma.count(head_mag.array):
-                self.array = repair_mask(straighten_headings(head_mag.array))
+                self.array = straighten_headings(head_mag.array)
 
 
 class HeadingTrueContinuous(DerivedParameterNode):

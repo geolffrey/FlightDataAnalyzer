@@ -4331,10 +4331,8 @@ class TestHeadingContinuous(unittest.TestCase, NodeTest):
         hdg_fo.array[3]=np.ma.masked
         node = self.node_class()
         node.derive(hdg, hdg_ca, hdg_fo)
-        expected = np.ma.array(data=np.arange(10)*2.0+351.0,
+        expected = np.ma.array(data=[352., 353., 355., 350., 352., 354., 370., 372., 374., 368.],
                                dtype=np.float, mask=False)
-        expected[0]=352.0
-        expected[-1]=368.0
         assert_equal(node.array, expected)
         self.assertEqual(node.offset, 0.1)
         self.assertEqual(node.frequency, 1,0)
@@ -4343,7 +4341,6 @@ class TestHeadingContinuous(unittest.TestCase, NodeTest):
         hdg = P('Heading',np.ma.array(data=[10]*60, mask=[0]*20+[1]*20+[0]*20, dtype=float))
         con_hdg = HeadingContinuous()
         con_hdg.derive(hdg, None, None, None)
-        # REPAIR_DURATION is limited to 10 seconds, so this should not be repaired.
         self.assertEqual(np.ma.count(con_hdg.array), 40)
 
     def test_heading_continuous_hercules(self):
